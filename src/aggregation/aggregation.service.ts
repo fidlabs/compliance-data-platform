@@ -17,6 +17,31 @@ export class AggregationService {
     private readonly aggregationRunners: AggregationRunner[],
   ) {}
 
+  async executeWithRetries(maxTries: number, fn: () => Promise<void>) {
+    let success = false;
+    let executionNumber = 0;
+    let lastErr;
+    while (!success && executionNumber < maxTries) {
+      try {
+        await fn();
+        success = true;
+      } catch (err) {
+        lastErr = err;
+        this.logger.warn(
+          `Error during Aggregations job, execution ${executionNumber}/${maxTries-1}: ${err}`,
+        );
+        if (executionNumber != maxTries) {
+          this.logger.warn(`Sleeping for 30s before retrying`);
+          await new Promise((resolve) => setTimeout(resolve, 30000));
+        }
+        executionNumber++;
+      }
+    }
+    if (!success) {
+      throw lastErr;
+    }
+  }
+
   async runAggregations() {
     const filledTables: AggregationTable[] = [];
     const pendingAggregationRunners = Object.assign(
@@ -36,10 +61,12 @@ export class AggregationService {
           // execute runner
           this.logger.debug(`STARTING: ${aggregationRunner.getName()}`);
 
-          await aggregationRunner.run(
-            this.prismaService,
-            this.prismaDmobService,
-            this.filSparkService,
+          await this.executeWithRetries(3, () =>
+            aggregationRunner.run(
+              this.prismaService,
+              this.prismaDmobService,
+              this.filSparkService,
+            ),
           );
           this.logger.debug(`FINISHED: ${aggregationRunner.getName()}`);
           executedRunners++;
