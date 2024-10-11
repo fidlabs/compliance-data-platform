@@ -4,6 +4,7 @@ import { AggregationRunner } from './aggregation-runner';
 import { PrismaService } from '../db/prisma.service';
 import { AggregationTable } from './aggregation-table';
 import { FilSparkService } from 'src/filspark/filspark.service';
+import { PostgresService } from '../db/postgres.service';
 
 @Injectable()
 export class AggregationService {
@@ -13,6 +14,7 @@ export class AggregationService {
     private readonly prismaDmobService: PrismaDmobService,
     private readonly prismaService: PrismaService,
     private readonly filSparkService: FilSparkService,
+    private readonly postgresService: PostgresService,
     @Inject('AggregationRunner')
     private readonly aggregationRunners: AggregationRunner[],
   ) {}
@@ -28,7 +30,7 @@ export class AggregationService {
       } catch (err) {
         lastErr = err;
         this.logger.warn(
-          `Error during Aggregations job, execution ${executionNumber}/${maxTries-1}: ${err}`,
+          `Error during Aggregations job, execution ${executionNumber}/${maxTries - 1}: ${err}`,
         );
         if (executionNumber != maxTries) {
           this.logger.warn(`Sleeping for 30s before retrying`);
@@ -66,6 +68,7 @@ export class AggregationService {
               this.prismaService,
               this.prismaDmobService,
               this.filSparkService,
+              this.postgresService,
             ),
           );
           this.logger.debug(`FINISHED: ${aggregationRunner.getName()}`);
