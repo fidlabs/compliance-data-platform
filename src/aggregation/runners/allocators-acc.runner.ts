@@ -14,8 +14,6 @@ export class AllocatorsAccRunner implements AggregationRunner {
     postgresService: PostgresService,
   ): Promise<void> {
     prismaService.$transaction(async (tx) => {
-      await tx.$executeRaw`truncate allocators_weekly_acc`;
-
       const queryIterablePool = new QueryIterablePool<{
         week: Date;
         allocator: string;
@@ -52,8 +50,18 @@ export class AllocatorsAccRunner implements AggregationRunner {
                              week,
                              allocator;`);
 
+      const data: {
+        week: Date;
+        allocator: string;
+        num_of_clients: number | null;
+        biggest_client_sum_of_allocations: bigint | null;
+        total_sum_of_allocations: bigint | null;
+        avg_weighted_retrievability_success_rate: number | null;
+      }[] = [];
+
+      let isFirstInsert = true;
       for await (const rowResult of i) {
-        const data = {
+        data.push({
           week: rowResult.week,
           allocator: rowResult.allocator,
           num_of_clients: rowResult.num_of_clients,
@@ -62,9 +70,26 @@ export class AllocatorsAccRunner implements AggregationRunner {
           total_sum_of_allocations: rowResult.total_sum_of_allocations,
           avg_weighted_retrievability_success_rate:
             rowResult.avg_weighted_retrievability_success_rate,
-        };
-        // fixme: save in batches (createMany)
-        await prismaService.allocators_weekly_acc.create({ data });
+        });
+
+        if (data.length === 5000) {
+          if (isFirstInsert) {
+            await tx.$executeRaw`truncate allocators_weekly_acc`;
+            isFirstInsert = false;
+          }
+
+          await prismaService.allocators_weekly_acc.createMany({
+            data,
+          });
+
+          data.length = 0;
+        }
+      }
+
+      if (data.length > 0) {
+        await prismaService.allocators_weekly_acc.createMany({
+          data,
+        });
       }
     });
   }
