@@ -69,6 +69,9 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
       }
 
       if (data.length > 0) {
+        if (isFirstInsert) {
+          await tx.$executeRaw`truncate unified_verified_deal_hourly`;
+        }
         await prismaService.unified_verified_deal_hourly.createMany({
           data,
         });

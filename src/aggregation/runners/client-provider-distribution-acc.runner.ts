@@ -90,6 +90,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
       }
 
       if (data.length > 0) {
+        if (isFirstInsert) {
+          await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
+        }
         await prismaService.client_provider_distribution_weekly_acc.createMany({
           data,
         });
