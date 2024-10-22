@@ -31,6 +31,7 @@ import { ProvidersAccRunner } from './aggregation/runners/providers-acc.runner';
 import { ProvidersAccController } from './controller/stats/accumulative/providers/providers.controller';
 import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
 import { PostgresService } from './db/postgres.service';
+import { PostgresDmobService } from './db/postgresDmob.service';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { PostgresService } from './db/postgres.service';
     ProviderService,
     AllocatorService,
     PostgresService,
+    PostgresDmobService,
     HistogramHelper,
     {
       provide: 'AggregationRunner',

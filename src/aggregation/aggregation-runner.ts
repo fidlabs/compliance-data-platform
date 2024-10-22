@@ -3,6 +3,7 @@ import { PrismaService } from '../db/prisma.service';
 import { PrismaDmobService } from '../db/prismaDmob.service';
 import { AggregationTable } from './aggregation-table';
 import { PostgresService } from '../db/postgres.service';
+import { PostgresDmobService } from '../db/postgresDmob.service';
 
 export interface AggregationRunner {
   run(
@@ -10,6 +11,7 @@ export interface AggregationRunner {
     prismaDmobService: PrismaDmobService,
     filSparkService: FilSparkService,
     postgresService: PostgresService,
+    postgresDmobService: PostgresDmobService,
   ): Promise<void>;
 
   getFilledTables(): AggregationTable[];

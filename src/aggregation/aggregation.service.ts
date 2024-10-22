@@ -5,6 +5,7 @@ import { PrismaService } from '../db/prisma.service';
 import { AggregationTable } from './aggregation-table';
 import { FilSparkService } from 'src/filspark/filspark.service';
 import { PostgresService } from '../db/postgres.service';
+import { PostgresDmobService } from '../db/postgresDmob.service';
 
 @Injectable()
 export class AggregationService {
@@ -15,6 +16,7 @@ export class AggregationService {
     private readonly prismaService: PrismaService,
     private readonly filSparkService: FilSparkService,
     private readonly postgresService: PostgresService,
+    private readonly postgresDmobService: PostgresDmobService,
     @Inject('AggregationRunner')
     private readonly aggregationRunners: AggregationRunner[],
   ) {}
@@ -69,6 +71,7 @@ export class AggregationService {
               this.prismaDmobService,
               this.filSparkService,
               this.postgresService,
+              this.postgresDmobService,
             ),
           );
           this.logger.debug(`FINISHED: ${aggregationRunner.getName()}`);
