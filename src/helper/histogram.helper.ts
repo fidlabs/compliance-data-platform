@@ -62,7 +62,10 @@ export class HistogramHelper {
       }
     }
 
-    return new HistogramWeekResponseDto(totalCount, histogramWeekDtos);
+    return new HistogramWeekResponseDto(
+      totalCount,
+      histogramWeekDtos.sort((a, b) => a.week.getTime() - b.week.getTime()),
+    );
   }
 
   private getAllHistogramBucketTopValues(
