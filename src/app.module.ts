@@ -36,6 +36,8 @@ import { DataCapStatsService } from './service/datacapstats/datacapstats.service
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ClientReportController } from './controller/client-report/client-report.controller';
+import { ClientReportService } from './service/client-report/client-report.service';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     ProvidersAccController,
     AllocatorsAccController,
     GoogleApisController,
+    ClientReportController,
   ],
   providers: [
     AggregationService,
@@ -79,6 +82,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     PostgresDmobService,
     HistogramHelper,
     GoogleApisService,
+    ClientReportService,
     {
       provide: 'AggregationRunner',
       useFactory: (
