@@ -34,12 +34,14 @@ import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { GoogleApisService } from './service/googleapis/googleapis.service';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
     HttpModule.register({ timeout: 5000 }),
+    CacheModule.register(),
   ],
   controllers: [
     ProvidersController,
