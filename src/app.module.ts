@@ -32,6 +32,8 @@ import { ProvidersAccController } from './controller/stats/accumulative/provider
 import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
+import { GoogleApisController } from './controller/proxy/googleapis.controller';
+import { GoogleApisService } from './service/googleapis/googleapis.service';
 
 @Module({
   imports: [
@@ -44,6 +46,7 @@ import { PostgresDmobService } from './db/postgresDmob.service';
     AllocatorsController,
     ProvidersAccController,
     AllocatorsAccController,
+    GoogleApisController,
   ],
   providers: [
     AggregationService,
@@ -71,6 +74,7 @@ import { PostgresDmobService } from './db/postgresDmob.service';
     PostgresService,
     PostgresDmobService,
     HistogramHelper,
+    GoogleApisService,
     {
       provide: 'AggregationRunner',
       useFactory: (
