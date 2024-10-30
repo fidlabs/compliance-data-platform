@@ -32,6 +32,7 @@ import { ProvidersAccController } from './controller/stats/accumulative/provider
 import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
+import { DataCapStatsService } from './service/datacapstats/datacapstats.service';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -56,6 +57,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     PrismaService,
     PrismaDmobService,
     FilSparkService,
+    DataCapStatsService,
     AllocatorsRunner,
     AllocatorsAccRunner,
     CidSharingRunner,
