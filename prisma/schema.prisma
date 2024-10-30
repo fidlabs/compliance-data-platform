@@ -147,7 +147,7 @@ model allocators_weekly_acc {
 }
 
 model client_report {
-  id                Int      @id @default(autoincrement())
+  id                BigInt   @id @default(autoincrement()) @db.BigInt
   create_date       DateTime @default(now())
   client            String
   client_address    String

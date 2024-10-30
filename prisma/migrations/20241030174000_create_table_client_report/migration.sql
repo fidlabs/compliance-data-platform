@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "client_report" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "create_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "client" TEXT NOT NULL,
     "client_address" TEXT NOT NULL,
