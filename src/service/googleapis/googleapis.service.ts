@@ -10,8 +10,8 @@ export class GoogleApisService {
   private readonly logger = new Logger(GoogleApisService.name);
   constructor(
     private configService: ConfigService,
-    private readonly httpService: HttpService
-  ) { }
+    private readonly httpService: HttpService,
+  ) {}
 
   async getAllocatorsOverview(): Promise<GoogleApisSpreadsheetValuesDto> {
     const endpoint =
