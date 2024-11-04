@@ -147,9 +147,18 @@ model allocators_weekly_acc {
 }
 
 model client_report {
-  id                BigInt   @id @default(autoincrement()) @db.BigInt
-  create_date       DateTime @default(now())
+  id                BigInt                   @id @default(autoincrement()) @db.BigInt
+  create_date       DateTime                 @default(now())
   client            String
   client_address    String
   organization_name String
+  approvers         client_report_approver[]
+}
+
+model client_report_approver {
+  id               BigInt        @id @default(autoincrement()) @db.BigInt
+  client_report    client_report @relation(fields: [client_report_id], references: [id])
+  client_report_id BigInt        @db.BigInt
+  name             String
+  number           Int
 }

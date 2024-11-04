@@ -38,6 +38,7 @@ import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ClientReportController } from './controller/client-report/client-report.controller';
 import { ClientReportService } from './service/client-report/client-report.service';
+import { OctokitService } from './service/octokit/octokit.service';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { ClientReportService } from './service/client-report/client-report.servi
     HistogramHelper,
     GoogleApisService,
     ClientReportService,
+    OctokitService,
     {
       provide: 'AggregationRunner',
       useFactory: (
