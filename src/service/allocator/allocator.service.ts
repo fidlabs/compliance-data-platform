@@ -136,8 +136,8 @@ export class AllocatorService {
 
     const calculationResults: {
       results: {
-        upToOneCompliantProvidersPercent: number;
-        twoCompliantProvidersPercent: number;
+        zeroCompliantProvidersPercent: number;
+        oneOrTwoCompliantProvidersPercent: number;
         threeCompliantProvidersPercent: number;
       }[];
       week: Date;
@@ -224,8 +224,8 @@ export class AllocatorService {
 
       const weekResult: {
         allocator: string;
-        upToOneCompliantProvidersPercent: number;
-        twoCompliantProvidersPercent: number;
+        zeroCompliantProvidersPercent: number;
+        oneOrTwoCompliantProvidersPercent: number;
         threeCompliantProvidersPercent: number;
       }[] = [];
       for (const allocator in byAllocators) {
@@ -261,17 +261,17 @@ export class AllocatorService {
 
         weekResult.push({
           allocator: allocator,
-          upToOneCompliantProvidersPercent:
+          zeroCompliantProvidersPercent:
             this.getAllocatorCompliantProvidersPercentage(
               weekProvidersCompliance,
               providers,
-              ProviderComplianceScoreRange.UpToOne,
+              ProviderComplianceScoreRange.Zero,
             ),
-          twoCompliantProvidersPercent:
+          oneOrTwoCompliantProvidersPercent:
             this.getAllocatorCompliantProvidersPercentage(
               weekProvidersCompliance,
               providers,
-              ProviderComplianceScoreRange.Two,
+              ProviderComplianceScoreRange.OneOrTwo,
             ),
           threeCompliantProvidersPercent:
             this.getAllocatorCompliantProvidersPercentage(
@@ -292,12 +292,12 @@ export class AllocatorService {
       await this.calculateSpsComplianceWeekDto(
         calculationResults,
         allocatorCount,
-        ProviderComplianceScoreRange.UpToOne,
+        ProviderComplianceScoreRange.Zero,
       ),
       await this.calculateSpsComplianceWeekDto(
         calculationResults,
         allocatorCount,
-        ProviderComplianceScoreRange.Two,
+        ProviderComplianceScoreRange.OneOrTwo,
       ),
       await this.calculateSpsComplianceWeekDto(
         calculationResults,
@@ -310,8 +310,8 @@ export class AllocatorService {
   private async calculateSpsComplianceWeekDto(
     calculationResults: {
       results: {
-        upToOneCompliantProvidersPercent: number;
-        twoCompliantProvidersPercent: number;
+        zeroCompliantProvidersPercent: number;
+        oneOrTwoCompliantProvidersPercent: number;
         threeCompliantProvidersPercent: number;
       }[];
       week: Date;
@@ -334,8 +334,8 @@ export class AllocatorService {
   private getSpsComplianceBuckets(
     unsortedResults: {
       results: {
-        upToOneCompliantProvidersPercent: number;
-        twoCompliantProvidersPercent: number;
+        zeroCompliantProvidersPercent: number;
+        oneOrTwoCompliantProvidersPercent: number;
         threeCompliantProvidersPercent: number;
       }[];
       week: Date;
@@ -382,17 +382,17 @@ export class AllocatorService {
 
   private getPercentValue(
     result: {
-      upToOneCompliantProvidersPercent: number;
-      twoCompliantProvidersPercent: number;
+      zeroCompliantProvidersPercent: number;
+      oneOrTwoCompliantProvidersPercent: number;
       threeCompliantProvidersPercent: number;
     },
     providerComplianceScoreRange: ProviderComplianceScoreRange,
   ) {
     switch (providerComplianceScoreRange) {
-      case ProviderComplianceScoreRange.UpToOne:
-        return result.upToOneCompliantProvidersPercent;
-      case ProviderComplianceScoreRange.Two:
-        return result.twoCompliantProvidersPercent;
+      case ProviderComplianceScoreRange.Zero:
+        return result.zeroCompliantProvidersPercent;
+      case ProviderComplianceScoreRange.OneOrTwo:
+        return result.oneOrTwoCompliantProvidersPercent;
       case ProviderComplianceScoreRange.Three:
         return result.threeCompliantProvidersPercent;
     }
@@ -408,11 +408,11 @@ export class AllocatorService {
   ) {
     const validComplianceScores: number[] = [];
     switch (complianceScore) {
-      case ProviderComplianceScoreRange.UpToOne:
-        validComplianceScores.push(0, 1);
+      case ProviderComplianceScoreRange.Zero:
+        validComplianceScores.push(0);
         break;
-      case ProviderComplianceScoreRange.Two:
-        validComplianceScores.push(2);
+      case ProviderComplianceScoreRange.OneOrTwo:
+        validComplianceScores.push(1, 2);
         break;
       case ProviderComplianceScoreRange.Three:
         validComplianceScores.push(3);
