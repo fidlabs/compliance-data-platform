@@ -3,6 +3,10 @@ import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { VerifiedClientData } from '../datacapstats/types.datacapstats';
 import { OctokitService } from '../octokit/octokit.service';
+import { DateTime } from 'luxon';
+import { ProteusShieldService } from '../proteus-shield/proteus-shield.service';
+import { LocationService } from '../location/location.service';
+import { IPResponse } from '../location/types.location';
 
 @Injectable()
 export class ClientReportService {
@@ -10,6 +14,8 @@ export class ClientReportService {
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly octokitService: OctokitService,
+    private readonly proteusShieldService: ProteusShieldService,
+    private readonly locationService: LocationService,
   ) {}
 
   async generateReport(client: string, owner: string, repo: string) {
@@ -22,6 +28,9 @@ export class ClientReportService {
       );
 
     const approvers = await this.getApprovers(verifiedClientData, owner, repo);
+
+    const storageProviderDistribution =
+      await this.getStorageProviderDistributionWithLocation(client);
 
     await this.prismaService.client_report.create({
       data: {
@@ -36,6 +45,20 @@ export class ClientReportService {
               number: approver[1],
             };
           }),
+        },
+        storage_provider_distribution: {
+          create: storageProviderDistribution.map(
+            (storageProviderDistribution) => {
+              return {
+                provider: storageProviderDistribution.provider,
+                unique_data_size: storageProviderDistribution.unique_data_size,
+                total_deal_size: storageProviderDistribution.total_deal_size,
+                location: {
+                  create: storageProviderDistribution.location,
+                },
+              };
+            },
+          ),
         },
       },
     });
@@ -74,5 +97,44 @@ export class ClientReportService {
       }
     }
     return [...approvers.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }
+
+  private async getStorageProviderDistributionWithLocation(client: string) {
+    const lastWeek = DateTime.now()
+      .toUTC()
+      .minus({ week: 1 })
+      .startOf('week')
+      .toJSDate();
+
+    const clientProviderDistribution =
+      await this.prismaService.client_provider_distribution_weekly.findMany({
+        where: {
+          client: client,
+          week: lastWeek,
+        },
+      });
+
+    return await Promise.all(
+      clientProviderDistribution.map(async (clientProviderDistribution) => ({
+        ...clientProviderDistribution,
+        location: await this.getClientProviderDistributionLocation(
+          clientProviderDistribution,
+        ),
+      })),
+    );
+  }
+
+  private async getClientProviderDistributionLocation(clientProviderDistribution: {
+    week: Date;
+    client: string;
+    provider: string;
+    total_deal_size: bigint;
+    unique_data_size: bigint;
+  }): Promise<IPResponse | null> {
+    const minerInfo = await this.proteusShieldService.getMinerInfo(
+      clientProviderDistribution.provider,
+    );
+
+    return await this.locationService.getLocation(minerInfo.result.Multiaddrs);
   }
 }

@@ -35,6 +35,7 @@
     "compression": "^1.7.4",
     "lodash": "^4.17.21",
     "luxon": "^3.5.0",
+    "multiaddr": "^10.0.1",
     "pg": "^8.13.0",
     "pg-iterator": "^0.3.0",
     "pg-query-stream": "^4.7.0",
