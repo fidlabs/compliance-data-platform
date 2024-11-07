@@ -32,6 +32,8 @@ export class ClientReportService {
     const storageProviderDistribution =
       await this.getStorageProviderDistributionWithLocation(client);
 
+    const replicaDistribution = await this.getReplicationDistribution(client);
+
     await this.prismaService.client_report.create({
       data: {
         client: client,
@@ -59,6 +61,9 @@ export class ClientReportService {
               };
             },
           ),
+        },
+        replica_distribution: {
+          create: replicaDistribution,
         },
       },
     });
@@ -136,5 +141,27 @@ export class ClientReportService {
     );
 
     return await this.locationService.getLocation(minerInfo.result.Multiaddrs);
+  }
+
+  private async getReplicationDistribution(client: string) {
+    const distribution =
+      await this.prismaService.client_replica_distribution.findMany({
+        where: {
+          client: client,
+        },
+        omit: {
+          client: true,
+        },
+      });
+
+    const total = distribution.reduce(
+      (acc, cur) => acc + cur.total_deal_size,
+      0n,
+    );
+
+    return distribution.map((distribution) => ({
+      ...distribution,
+      percentage: Number((distribution.total_deal_size * 10000n) / total) / 100,
+    }));
   }
 }
