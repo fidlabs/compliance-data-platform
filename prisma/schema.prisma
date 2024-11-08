@@ -155,6 +155,7 @@ model client_report {
   approvers                     client_report_approver[]
   storage_provider_distribution client_report_storage_provider_distribution[]
   replica_distribution          client_report_replica_distribution[]
+  cid_sharing                   client_report_cid_sharing[]
 }
 
 model client_report_approver {
@@ -197,4 +198,13 @@ model client_report_replica_distribution {
   total_deal_size  BigInt        @db.BigInt
   unique_data_size BigInt        @db.BigInt
   percentage       Float
+}
+
+model client_report_cid_sharing {
+  id               BigInt        @id @default(autoincrement()) @db.BigInt
+  client_report    client_report @relation(fields: [client_report_id], references: [id])
+  client_report_id BigInt        @db.BigInt
+  other_client     String
+  total_deal_size  BigInt        @db.BigInt
+  unique_cid_count Int
 }

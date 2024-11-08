@@ -34,6 +34,8 @@ export class ClientReportService {
 
     const replicaDistribution = await this.getReplicationDistribution(client);
 
+    const cidSharing = await this.getCidSharing(client);
+
     await this.prismaService.client_report.create({
       data: {
         client: client,
@@ -64,6 +66,9 @@ export class ClientReportService {
         },
         replica_distribution: {
           create: replicaDistribution,
+        },
+        cid_sharing: {
+          create: cidSharing,
         },
       },
     });
@@ -163,5 +168,16 @@ export class ClientReportService {
       ...distribution,
       percentage: Number((distribution.total_deal_size * 10000n) / total) / 100,
     }));
+  }
+
+  private async getCidSharing(client: string) {
+    return this.prismaService.cid_sharing.findMany({
+      where: {
+        client: client,
+      },
+      omit: {
+        client: true,
+      },
+    });
   }
 }
