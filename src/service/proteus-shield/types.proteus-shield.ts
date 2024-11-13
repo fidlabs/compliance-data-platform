@@ -1,6 +1,14 @@
-export interface ProteusResponse {
+// noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
+
+export interface ProteusStateMinerInfoResponse {
   jsonrpc: string;
   result: Result;
+  id: number;
+}
+
+export interface ProteusStateLookupIdResponse {
+  jsonrpc: string;
+  result: string;
   id: number;
 }
 

@@ -7,6 +7,7 @@ import { DateTime } from 'luxon';
 import { ProteusShieldService } from '../proteus-shield/proteus-shield.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
+import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 
 @Injectable()
 export class ClientReportService {
@@ -16,9 +17,15 @@ export class ClientReportService {
     private readonly octokitService: OctokitService,
     private readonly proteusShieldService: ProteusShieldService,
     private readonly locationService: LocationService,
+    private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
   async generateReport(client: string, owner: string, repo: string) {
+    //todo: move to CRON - fetch applications only there and pass address here
+    const applications = await this.allocatorTechService.fetchApplications();
+
+    //todo: map to filecoin ID and store mappings in DB (retrieve applications only if not already in DB!!!)
+
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
 

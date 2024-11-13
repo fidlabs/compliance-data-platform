@@ -1,3 +1,5 @@
+// noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
+
 export interface VerifiedClientResponse {
   totalRemainingDatacap: string;
   clientsWithActiveDeals: string;

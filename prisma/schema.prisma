@@ -208,3 +208,11 @@ model client_report_cid_sharing {
   total_deal_size  BigInt        @db.BigInt
   unique_cid_count Int
 }
+
+model client_address_mapping {
+  client      String
+  address     String   @unique
+  create_date DateTime @default(now())
+
+  @@id([client])
+}

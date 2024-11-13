@@ -41,6 +41,7 @@ import { ClientReportService } from './service/client-report/client-report.servi
 import { OctokitService } from './service/octokit/octokit.service';
 import { ProteusShieldService } from './service/proteus-shield/proteus-shield.service';
 import { LocationService } from './service/location/location.service';
+import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { LocationService } from './service/location/location.service';
     OctokitService,
     ProteusShieldService,
     LocationService,
+    AllocatorTechService,
     {
       provide: 'AggregationRunner',
       useFactory: (
