@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { VerifiedClientData } from '../datacapstats/types.datacapstats';
@@ -7,25 +7,20 @@ import { DateTime } from 'luxon';
 import { ProteusShieldService } from '../proteus-shield/proteus-shield.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
-import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 
 @Injectable()
 export class ClientReportService {
+  private readonly logger = new Logger(ClientReportService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly octokitService: OctokitService,
     private readonly proteusShieldService: ProteusShieldService,
     private readonly locationService: LocationService,
-    private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
   async generateReport(client: string, owner: string, repo: string) {
-    //todo: move to CRON - fetch applications only there and pass address here
-    const applications = await this.allocatorTechService.fetchApplications();
-
-    //todo: map to filecoin ID and store mappings in DB (retrieve applications only if not already in DB!!!)
-
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
 
@@ -46,11 +41,12 @@ export class ClientReportService {
     await this.prismaService.client_report.create({
       data: {
         client: client,
-        client_address: verifiedClientData.address,
+        client_address: verifiedClientData?.address,
         organization_name:
-          (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
+          (verifiedClientData?.name ?? '') +
+          (verifiedClientData?.orgName ?? ''),
         approvers: {
-          create: approvers.map((approver) => {
+          create: approvers?.map((approver) => {
             return {
               name: approver[0],
               number: approver[1],
@@ -58,15 +54,17 @@ export class ClientReportService {
           }),
         },
         storage_provider_distribution: {
-          create: storageProviderDistribution.map(
+          create: storageProviderDistribution?.map(
             (storageProviderDistribution) => {
               return {
                 provider: storageProviderDistribution.provider,
                 unique_data_size: storageProviderDistribution.unique_data_size,
                 total_deal_size: storageProviderDistribution.total_deal_size,
-                location: {
-                  create: storageProviderDistribution.location,
-                },
+                ...(storageProviderDistribution.location && {
+                  location: {
+                    create: storageProviderDistribution.location,
+                  },
+                }),
               };
             },
           ),
@@ -97,10 +95,18 @@ export class ClientReportService {
       per_page: 100,
     };
 
-    const comments = await this.octokitService.octokit.paginate(
-      'GET /repos/{owner}/{repo}/issues/{issue_number}/comments',
-      params,
-    );
+    let comments: any[];
+    try {
+      comments = await this.octokitService.octokit.paginate(
+        'GET /repos/{owner}/{repo}/issues/{issue_number}/comments',
+        params,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error getting GitHub comments: ${JSON.stringify(error)}`,
+      );
+      comments = [];
+    }
 
     const approvers = new Map<string, number>();
     for (const comment of comments) {
@@ -171,7 +177,7 @@ export class ClientReportService {
       0n,
     );
 
-    return distribution.map((distribution) => ({
+    return distribution?.map((distribution) => ({
       ...distribution,
       percentage: Number((distribution.total_deal_size * 10000n) / total) / 100,
     }));

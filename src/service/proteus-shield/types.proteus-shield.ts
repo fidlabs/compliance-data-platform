@@ -9,7 +9,13 @@ export interface ProteusStateMinerInfoResponse {
 export interface ProteusStateLookupIdResponse {
   jsonrpc: string;
   result: string;
+  error?: Error;
   id: number;
+}
+
+export interface Error {
+  code: number;
+  message: string;
 }
 
 export interface Result {

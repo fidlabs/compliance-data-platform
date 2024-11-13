@@ -42,6 +42,7 @@ import { OctokitService } from './service/octokit/octokit.service';
 import { ProteusShieldService } from './service/proteus-shield/proteus-shield.service';
 import { LocationService } from './service/location/location.service';
 import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
+import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { AllocatorTechService } from './service/allocator-tech/allocator-tech.se
   providers: [
     AggregationService,
     AggregationTasksService,
+    ClientReportGeneratorJobService,
     PrismaService,
     PrismaDmobService,
     FilSparkService,

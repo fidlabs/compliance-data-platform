@@ -29,6 +29,8 @@ export class DataCapStatsService {
   }
 
   findPrimaryClientDetails(verifiedClientData: VerifiedClientData[]) {
+    if (!verifiedClientData || verifiedClientData.length === 0) return null;
+
     return verifiedClientData.reduce((prev, curr) =>
       parseInt(prev.initialAllowance) > parseInt(curr.initialAllowance)
         ? prev
@@ -38,7 +40,7 @@ export class DataCapStatsService {
 
   findGitHubIssueNumber(verifiedClientData: VerifiedClientData) {
     return parseInt(
-      first(verifiedClientData.allowanceArray)?.auditTrail?.split('/').pop(),
+      first(verifiedClientData?.allowanceArray)?.auditTrail?.split('/').pop(),
     );
   }
 }

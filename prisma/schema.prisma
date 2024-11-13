@@ -150,7 +150,7 @@ model client_report {
   id                            BigInt                                        @id @default(autoincrement()) @db.BigInt
   create_date                   DateTime                                      @default(now())
   client                        String
-  client_address                String
+  client_address                String?
   organization_name             String
   approvers                     client_report_approver[]
   storage_provider_distribution client_report_storage_provider_distribution[]
@@ -186,6 +186,7 @@ model client_report_storage_provider_distribution_location {
   org                      String
   postal                   String
   timezone                 String
+  hostname                 String?
   provider_distribution    client_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
   provider_distribution_id BigInt                                      @unique @db.BigInt
 }
