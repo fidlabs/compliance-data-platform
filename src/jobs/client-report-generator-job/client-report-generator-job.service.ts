@@ -3,7 +3,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
 import { ClientReportService } from '../../service/client-report/client-report.service';
 import { ProteusShieldService } from '../../service/proteus-shield/proteus-shield.service';
-import { AllocatorTechApplicationsResponse } from '../../service/allocator-tech/types.allocator-tech';
 
 @Injectable()
 export class ClientReportGeneratorJobService {
@@ -36,25 +35,12 @@ export class ClientReportGeneratorJobService {
         continue;
       }
 
-      const [gitHubOwner, gitHubRepository] =
-        this.getGitHubOwnerAndRepo(application);
-
-      await this.clientReportService.generateReport(
-        filecoinId,
-        gitHubOwner,
-        gitHubRepository,
-      );
+      await this.clientReportService.generateReport(filecoinId);
 
       if (i > 0 && i % 50 === 0) {
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60));
       }
     }
     this.logger.debug('Finishing Client Reports generation');
-  }
-
-  private getGitHubOwnerAndRepo(
-    application: AllocatorTechApplicationsResponse,
-  ) {
-    return [application[1], application[2]];
   }
 }

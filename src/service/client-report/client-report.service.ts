@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
-import { VerifiedClientData } from '../datacapstats/types.datacapstats';
 import { OctokitService } from '../octokit/octokit.service';
 import { DateTime } from 'luxon';
 import { ProteusShieldService } from '../proteus-shield/proteus-shield.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
+import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
+import { AllocatorTechApplicationsResponse } from '../allocator-tech/types.allocator-tech';
 
 @Injectable()
 export class ClientReportService {
@@ -18,9 +19,14 @@ export class ClientReportService {
     private readonly octokitService: OctokitService,
     private readonly proteusShieldService: ProteusShieldService,
     private readonly locationService: LocationService,
+    private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
-  async generateReport(client: string, owner: string, repo: string) {
+  async generateReport(client: string) {
+    const application = await this.allocatorTechService.getApplication(client);
+
+    const approvers = application ? await this.getApprovers(application) : [];
+
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
 
@@ -28,8 +34,6 @@ export class ClientReportService {
       this.dataCapStatsService.findPrimaryClientDetails(
         verifiedClientResponse.data,
       );
-
-    const approvers = await this.getApprovers(verifiedClientData, owner, repo);
 
     const storageProviderDistribution =
       await this.getStorageProviderDistributionWithLocation(client);
@@ -80,18 +84,15 @@ export class ClientReportService {
   }
 
   private async getApprovers(
-    verifiedClientData: VerifiedClientData,
-    owner: string,
-    repo: string,
+    application: AllocatorTechApplicationsResponse,
   ): Promise<[string, number][]> {
-    const gitHubIssueNumber =
-      this.dataCapStatsService.findGitHubIssueNumber(verifiedClientData);
-    if (!gitHubIssueNumber) return;
+    const [gitHubOwner, gitHubRepository, issueNumber] =
+      this.allocatorTechService.getGitHubOwnerRepoAndIssueNumber(application);
 
     const params = {
-      owner: owner,
-      repo: repo,
-      issue_number: gitHubIssueNumber,
+      owner: gitHubOwner,
+      repo: gitHubRepository,
+      issue_number: issueNumber,
       per_page: 100,
     };
 

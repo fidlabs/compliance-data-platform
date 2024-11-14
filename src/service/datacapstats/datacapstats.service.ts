@@ -2,7 +2,6 @@ import { Injectable, Logger, UseInterceptors } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
-import { first } from 'lodash';
 import {
   VerifiedClientData,
   VerifiedClientResponse,
@@ -35,12 +34,6 @@ export class DataCapStatsService {
       parseInt(prev.initialAllowance) > parseInt(curr.initialAllowance)
         ? prev
         : curr,
-    );
-  }
-
-  findGitHubIssueNumber(verifiedClientData: VerifiedClientData) {
-    return parseInt(
-      first(verifiedClientData?.allowanceArray)?.auditTrail?.split('/').pop(),
     );
   }
 }

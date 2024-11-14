@@ -50,7 +50,7 @@ export class LocationService {
       );
       if (data.bogon === true) continue;
 
-      await this.cacheManager.set(cacheKey, data);
+      await this.cacheManager.set(cacheKey, data, 1000 * 60 * 60 * 24);
       return data;
     }
     return null;
@@ -65,7 +65,7 @@ export class LocationService {
 
     const result = await this.resolveIpAddress(address, protocol);
 
-    await this.cacheManager.set(cacheKey, result);
+    await this.cacheManager.set(cacheKey, result, 1000 * 60 * 60 * 24);
     return result;
   }
 
