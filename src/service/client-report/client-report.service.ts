@@ -194,4 +194,96 @@ export class ClientReportService {
       },
     });
   }
+
+  async getClientReports(client: string) {
+    return await this.prismaService.client_report.findMany({
+      where: {
+        client: client,
+      },
+      orderBy: {
+        create_date: 'desc',
+      },
+    });
+  }
+
+  async getClientLatestReport(client: string) {
+    return this.prismaService.client_report.findFirst({
+      where: {
+        client: client,
+      },
+      include: {
+        approvers: {
+          omit: {
+            id: true,
+          },
+        },
+        storage_provider_distribution: {
+          omit: {
+            id: true,
+          },
+          include: {
+            location: {
+              omit: {
+                id: true,
+              },
+            },
+          },
+        },
+        replica_distribution: {
+          omit: {
+            id: true,
+          },
+        },
+        cid_sharing: {
+          omit: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        create_date: 'desc',
+      },
+    });
+  }
+
+  async getClientReport(client: string, id: any) {
+    return this.prismaService.client_report.findFirst({
+      where: {
+        client: client,
+        id: id,
+      },
+      include: {
+        approvers: {
+          omit: {
+            id: true,
+          },
+        },
+        storage_provider_distribution: {
+          omit: {
+            id: true,
+          },
+          include: {
+            location: {
+              omit: {
+                id: true,
+              },
+            },
+          },
+        },
+        replica_distribution: {
+          omit: {
+            id: true,
+          },
+        },
+        cid_sharing: {
+          omit: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        create_date: 'desc',
+      },
+    });
+  }
 }
