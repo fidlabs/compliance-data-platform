@@ -95,7 +95,11 @@ export class ProteusShieldService {
           }),
         ),
     );
-    await this.cacheManager.set(`${this._minerInfoCacheKey}_${provider}`, data);
+    await this.cacheManager.set(
+      `${this._minerInfoCacheKey}_${provider}`,
+      data,
+      1000 * 60 * 60 * 2,
+    );
 
     return data;
   }
