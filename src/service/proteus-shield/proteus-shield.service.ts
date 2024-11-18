@@ -79,7 +79,7 @@ export class ProteusShieldService {
 
     this.logger.log(`Getting miner info for ${provider}`);
 
-    const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v0`;
+    const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService
         .post<ProteusStateMinerInfoResponse>(endpoint, {
