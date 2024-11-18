@@ -68,10 +68,4 @@ export class AllocatorTechService {
 
     return data;
   }
-
-  public getGitHubOwnerRepoAndIssueNumber(
-    application: AllocatorTechApplicationsResponse,
-  ) {
-    return [application[1], application[2], application[0]['Issue Number']];
-  }
 }

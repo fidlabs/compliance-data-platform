@@ -1,32 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
-import { OctokitService } from '../octokit/octokit.service';
 import { DateTime } from 'luxon';
 import { ProteusShieldService } from '../proteus-shield/proteus-shield.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
-import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
-import { AllocatorTechApplicationsResponse } from '../allocator-tech/types.allocator-tech';
 
 @Injectable()
 export class ClientReportService {
-  private readonly logger = new Logger(ClientReportService.name);
-
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
-    private readonly octokitService: OctokitService,
     private readonly proteusShieldService: ProteusShieldService,
     private readonly locationService: LocationService,
-    private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
   async generateReport(client: string) {
-    const application = await this.allocatorTechService.getApplication(client);
-
-    const approvers = application ? await this.getApprovers(application) : [];
-
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
 
@@ -49,14 +38,6 @@ export class ClientReportService {
         organization_name:
           (verifiedClientData?.name ?? '') +
           (verifiedClientData?.orgName ?? ''),
-        approvers: {
-          create: approvers?.map((approver) => {
-            return {
-              name: approver[0],
-              number: approver[1],
-            };
-          }),
-        },
         storage_provider_distribution: {
           create: storageProviderDistribution?.map(
             (storageProviderDistribution) => {
@@ -81,46 +62,6 @@ export class ClientReportService {
         },
       },
     });
-  }
-
-  private async getApprovers(
-    application: AllocatorTechApplicationsResponse,
-  ): Promise<[string, number][]> {
-    const [gitHubOwner, gitHubRepository, issueNumber] =
-      this.allocatorTechService.getGitHubOwnerRepoAndIssueNumber(application);
-
-    const params = {
-      owner: gitHubOwner,
-      repo: gitHubRepository,
-      issue_number: issueNumber,
-      per_page: 100,
-    };
-
-    let comments: any[];
-    try {
-      comments = await this.octokitService.octokit.paginate(
-        'GET /repos/{owner}/{repo}/issues/{issue_number}/comments',
-        params,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error getting GitHub comments: ${JSON.stringify(error)}`,
-      );
-      comments = [];
-    }
-
-    const approvers = new Map<string, number>();
-    for (const comment of comments) {
-      if (
-        comment.body?.startsWith('## Request Approved') === true ||
-        comment.body?.startsWith('## Request Proposed') === true
-      ) {
-        const approver = comment.user?.login ?? 'Unknown';
-        const count = approvers.get(approver) ?? 0;
-        approvers.set(approver, count + 1);
-      }
-    }
-    return [...approvers.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }
 
   private async getStorageProviderDistributionWithLocation(client: string) {
@@ -212,11 +153,6 @@ export class ClientReportService {
         client: client,
       },
       include: {
-        approvers: {
-          omit: {
-            id: true,
-          },
-        },
         storage_provider_distribution: {
           omit: {
             id: true,
@@ -253,11 +189,6 @@ export class ClientReportService {
         id: id,
       },
       include: {
-        approvers: {
-          omit: {
-            id: true,
-          },
-        },
         storage_provider_distribution: {
           omit: {
             id: true,

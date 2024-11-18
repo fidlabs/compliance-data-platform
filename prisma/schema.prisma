@@ -152,18 +152,9 @@ model client_report {
   client                        String
   client_address                String?
   organization_name             String
-  approvers                     client_report_approver[]
   storage_provider_distribution client_report_storage_provider_distribution[]
   replica_distribution          client_report_replica_distribution[]
   cid_sharing                   client_report_cid_sharing[]
-}
-
-model client_report_approver {
-  id               BigInt        @id @default(autoincrement()) @db.BigInt
-  client_report    client_report @relation(fields: [client_report_id], references: [id])
-  client_report_id BigInt        @db.BigInt
-  name             String
-  number           Int
 }
 
 model client_report_storage_provider_distribution {
