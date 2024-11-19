@@ -10,7 +10,7 @@ import { AllocatorsRunner } from './aggregation/runners/allocators.runner';
 import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
 import { ClientAllocatorDistributionRunner } from './aggregation/runners/client-allocator-distribution.runner';
 import { ClientClaimsRunner } from './aggregation/runners/client-claims.runner';
-import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
+import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
 import { ProviderRetrievabilityRunner } from './aggregation/runners/provider-retrievability.runner';
@@ -72,7 +72,7 @@ import { ClientReportGeneratorJobService } from './jobs/client-report-generator-
     ClientAllocatorDistributionRunner,
     ClientAllocatorDistributionAccRunner,
     ClientClaimsRunner,
-    ClientProviderDistributionRunner,
+    ClientProviderDistributionWeeklyRunner,
     ClientProviderDistributionAccRunner,
     ClientReplicaDistributionRunner,
     ProviderFirstClientRunner,
@@ -133,7 +133,7 @@ import { ClientReportGeneratorJobService } from './jobs/client-report-generator-
         ClientAllocatorDistributionRunner,
         ClientAllocatorDistributionAccRunner,
         ClientClaimsRunner,
-        ClientProviderDistributionRunner,
+        ClientProviderDistributionWeeklyRunner,
         ClientProviderDistributionAccRunner,
         ClientReplicaDistributionRunner,
         ProviderFirstClientRunner,

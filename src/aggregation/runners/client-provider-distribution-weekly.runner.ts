@@ -5,7 +5,9 @@ import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 import { getClientProviderDistributionWeekly } from '../../../prismaDmob/generated/client/sql';
 
-export class ClientProviderDistributionRunner implements AggregationRunner {
+export class ClientProviderDistributionWeeklyRunner
+  implements AggregationRunner
+{
   async run(
     prismaService: PrismaService,
     prismaDmobService: PrismaDmobService,
