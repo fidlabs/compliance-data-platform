@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { DateTime } from 'luxon';
-import { ProteusShieldService } from '../proteus-shield/proteus-shield.service';
+import { LotusApiService } from '../proteus-shield/lotus-api.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
 
@@ -11,7 +11,7 @@ export class ClientReportService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
-    private readonly proteusShieldService: ProteusShieldService,
+    private readonly proteusShieldService: LotusApiService,
     private readonly locationService: LocationService,
   ) {}
 

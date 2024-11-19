@@ -38,7 +38,7 @@ import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ClientReportController } from './controller/client-report/client-report.controller';
 import { ClientReportService } from './service/client-report/client-report.service';
-import { ProteusShieldService } from './service/proteus-shield/proteus-shield.service';
+import { LotusApiService } from './service/proteus-shield/lotus-api.service';
 import { LocationService } from './service/location/location.service';
 import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
@@ -88,7 +88,7 @@ import { ClientReportGeneratorJobService } from './jobs/client-report-generator-
     HistogramHelper,
     GoogleApisService,
     ClientReportService,
-    ProteusShieldService,
+    LotusApiService,
     LocationService,
     AllocatorTechService,
     {

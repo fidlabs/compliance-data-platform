@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProteusShieldService } from './proteus-shield.service';
+import { LotusApiService } from './lotus-api.service';
 
 describe('ProteusShieldService', () => {
-  let service: ProteusShieldService;
+  let service: LotusApiService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ProteusShieldService],
+      providers: [LotusApiService],
     }).compile();
 
-    service = module.get<ProteusShieldService>(ProteusShieldService);
+    service = module.get<LotusApiService>(LotusApiService);
   });
 
   it('should be defined', () => {

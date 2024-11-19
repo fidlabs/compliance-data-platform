@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
 import { ClientReportService } from '../../service/client-report/client-report.service';
-import { ProteusShieldService } from '../../service/proteus-shield/proteus-shield.service';
+import { LotusApiService } from '../../service/proteus-shield/lotus-api.service';
 
 @Injectable()
 export class ClientReportGeneratorJobService {
@@ -11,7 +11,7 @@ export class ClientReportGeneratorJobService {
   constructor(
     private readonly allocatorTechService: AllocatorTechService,
     private readonly clientReportService: ClientReportService,
-    private readonly proteusShieldService: ProteusShieldService,
+    private readonly proteusShieldService: LotusApiService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)

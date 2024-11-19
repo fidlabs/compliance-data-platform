@@ -12,8 +12,8 @@ import { PrismaService } from '../../db/prisma.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class ProteusShieldService {
-  private readonly logger = new Logger(ProteusShieldService.name);
+export class LotusApiService {
+  private readonly logger = new Logger(LotusApiService.name);
   private readonly _minerInfoCacheKey = 'minerInfoCache';
 
   constructor(
