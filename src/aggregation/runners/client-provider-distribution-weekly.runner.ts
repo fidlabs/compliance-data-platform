@@ -3,33 +3,36 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { FilSparkService } from 'src/filspark/filspark.service';
 import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
-import { getClientProviderDistribution } from '../../../prismaDmob/generated/client/sql';
+import { getClientProviderDistributionWeekly } from '../../../prismaDmob/generated/client/sql';
 
-export class ClientProviderDistributionRunner implements AggregationRunner {
+export class ClientProviderDistributionWeeklyRunner
+  implements AggregationRunner
+{
   async run(
     prismaService: PrismaService,
     prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,
   ): Promise<void> {
     const result = await prismaDmobService.$queryRawTyped(
-      getClientProviderDistribution(),
+      getClientProviderDistributionWeekly(),
     );
 
     const data = result.map((dmobResult) => ({
+      week: dmobResult.week,
       client: dmobResult.client,
       provider: dmobResult.provider,
       total_deal_size: dmobResult.total_deal_size,
       unique_data_size: dmobResult.unique_data_size,
     }));
 
-    await prismaService.$executeRaw`truncate client_provider_distribution;`;
-    await prismaService.client_provider_distribution.createMany({
+    await prismaService.$executeRaw`truncate client_provider_distribution_weekly;`;
+    await prismaService.client_provider_distribution_weekly.createMany({
       data,
     });
   }
 
   getFilledTables(): AggregationTable[] {
-    return [AggregationTable.ClientProviderDistribution];
+    return [AggregationTable.ClientProviderDistributionWeekly];
   }
 
   getDependingTables(): AggregationTable[] {
@@ -37,6 +40,6 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Client/Provider Distribution Runner';
+    return 'Client/Provider Distribution Weekly Runner';
   }
 }

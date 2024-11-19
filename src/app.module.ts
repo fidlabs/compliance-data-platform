@@ -10,7 +10,7 @@ import { AllocatorsRunner } from './aggregation/runners/allocators.runner';
 import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
 import { ClientAllocatorDistributionRunner } from './aggregation/runners/client-allocator-distribution.runner';
 import { ClientClaimsRunner } from './aggregation/runners/client-claims.runner';
-import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
+import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
 import { ProviderRetrievabilityRunner } from './aggregation/runners/provider-retrievability.runner';
@@ -32,9 +32,17 @@ import { ProvidersAccController } from './controller/stats/accumulative/provider
 import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
+import { DataCapStatsService } from './service/datacapstats/datacapstats.service';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ClientReportController } from './controller/client-report/client-report.controller';
+import { ClientReportService } from './service/client-report/client-report.service';
+import { LotusApiService } from './service/lotus-api/lotus-api.service';
+import { LocationService } from './service/location/location.service';
+import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
+import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
+import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
 
 @Module({
   imports: [
@@ -49,13 +57,16 @@ import { CacheModule } from '@nestjs/cache-manager';
     ProvidersAccController,
     AllocatorsAccController,
     GoogleApisController,
+    ClientReportController,
   ],
   providers: [
     AggregationService,
     AggregationTasksService,
+    ClientReportGeneratorJobService,
     PrismaService,
     PrismaDmobService,
     FilSparkService,
+    DataCapStatsService,
     AllocatorsRunner,
     AllocatorsAccRunner,
     CidSharingRunner,
@@ -63,6 +74,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     ClientAllocatorDistributionAccRunner,
     ClientClaimsRunner,
     ClientProviderDistributionRunner,
+    ClientProviderDistributionWeeklyRunner,
     ClientProviderDistributionAccRunner,
     ClientReplicaDistributionRunner,
     ProviderFirstClientRunner,
@@ -77,6 +89,10 @@ import { CacheModule } from '@nestjs/cache-manager';
     PostgresDmobService,
     HistogramHelper,
     GoogleApisService,
+    ClientReportService,
+    LotusApiService,
+    LocationService,
+    AllocatorTechService,
     {
       provide: 'AggregationRunner',
       useFactory: (
@@ -87,6 +103,7 @@ import { CacheModule } from '@nestjs/cache-manager';
         clientAllocatorDistributionAccRunner,
         clientClaimsRunner,
         clientProviderDistributionRunner,
+        clientProviderDistributionWeeklyRunner,
         clientProviderDistributionAccRunner,
         clientReplicaDistributionRunner,
         providerFirstClientRunner,
@@ -103,6 +120,7 @@ import { CacheModule } from '@nestjs/cache-manager';
         clientAllocatorDistributionAccRunner,
         clientClaimsRunner,
         clientProviderDistributionRunner,
+        clientProviderDistributionWeeklyRunner,
         clientProviderDistributionAccRunner,
         clientReplicaDistributionRunner,
         providerFirstClientRunner,
@@ -120,6 +138,7 @@ import { CacheModule } from '@nestjs/cache-manager';
         ClientAllocatorDistributionAccRunner,
         ClientClaimsRunner,
         ClientProviderDistributionRunner,
+        ClientProviderDistributionWeeklyRunner,
         ClientProviderDistributionAccRunner,
         ClientReplicaDistributionRunner,
         ProviderFirstClientRunner,

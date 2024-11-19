@@ -1,7 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "./generated/client"
-  previewFeatures = ["typedSql"]
+  provider        = "prisma-client-js"
+  output          = "./generated/client"
+  previewFeatures = ["typedSql", "omitApi"]
 }
 
 datasource db {
@@ -10,138 +10,210 @@ datasource db {
 }
 
 model client_allocator_distribution_weekly {
-  week DateTime
-  client String
-  allocator String
+  week               DateTime
+  client             String
+  allocator          String
   num_of_allocations Int
   sum_of_allocations BigInt
-  
+
   @@id([week, client, allocator])
 }
 
 model cid_sharing {
-  client String
-  other_client String
-  total_deal_size BigInt
+  client           String
+  other_client     String
+  total_deal_size  BigInt
   unique_cid_count Int
-  
+
   @@id([client, other_client])
 }
 
 model unified_verified_deal_hourly {
-  hour DateTime
-  client String
-  provider String
-  num_of_claims Int
+  hour            DateTime
+  client          String
+  provider        String
+  num_of_claims   Int
   total_deal_size BigInt
-  
+
   @@id([hour, client, provider])
 }
 
 model client_provider_distribution_weekly {
-  week DateTime
-  client String
-  provider String
-  total_deal_size BigInt
+  week             DateTime
+  client           String
+  provider         String
+  total_deal_size  BigInt
   unique_data_size BigInt
 
   @@id([week, client, provider])
 }
 
+model client_provider_distribution {
+  client           String
+  provider         String
+  total_deal_size  BigInt
+  unique_data_size BigInt
+
+  @@id([client, provider])
+}
+
 model client_claims_hourly {
-  hour DateTime
-  client String
+  hour            DateTime
+  client          String
   total_deal_size BigInt
 
   @@id([hour, client])
 }
 
 model provider_first_client {
-  provider String
+  provider     String
   first_client String
 
   @@id(provider)
 }
 
 model client_replica_distribution {
-  client String
-  num_of_replicas Int
-  total_deal_size BigInt
+  client           String
+  num_of_replicas  Int
+  total_deal_size  BigInt
   unique_data_size BigInt
 
   @@id([client, num_of_replicas])
 }
 
 model providers_weekly {
-  week DateTime
-  provider String
-  num_of_clients Int
-  biggest_client_total_deal_size BigInt
-  total_deal_size BigInt
+  week                            DateTime
+  provider                        String
+  num_of_clients                  Int
+  biggest_client_total_deal_size  BigInt
+  total_deal_size                 BigInt
   avg_retrievability_success_rate Float
 
   @@id([week, provider])
 }
 
 model allocators_weekly {
-  week DateTime
-  allocator String
-  num_of_clients Int
-  biggest_client_sum_of_allocations BigInt
-  total_sum_of_allocations BigInt
+  week                                     DateTime
+  allocator                                String
+  num_of_clients                           Int
+  biggest_client_sum_of_allocations        BigInt
+  total_sum_of_allocations                 BigInt
   avg_weighted_retrievability_success_rate Float
 
   @@id([week, allocator])
 }
 
 model provider_retrievability_daily {
-  date DateTime
-  provider String
-  total Int
-  successful Int
+  date         DateTime
+  provider     String
+  total        Int
+  successful   Int
   success_rate Float
 
   @@id([date, provider])
 }
 
 model client_allocator_distribution_weekly_acc {
-  week DateTime
-  client String
-  allocator String
+  week               DateTime
+  client             String
+  allocator          String
   num_of_allocations Int
   sum_of_allocations BigInt
-  
+
   @@id([week, client, allocator])
 }
 
 model client_provider_distribution_weekly_acc {
-  week DateTime
-  client String
-  provider String
-  total_deal_size BigInt
+  week             DateTime
+  client           String
+  provider         String
+  total_deal_size  BigInt
   unique_data_size BigInt
 
   @@id([week, client, provider])
 }
 
 model providers_weekly_acc {
-  week DateTime
-  provider String
-  num_of_clients Int
-  biggest_client_total_deal_size BigInt
-  total_deal_size BigInt
+  week                            DateTime
+  provider                        String
+  num_of_clients                  Int
+  biggest_client_total_deal_size  BigInt
+  total_deal_size                 BigInt
   avg_retrievability_success_rate Float
 
   @@id([week, provider])
 }
 
 model allocators_weekly_acc {
-  week DateTime
-  allocator String
-  num_of_clients Int
-  biggest_client_sum_of_allocations BigInt
-  total_sum_of_allocations BigInt
+  week                                     DateTime
+  allocator                                String
+  num_of_clients                           Int
+  biggest_client_sum_of_allocations        BigInt
+  total_sum_of_allocations                 BigInt
   avg_weighted_retrievability_success_rate Float
 
   @@id([week, allocator])
+}
+
+model client_report {
+  id                            BigInt                                        @id @default(autoincrement()) @db.BigInt
+  create_date                   DateTime                                      @default(now())
+  client                        String
+  client_address                String?
+  organization_name             String
+  storage_provider_distribution client_report_storage_provider_distribution[]
+  replica_distribution          client_report_replica_distribution[]
+  cid_sharing                   client_report_cid_sharing[]
+}
+
+model client_report_storage_provider_distribution {
+  id               BigInt                                                @id @default(autoincrement()) @db.BigInt
+  client_report    client_report                                         @relation(fields: [client_report_id], references: [id])
+  client_report_id BigInt                                                @db.BigInt
+  provider         String
+  total_deal_size  BigInt
+  unique_data_size BigInt
+  location         client_report_storage_provider_distribution_location?
+}
+
+model client_report_storage_provider_distribution_location {
+  id                       BigInt                                      @id @default(autoincrement()) @db.BigInt
+  ip                       String
+  city                     String
+  region                   String
+  country                  String
+  loc                      String
+  org                      String
+  postal                   String
+  timezone                 String
+  hostname                 String?
+  provider_distribution    client_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
+  provider_distribution_id BigInt                                      @unique @db.BigInt
+}
+
+model client_report_replica_distribution {
+  id               BigInt        @id @default(autoincrement()) @db.BigInt
+  client_report    client_report @relation(fields: [client_report_id], references: [id])
+  client_report_id BigInt        @db.BigInt
+  num_of_replicas  BigInt        @db.BigInt
+  total_deal_size  BigInt        @db.BigInt
+  unique_data_size BigInt        @db.BigInt
+  percentage       Float
+}
+
+model client_report_cid_sharing {
+  id               BigInt        @id @default(autoincrement()) @db.BigInt
+  client_report    client_report @relation(fields: [client_report_id], references: [id])
+  client_report_id BigInt        @db.BigInt
+  other_client     String
+  total_deal_size  BigInt        @db.BigInt
+  unique_cid_count Int
+}
+
+model client_address_mapping {
+  client      String
+  address     String   @unique
+  create_date DateTime @default(now())
+
+  @@id([client])
 }

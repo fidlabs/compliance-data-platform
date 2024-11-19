@@ -5,6 +5,7 @@ export enum AggregationTable {
   ClientAllocatorDistributionWeekly,
   ClientAllocatorDistributionWeeklyAcc,
   ClientClaimsHourly,
+  ClientProviderDistribution,
   ClientProviderDistributionWeekly,
   ClientProviderDistributionWeeklyAcc,
   ClientReplicaDistribution,
