@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  ProteusStateLookupIdResponse,
-  ProteusStateMinerInfoResponse,
-} from './types.proteus-shield';
+  LotusStateLookupIdResponse,
+  LotusStateMinerInfoResponse,
+} from './types.lotus-api';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { HttpService } from '@nestjs/axios';
@@ -39,7 +39,7 @@ export class LotusApiService {
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService
-        .post<ProteusStateLookupIdResponse>(endpoint, {
+        .post<LotusStateLookupIdResponse>(endpoint, {
           jsonrpc: '2.0',
           method: 'Filecoin.StateLookupID',
           params: [address, []],
@@ -70,11 +70,10 @@ export class LotusApiService {
     return data.result;
   }
 
-  async getMinerInfo(provider: string): Promise<ProteusStateMinerInfoResponse> {
-    const cachedData =
-      await this.cacheManager.get<ProteusStateMinerInfoResponse>(
-        `${this._minerInfoCacheKey}_${provider}`,
-      );
+  async getMinerInfo(provider: string): Promise<LotusStateMinerInfoResponse> {
+    const cachedData = await this.cacheManager.get<LotusStateMinerInfoResponse>(
+      `${this._minerInfoCacheKey}_${provider}`,
+    );
     if (cachedData) return cachedData;
 
     this.logger.log(`Getting miner info for ${provider}`);
@@ -82,7 +81,7 @@ export class LotusApiService {
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService
-        .post<ProteusStateMinerInfoResponse>(endpoint, {
+        .post<LotusStateMinerInfoResponse>(endpoint, {
           jsonrpc: '2.0',
           id: 1,
           method: 'Filecoin.StateMinerInfo',

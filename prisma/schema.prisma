@@ -48,6 +48,15 @@ model client_provider_distribution_weekly {
   @@id([week, client, provider])
 }
 
+model client_provider_distribution {
+  client           String
+  provider         String
+  total_deal_size  BigInt
+  unique_data_size BigInt
+
+  @@id([client, provider])
+}
+
 model client_claims_hourly {
   hour            DateTime
   client          String

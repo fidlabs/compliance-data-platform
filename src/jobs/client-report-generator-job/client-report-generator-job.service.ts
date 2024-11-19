@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
 import { ClientReportService } from '../../service/client-report/client-report.service';
-import { LotusApiService } from '../../service/proteus-shield/lotus-api.service';
+import { LotusApiService } from '../../service/lotus-api/lotus-api.service';
 
 @Injectable()
 export class ClientReportGeneratorJobService {
@@ -11,7 +11,7 @@ export class ClientReportGeneratorJobService {
   constructor(
     private readonly allocatorTechService: AllocatorTechService,
     private readonly clientReportService: ClientReportService,
-    private readonly proteusShieldService: LotusApiService,
+    private readonly lotusApiService: LotusApiService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
@@ -25,7 +25,7 @@ export class ClientReportGeneratorJobService {
       );
 
       // find Filecoin Client ID
-      const filecoinId = await this.proteusShieldService.getFilecoinClientId(
+      const filecoinId = await this.lotusApiService.getFilecoinClientId(
         application[0].ID,
       );
       if (!filecoinId) {

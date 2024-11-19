@@ -1,12 +1,12 @@
 // noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
 
-export interface ProteusStateMinerInfoResponse {
+export interface LotusStateMinerInfoResponse {
   jsonrpc: string;
   result: Result;
   id: number;
 }
 
-export interface ProteusStateLookupIdResponse {
+export interface LotusStateLookupIdResponse {
   jsonrpc: string;
   result: string;
   error?: Error;

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
-import { DateTime } from 'luxon';
-import { LotusApiService } from '../proteus-shield/lotus-api.service';
+import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
 
@@ -11,7 +10,7 @@ export class ClientReportService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
-    private readonly proteusShieldService: LotusApiService,
+    private readonly lotusApiService: LotusApiService,
     private readonly locationService: LocationService,
   ) {}
 
@@ -65,17 +64,10 @@ export class ClientReportService {
   }
 
   private async getStorageProviderDistributionWithLocation(client: string) {
-    const lastWeek = DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate();
-
     const clientProviderDistribution =
-      await this.prismaService.client_provider_distribution_weekly.findMany({
+      await this.prismaService.client_provider_distribution.findMany({
         where: {
           client: client,
-          week: lastWeek,
         },
       });
 
@@ -90,13 +82,12 @@ export class ClientReportService {
   }
 
   private async getClientProviderDistributionLocation(clientProviderDistribution: {
-    week: Date;
     client: string;
     provider: string;
     total_deal_size: bigint;
     unique_data_size: bigint;
   }): Promise<IPResponse | null> {
-    const minerInfo = await this.proteusShieldService.getMinerInfo(
+    const minerInfo = await this.lotusApiService.getMinerInfo(
       clientProviderDistribution.provider,
     );
 

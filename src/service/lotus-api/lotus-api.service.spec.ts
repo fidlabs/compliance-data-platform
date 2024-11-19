@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LotusApiService } from './lotus-api.service';
 
-describe('ProteusShieldService', () => {
+describe('LotusApiService', () => {
   let service: LotusApiService;
 
   beforeEach(async () => {
