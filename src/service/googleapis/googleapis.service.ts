@@ -8,14 +8,18 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class GoogleApisService {
   private readonly logger = new Logger(GoogleApisService.name);
+
   constructor(
     private configService: ConfigService,
     private readonly httpService: HttpService,
   ) {}
 
-  async getAllocatorsOverview(): Promise<GoogleApisSpreadsheetValuesDto> {
-    const endpoint =
-      'https://sheets.googleapis.com/v4/spreadsheets/1Rx3ZsUh7rhjdAARBNdBHgdbhBM5zFlEnqghC7A0JZ4k/values/GRAPHS';
+  async getAllocatorsOverview(
+    tab?: string,
+  ): Promise<GoogleApisSpreadsheetValuesDto> {
+    tab ||= 'GRAPHS';
+    const endpoint = `https://sheets.googleapis.com/v4/spreadsheets/1Rx3ZsUh7rhjdAARBNdBHgdbhBM5zFlEnqghC7A0JZ4k/values/${tab}`;
+
     const { data } = await lastValueFrom(
       this.httpService
         .get<GoogleApisSpreadsheetValuesDto>(endpoint, {

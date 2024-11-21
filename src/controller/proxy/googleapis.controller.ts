@@ -1,6 +1,10 @@
 import { CacheInterceptor } from '@nestjs/cache-manager';
-import { Controller, Get, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
 import { GoogleApisService } from 'src/service/googleapis/googleapis.service';
+
+class GetAllocatorsOverviewRequest {
+  tab?: string;
+}
 
 @Controller('proxy/googleapis')
 export class GoogleApisController {
@@ -8,7 +12,7 @@ export class GoogleApisController {
 
   @Get('allocators-overview')
   @UseInterceptors(CacheInterceptor)
-  async getAllocatorsOverview() {
-    return await this.googleApisService.getAllocatorsOverview();
+  async getAllocatorsOverview(@Query() params: GetAllocatorsOverviewRequest) {
+    return await this.googleApisService.getAllocatorsOverview(params.tab);
   }
 }

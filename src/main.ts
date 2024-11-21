@@ -12,4 +12,7 @@ async function bootstrap() {
   app.use(compression());
   await app.listen(3000);
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error('Failed to start the app: ', err);
+});
