@@ -1,10 +1,7 @@
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
+import { GetAllocatorsOverviewRequest } from 'src/dto/getAllocatorsOverviewRequest.dto';
 import { GoogleApisService } from 'src/service/googleapis/googleapis.service';
-
-class GetAllocatorsOverviewRequest {
-  tab?: string;
-}
 
 @Controller('proxy/googleapis')
 export class GoogleApisController {
