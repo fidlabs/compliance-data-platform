@@ -164,6 +164,7 @@ model client_report {
   storage_provider_distribution client_report_storage_provider_distribution[]
   replica_distribution          client_report_replica_distribution[]
   cid_sharing                   client_report_cid_sharing[]
+  check_results                 client_report_check_result[]
 }
 
 model client_report_storage_provider_distribution {
@@ -216,4 +217,23 @@ model client_address_mapping {
   create_date DateTime @default(now())
 
   @@id([client])
+}
+
+model client_report_check_result {
+  id               String            @id @default(uuid()) @db.Uuid
+  create_date      DateTime          @default(now())
+  result           Boolean?
+  check            ClientReportCheck
+  client_report    client_report     @relation(fields: [client_report_id], references: [id])
+  client_report_id BigInt            @db.BigInt
+  metadata         Json?
+  violating_ids    String[]
+
+  @@unique([check, client_report_id])
+}
+
+enum ClientReportCheck {
+  STORAGE_PROVIDER_DISTRIBUTION_HEALTHY
+  STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL
 }
