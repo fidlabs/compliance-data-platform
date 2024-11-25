@@ -33,6 +33,7 @@ export class ClientReportChecksService {
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
     await this.storeProvidersInSameLocation(reportId);
+    await this.storeProvidersRetrievability(reportId);
   }
 
   private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
@@ -208,6 +209,94 @@ export class ClientReportChecksService {
           client_report_id: reportId,
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION,
+          result: true,
+        },
+      });
+    }
+  }
+
+  private async storeProvidersRetrievability(reportId: bigint) {
+    const providerDistribution =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+        },
+      );
+
+    const retrievabilitySuccessRates = [];
+    for (const provider of providerDistribution) {
+      const retrievability =
+        await this.prismaService.provider_retrievability_daily.findFirst({
+          where: {
+            provider: provider.provider,
+          },
+          select: {
+            success_rate: true,
+          },
+          orderBy: {
+            date: 'desc',
+          },
+        });
+
+      if (retrievability) {
+        retrievabilitySuccessRates.push(retrievability.success_rate);
+      }
+    }
+
+    const zeroRetrievabilityCount = retrievabilitySuccessRates.filter(
+      (p) => p === 0,
+    ).length;
+    if (zeroRetrievabilityCount > 0) {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
+          result: false,
+          metadata: {
+            percentage:
+              (zeroRetrievabilityCount / retrievabilitySuccessRates.length) *
+              100,
+          },
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
+          result: true,
+        },
+      });
+    }
+
+    const lessThan75RetrievabilityCount = retrievabilitySuccessRates.filter(
+      (p) => p < 0.75,
+    ).length;
+    if (lessThan75RetrievabilityCount > 0) {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
+          result: false,
+          metadata: {
+            percentage:
+              (lessThan75RetrievabilityCount /
+                retrievabilitySuccessRates.length) *
+              100,
+          },
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
           result: true,
         },
       });
