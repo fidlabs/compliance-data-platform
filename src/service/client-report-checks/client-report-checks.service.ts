@@ -32,6 +32,7 @@ export class ClientReportChecksService {
     await this.storeProvidersExceedingProviderDealResults(reportId);
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
+    await this.storeProvidersInSameLocation(reportId);
   }
 
   private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
@@ -166,6 +167,47 @@ export class ClientReportChecksService {
           client_report_id: reportId,
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION,
+          result: true,
+        },
+      });
+    }
+  }
+
+  private async storeProvidersInSameLocation(reportId: bigint) {
+    const providerDistributionWithLocation =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+          include: {
+            location: true,
+          },
+        },
+      );
+
+    const locationSet = new Set(
+      providerDistributionWithLocation.map(
+        (p) =>
+          `${p?.location?.country} ${p?.location?.region} ${p?.location?.city}`,
+      ),
+    );
+
+    if (locationSet.size <= 1) {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION,
+          result: false,
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION,
           result: true,
         },
       });
