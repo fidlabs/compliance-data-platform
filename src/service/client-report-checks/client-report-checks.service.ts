@@ -6,6 +6,9 @@ import { ClientReportCheck } from 'prisma/generated/client';
 @Injectable()
 export class ClientReportChecksService {
   _maxProviderDealPercentage: number;
+  _maxDuplicationPercentage: number;
+  _maxPercentageForLowReplica: number;
+  _lowReplicaThreshold: number;
 
   constructor(
     private readonly configService: ConfigService,
@@ -14,10 +17,20 @@ export class ClientReportChecksService {
     this._maxProviderDealPercentage = configService.get<number>(
       'CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE',
     );
+    this._maxDuplicationPercentage = configService.get<number>(
+      'CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE',
+    );
+    this._maxPercentageForLowReplica = configService.get<number>(
+      'CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA',
+    );
+    this._lowReplicaThreshold = configService.get<number>(
+      'CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD',
+    );
   }
 
   async storeStorageProviderDistributionChecks(reportId: bigint) {
     await this.storeProvidersExceedingProviderDealResults(reportId);
+    await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
   }
 
   private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
@@ -60,6 +73,52 @@ export class ClientReportChecksService {
           client_report_id: reportId,
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL,
+          result: true,
+        },
+      });
+    }
+  }
+
+  private async storeProvidersExceedingMaxDuplicationPercentage(
+    reportId: bigint,
+  ) {
+    const providerDistribution =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+        },
+      );
+
+    const providersExceedingMaxDuplicationPercentage = [];
+    for (const provider of providerDistribution) {
+      if (
+        ((provider.total_deal_size - provider.unique_data_size) * 10000n) /
+          provider.total_deal_size /
+          100n >
+        this._maxDuplicationPercentage
+      ) {
+        providersExceedingMaxDuplicationPercentage.push(provider.provider);
+      }
+    }
+
+    if (providersExceedingMaxDuplicationPercentage.length > 0) {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION,
+          result: false,
+          violating_ids: providersExceedingMaxDuplicationPercentage,
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION,
           result: true,
         },
       });
