@@ -31,6 +31,7 @@ export class ClientReportChecksService {
   async storeStorageProviderDistributionChecks(reportId: bigint) {
     await this.storeProvidersExceedingProviderDealResults(reportId);
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
+    await this.storeProvidersWithUnknownLocation(reportId);
   }
 
   private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
@@ -119,6 +120,52 @@ export class ClientReportChecksService {
           client_report_id: reportId,
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION,
+          result: true,
+        },
+      });
+    }
+  }
+
+  private async storeProvidersWithUnknownLocation(reportId: bigint) {
+    const providerDistributionWithLocation =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+          include: {
+            location: true,
+          },
+        },
+      );
+
+    const providersWithUnknownLocation = [];
+    for (const provider of providerDistributionWithLocation) {
+      if (
+        provider.location == undefined ||
+        provider.location.country === null ||
+        provider.location.country === ''
+      ) {
+        providersWithUnknownLocation.push(provider.provider);
+      }
+    }
+
+    if (providersWithUnknownLocation.length > 0) {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION,
+          result: false,
+          violating_ids: providersWithUnknownLocation,
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION,
           result: true,
         },
       });
