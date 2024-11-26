@@ -62,10 +62,14 @@ export class HistogramHelper {
       }
     }
 
-    return new HistogramWeekResponseDto(
-      totalCount,
-      histogramWeekDtos.sort((a, b) => a.week.getTime() - b.week.getTime()),
+    const histogramWeekDtosSorted = histogramWeekDtos.sort(
+      (a, b) => a.week.getTime() - b.week.getTime(),
     );
+
+    // remove current week from histogram responses (as there is no full data for current week)
+    histogramWeekDtosSorted.pop();
+
+    return new HistogramWeekResponseDto(totalCount, histogramWeekDtosSorted);
   }
 
   private getAllHistogramBucketTopValues(
