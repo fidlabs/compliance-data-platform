@@ -6,6 +6,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ClientReportService } from '../../service/client-report/client-report.service';
+import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
 
 @Controller('clientReport')
 export class ClientReportController {
@@ -33,6 +34,13 @@ export class ClientReportController {
   }
 
   @Post(':client')
+  @ApiOperation({
+    summary: 'Generate report for a given client',
+  })
+  @ApiCreatedResponse({
+    description: 'Empty response',
+    type: null,
+  })
   async generateClientReport(@Param('client') client: string) {
     await this.clientReportsService.generateReport(client);
   }
