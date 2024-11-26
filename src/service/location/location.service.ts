@@ -43,14 +43,14 @@ export class LocationService {
           .get<IPResponse>(`https://ipinfo.io/${ip}?token=${ipInfoToken}`)
           .pipe(
             catchError((error: AxiosError) => {
-              this.logger.error(error.response.data);
               throw error;
             }),
           ),
       );
-      if (data.bogon === true) continue;
 
+      if (data.bogon === true) continue;
       await this.cacheManager.set(cacheKey, data, 1000 * 60 * 60 * 24);
+
       return data;
     }
     return null;

@@ -29,7 +29,6 @@ export class GoogleApisService {
         })
         .pipe(
           catchError((error: AxiosError) => {
-            this.logger.error(error.response.data);
             throw error;
           }),
         ),
