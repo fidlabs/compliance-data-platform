@@ -6,16 +6,17 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
+      - PGUSER=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     ports:
       - "8037:5432"
     healthcheck:
-      test: "pg_isready -h db"
+      test: "pg_isready -h database"
       interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 2
 
 volumes:
   postgres_data:

@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:generate": "npx prisma generate --schema prisma/schema.prisma --sql && npx prisma generate --schema prismaDmob/schema.prisma --sql"
+    "migration:deploy": "npx prisma migrate deploy --schema prisma/schema.prisma",
+    "migration:generate": "npx prisma generate --schema prisma/schema.prisma --sql",
+    "migration:generate_dmob": "npx prisma generate --schema prismaDmob/schema.prisma --sql"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
