@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
@@ -43,6 +43,7 @@ import { LocationService } from './service/location/location.service';
 import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
+import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
 
 @Module({
@@ -153,4 +154,8 @@ import { ClientReportChecksService } from './service/client-report-checks/client
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}
