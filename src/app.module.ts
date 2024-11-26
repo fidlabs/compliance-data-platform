@@ -45,6 +45,8 @@ import { ClientReportGeneratorJobService } from './jobs/client-report-generator-
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
+import { APP_FILTER } from '@nestjs/core';
+import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 
 @Module({
   imports: [
@@ -96,6 +98,7 @@ import { ClientReportChecksService } from './service/client-report-checks/client
     LocationService,
     AllocatorTechService,
     ClientReportChecksService,
+    { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     {
       provide: 'AggregationRunner',
       useFactory: (

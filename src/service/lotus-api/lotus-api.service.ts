@@ -47,7 +47,6 @@ export class LotusApiService {
         })
         .pipe(
           catchError((error: AxiosError) => {
-            this.logger.error(error.response.data);
             throw error;
           }),
         ),
@@ -89,7 +88,6 @@ export class LotusApiService {
         })
         .pipe(
           catchError((error: AxiosError) => {
-            this.logger.error(error.response.data);
             throw error;
           }),
         ),

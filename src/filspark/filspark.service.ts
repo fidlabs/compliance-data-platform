@@ -14,6 +14,7 @@ export class FilSparkService {
     const dateParam = date.toFormat('yyyy-MM-dd');
     const endpoint =
       'https://stats.filspark.com/miners/retrieval-success-rate/summary';
+
     const { data } = await lastValueFrom(
       this.httpService
         .get<RetrievabilityInfoDto[]>(endpoint, {
@@ -24,7 +25,6 @@ export class FilSparkService {
         })
         .pipe(
           catchError((error: AxiosError) => {
-            this.logger.error(error.response.data);
             throw error;
           }),
         ),
