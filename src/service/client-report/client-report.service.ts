@@ -64,9 +64,7 @@ export class ClientReportService {
       },
     });
 
-    await this.clientReportChecksService.storeStorageProviderDistributionChecks(
-      report.id,
-    );
+    await this.clientReportChecksService.storeReportChecks(report.id);
   }
 
   private async getStorageProviderDistributionWithLocation(client: string) {

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
+import { round } from 'lodash';
 
 @Injectable()
 export class ClientReportChecksService {
@@ -28,12 +29,21 @@ export class ClientReportChecksService {
     );
   }
 
-  async storeStorageProviderDistributionChecks(reportId: bigint) {
+  async storeReportChecks(reportId: bigint) {
+    await this.storeStorageProviderDistributionChecks(reportId);
+    await this.storeDealDataReplicationChecks(reportId);
+  }
+
+  private async storeStorageProviderDistributionChecks(reportId: bigint) {
     await this.storeProvidersExceedingProviderDealResults(reportId);
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
     await this.storeProvidersInSameLocation(reportId);
     await this.storeProvidersRetrievability(reportId);
+  }
+
+  private async storeDealDataReplicationChecks(reportId: bigint) {
+    await this.storeDealDataLowReplica(reportId);
   }
 
   private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
@@ -301,5 +311,33 @@ export class ClientReportChecksService {
         },
       });
     }
+  }
+
+  private async storeDealDataLowReplica(reportId: bigint) {
+    const replicaDistribution =
+      await this.prismaService.client_report_replica_distribution.findMany({
+        where: {
+          client_report_id: reportId,
+        },
+      });
+
+    const lowReplicaPercentage = replicaDistribution
+      .filter(
+        (distribution) =>
+          distribution.num_of_replicas <= this._lowReplicaThreshold,
+      )
+      .map((distribution) => distribution.percentage)
+      .reduce((a, b) => a + b, 0);
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA,
+        result: lowReplicaPercentage <= this._maxPercentageForLowReplica,
+        metadata: {
+          percentage: round(lowReplicaPercentage, 2),
+        },
+      },
+    });
   }
 }
