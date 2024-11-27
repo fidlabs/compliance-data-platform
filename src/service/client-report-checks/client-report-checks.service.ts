@@ -32,6 +32,7 @@ export class ClientReportChecksService {
   async storeReportChecks(reportId: bigint) {
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
+    await this.storeDealDataSharedWithOtherClientsChecks(reportId);
   }
 
   private async storeStorageProviderDistributionChecks(reportId: bigint) {
@@ -44,6 +45,10 @@ export class ClientReportChecksService {
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
     await this.storeDealDataLowReplica(reportId);
+  }
+
+  private async storeDealDataSharedWithOtherClientsChecks(reportId: bigint) {
+    await this.storeDealDataSharedWithOtherClientsCidSharing(reportId);
   }
 
   private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
@@ -337,6 +342,26 @@ export class ClientReportChecksService {
         metadata: {
           percentage: round(lowReplicaPercentage, 2),
         },
+      },
+    });
+  }
+
+  private async storeDealDataSharedWithOtherClientsCidSharing(
+    reportId: bigint,
+  ) {
+    const cidSharingCount =
+      await this.prismaService.client_report_cid_sharing.count({
+        where: {
+          client_report_id: reportId,
+        },
+      });
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING,
+        result: cidSharingCount === 0,
+        metadata: { count: cidSharingCount },
       },
     });
   }
