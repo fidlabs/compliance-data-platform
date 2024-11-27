@@ -43,6 +43,7 @@ import { LocationService } from './service/location/location.service';
 import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
+import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { ClientProviderDistributionRunner } from './aggregation/runners/client-p
     LotusApiService,
     LocationService,
     AllocatorTechService,
+    ClientReportChecksService,
     {
       provide: 'AggregationRunner',
       useFactory: (

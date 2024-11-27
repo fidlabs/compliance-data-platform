@@ -4,6 +4,7 @@ import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
+import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
 
 @Injectable()
 export class ClientReportService {
@@ -12,6 +13,7 @@ export class ClientReportService {
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly lotusApiService: LotusApiService,
     private readonly locationService: LocationService,
+    private readonly clientReportChecksService: ClientReportChecksService,
   ) {}
 
   async generateReport(client: string) {
@@ -30,7 +32,7 @@ export class ClientReportService {
 
     const cidSharing = await this.getCidSharing(client);
 
-    await this.prismaService.client_report.create({
+    const report = await this.prismaService.client_report.create({
       data: {
         client: client,
         client_address: verifiedClientData?.address,
@@ -61,6 +63,10 @@ export class ClientReportService {
         },
       },
     });
+
+    await this.clientReportChecksService.storeStorageProviderDistributionChecks(
+      report.id,
+    );
   }
 
   private async getStorageProviderDistributionWithLocation(client: string) {
