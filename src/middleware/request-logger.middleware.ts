@@ -6,7 +6,7 @@ export class RequestLoggerMiddleware implements NestMiddleware {
   private logger = new Logger('HTTP');
 
   use(request: Request, _response: Response, next: NextFunction): void {
-    this.logger.debug(`${request.method} ${request.originalUrl}`);
+    this.logger.log(`${request.method} ${request.originalUrl}`);
 
     next();
   }

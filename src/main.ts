@@ -16,7 +16,6 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Compliance Data Platform API')
     .setVersion('0.1')
-    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
