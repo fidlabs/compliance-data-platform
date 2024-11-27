@@ -47,6 +47,7 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
 import { APP_FILTER } from '@nestjs/core';
 import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
+import { AppController } from './controller/app/app.controller';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
     AllocatorsAccController,
     GoogleApisController,
     ClientReportController,
+    AppController,
   ],
   providers: [
     AggregationService,
