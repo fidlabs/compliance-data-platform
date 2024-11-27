@@ -91,6 +91,9 @@ export class HistogramHelper {
   private getAllHistogramBucketTopValues(
     histogramWeekDtos: HistogramWeekDto[],
   ) {
+    if (histogramWeekDtos.length === 0)
+      return { maxMinSpan: 0, allBucketTopValues: [] };
+
     const maxRangeTopValue = Math.max(
       ...histogramWeekDtos.flatMap((p) =>
         p.results.map((r) => r.valueToInclusive),
