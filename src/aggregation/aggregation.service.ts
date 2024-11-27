@@ -39,8 +39,8 @@ export class AggregationService {
         );
 
         if (executionNumber != maxTries) {
-          this.logger.warn(`Sleeping for 30s before retrying`);
-          await new Promise((resolve) => setTimeout(resolve, 30000));
+          this.logger.warn(`Sleeping for 90s before retrying`);
+          await new Promise((resolve) => setTimeout(resolve, 90000));
         }
       }
     }
