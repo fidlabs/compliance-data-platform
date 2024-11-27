@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { groupBy } from 'lodash';
 import { HistogramWeekDto } from '../types/histogramWeek.dto';
 import { HistogramDto } from '../types/histogram.dto';
@@ -6,6 +6,8 @@ import { HistogramWeekResponseDto } from '../types/histogramWeek.response.dto';
 
 @Injectable()
 export class HistogramHelper {
+  private readonly logger = new Logger(HistogramHelper.name);
+
   async getWeeklyHistogramResult(
     results: {
       valueFromExclusive: number | null;
@@ -62,14 +64,28 @@ export class HistogramHelper {
       }
     }
 
-    const histogramWeekDtosSorted = histogramWeekDtos.sort(
-      (a, b) => a.week.getTime() - b.week.getTime(),
+    const histogramWeekDtosSorted = this.removeCurrentWeekFromHistogramWeekDtos(
+      histogramWeekDtos.sort((a, b) => a.week.getTime() - b.week.getTime()),
     );
 
-    // remove current week from histogram responses (as there is no full data for current week)
-    histogramWeekDtosSorted.pop();
-
     return new HistogramWeekResponseDto(totalCount, histogramWeekDtosSorted);
+  }
+
+  // removes current week from histogram responses (as there is no full data for current week)
+  private removeCurrentWeekFromHistogramWeekDtos(
+    histogramWeekDtosSorted: HistogramWeekDto[],
+  ) {
+    if (histogramWeekDtosSorted.length === 0) return histogramWeekDtosSorted;
+
+    const lastHistogramWeekDtoWeek =
+      histogramWeekDtosSorted[histogramWeekDtosSorted.length - 1].week;
+
+    const lastHistogramWeekDtoWeekEnd = new Date(
+      lastHistogramWeekDtoWeek.getTime() + 7 * 24 * 60 * 60 * 1000,
+    );
+
+    if (new Date() < lastHistogramWeekDtoWeekEnd) histogramWeekDtosSorted.pop();
+    return histogramWeekDtosSorted;
   }
 
   private getAllHistogramBucketTopValues(
