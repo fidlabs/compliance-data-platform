@@ -25,22 +25,26 @@ export class AggregationService {
     let success = false;
     let executionNumber = 0;
     let lastErr;
+
     while (!success && executionNumber < maxTries) {
       try {
         await fn();
         success = true;
       } catch (err) {
         lastErr = err;
+        executionNumber++;
+
         this.logger.warn(
-          `Error during Aggregations job, execution ${executionNumber}/${maxTries - 1}: ${err}`,
+          `Error during Aggregations job, execution ${executionNumber}/${maxTries}: ${err}`,
         );
+
         if (executionNumber != maxTries) {
           this.logger.warn(`Sleeping for 30s before retrying`);
           await new Promise((resolve) => setTimeout(resolve, 30000));
         }
-        executionNumber++;
       }
     }
+
     if (!success) {
       throw lastErr;
     }
