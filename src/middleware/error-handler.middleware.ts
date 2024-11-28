@@ -6,9 +6,12 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Catch()
 export class ErrorHandlerMiddleware implements ExceptionFilter {
+  constructor(private configService: ConfigService) {}
+
   private logger = new Logger('HTTP');
 
   catch(exception: Error | HttpException | any, host: ArgumentsHost) {
@@ -19,34 +22,33 @@ export class ErrorHandlerMiddleware implements ExceptionFilter {
     if (exception instanceof HttpException) {
       if (exception.getStatus() >= HttpStatus.INTERNAL_SERVER_ERROR) {
         this.logger.warn(
-          `${request.method} ${request.url}: ${exception.getStatus()} ${exception.message}`,
+          `${request.method} ${request.originalUrl}: ${exception.getStatus()} ${exception.message}`,
         );
       } else {
         this.logger.log(
-          `${request.method} ${request.url}: ${exception.getStatus()} ${exception.message}`,
+          `${request.method} ${request.originalUrl}: ${exception.getStatus()} ${exception.message}`,
         );
       }
 
-      response.status(exception.getStatus()).json({
-        statusCode: exception.getStatus(),
-        message: exception.message,
-      });
+      response.status(exception.getStatus()).json(exception.getResponse());
     } else {
       this.logger.error(
-        `${request.method} ${request.url}: ${HttpStatus.INTERNAL_SERVER_ERROR} ${exception.message || exception}`,
+        `${request.method} ${request.originalUrl}: ${HttpStatus.INTERNAL_SERVER_ERROR} ${exception.message || exception}`,
         exception.stack,
       );
 
-      if (process.env.NODE_ENV === 'development') {
+      if (this.configService.get('NODE_ENV') === 'development') {
         response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+          message: exception.message || exception || 'Internal Server Error',
+          error: 'Internal Server Error',
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: exception.message || 'Internal Server Error',
           stack: exception.stack || undefined,
         });
       } else {
         response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
           message: 'Internal Server Error',
+          error: 'Internal Server Error',
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         });
       }
     }

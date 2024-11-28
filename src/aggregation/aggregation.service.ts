@@ -59,6 +59,7 @@ export class AggregationService {
 
     while (pendingAggregationRunners.length > 0) {
       let executedRunners = 0;
+
       for (const aggregationRunner of this.aggregationRunners) {
         if (
           pendingAggregationRunners.indexOf(aggregationRunner) > -1 &&
@@ -78,6 +79,7 @@ export class AggregationService {
               this.postgresDmobService,
             ),
           );
+
           this.logger.debug(`FINISHED: ${aggregationRunner.getName()}`);
           executedRunners++;
 
@@ -91,6 +93,7 @@ export class AggregationService {
           );
         }
       }
+
       if (executedRunners === 0) {
         this.logger.error(
           'Cannot execute runners - impossible dependencies defined',
