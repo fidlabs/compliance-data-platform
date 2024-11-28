@@ -13,57 +13,62 @@ export class ClientClaimsRunner implements AggregationRunner {
     _filSparkService: FilSparkService,
     postgresService: PostgresService,
   ): Promise<void> {
-    prismaService.$transaction(async (tx) => {
-      const queryIterablePool = new QueryIterablePool<{
-        client: string;
-        hour: Date;
-        total_deal_size: bigint | null;
-      }>(postgresService.pool);
+    prismaService.$transaction(
+      async (tx) => {
+        const queryIterablePool = new QueryIterablePool<{
+          client: string;
+          hour: Date;
+          total_deal_size: bigint | null;
+        }>(postgresService.pool);
 
-      const i = queryIterablePool.query(`select client,
+        const i = queryIterablePool.query(`select client,
                                                 hour,
                                                 sum(total_deal_size)::bigint as total_deal_size
                                          from unified_verified_deal_hourly
                                          group by client,
                                                   hour;`);
 
-      const data: {
-        client: string;
-        hour: Date;
-        total_deal_size: bigint | null;
-      }[] = [];
+        const data: {
+          client: string;
+          hour: Date;
+          total_deal_size: bigint | null;
+        }[] = [];
 
-      let isFirstInsert = true;
-      for await (const rowResult of i) {
-        data.push({
-          hour: rowResult.hour,
-          client: rowResult.client,
-          total_deal_size: rowResult.total_deal_size,
-        });
+        let isFirstInsert = true;
+        for await (const rowResult of i) {
+          data.push({
+            hour: rowResult.hour,
+            client: rowResult.client,
+            total_deal_size: rowResult.total_deal_size,
+          });
 
-        if (data.length === 5000) {
+          if (data.length === 5000) {
+            if (isFirstInsert) {
+              await tx.$executeRaw`truncate client_claims_hourly`;
+              isFirstInsert = false;
+            }
+
+            await prismaService.client_claims_hourly.createMany({
+              data,
+            });
+
+            data.length = 0;
+          }
+        }
+
+        if (data.length > 0) {
           if (isFirstInsert) {
             await tx.$executeRaw`truncate client_claims_hourly`;
-            isFirstInsert = false;
           }
-
           await prismaService.client_claims_hourly.createMany({
             data,
           });
-
-          data.length = 0;
         }
-      }
-
-      if (data.length > 0) {
-        if (isFirstInsert) {
-          await tx.$executeRaw`truncate client_claims_hourly`;
-        }
-        await prismaService.client_claims_hourly.createMany({
-          data,
-        });
-      }
-    });
+      },
+      {
+        timeout: Number.MAX_SAFE_INTEGER,
+      },
+    );
   }
 
   getFilledTables(): AggregationTable[] {
