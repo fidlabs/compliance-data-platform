@@ -48,6 +48,7 @@ import { ClientReportChecksService } from './service/client-report-checks/client
 import { APP_FILTER } from '@nestjs/core';
 import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { AppController } from './controller/app/app.controller';
+import { TerminusModule } from '@nestjs/terminus';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AppController } from './controller/app/app.controller';
     ScheduleModule.forRoot(),
     HttpModule.register({ timeout: 5000 }),
     CacheModule.register(),
+    TerminusModule.forRoot(),
   ],
   controllers: [
     ProvidersController,

@@ -29,6 +29,7 @@ export class FilSparkService {
           }),
         ),
     );
+
     return data;
   }
 }
