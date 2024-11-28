@@ -15,16 +15,17 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
     _postgresService: PostgresService,
     postgresDmobService: PostgresDmobService,
   ): Promise<void> {
-    await prismaService.$transaction(async (tx) => {
-      const queryIterablePool = new QueryIterablePool<{
-        week: Date | null;
-        client: string | null;
-        provider: string | null;
-        total_deal_size: bigint | null;
-        unique_data_size: bigint | null;
-      }>(postgresDmobService.pool);
+    await prismaService.$transaction(
+      async (tx) => {
+        const queryIterablePool = new QueryIterablePool<{
+          week: Date | null;
+          client: string | null;
+          provider: string | null;
+          total_deal_size: bigint | null;
+          unique_data_size: bigint | null;
+        }>(postgresDmobService.pool);
 
-      const i = queryIterablePool.query(`with miner_pieces
+        const i = queryIterablePool.query(`with miner_pieces
                                                   as (select date_trunc('week', to_timestamp("termStart" * 30 + 1598306400)) as week,
                                                              'f0' || "clientId"                                              as client,
                                                              'f0' || "providerId"                                            as provider,
@@ -55,49 +56,55 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
                                                   client,
                                                   provider;`);
 
-      const data: {
-        week: Date | null;
-        client: string | null;
-        provider: string | null;
-        total_deal_size: bigint | null;
-        unique_data_size: bigint | null;
-      }[] = [];
+        const data: {
+          week: Date | null;
+          client: string | null;
+          provider: string | null;
+          total_deal_size: bigint | null;
+          unique_data_size: bigint | null;
+        }[] = [];
 
-      let isFirstInsert = true;
-      for await (const rowResult of i) {
-        data.push({
-          week: rowResult.week,
-          client: rowResult.client,
-          provider: rowResult.provider,
-          total_deal_size: rowResult.total_deal_size,
-          unique_data_size: rowResult.unique_data_size,
-        });
+        let isFirstInsert = true;
+        for await (const rowResult of i) {
+          data.push({
+            week: rowResult.week,
+            client: rowResult.client,
+            provider: rowResult.provider,
+            total_deal_size: rowResult.total_deal_size,
+            unique_data_size: rowResult.unique_data_size,
+          });
 
-        if (data.length === 5000) {
+          if (data.length === 5000) {
+            if (isFirstInsert) {
+              await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
+              isFirstInsert = false;
+            }
+
+            await prismaService.client_provider_distribution_weekly_acc.createMany(
+              {
+                data,
+              },
+            );
+
+            data.length = 0;
+          }
+        }
+
+        if (data.length > 0) {
           if (isFirstInsert) {
             await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
-            isFirstInsert = false;
           }
-
           await prismaService.client_provider_distribution_weekly_acc.createMany(
             {
               data,
             },
           );
-
-          data.length = 0;
         }
-      }
-
-      if (data.length > 0) {
-        if (isFirstInsert) {
-          await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
-        }
-        await prismaService.client_provider_distribution_weekly_acc.createMany({
-          data,
-        });
-      }
-    });
+      },
+      {
+        timeout: Number.MAX_SAFE_INTEGER,
+      },
+    );
   }
 
   getFilledTables(): AggregationTable[] {
