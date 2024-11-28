@@ -15,7 +15,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
     _postgresService: PostgresService,
     postgresDmobService: PostgresDmobService,
   ): Promise<void> {
-    prismaService.$transaction(async (tx) => {
+    await prismaService.$transaction(async (tx) => {
       const queryIterablePool = new QueryIterablePool<{
         hour: Date | null;
         client: string | null;
