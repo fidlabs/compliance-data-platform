@@ -13,7 +13,7 @@ export class ClientClaimsRunner implements AggregationRunner {
     _filSparkService: FilSparkService,
     postgresService: PostgresService,
   ): Promise<void> {
-    prismaService.$transaction(async (tx) => {
+    await prismaService.$transaction(async (tx) => {
       const queryIterablePool = new QueryIterablePool<{
         client: string;
         hour: Date;

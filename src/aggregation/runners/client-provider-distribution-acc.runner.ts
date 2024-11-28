@@ -15,7 +15,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
     _postgresService: PostgresService,
     postgresDmobService: PostgresDmobService,
   ): Promise<void> {
-    prismaService.$transaction(async (tx) => {
+    await prismaService.$transaction(async (tx) => {
       const queryIterablePool = new QueryIterablePool<{
         week: Date | null;
         client: string | null;
