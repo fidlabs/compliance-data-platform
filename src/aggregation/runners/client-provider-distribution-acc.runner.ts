@@ -80,11 +80,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
               isFirstInsert = false;
             }
 
-            await prismaService.client_provider_distribution_weekly_acc.createMany(
-              {
-                data,
-              },
-            );
+            await tx.client_provider_distribution_weekly_acc.createMany({
+              data,
+            });
 
             data.length = 0;
           }
@@ -94,11 +92,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
           if (isFirstInsert) {
             await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
           }
-          await prismaService.client_provider_distribution_weekly_acc.createMany(
-            {
-              data,
-            },
-          );
+          await tx.client_provider_distribution_weekly_acc.createMany({
+            data,
+          });
         }
       },
       {

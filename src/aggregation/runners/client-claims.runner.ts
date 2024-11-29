@@ -48,7 +48,7 @@ export class ClientClaimsRunner implements AggregationRunner {
               isFirstInsert = false;
             }
 
-            await prismaService.client_claims_hourly.createMany({
+            await tx.client_claims_hourly.createMany({
               data,
             });
 
@@ -60,7 +60,7 @@ export class ClientClaimsRunner implements AggregationRunner {
           if (isFirstInsert) {
             await tx.$executeRaw`truncate client_claims_hourly`;
           }
-          await prismaService.client_claims_hourly.createMany({
+          await tx.client_claims_hourly.createMany({
             data,
           });
         }
