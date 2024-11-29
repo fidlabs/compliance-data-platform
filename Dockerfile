@@ -25,5 +25,6 @@ COPY --from=builder --chown=node:node /app/prisma/ ./prisma/
 COPY --from=builder --chown=node:node /app/prismaDmob/ ./prismaDmob/
 COPY ci/aws-secret-to-db-url.js ./
 COPY ci/runner.sh ./
+ADD --chown=node https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /etc/ssl/certs/aws-global-bundle.pem
 ENTRYPOINT [ "/app/runner.sh" ]
 CMD [ "node", "dist/main.js" ]
