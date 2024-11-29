@@ -79,7 +79,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
               isFirstInsert = false;
             }
 
-            await prismaService.allocators_weekly_acc.createMany({
+            await tx.allocators_weekly_acc.createMany({
               data,
             });
 
@@ -91,7 +91,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
           if (isFirstInsert) {
             await tx.$executeRaw`truncate allocators_weekly_acc`;
           }
-          await prismaService.allocators_weekly_acc.createMany({
+          await tx.allocators_weekly_acc.createMany({
             data,
           });
         }
