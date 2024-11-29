@@ -13,16 +13,17 @@ export class AllocatorsAccRunner implements AggregationRunner {
     _filSparkService: FilSparkService,
     postgresService: PostgresService,
   ): Promise<void> {
-    await prismaService.$transaction(async (tx) => {
-      const queryIterablePool = new QueryIterablePool<{
-        week: Date;
-        allocator: string;
-        num_of_clients: number | null;
-        biggest_client_sum_of_allocations: bigint | null;
-        total_sum_of_allocations: bigint | null;
-        avg_weighted_retrievability_success_rate: number | null;
-      }>(postgresService.pool);
-      const i = queryIterablePool.query(`with
+    await prismaService.$transaction(
+      async (tx) => {
+        const queryIterablePool = new QueryIterablePool<{
+          week: Date;
+          allocator: string;
+          num_of_clients: number | null;
+          biggest_client_sum_of_allocations: bigint | null;
+          total_sum_of_allocations: bigint | null;
+          avg_weighted_retrievability_success_rate: number | null;
+        }>(postgresService.pool);
+        const i = queryIterablePool.query(`with
                              allocator_retrievability as (
                                  select
                                      week,
@@ -50,51 +51,55 @@ export class AllocatorsAccRunner implements AggregationRunner {
                              week,
                              allocator;`);
 
-      const data: {
-        week: Date;
-        allocator: string;
-        num_of_clients: number | null;
-        biggest_client_sum_of_allocations: bigint | null;
-        total_sum_of_allocations: bigint | null;
-        avg_weighted_retrievability_success_rate: number | null;
-      }[] = [];
+        const data: {
+          week: Date;
+          allocator: string;
+          num_of_clients: number | null;
+          biggest_client_sum_of_allocations: bigint | null;
+          total_sum_of_allocations: bigint | null;
+          avg_weighted_retrievability_success_rate: number | null;
+        }[] = [];
 
-      let isFirstInsert = true;
-      for await (const rowResult of i) {
-        data.push({
-          week: rowResult.week,
-          allocator: rowResult.allocator,
-          num_of_clients: rowResult.num_of_clients,
-          biggest_client_sum_of_allocations:
-            rowResult.biggest_client_sum_of_allocations,
-          total_sum_of_allocations: rowResult.total_sum_of_allocations,
-          avg_weighted_retrievability_success_rate:
-            rowResult.avg_weighted_retrievability_success_rate,
-        });
-
-        if (data.length === 5000) {
-          if (isFirstInsert) {
-            await tx.$executeRaw`truncate allocators_weekly_acc`;
-            isFirstInsert = false;
-          }
-
-          await prismaService.allocators_weekly_acc.createMany({
-            data,
+        let isFirstInsert = true;
+        for await (const rowResult of i) {
+          data.push({
+            week: rowResult.week,
+            allocator: rowResult.allocator,
+            num_of_clients: rowResult.num_of_clients,
+            biggest_client_sum_of_allocations:
+              rowResult.biggest_client_sum_of_allocations,
+            total_sum_of_allocations: rowResult.total_sum_of_allocations,
+            avg_weighted_retrievability_success_rate:
+              rowResult.avg_weighted_retrievability_success_rate,
           });
 
-          data.length = 0;
-        }
-      }
+          if (data.length === 5000) {
+            if (isFirstInsert) {
+              await tx.$executeRaw`truncate allocators_weekly_acc`;
+              isFirstInsert = false;
+            }
 
-      if (data.length > 0) {
-        if (isFirstInsert) {
-          await tx.$executeRaw`truncate allocators_weekly_acc`;
+            await tx.allocators_weekly_acc.createMany({
+              data,
+            });
+
+            data.length = 0;
+          }
         }
-        await prismaService.allocators_weekly_acc.createMany({
-          data,
-        });
-      }
-    });
+
+        if (data.length > 0) {
+          if (isFirstInsert) {
+            await tx.$executeRaw`truncate allocators_weekly_acc`;
+          }
+          await tx.allocators_weekly_acc.createMany({
+            data,
+          });
+        }
+      },
+      {
+        timeout: Number.MAX_SAFE_INTEGER,
+      },
+    );
   }
 
   getFilledTables(): AggregationTable[] {
