@@ -19,10 +19,10 @@ export class ClientReportService {
   async generateReport(client: string) {
     const cidSharing = await this.getCidSharing(client);
 
-    if (!cidSharing.length) return null;
-
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
+
+    if (!verifiedClientResponse.data.length) return null;
 
     const verifiedClientData =
       this.dataCapStatsService.findPrimaryClientDetails(
