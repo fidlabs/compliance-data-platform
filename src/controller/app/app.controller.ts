@@ -44,6 +44,11 @@ export class AppController {
         ),
       () =>
         this.httpHealthIndicator.pingCheck(
+          'allocator-tech-api',
+          `${this.configService.get<string>('ALLOCATOR_TECH_BASE_URL')}/health`,
+        ),
+      () =>
+        this.httpHealthIndicator.pingCheck(
           'api.datacapstats.io',
           'https://api.datacapstats.io/api/health',
         ),
