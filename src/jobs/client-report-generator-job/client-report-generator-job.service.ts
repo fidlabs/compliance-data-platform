@@ -14,8 +14,8 @@ import {
 export class ClientReportGeneratorJobService extends HealthIndicator {
   private readonly logger = new Logger(ClientReportGeneratorJobService.name);
   private lastRun: Date = null;
-  private lastRunApplications = 0;
-  private lastRunFails = 0;
+  private lastRunApplications: number = null;
+  private lastRunFails: number = null;
   private healthy = true;
 
   constructor(
@@ -50,7 +50,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     }
 
     if (!(await this.clientReportService.generateReport(filecoinId))) {
-      throw new Error(`client not found`);
+      throw new Error(`Client not found`);
     }
   }
 

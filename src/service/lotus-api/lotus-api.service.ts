@@ -31,6 +31,7 @@ export class LotusApiService {
           address: address,
         },
       });
+
     if (clientAddressMapping) return clientAddressMapping.client;
 
     // if address not found in DB -> look up the glif API
@@ -75,7 +76,7 @@ export class LotusApiService {
     );
     if (cachedData) return cachedData;
 
-    this.logger.log(`Getting miner info for ${provider}`);
+    this.logger.debug(`Getting miner info for ${provider}`);
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
