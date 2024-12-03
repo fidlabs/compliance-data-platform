@@ -5,7 +5,7 @@ export interface IPResponse {
   country: string;
   loc: string;
   org: string;
-  postal: string;
+  postal?: string;
   timezone: string;
   bogon?: boolean;
 }
