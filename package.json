@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:deploy": "npx prisma migrate deploy --schema prisma/schema.prisma",
     "migration:generate": "npx prisma generate --schema prisma/schema.prisma --sql",
-    "migration:generate_dmob": "npx prisma generate --schema prismaDmob/schema.prisma --sql"
+    "migration:generate_dmob": "npx prisma generate --schema prismaDmob/schema.prisma --sql",
+    "migration:create_migration": "npx prisma migrate dev --schema prisma/schema.prisma --name MIGRATION_NAME"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.3",
