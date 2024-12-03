@@ -13,6 +13,7 @@ import { HistogramHelper } from '../../helper/histogram.helper';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/helper/prisma.helper';
+import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
 
 @Injectable()
 export class ProviderService {
@@ -21,10 +22,13 @@ export class ProviderService {
     private readonly histogramHelper: HistogramHelper,
   ) {}
 
-  async getProviderClients(isAccumulative: boolean) {
+  async getProviderClients(
+    isAccumulative: boolean,
+  ): Promise<HistogramWeekResponseDto> {
     const clientProviderDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_provider_distribution_weekly_acc
       : Prisma.ModelName.client_provider_distribution_weekly;
+
     const providerCountResult = await this.prismaService.$queryRaw<
       [
         {
@@ -37,16 +41,20 @@ export class ProviderService {
     const query = isAccumulative
       ? getProviderClientsWeeklyAcc
       : getProviderClientsWeekly;
+
     return await this.histogramHelper.getWeeklyHistogramResult(
       await this.prismaService.$queryRawTyped(query()),
       providerCountResult[0].count,
     );
   }
 
-  async getProviderBiggestClientDistribution(isAccumulative: boolean) {
+  async getProviderBiggestClientDistribution(
+    isAccumulative: boolean,
+  ): Promise<HistogramWeekResponseDto> {
     const clientProviderDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_provider_distribution_weekly_acc
       : Prisma.ModelName.client_provider_distribution_weekly;
+
     const providerCountResult = await this.prismaService.$queryRaw<
       [
         {
@@ -59,16 +67,20 @@ export class ProviderService {
     const query = isAccumulative
       ? getProviderBiggestClientDistributionAcc
       : getProviderBiggestClientDistribution;
+
     return await this.histogramHelper.getWeeklyHistogramResult(
       await this.prismaService.$queryRawTyped(query()),
       providerCountResult[0].count,
     );
   }
 
-  async getProviderRetrievability(isAccumulative: boolean) {
+  async getProviderRetrievability(
+    isAccumulative: boolean,
+  ): Promise<RetrievabilityWeekResponseDto> {
     const providersWeeklyTable = isAccumulative
       ? Prisma.ModelName.providers_weekly_acc
       : Prisma.ModelName.providers_weekly;
+
     const providerCountAndAverageSuccessRate = await this.prismaService
       .$queryRaw<
       [
@@ -84,6 +96,7 @@ export class ProviderService {
     const query = isAccumulative
       ? getProviderRetrievabilityAcc
       : getProviderRetrievability;
+
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
