@@ -69,7 +69,6 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
         fails++;
         this.logger.error(
           `Error during generation of Client Report for application #${application[0].ID}: ${err}`,
-          err,
         );
       }
 
@@ -99,7 +98,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       this.healthy = false;
       this.logger.error(
         `Error during Client Reports generation job: ${err}`,
-        err,
+        err.stack,
       );
     }
   }
