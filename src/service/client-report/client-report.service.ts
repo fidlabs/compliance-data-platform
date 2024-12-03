@@ -22,12 +22,12 @@ export class ClientReportService {
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
 
-    if (!verifiedClientResponse.data.length) return null;
-
     const verifiedClientData =
       this.dataCapStatsService.findPrimaryClientDetails(
         verifiedClientResponse.data,
       );
+
+    if (!verifiedClientData) return null;
 
     const storageProviderDistribution =
       await this.getStorageProviderDistributionWithLocation(client);

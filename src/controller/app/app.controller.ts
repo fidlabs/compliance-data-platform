@@ -10,6 +10,7 @@ import { PostgresService } from '../../db/postgres.service';
 import { PostgresDmobService } from '../../db/postgresDmob.service';
 import { AggregationTasksService } from '../../aggregation/aggregation-tasks.service';
 import { ClientReportGeneratorJobService } from '../../jobs/client-report-generator-job/client-report-generator-job.service';
+import { ConfigService } from '@nestjs/config';
 
 @Controller()
 export class AppController {
@@ -21,6 +22,7 @@ export class AppController {
     private postgresDmobService: PostgresDmobService,
     private aggregationTasksService: AggregationTasksService,
     private clientReportGeneratorJobService: ClientReportGeneratorJobService,
+    private configService: ConfigService,
   ) {}
 
   @Get()
@@ -34,12 +36,17 @@ export class AppController {
   getHealth() {
     return this.healthCheckService.check([
       () =>
+        this.httpHealthIndicator.pingCheck('ipinfo.io', 'https://ipinfo.io'),
+      () =>
+        this.httpHealthIndicator.pingCheck(
+          'glif-api',
+          `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`,
+        ),
+      () =>
         this.httpHealthIndicator.pingCheck(
           'api.datacapstats.io',
           'https://api.datacapstats.io/api/health',
         ),
-      () =>
-        this.httpHealthIndicator.pingCheck('ipinfo.io', 'https://ipinfo.io'),
       () =>
         this.httpHealthIndicator.pingCheck(
           'stats.filspark.com',
