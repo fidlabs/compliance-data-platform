@@ -39,7 +39,7 @@ jobs:
         ports:
           - 5433:5432
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres?connection_limit=50
       DMOB_DATABASE_URL: postgres://postgres:postgres@localhost:5433/postgres
 
     steps:
