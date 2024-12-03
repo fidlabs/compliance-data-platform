@@ -1,6 +1,13 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export class HistogramDto {
+  @ApiProperty({ nullable: true })
   valueFromExclusive: number | null;
+
+  @ApiProperty({ nullable: true })
   valueToInclusive: number | null;
+
+  @ApiProperty({ nullable: true })
   count: number | null;
 
   constructor(
