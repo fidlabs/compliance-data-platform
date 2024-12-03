@@ -35,14 +35,14 @@ export class AggregationTasksService extends HealthIndicator {
       this.aggregationJobInProgress = true;
 
       try {
-        this.logger.debug('Starting Aggregations');
+        this.logger.log('Starting Aggregations');
         this.lastRun = new Date();
 
         await this.aggregationService.runAggregations();
 
         this.lastSuccess = new Date();
         this.healthy = true;
-        this.logger.debug('Finished Aggregations');
+        this.logger.log('Finished Aggregations');
       } catch (err) {
         this.healthy = false;
         this.logger.error(`Error during Aggregations job: ${err}`, err);

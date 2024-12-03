@@ -17,6 +17,10 @@ export class ClientReportService {
   ) {}
 
   async generateReport(client: string) {
+    const cidSharing = await this.getCidSharing(client);
+
+    if (!cidSharing.length) return null;
+
     const verifiedClientResponse =
       await this.dataCapStatsService.fetchClientDetails(client);
 
@@ -29,8 +33,6 @@ export class ClientReportService {
       await this.getStorageProviderDistributionWithLocation(client);
 
     const replicaDistribution = await this.getReplicationDistribution(client);
-
-    const cidSharing = await this.getCidSharing(client);
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -65,6 +67,8 @@ export class ClientReportService {
     });
 
     await this.clientReportChecksService.storeReportChecks(report.id);
+
+    return report;
   }
 
   private async getStorageProviderDistributionWithLocation(client: string) {
@@ -143,45 +147,14 @@ export class ClientReportService {
   }
 
   async getClientLatestReport(client: string) {
-    return this.prismaService.client_report.findFirst({
-      where: {
-        client: client,
-      },
-      include: {
-        storage_provider_distribution: {
-          omit: {
-            id: true,
-          },
-          include: {
-            location: {
-              omit: {
-                id: true,
-              },
-            },
-          },
-        },
-        replica_distribution: {
-          omit: {
-            id: true,
-          },
-        },
-        cid_sharing: {
-          omit: {
-            id: true,
-          },
-        },
-      },
-      orderBy: {
-        create_date: 'desc',
-      },
-    });
+    return this.getClientReport(client);
   }
 
-  async getClientReport(client: string, id: any) {
+  async getClientReport(client: string, id?: any) {
     return this.prismaService.client_report.findFirst({
       where: {
         client: client,
-        id: id,
+        id: id ?? undefined,
       },
       include: {
         storage_provider_distribution: {
