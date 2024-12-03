@@ -15,6 +15,7 @@ import { SpsComplianceWeekDto } from '../../types/spsComplianceWeek.dto';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/helper/prisma.helper';
+import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
 
 @Injectable()
 export class AllocatorService {
@@ -23,7 +24,9 @@ export class AllocatorService {
     private readonly histogramHelper: HistogramHelper,
   ) {}
 
-  async getAllocatorRetrievability(isAccumulative: boolean) {
+  async getAllocatorRetrievability(
+    isAccumulative: boolean,
+  ): Promise<RetrievabilityWeekResponseDto> {
     const lastWeek = DateTime.now()
       .toUTC()
       .minus({ week: 1 })
@@ -51,6 +54,7 @@ export class AllocatorService {
     const clientAllocatorDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_allocator_distribution_weekly_acc
       : Prisma.ModelName.client_allocator_distribution_weekly;
+
     const allocatorCountResult = await this.prismaService.$queryRaw<
       [
         {
@@ -63,6 +67,7 @@ export class AllocatorService {
     const query = isAccumulative
       ? getAllocatorRetrievabilityAcc
       : getAllocatorRetrievability;
+
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
@@ -75,10 +80,13 @@ export class AllocatorService {
     );
   }
 
-  async getAllocatorBiggestClientDistribution(isAccumulative: boolean) {
+  async getAllocatorBiggestClientDistribution(
+    isAccumulative: boolean,
+  ): Promise<HistogramWeekResponseDto> {
     const clientAllocatorDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_allocator_distribution_weekly_acc
       : Prisma.ModelName.client_allocator_distribution_weekly;
+
     const allocatorCountResult = await this.prismaService.$queryRaw<
       [
         {
@@ -91,6 +99,7 @@ export class AllocatorService {
     const query = isAccumulative
       ? getAllocatorBiggestClientDistributionAcc
       : getAllocatorBiggestClientDistribution;
+
     return await this.histogramHelper.getWeeklyHistogramResult(
       await this.prismaService.$queryRawTyped(query()),
       allocatorCountResult[0].count,
@@ -142,6 +151,7 @@ export class AllocatorService {
       }[];
       week: Date;
     }[] = [];
+
     for (const week of weeks) {
       const thisWeekAverageRetrievability = isAccumulative
         ? await this.prismaService.providers_weekly_acc.aggregate({
