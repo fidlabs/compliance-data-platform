@@ -9,6 +9,7 @@ import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { PostgresService } from '../../db/postgres.service';
 import { PostgresDmobService } from '../../db/postgresDmob.service';
 import { AggregationTasksService } from '../../aggregation/aggregation-tasks.service';
+import { ClientReportGeneratorJobService } from '../../jobs/client-report-generator-job/client-report-generator-job.service';
 
 @Controller()
 export class AppController {
@@ -19,6 +20,7 @@ export class AppController {
     private postgresService: PostgresService,
     private postgresDmobService: PostgresDmobService,
     private aggregationTasksService: AggregationTasksService,
+    private clientReportGeneratorJobService: ClientReportGeneratorJobService,
   ) {}
 
   @Get()
@@ -33,6 +35,13 @@ export class AppController {
     return this.healthCheckService.check([
       () =>
         this.httpHealthIndicator.pingCheck(
+          'api.datacapstats.io',
+          'https://api.datacapstats.io/api/health',
+        ),
+      () =>
+        this.httpHealthIndicator.pingCheck('ipinfo.io', 'https://ipinfo.io'),
+      () =>
+        this.httpHealthIndicator.pingCheck(
           'stats.filspark.com',
           'https://stats.filspark.com',
         ),
@@ -45,6 +54,7 @@ export class AppController {
           connection: this.postgresDmobService.pool,
         }),
       () => this.aggregationTasksService.isHealthy(),
+      () => this.clientReportGeneratorJobService.isHealthy(),
     ]);
   }
 }

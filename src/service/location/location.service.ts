@@ -49,7 +49,7 @@ export class LocationService {
       );
 
       if (data.bogon === true) continue;
-      await this.cacheManager.set(cacheKey, data, 1000 * 60 * 60 * 24);
+      await this.cacheManager.set(cacheKey, data, 1000 * 60 * 60 * 24); // 24 hours
 
       return data;
     }
