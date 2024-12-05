@@ -47,6 +47,18 @@ import { DataCapStatsService } from './service/datacapstats/datacapstats.service
 import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { LocationService } from './service/location/location.service';
 import { LotusApiService } from './service/lotus-api/lotus-api.service';
+import { LocationService } from './service/location/location.service';
+import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
+import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
+import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
+import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
+import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
+import { APP_FILTER } from '@nestjs/core';
+import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
+import { AppController } from './controller/app/app.controller';
+import { TerminusModule } from '@nestjs/terminus';
+import { ComplianceReportService } from './service/compliance-report/compliance-report.service';
+import { ComplianceReportController } from './controller/compliance-report/compliance-report.controller';
 import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
 
@@ -66,6 +78,7 @@ import { PrometheusMetricModule } from './common/prometheus';
     AllocatorsAccController,
     GoogleApisController,
     ClientReportController,
+    ComplianceReportController,
     AppController,
   ],
   providers: [
@@ -103,6 +116,7 @@ import { PrometheusMetricModule } from './common/prometheus';
     LocationService,
     AllocatorTechService,
     ClientReportChecksService,
+    ComplianceReportService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     {
       provide: 'AggregationRunner',
