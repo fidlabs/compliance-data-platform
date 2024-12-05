@@ -234,6 +234,19 @@ model client_report_check_result {
   @@unique([check, client_report_id])
 }
 
+model compliance_report {
+  id                              String   @id @default(uuid()) @db.Uuid
+  create_date                     DateTime @default(now())
+  allocator                       String
+  name                            String
+  address                         String
+  filecoin_pulse                  String
+  clients_number                  Int?
+  multisig                        Boolean
+  avg_retrievability_success_rate Decimal? @db.Decimal(5, 2)
+  avg_time_to_first_deal          Decimal? @db.Decimal(5, 2)
+}
+
 enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL

@@ -7,6 +7,10 @@ import {
   VerifiedClientResponse,
 } from './types.datacapstats';
 import { CacheInterceptor } from '@nestjs/cache-manager';
+import {
+  DataCapStatsVerifierData,
+  DataCapStatsVerifiersResponse,
+} from './types.verifiers.datacapstats';
 
 @Injectable()
 export class DataCapStatsService {
@@ -46,5 +50,47 @@ export class DataCapStatsService {
         ? prev
         : curr,
     );
+  }
+
+  async getVerifiersData(
+    verifierAddress: string,
+  ): Promise<DataCapStatsVerifierData> {
+    const apiKey = await this.getApiKey();
+    const endpoint = `https://api.datacapstats.io/public/api/getVerifiers`;
+
+    const { data } = await firstValueFrom(
+      this.httpService
+        .get<DataCapStatsVerifiersResponse>(endpoint, {
+          headers: {
+            'X-API-KEY': apiKey,
+          },
+          params: {
+            page: 1,
+            limit: 1,
+            filter: verifierAddress,
+          },
+        })
+        .pipe(
+          catchError((error: AxiosError) => {
+            this.logger.error(error.response.data);
+            throw error;
+          }),
+        ),
+    );
+    return data.data[0];
+  }
+
+  async getApiKey() {
+    const endpoint = `http://api.datacapstats.io/public/api/getApiKey`;
+
+    const { data } = await firstValueFrom(
+      this.httpService.get<string>(endpoint).pipe(
+        catchError((error: AxiosError) => {
+          this.logger.error(error.response.data);
+          throw error;
+        }),
+      ),
+    );
+    return data;
   }
 }
