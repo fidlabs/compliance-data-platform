@@ -11,11 +11,18 @@ import {
   DataCapStatsVerifierData,
   DataCapStatsVerifiersResponse,
 } from './types.verifiers.datacapstats';
+import { DataCapStatsVerifiedClientsResponse } from './types.verified-clients.datacapstats';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DataCapStatsService {
   private readonly logger = new Logger(DataCapStatsService.name);
-  constructor(private readonly httpService: HttpService) {}
+  private apiKey: string;
+
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @UseInterceptors(CacheInterceptor)
   async fetchClientDetails(clientId: string): Promise<VerifiedClientResponse> {
@@ -52,6 +59,41 @@ export class DataCapStatsService {
     );
   }
 
+  async getVerifierClients(verifiersAddressId: string) {
+    const apiKey = await this.getApiKey();
+    const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${verifiersAddressId}`;
+
+    const { data } = await firstValueFrom(
+      this.httpService
+        .get<DataCapStatsVerifiedClientsResponse>(endpoint, {
+          headers: {
+            'X-API-KEY': apiKey,
+          },
+          params: {
+            page: 1,
+            limit: 20,
+          },
+        })
+        .pipe(
+          catchError((error: AxiosError) => {
+            this.logger.error(error.response.data);
+            throw error;
+          }),
+        ),
+    );
+
+    return {
+      data: data.data.map((e) => ({
+        ...e,
+        allowanceArray: e.allowanceArray.map((a) => ({
+          ...a,
+          allowance: Number(a.allowance),
+        })),
+      })),
+      count: data.count,
+    };
+  }
+
   async getVerifiersData(
     verifierAddress: string,
   ): Promise<DataCapStatsVerifierData> {
@@ -81,6 +123,16 @@ export class DataCapStatsService {
   }
 
   async getApiKey() {
+    if (this.apiKey) {
+      return this.apiKey;
+    } else {
+      const apiKey = this.configService.get<string>('DATACAPSTATS_API_KEY');
+      if (apiKey != undefined) {
+        this.apiKey = apiKey;
+        return apiKey;
+      }
+    }
+
     const endpoint = `http://api.datacapstats.io/public/api/getApiKey`;
 
     const { data } = await firstValueFrom(
@@ -91,6 +143,7 @@ export class DataCapStatsService {
         }),
       ),
     );
+    this.apiKey = data;
     return data;
   }
 }

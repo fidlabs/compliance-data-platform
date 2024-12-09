@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { PrismaService } from '../../db/prisma.service';
-import { DataCapStatsVerifierData } from '../datacapstats/types.verifiers.datacapstats';
 
 @Injectable()
 export class ComplianceReportService {
@@ -11,21 +10,34 @@ export class ComplianceReportService {
   ) {}
 
   async generateReport(address: string) {
-    const allocatorInfo = await this.getAllocatorInfo(address);
+    const verifiersData =
+      await this.dataCapStatsService.getVerifiersData(address);
+
+    const verifierClients = await this.dataCapStatsService.getVerifierClients(
+      verifiersData.addressId,
+    );
+
     await this.prismaService.compliance_report.create({
       data: {
-        allocator: allocatorInfo.addressId,
-        address: allocatorInfo.address,
-        name: allocatorInfo.name,
-        filecoin_pulse: `https://filecoinpulse.pages.dev/allocator/${allocatorInfo.addressId}`,
-        multisig: allocatorInfo.isMultisig,
+        allocator: verifiersData.addressId,
+        address: verifiersData.address,
+        name: verifiersData.name,
+        filecoin_pulse: `https://filecoinpulse.pages.dev/allocator/${verifiersData.addressId}`,
+        multisig: verifiersData.isMultisig,
+        clients: {
+          create: verifierClients.data.map((verifierClient) => {
+            return {
+              client_id: verifierClient.addressId,
+              name: verifierClient.name,
+              allocations_number: verifierClient.allowanceArray.length,
+              total_allocations: verifierClient.allowanceArray.reduce(
+                (acc: number, curr: any) => acc + Number(curr.allowance),
+                0,
+              ),
+            };
+          }),
+        },
       },
     });
-  }
-
-  private async getAllocatorInfo(
-    allocatorId: string,
-  ): Promise<DataCapStatsVerifierData> {
-    return await this.dataCapStatsService.getVerifiersData(allocatorId);
   }
 }

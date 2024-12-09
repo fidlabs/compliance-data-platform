@@ -235,16 +235,27 @@ model client_report_check_result {
 }
 
 model compliance_report {
-  id                              String   @id @default(uuid()) @db.Uuid
-  create_date                     DateTime @default(now())
+  id                              String                     @id @default(uuid()) @db.Uuid
+  create_date                     DateTime                   @default(now())
   allocator                       String
   name                            String
   address                         String
   filecoin_pulse                  String
   clients_number                  Int?
   multisig                        Boolean
-  avg_retrievability_success_rate Decimal? @db.Decimal(5, 2)
-  avg_time_to_first_deal          Decimal? @db.Decimal(5, 2)
+  avg_retrievability_success_rate Decimal?                   @db.Decimal(5, 2)
+  avg_time_to_first_deal          Decimal?                   @db.Decimal(5, 2)
+  clients                         compliance_report_client[]
+}
+
+model compliance_report_client {
+  id                   String            @id @default(uuid()) @db.Uuid
+  compliance_report    compliance_report @relation(fields: [compliance_report_id], references: [id])
+  compliance_report_id String            @db.Uuid
+  client_id            String
+  name                 String
+  allocations_number   Int
+  total_allocations    BigInt            @db.BigInt
 }
 
 enum ClientReportCheck {
