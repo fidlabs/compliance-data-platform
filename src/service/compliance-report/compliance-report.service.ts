@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { PrismaService } from '../../db/prisma.service';
+import {
+  Error,
+  Industry,
+  Region,
+} from '../datacapstats/types.verified-clients.datacapstats';
 
 @Injectable()
 export class ComplianceReportService {
@@ -16,6 +21,8 @@ export class ComplianceReportService {
     const verifierClients = await this.dataCapStatsService.getVerifierClients(
       verifiersData.addressId,
     );
+
+    const clientsData = this.getGrantedDatacapInClients(verifierClients.data);
 
     await this.prismaService.compliance_report.create({
       data: {
@@ -37,7 +44,85 @@ export class ComplianceReportService {
             };
           }),
         },
+        client_allocations: {
+          create: clientsData.map((clientData) => {
+            return {
+              client_id: clientData.addressId,
+              allocation: clientData.allocation,
+              timestamp: new Date(clientData.allocationTimestamp * 1000),
+            };
+          }),
+        },
       },
     });
+  }
+
+  private getGrantedDatacapInClients(
+    data: {
+      id: number;
+      addressId: string;
+      address: string;
+      retries: number;
+      auditTrail: 'n/a';
+      name: string;
+      orgName: string;
+      initialAllowance: string;
+      allowance: string;
+      verifierAddressId: 'f03015751';
+      createdAtHeight: number;
+      issueCreateTimestamp: null;
+      createMessageTimestamp: number;
+      verifierName: 'Public Open Dataset Pathway';
+      dealCount: number | null;
+      providerCount: number | null;
+      topProvider: string | null;
+      receivedDatacapChange: string;
+      usedDatacapChange: string;
+      allowanceArray: {
+        id: number;
+        error: Error;
+        height: number;
+        msgCID: string;
+        retries: number;
+        addressId: string;
+        allowance: number;
+        auditTrail: string;
+        allowanceTTD: number;
+        isDataPublic: string;
+        issueCreator: string;
+        providerList: any[];
+        usedAllowance: string;
+        isLdnAllowance: boolean;
+        isEFilAllowance: boolean;
+        verifierAddressId: 'f03015751';
+        isFromAutoverifier: boolean;
+        retrievalFrequency: string;
+        searchedByProposal: boolean;
+        issueCreateTimestamp: number;
+        hasRemainingAllowance: boolean;
+        createMessageTimestamp: number;
+      }[];
+      region: Region;
+      website: string;
+      industry: Industry;
+      usedDatacap: string;
+      remainingDatacap: string;
+    }[],
+  ) {
+    const ClientsData = data.map((e) => ({
+      addressId: e.addressId,
+      allowanceArray: e.allowanceArray,
+      clientName: e.name,
+    }));
+    return ClientsData.map((item) => {
+      return item.allowanceArray.map((allowanceItem) => ({
+        allocation: allowanceItem.allowance,
+        addressId: item.addressId,
+        allocationTimestamp: allowanceItem.createMessageTimestamp,
+        clientName: item.clientName,
+      }));
+    })
+      .flat()
+      .sort((a, b) => a.allocationTimestamp - b.allocationTimestamp);
   }
 }
