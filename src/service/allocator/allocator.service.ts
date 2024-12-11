@@ -436,7 +436,7 @@ export class AllocatorService {
             providers.includes(p.provider) &&
             validComplianceScores.includes(p.complianceScore),
         ).length) /
-      weekProvidersCompliance.length
+      providers.length
     );
   }
 }
