@@ -16,9 +16,9 @@ export class ComplianceReportService {
     private readonly storageProviderService: StorageProviderService,
   ) {}
 
-  async generateReport(address: string) {
+  async generateReport(allocator: string) {
     const verifiersData =
-      await this.dataCapStatsService.getVerifiersData(address);
+      await this.dataCapStatsService.getVerifiersData(allocator);
 
     const verifierClients = await this.dataCapStatsService.getVerifierClients(
       verifiersData.addressId,
@@ -33,7 +33,7 @@ export class ComplianceReportService {
     const storageProviderDistribution =
       await this.getStorageProviderDistribution(clientIds);
 
-    await this.prismaService.compliance_report.create({
+    return await this.prismaService.compliance_report.create({
       data: {
         allocator: verifiersData.addressId,
         address: verifiersData.address,
@@ -92,6 +92,45 @@ export class ComplianceReportService {
       );
     }
     return storageProviderDistribution;
+  }
+
+  async getReports(allocator: string) {
+    return await this.prismaService.compliance_report.findMany({
+      where: {
+        allocator: allocator,
+      },
+      orderBy: {
+        create_date: 'desc',
+      },
+    });
+  }
+
+  async getLatestReport(allocator: string) {
+    return this.getReport(allocator);
+  }
+
+  async getReport(allocator: string, id?: any) {
+    return this.prismaService.compliance_report.findFirst({
+      where: {
+        allocator: allocator,
+        id: id ?? undefined,
+      },
+      include: {
+        clients: {
+          omit: {
+            id: true,
+          },
+        },
+        client_allocations: {
+          omit: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        create_date: 'desc',
+      },
+    });
   }
 
   private getGrantedDatacapInClients(
