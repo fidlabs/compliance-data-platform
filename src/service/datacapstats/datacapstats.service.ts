@@ -95,7 +95,7 @@ export class DataCapStatsService {
   }
 
   async getVerifiersData(
-    verifierAddress: string,
+    verifierIdOrAddress: string,
   ): Promise<DataCapStatsVerifierData> {
     const apiKey = await this.getApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiers`;
@@ -109,7 +109,7 @@ export class DataCapStatsService {
           params: {
             page: 1,
             limit: 1,
-            filter: verifierAddress,
+            filter: verifierIdOrAddress,
           },
         })
         .pipe(

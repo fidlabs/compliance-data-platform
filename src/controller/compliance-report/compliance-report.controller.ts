@@ -1,4 +1,10 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
@@ -12,7 +18,7 @@ export class ComplianceReportController {
     private readonly complianceReportService: ComplianceReportService,
   ) {}
 
-  @Get(':allocatorAddress')
+  @Get(':allocator')
   @ApiOperation({
     summary: 'Get list of compliance reports',
   })
@@ -20,13 +26,11 @@ export class ComplianceReportController {
     description: 'List of compliance reports',
     type: null,
   })
-  async getComplianceReports(
-    @Param('allocatorAddress') allocatorAddress: string,
-  ) {
-    //
+  async getComplianceReports(@Param('allocator') allocator: string) {
+    return await this.complianceReportService.getReports(allocator);
   }
 
-  @Get(':allocatorAddress/latest')
+  @Get(':allocator/latest')
   @ApiOperation({
     summary: 'Get latest compliance report',
   })
@@ -34,13 +38,15 @@ export class ComplianceReportController {
     description: 'Compliance Report',
     type: null,
   })
-  async getComplianceReport(
-    @Param('allocatorAddress') allocatorAddress: string,
-  ) {
-    //
+  async getComplianceReport(@Param('allocator') allocator: string) {
+    const report =
+      await this.complianceReportService.getLatestReport(allocator);
+
+    if (!report) throw new NotFoundException();
+    return report;
   }
 
-  @Get(':allocatorAddress/:id')
+  @Get(':allocator/:id')
   @ApiOperation({
     summary: 'Get compliance report by id',
   })
@@ -49,13 +55,16 @@ export class ComplianceReportController {
     type: null,
   })
   async getComplianceReportById(
-    @Param('allocatorAddress') allocatorAddress: string,
+    @Param('allocator') allocator: string,
     @Param('id') id: bigint,
   ) {
-    //
+    const report = await this.complianceReportService.getReport(allocator, id);
+
+    if (!report) throw new NotFoundException();
+    return report;
   }
 
-  @Post(':allocatorAddress')
+  @Post(':allocator')
   @ApiOperation({
     summary: 'Generate compliance report for a given allocator',
   })
@@ -63,9 +72,10 @@ export class ComplianceReportController {
     description: 'Compliance Report',
     type: null,
   })
-  async generateComplianceReport(
-    @Param('allocatorAddress') allocatorAddress: string,
-  ) {
-    await this.complianceReportService.generateReport(allocatorAddress);
+  async generateComplianceReport(@Param('allocator') allocator: string) {
+    const report = await this.complianceReportService.generateReport(allocator);
+
+    if (!report) throw new NotFoundException();
+    return report;
   }
 }
