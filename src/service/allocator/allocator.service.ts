@@ -254,7 +254,7 @@ export class AllocatorService {
       for (const allocator in byAllocators) {
         const clients = byAllocators[allocator].map((p) => p.client);
 
-        const providers = isAccumulative
+        const providersRaw = isAccumulative
           ? await this.prismaService.client_provider_distribution_weekly_acc
               .findMany({
                 where: {
@@ -281,6 +281,7 @@ export class AllocatorService {
                 },
               })
               .then((r) => r.map((p) => p.provider));
+        const providers = [...new Set(providersRaw)];
 
         weekResult.push({
           id: allocator,
