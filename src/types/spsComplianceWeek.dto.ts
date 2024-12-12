@@ -1,23 +1,17 @@
-import { ProviderComplianceScoreRange } from './providerComplianceScoreRange';
-import { HistogramWeekResponseDto } from './histogramWeek.response.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { SpsComplianceSingleAllocatorDto } from './spsComplianceSingleAllocator.dto';
 
 export class SpsComplianceWeekDto {
-  @ApiProperty({ enum: ProviderComplianceScoreRange })
-  scoreRange: ProviderComplianceScoreRange;
+  @ApiProperty({
+    type: String,
+    format: 'date',
+    example: '2024-04-22T00:00:00.000Z',
+  })
+  week: Date;
 
-  @ApiProperty({ type: HistogramWeekResponseDto })
-  histogram: HistogramWeekResponseDto;
+  @ApiProperty({ type: SpsComplianceSingleAllocatorDto, isArray: true })
+  allocators: SpsComplianceSingleAllocatorDto[];
 
-  public static of(
-    scoreRange: ProviderComplianceScoreRange,
-    histogram: HistogramWeekResponseDto,
-  ) {
-    const dto = new SpsComplianceWeekDto();
-
-    dto.scoreRange = scoreRange;
-    dto.histogram = histogram;
-
-    return dto;
-  }
+  @ApiProperty()
+  total: number;
 }
