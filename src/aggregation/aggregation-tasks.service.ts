@@ -37,11 +37,11 @@ export class AggregationTasksService extends HealthIndicator {
       try {
         this.logger.log('Starting Aggregations');
         this.lastRun = new Date();
+        this.healthy = true;
 
         await this.aggregationService.runAggregations();
 
         this.lastSuccess = new Date();
-        this.healthy = true;
         this.logger.log('Finished Aggregations');
       } catch (err) {
         this.healthy = false;

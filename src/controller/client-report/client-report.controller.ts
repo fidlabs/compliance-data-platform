@@ -39,8 +39,8 @@ export class ClientReportController {
   async getClientReport(@Param('client') client: string) {
     const report =
       await this.clientReportsService.getClientLatestReport(client);
-    if (!report) throw new NotFoundException();
 
+    if (!report) throw new NotFoundException();
     return report;
   }
 
@@ -57,8 +57,8 @@ export class ClientReportController {
     @Param('id') id: bigint,
   ) {
     const report = await this.clientReportsService.getClientReport(client, id);
-    if (!report) throw new NotFoundException();
 
+    if (!report) throw new NotFoundException();
     return report;
   }
 
@@ -72,8 +72,8 @@ export class ClientReportController {
   })
   async generateClientReport(@Param('client') client: string) {
     const report = await this.clientReportsService.generateReport(client);
-    if (!report) throw new NotFoundException();
 
+    if (!report) throw new NotFoundException();
     return report;
   }
 }

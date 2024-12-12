@@ -1,6 +1,6 @@
 import { CacheInterceptor } from '@nestjs/cache-manager';
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
-import { GetAllocatorsOverviewRequest } from 'src/dto/getAllocatorsOverviewRequest.dto';
+import { GetAllocatorsOverviewRequest } from 'src/types/getAllocatorsOverviewRequest.dto';
 import { GoogleApisService } from 'src/service/googleapis/googleapis.service';
 import { GoogleApisSpreadsheetValuesDto } from '../../types/googleApisSpreadsheetValues.dto';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';

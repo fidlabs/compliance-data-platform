@@ -85,12 +85,12 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     try {
       this.logger.log('Starting Client Reports generation');
       this.lastRun = new Date();
+      this.healthy = true;
 
       const { applications, fails } = await this._runClientReportGeneration();
 
       this.lastRunApplications = applications;
       this.lastRunFails = fails;
-      this.healthy = true;
       this.logger.log(
         `Finishing Client Reports generation. Fails: ${fails} / ${applications}`,
       );
