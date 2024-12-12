@@ -16,6 +16,9 @@ import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/helper/prisma.helper';
 import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
+import { SpsComplianceSingleAllocatorDto } from 'src/types/spsComplianceSingleAllocator.dto';
+import { SpsComplianceHistogramWeekDto } from 'src/types/spsComplianceHistogramWeek.dto';
+import { SpsComplianceHistogramWeekResponseDto } from 'src/types/spsComplianceHistogramWeekResponse.dto';
 
 @Injectable()
 export class AllocatorService {
@@ -106,6 +109,44 @@ export class AllocatorService {
     );
   }
 
+  async getAllocatorSpsComplianceHistogram(
+    isAccumulative: boolean,
+  ): Promise<SpsComplianceHistogramWeekResponseDto> {
+    const allocatorCount = (
+      isAccumulative
+        ? await this.prismaService.allocators_weekly_acc.findMany({
+            distinct: ['allocator'],
+            select: {
+              allocator: true,
+            },
+          })
+        : await this.prismaService.allocators_weekly.findMany({
+            distinct: ['allocator'],
+            select: {
+              allocator: true,
+            },
+          })
+    ).length;
+    const { results } = await this.getAllocatorSpsCompliance(isAccumulative);
+    return new SpsComplianceHistogramWeekResponseDto([
+      await this.calculateSpsComplianceWeekDto(
+        results,
+        allocatorCount,
+        ProviderComplianceScoreRange.NonCompliant,
+      ),
+      await this.calculateSpsComplianceWeekDto(
+        results,
+        allocatorCount,
+        ProviderComplianceScoreRange.PartiallyCompliant,
+      ),
+      await this.calculateSpsComplianceWeekDto(
+        results,
+        allocatorCount,
+        ProviderComplianceScoreRange.Compliant,
+      ),
+    ]);
+  }
+
   async getAllocatorSpsCompliance(
     isAccumulative: boolean,
   ): Promise<SpsComplianceWeekResponseDto> {
@@ -127,30 +168,7 @@ export class AllocatorService {
           })
           .then((r) => r.map((p) => p.week));
 
-    const allocatorCount = (
-      isAccumulative
-        ? await this.prismaService.allocators_weekly_acc.findMany({
-            distinct: ['allocator'],
-            select: {
-              allocator: true,
-            },
-          })
-        : await this.prismaService.allocators_weekly.findMany({
-            distinct: ['allocator'],
-            select: {
-              allocator: true,
-            },
-          })
-    ).length;
-
-    const calculationResults: {
-      results: {
-        zeroCompliantProvidersPercent: number;
-        oneOrTwoCompliantProvidersPercent: number;
-        threeCompliantProvidersPercent: number;
-      }[];
-      week: Date;
-    }[] = [];
+    const calculationResults: SpsComplianceWeekDto[] = [];
 
     for (const week of weeks) {
       const thisWeekAverageRetrievability = isAccumulative
@@ -232,12 +250,7 @@ export class AllocatorService {
         (a) => a.allocator,
       );
 
-      const weekResult: {
-        allocator: string;
-        zeroCompliantProvidersPercent: number;
-        oneOrTwoCompliantProvidersPercent: number;
-        threeCompliantProvidersPercent: number;
-      }[] = [];
+      const weekResult: SpsComplianceSingleAllocatorDto[] = [];
       for (const allocator in byAllocators) {
         const clients = byAllocators[allocator].map((p) => p.client);
 
@@ -270,66 +283,43 @@ export class AllocatorService {
               .then((r) => r.map((p) => p.provider));
 
         weekResult.push({
-          allocator: allocator,
-          zeroCompliantProvidersPercent:
+          id: allocator,
+          compliantSpsPercentage: this.getAllocatorCompliantProvidersPercentage(
+            weekProvidersCompliance,
+            providers,
+            ProviderComplianceScoreRange.NonCompliant,
+          ),
+          partiallyCompliantSpsPercentage:
             this.getAllocatorCompliantProvidersPercentage(
               weekProvidersCompliance,
               providers,
-              ProviderComplianceScoreRange.Zero,
+              ProviderComplianceScoreRange.PartiallyCompliant,
             ),
-          oneOrTwoCompliantProvidersPercent:
+          nonCompliantSpsPercentage:
             this.getAllocatorCompliantProvidersPercentage(
               weekProvidersCompliance,
               providers,
-              ProviderComplianceScoreRange.OneOrTwo,
-            ),
-          threeCompliantProvidersPercent:
-            this.getAllocatorCompliantProvidersPercentage(
-              weekProvidersCompliance,
-              providers,
-              ProviderComplianceScoreRange.Three,
+              ProviderComplianceScoreRange.Compliant,
             ),
         });
       }
 
       calculationResults.push({
         week: week,
-        results: weekResult,
+        allocators: weekResult,
+        total: weekResult.length,
       });
     }
 
-    return new SpsComplianceWeekResponseDto([
-      await this.calculateSpsComplianceWeekDto(
-        calculationResults,
-        allocatorCount,
-        ProviderComplianceScoreRange.Zero,
-      ),
-      await this.calculateSpsComplianceWeekDto(
-        calculationResults,
-        allocatorCount,
-        ProviderComplianceScoreRange.OneOrTwo,
-      ),
-      await this.calculateSpsComplianceWeekDto(
-        calculationResults,
-        allocatorCount,
-        ProviderComplianceScoreRange.Three,
-      ),
-    ]);
+    return new SpsComplianceWeekResponseDto(calculationResults);
   }
 
   private async calculateSpsComplianceWeekDto(
-    calculationResults: {
-      results: {
-        zeroCompliantProvidersPercent: number;
-        oneOrTwoCompliantProvidersPercent: number;
-        threeCompliantProvidersPercent: number;
-      }[];
-      week: Date;
-    }[],
+    calculationResults: SpsComplianceWeekDto[],
     allocatorCount: number,
     providerComplianceScoreRange: ProviderComplianceScoreRange,
   ) {
-    return SpsComplianceWeekDto.of(
+    return SpsComplianceHistogramWeekDto.of(
       providerComplianceScoreRange,
       await this.histogramHelper.getWeeklyHistogramResult(
         this.getSpsComplianceBuckets(
@@ -342,14 +332,7 @@ export class AllocatorService {
   }
 
   private getSpsComplianceBuckets(
-    unsortedResults: {
-      results: {
-        zeroCompliantProvidersPercent: number;
-        oneOrTwoCompliantProvidersPercent: number;
-        threeCompliantProvidersPercent: number;
-      }[];
-      week: Date;
-    }[],
+    unsortedResults: SpsComplianceWeekDto[],
     providerComplianceScoreRange: ProviderComplianceScoreRange,
   ): {
     valueFromExclusive: number | null;
@@ -367,7 +350,7 @@ export class AllocatorService {
     do {
       result.push(
         ...unsortedResults.map((r) => {
-          const count = r.results.filter(
+          const count = r.allocators.filter(
             (p) =>
               this.getPercentValue(p, providerComplianceScoreRange) >
                 valueFromExclusive &&
@@ -392,19 +375,19 @@ export class AllocatorService {
 
   private getPercentValue(
     result: {
-      zeroCompliantProvidersPercent: number;
-      oneOrTwoCompliantProvidersPercent: number;
-      threeCompliantProvidersPercent: number;
+      nonCompliantSpsPercentage: number;
+      partiallyCompliantSpsPercentage: number;
+      compliantSpsPercentage: number;
     },
     providerComplianceScoreRange: ProviderComplianceScoreRange,
   ) {
     switch (providerComplianceScoreRange) {
-      case ProviderComplianceScoreRange.Zero:
-        return result.zeroCompliantProvidersPercent;
-      case ProviderComplianceScoreRange.OneOrTwo:
-        return result.oneOrTwoCompliantProvidersPercent;
-      case ProviderComplianceScoreRange.Three:
-        return result.threeCompliantProvidersPercent;
+      case ProviderComplianceScoreRange.NonCompliant:
+        return result.nonCompliantSpsPercentage;
+      case ProviderComplianceScoreRange.PartiallyCompliant:
+        return result.partiallyCompliantSpsPercentage;
+      case ProviderComplianceScoreRange.Compliant:
+        return result.compliantSpsPercentage;
     }
   }
 
@@ -418,13 +401,13 @@ export class AllocatorService {
   ) {
     const validComplianceScores: number[] = [];
     switch (complianceScore) {
-      case ProviderComplianceScoreRange.Zero:
+      case ProviderComplianceScoreRange.NonCompliant:
         validComplianceScores.push(0);
         break;
-      case ProviderComplianceScoreRange.OneOrTwo:
+      case ProviderComplianceScoreRange.PartiallyCompliant:
         validComplianceScores.push(1, 2);
         break;
-      case ProviderComplianceScoreRange.Three:
+      case ProviderComplianceScoreRange.Compliant:
         validComplianceScores.push(3);
         break;
     }

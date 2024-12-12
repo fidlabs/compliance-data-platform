@@ -1,5 +1,5 @@
 export enum ProviderComplianceScoreRange {
-  Zero, //0-0
-  OneOrTwo, //1-2
-  Three, //3-3
+  NonCompliant, //0-0
+  PartiallyCompliant, //1-2
+  Compliant, //3-3
 }
