@@ -1,20 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
-import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { LocationService } from '../location/location.service';
-import { IPResponse } from '../location/types.location';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
 import { VerifiedClientData } from '../datacapstats/types.datacapstats';
+import { StorageProviderService } from '../storage-provider/storage-provider.service';
 
 @Injectable()
 export class ClientReportService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
-    private readonly lotusApiService: LotusApiService,
-    private readonly locationService: LocationService,
     private readonly clientReportChecksService: ClientReportChecksService,
+    private readonly storageProviderService: StorageProviderService,
   ) {}
 
   async generateReport(client: string) {
@@ -24,7 +21,9 @@ export class ClientReportService {
     if (!verifiedClientData) return null;
 
     const storageProviderDistribution =
-      await this.getStorageProviderDistributionWithLocation(client);
+      await this.storageProviderService.getStorageProviderDistributionWithLocation(
+        client,
+      );
 
     const replicaDistribution = await this.getReplicationDistribution(client);
 
@@ -127,37 +126,6 @@ export class ClientReportService {
     return result._sum.total > 0
       ? result._sum.successful / result._sum.total
       : null;
-  }
-
-  private async getStorageProviderDistributionWithLocation(client: string) {
-    const clientProviderDistribution =
-      await this.prismaService.client_provider_distribution.findMany({
-        where: {
-          client: client,
-        },
-      });
-
-    return await Promise.all(
-      clientProviderDistribution.map(async (clientProviderDistribution) => ({
-        ...clientProviderDistribution,
-        location: await this.getClientProviderDistributionLocation(
-          clientProviderDistribution,
-        ),
-      })),
-    );
-  }
-
-  private async getClientProviderDistributionLocation(clientProviderDistribution: {
-    client: string;
-    provider: string;
-    total_deal_size: bigint;
-    unique_data_size: bigint;
-  }): Promise<IPResponse | null> {
-    const minerInfo = await this.lotusApiService.getMinerInfo(
-      clientProviderDistribution.provider,
-    );
-
-    return await this.locationService.getLocation(minerInfo.result.Multiaddrs);
   }
 
   private async getReplicationDistribution(client: string) {

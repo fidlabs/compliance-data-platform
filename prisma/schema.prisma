@@ -235,18 +235,19 @@ model client_report_check_result {
 }
 
 model compliance_report {
-  id                              String                                @id @default(uuid()) @db.Uuid
-  create_date                     DateTime                              @default(now())
+  id                              String                                            @id @default(uuid()) @db.Uuid
+  create_date                     DateTime                                          @default(now())
   allocator                       String
   name                            String
   address                         String
   filecoin_pulse                  String
   clients_number                  Int?
   multisig                        Boolean
-  avg_retrievability_success_rate Decimal?                              @db.Decimal(5, 2)
-  avg_time_to_first_deal          Decimal?                              @db.Decimal(5, 2)
+  avg_retrievability_success_rate Decimal?                                          @db.Decimal(5, 2)
+  avg_time_to_first_deal          Decimal?                                          @db.Decimal(5, 2)
   clients                         compliance_report_client[]
   client_allocations              compliance_report_client_allocation[]
+  storage_provider_distribution   compliance_report_storage_provider_distribution[]
 }
 
 model compliance_report_client {
@@ -260,14 +261,37 @@ model compliance_report_client {
 }
 
 model compliance_report_client_allocation {
-  id String @id @default(uuid()) @db.Uuid
-
+  id                   String            @id @default(uuid()) @db.Uuid
   compliance_report    compliance_report @relation(fields: [compliance_report_id], references: [id])
   compliance_report_id String            @db.Uuid
+  client_id            String
+  allocation           BigInt            @db.BigInt
+  timestamp            DateTime
+}
 
-  client_id  String
-  allocation BigInt   @db.BigInt
-  timestamp  DateTime
+model compliance_report_storage_provider_distribution {
+  id                   String                                                    @id @default(uuid()) @db.Uuid
+  compliance_report    compliance_report                                         @relation(fields: [compliance_report_id], references: [id])
+  compliance_report_id String                                                    @db.Uuid
+  provider             String
+  total_deal_size      BigInt
+  unique_data_size     BigInt
+  location             compliance_report_storage_provider_distribution_location?
+}
+
+model compliance_report_storage_provider_distribution_location {
+  id                       String                                          @id @default(uuid()) @db.Uuid
+  provider_distribution    compliance_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
+  provider_distribution_id String                                          @unique @db.Uuid
+  ip                       String
+  city                     String
+  region                   String
+  country                  String
+  loc                      String
+  org                      String
+  postal                   String?
+  timezone                 String
+  hostname                 String?
 }
 
 enum ClientReportCheck {

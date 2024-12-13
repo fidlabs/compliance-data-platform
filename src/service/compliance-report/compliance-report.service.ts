@@ -6,12 +6,14 @@ import {
   Industry,
   Region,
 } from '../datacapstats/types.verified-clients.datacapstats';
+import { StorageProviderService } from '../storage-provider/storage-provider.service';
 
 @Injectable()
 export class ComplianceReportService {
   constructor(
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly prismaService: PrismaService,
+    private readonly storageProviderService: StorageProviderService,
   ) {}
 
   async generateReport(address: string) {
@@ -23,6 +25,13 @@ export class ComplianceReportService {
     );
 
     const clientsData = this.getGrantedDatacapInClients(verifierClients.data);
+
+    const clientIds = verifierClients.data.map((client) => {
+      return client.addressId;
+    });
+
+    const storageProviderDistribution =
+      await this.getStorageProviderDistribution(clientIds);
 
     await this.prismaService.compliance_report.create({
       data: {
@@ -53,8 +62,36 @@ export class ComplianceReportService {
             };
           }),
         },
+        storage_provider_distribution: {
+          create: storageProviderDistribution?.map(
+            (storageProviderDistribution) => {
+              return {
+                provider: storageProviderDistribution.provider,
+                unique_data_size: storageProviderDistribution.unique_data_size,
+                total_deal_size: storageProviderDistribution.total_deal_size,
+                ...(storageProviderDistribution.location && {
+                  location: {
+                    create: storageProviderDistribution.location,
+                  },
+                }),
+              };
+            },
+          ),
+        },
       },
     });
+  }
+
+  private async getStorageProviderDistribution(clientIds: string[]) {
+    const storageProviderDistribution = [];
+    for (const clientId of clientIds) {
+      storageProviderDistribution.push(
+        ...(await this.storageProviderService.getStorageProviderDistributionWithLocation(
+          clientId,
+        )),
+      );
+    }
+    return storageProviderDistribution;
   }
 
   private getGrantedDatacapInClients(

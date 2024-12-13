@@ -59,6 +59,7 @@ import { AppController } from './controller/app/app.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { ComplianceReportService } from './service/compliance-report/compliance-report.service';
 import { ComplianceReportController } from './controller/compliance-report/compliance-report.controller';
+import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
 
@@ -117,6 +118,7 @@ import { PrometheusMetricModule } from './common/prometheus';
     AllocatorTechService,
     ClientReportChecksService,
     ComplianceReportService,
+    StorageProviderService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     {
       provide: 'AggregationRunner',
