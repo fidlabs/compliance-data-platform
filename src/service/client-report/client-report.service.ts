@@ -19,13 +19,8 @@ export class ClientReportService {
   async generateReport(client: string) {
     const cidSharing = await this.getCidSharing(client);
 
-    const verifiedClientResponse =
-      await this.dataCapStatsService.fetchClientDetails(client);
-
     const verifiedClientData =
-      this.dataCapStatsService.findPrimaryClientDetails(
-        verifiedClientResponse.data,
-      );
+      await this.dataCapStatsService.fetchPrimaryClientDetails(client);
 
     if (!verifiedClientData) return null;
 
@@ -37,13 +32,16 @@ export class ClientReportService {
     const providersRetrievability =
       await this.getStorageProvidersRetrievability(storageProviderDistribution);
 
+    let applicationUrl = verifiedClientData.allowanceArray?.[0]?.auditTrail;
+    if (applicationUrl === 'n/a') applicationUrl = null;
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: client,
-        client_address: verifiedClientData?.address,
+        client_address: verifiedClientData.address,
         organization_name:
-          (verifiedClientData?.name ?? '') +
-          (verifiedClientData?.orgName ?? ''),
+          (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
+        application_url: applicationUrl,
         storage_provider_distribution: {
           create: storageProviderDistribution?.map(
             (storageProviderDistribution) => {
@@ -244,6 +242,7 @@ export class ClientReportService {
         cid_sharing: {
           omit: {
             id: true,
+            client_report_id: true,
           },
         },
       },
