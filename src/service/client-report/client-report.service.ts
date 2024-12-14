@@ -5,6 +5,7 @@ import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
+import { VerifiedClientData } from '../datacapstats/types.datacapstats';
 
 @Injectable()
 export class ClientReportService {
@@ -17,8 +18,6 @@ export class ClientReportService {
   ) {}
 
   async generateReport(client: string) {
-    const cidSharing = await this.getCidSharing(client);
-
     const verifiedClientData =
       await this.dataCapStatsService.fetchPrimaryClientDetails(client);
 
@@ -32,8 +31,18 @@ export class ClientReportService {
     const providersRetrievability =
       await this.getStorageProvidersRetrievability(storageProviderDistribution);
 
-    let applicationUrl = verifiedClientData.allowanceArray?.[0]?.auditTrail;
-    if (applicationUrl === 'n/a') applicationUrl = null;
+    const applicationUrl = this.getClientApplicationUrl(verifiedClientData);
+
+    const cidSharing = await this.getCidSharing(client);
+    await Promise.all(
+      cidSharing.map(async (c) => {
+        c['other_client_application_url'] = this.getClientApplicationUrl(
+          await this.dataCapStatsService.fetchPrimaryClientDetails(
+            c.other_client,
+          ),
+        );
+      }),
+    );
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -77,6 +86,14 @@ export class ClientReportService {
     await this.clientReportChecksService.storeReportChecks(report.id);
 
     return report;
+  }
+
+  private getClientApplicationUrl(
+    verifiedClientData?: VerifiedClientData,
+  ): string | null {
+    let applicationUrl = verifiedClientData?.allowanceArray?.[0]?.auditTrail;
+    if (applicationUrl === 'n/a') applicationUrl = null;
+    return applicationUrl;
   }
 
   private async getStorageProvidersRetrievability(
