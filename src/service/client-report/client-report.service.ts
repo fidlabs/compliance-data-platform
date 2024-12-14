@@ -34,6 +34,9 @@ export class ClientReportService {
 
     const replicaDistribution = await this.getReplicationDistribution(client);
 
+    const providersRetrievability =
+      await this.getStorageProvidersRetrievability(storageProviderDistribution);
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: client,
@@ -53,6 +56,13 @@ export class ClientReportService {
                     create: storageProviderDistribution.location,
                   },
                 }),
+                retrievability: {
+                  create: {
+                    success_rate: providersRetrievability.get(
+                      storageProviderDistribution.provider,
+                    ),
+                  },
+                },
               };
             },
           ),
@@ -69,6 +79,54 @@ export class ClientReportService {
     await this.clientReportChecksService.storeReportChecks(report.id);
 
     return report;
+  }
+
+  private async getStorageProvidersRetrievability(
+    providers: {
+      provider: string;
+    }[],
+  ): Promise<Map<string, number | null>> {
+    return new Map(
+      await Promise.all(
+        providers?.map(
+          async (provider) =>
+            [
+              provider.provider,
+              await this.getStorageProviderRetrievability(provider.provider),
+            ] as [string, number | null],
+        ) ?? [],
+      ),
+    );
+  }
+
+  private async getStorageProviderRetrievability(
+    provider: string,
+  ): Promise<number | null> {
+    const result =
+      // get data from the last 7 full days
+      await this.prismaService.provider_retrievability_daily.aggregate({
+        _sum: {
+          total: true,
+          successful: true,
+        },
+        where: {
+          provider: provider,
+          date: {
+            gte: new Date( // a week ago at 00:00
+              new Date(new Date().setDate(new Date().getDate() - 7)).setHours(
+                0,
+                0,
+                0,
+                0,
+              ),
+            ),
+          },
+        },
+      });
+
+    return result._sum.total > 0
+      ? result._sum.successful / result._sum.total
+      : null;
   }
 
   private async getStorageProviderDistributionWithLocation(client: string) {
@@ -160,11 +218,19 @@ export class ClientReportService {
         storage_provider_distribution: {
           omit: {
             id: true,
+            client_report_id: true,
           },
           include: {
+            retrievability: {
+              omit: {
+                id: true,
+                provider_distribution_id: true,
+              },
+            },
             location: {
               omit: {
                 id: true,
+                provider_distribution_id: true,
               },
             },
           },
@@ -172,6 +238,7 @@ export class ClientReportService {
         replica_distribution: {
           omit: {
             id: true,
+            client_report_id: true,
           },
         },
         cid_sharing: {
