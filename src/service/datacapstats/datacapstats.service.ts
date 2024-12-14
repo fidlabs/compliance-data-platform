@@ -27,7 +27,18 @@ export class DataCapStatsService {
     return data;
   }
 
-  findPrimaryClientDetails(verifiedClientData: VerifiedClientData[]) {
+  @UseInterceptors(CacheInterceptor)
+  async fetchPrimaryClientDetails(
+    clientId: string,
+  ): Promise<VerifiedClientData> {
+    return this.findPrimaryClientDetails(
+      (await this.fetchClientDetails(clientId))?.data,
+    );
+  }
+
+  private findPrimaryClientDetails(
+    verifiedClientData?: VerifiedClientData[],
+  ): VerifiedClientData {
     if (!verifiedClientData || verifiedClientData.length === 0) return null;
 
     return verifiedClientData.reduce((prev, curr) =>
