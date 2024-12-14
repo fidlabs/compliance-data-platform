@@ -212,12 +212,13 @@ model client_report_replica_distribution {
 }
 
 model client_report_cid_sharing {
-  id               BigInt        @id @default(autoincrement()) @db.BigInt
-  client_report    client_report @relation(fields: [client_report_id], references: [id])
-  client_report_id BigInt        @db.BigInt
-  other_client     String
-  total_deal_size  BigInt        @db.BigInt
-  unique_cid_count Int
+  id                           BigInt        @id @default(autoincrement()) @db.BigInt
+  client_report                client_report @relation(fields: [client_report_id], references: [id])
+  client_report_id             BigInt        @db.BigInt
+  other_client                 String
+  other_client_application_url String?
+  total_deal_size              BigInt        @db.BigInt
+  unique_cid_count             Int
 }
 
 model client_address_mapping {
