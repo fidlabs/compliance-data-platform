@@ -232,6 +232,13 @@ export class ClientReportService {
             client_report_id: true,
           },
         },
+        check_results: {
+          select: {
+            check: true,
+            result: true,
+            metadata: true,
+          },
+        },
       },
       orderBy: {
         create_date: 'desc',
