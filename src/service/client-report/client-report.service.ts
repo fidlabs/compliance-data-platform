@@ -28,21 +28,9 @@ export class ClientReportService {
 
     const replicaDistribution = await this.getReplicationDistribution(client);
 
-    const providersRetrievability =
-      await this.getStorageProvidersRetrievability(storageProviderDistribution);
-
     const applicationUrl = this.getClientApplicationUrl(verifiedClientData);
 
     const cidSharing = await this.getCidSharing(client);
-    await Promise.all(
-      cidSharing.map(async (c) => {
-        c['other_client_application_url'] = this.getClientApplicationUrl(
-          await this.dataCapStatsService.fetchPrimaryClientDetails(
-            c.other_client,
-          ),
-        );
-      }),
-    );
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -52,33 +40,39 @@ export class ClientReportService {
           (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
         application_url: applicationUrl,
         storage_provider_distribution: {
-          create: storageProviderDistribution?.map(
-            (storageProviderDistribution) => {
+          create: await Promise.all(
+            storageProviderDistribution?.map(async (provider) => {
               return {
-                provider: storageProviderDistribution.provider,
-                unique_data_size: storageProviderDistribution.unique_data_size,
-                total_deal_size: storageProviderDistribution.total_deal_size,
-                ...(storageProviderDistribution.location && {
+                provider: provider.provider,
+                unique_data_size: provider.unique_data_size,
+                total_deal_size: provider.total_deal_size,
+                retrievability_success_rate:
+                  await this.getStorageProviderRetrievability(
+                    provider.provider,
+                  ),
+                ...(provider.location && {
                   location: {
-                    create: storageProviderDistribution.location,
+                    create: provider.location,
                   },
                 }),
-                retrievability: {
-                  create: {
-                    success_rate: providersRetrievability.get(
-                      storageProviderDistribution.provider,
-                    ),
-                  },
-                },
               };
-            },
+            }) ?? [],
           ),
         },
         replica_distribution: {
           create: replicaDistribution,
         },
         cid_sharing: {
-          create: cidSharing,
+          create: await Promise.all(
+            cidSharing.map(async (c) => ({
+              ...c,
+              other_client_application_url: this.getClientApplicationUrl(
+                await this.dataCapStatsService.fetchPrimaryClientDetails(
+                  c.other_client,
+                ),
+              ),
+            })),
+          ),
         },
       },
     });
@@ -94,24 +88,6 @@ export class ClientReportService {
     let applicationUrl = verifiedClientData?.allowanceArray?.[0]?.auditTrail;
     if (applicationUrl === 'n/a') applicationUrl = null;
     return applicationUrl;
-  }
-
-  private async getStorageProvidersRetrievability(
-    providers: {
-      provider: string;
-    }[],
-  ): Promise<Map<string, number | null>> {
-    return new Map(
-      await Promise.all(
-        providers?.map(
-          async (provider) =>
-            [
-              provider.provider,
-              await this.getStorageProviderRetrievability(provider.provider),
-            ] as [string, number | null],
-        ) ?? [],
-      ),
-    );
   }
 
   private async getStorageProviderRetrievability(
@@ -236,12 +212,6 @@ export class ClientReportService {
             client_report_id: true,
           },
           include: {
-            retrievability: {
-              omit: {
-                id: true,
-                provider_distribution_id: true,
-              },
-            },
             location: {
               omit: {
                 id: true,
