@@ -12,6 +12,36 @@ export class StorageProviderService {
     private readonly lotusApiService: LotusApiService,
   ) {}
 
+  async getStorageProviderRetrievability(
+    provider: string,
+  ): Promise<number | null> {
+    const result =
+      // get data from the last 7 full days
+      await this.prismaService.provider_retrievability_daily.aggregate({
+        _sum: {
+          total: true,
+          successful: true,
+        },
+        where: {
+          provider: provider,
+          date: {
+            gte: new Date( // a week ago at 00:00
+              new Date(new Date().setDate(new Date().getDate() - 7)).setHours(
+                0,
+                0,
+                0,
+                0,
+              ),
+            ),
+          },
+        },
+      });
+
+    return result._sum.total > 0
+      ? result._sum.successful / result._sum.total
+      : null;
+  }
+
   async getStorageProviderDistributionWithLocation(client: string) {
     const clientProviderDistribution =
       await this.prismaService.client_provider_distribution.findMany({

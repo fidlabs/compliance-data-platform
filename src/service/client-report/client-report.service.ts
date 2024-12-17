@@ -27,8 +27,6 @@ export class ClientReportService {
 
     const replicaDistribution = await this.getReplicationDistribution(client);
 
-    const applicationUrl = this.getClientApplicationUrl(verifiedClientData);
-
     const cidSharing = await this.getCidSharing(client);
 
     const report = await this.prismaService.client_report.create({
@@ -37,7 +35,7 @@ export class ClientReportService {
         client_address: verifiedClientData.address,
         organization_name:
           (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
-        application_url: applicationUrl,
+        application_url: this.getClientApplicationUrl(verifiedClientData),
         storage_provider_distribution: {
           create: await Promise.all(
             storageProviderDistribution?.map(async (provider) => {
@@ -46,7 +44,7 @@ export class ClientReportService {
                 unique_data_size: provider.unique_data_size,
                 total_deal_size: provider.total_deal_size,
                 retrievability_success_rate:
-                  await this.getStorageProviderRetrievability(
+                  await this.storageProviderService.getStorageProviderRetrievability(
                     provider.provider,
                   ),
                 ...(provider.location && {
@@ -96,36 +94,6 @@ export class ClientReportService {
     let applicationUrl = verifiedClientData?.allowanceArray?.[0]?.auditTrail;
     if (applicationUrl === 'n/a') applicationUrl = null;
     return applicationUrl;
-  }
-
-  private async getStorageProviderRetrievability(
-    provider: string,
-  ): Promise<number | null> {
-    const result =
-      // get data from the last 7 full days
-      await this.prismaService.provider_retrievability_daily.aggregate({
-        _sum: {
-          total: true,
-          successful: true,
-        },
-        where: {
-          provider: provider,
-          date: {
-            gte: new Date( // a week ago at 00:00
-              new Date(new Date().setDate(new Date().getDate() - 7)).setHours(
-                0,
-                0,
-                0,
-                0,
-              ),
-            ),
-          },
-        },
-      });
-
-    return result._sum.total > 0
-      ? result._sum.successful / result._sum.total
-      : null;
   }
 
   private async getReplicationDistribution(client: string) {
