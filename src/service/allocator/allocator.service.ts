@@ -157,6 +157,9 @@ export class AllocatorService {
             select: {
               week: true,
             },
+            orderBy: {
+              week: 'asc',
+            },
           })
           .then((r) => r.map((p) => p.week))
       : await this.prismaService.providers_weekly
@@ -164,6 +167,9 @@ export class AllocatorService {
             distinct: ['week'],
             select: {
               week: true,
+            },
+            orderBy: {
+              week: 'asc',
             },
           })
           .then((r) => r.map((p) => p.week));
@@ -288,7 +294,7 @@ export class AllocatorService {
           compliantSpsPercentage: this.getAllocatorCompliantProvidersPercentage(
             weekProvidersCompliance,
             providers,
-            ProviderComplianceScoreRange.NonCompliant,
+            ProviderComplianceScoreRange.Compliant,
           ),
           partiallyCompliantSpsPercentage:
             this.getAllocatorCompliantProvidersPercentage(
@@ -300,7 +306,7 @@ export class AllocatorService {
             this.getAllocatorCompliantProvidersPercentage(
               weekProvidersCompliance,
               providers,
-              ProviderComplianceScoreRange.Compliant,
+              ProviderComplianceScoreRange.NonCompliant,
             ),
         });
       }
