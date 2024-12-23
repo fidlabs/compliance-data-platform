@@ -1,14 +1,12 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
-import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
-import { AggregationService } from './aggregation/aggregation.service';
-import { PrismaService } from './db/prisma.service';
-import { PrismaDmobService } from './db/prismaDmob.service';
 import { HttpModule } from '@nestjs/axios';
 import { CacheModule } from '@nestjs/cache-manager';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
+import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
+import { AggregationService } from './aggregation/aggregation.service';
 import { AllocatorsAccRunner } from './aggregation/runners/allocators-acc.runner';
 import { AllocatorsRunner } from './aggregation/runners/allocators.runner';
 import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
@@ -34,6 +32,8 @@ import { AllocatorsController } from './controller/stats/allocators/allocators.c
 import { ProvidersController } from './controller/stats/providers/providers.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
+import { PrismaService } from './db/prisma.service';
+import { PrismaDmobService } from './db/prismaDmob.service';
 import { FilSparkService } from './filspark/filspark.service';
 import { HistogramHelper } from './helper/histogram.helper';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
@@ -48,6 +48,7 @@ import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { LocationService } from './service/location/location.service';
 import { LotusApiService } from './service/lotus-api/lotus-api.service';
 import { ProviderService } from './service/provider/provider.service';
+import { PrometheusMetricModule } from './common/prometheus';
 
 @Module({
   imports: [
@@ -56,11 +57,7 @@ import { ProviderService } from './service/provider/provider.service';
     HttpModule.register({ timeout: 5000 }),
     CacheModule.register(),
     TerminusModule.forRoot(),
-    // PrometheusModule.register({
-    //   pushgateway: {
-    //     url: process.env.PROMETHEUS_PUSH_GATEWAY ?? 'http://127.0.0.1:9091',
-    //   },
-    // }),
+    PrometheusMetricModule,
   ],
   controllers: [
     ProvidersController,
@@ -163,15 +160,6 @@ import { ProviderService } from './service/provider/provider.service';
         UnifiedVerifiedDealRunner,
       ],
     },
-    // makeGaugeProvider({
-    //   name: 'success_client_reports',
-    //   help: 'Total number of SUCCESS client reports',
-    // }),
-    // makeGaugeProvider({
-    //   name: 'fail_client_reports',
-    //   help: 'Total number of FAIL client reports',
-    // }),
-    ,
   ],
 })
 export class AppModule implements NestModule {

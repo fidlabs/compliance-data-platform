@@ -5,6 +5,7 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
+import { PrometheusMetricService } from 'src/common/prometheus';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
 import { AllocatorTechApplicationsResponse } from '../../service/allocator-tech/types.allocator-tech';
 import { ClientReportService } from '../../service/client-report/client-report.service';
@@ -22,6 +23,8 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     private readonly allocatorTechService: AllocatorTechService,
     private readonly clientReportService: ClientReportService,
     private readonly lotusApiService: LotusApiService,
+    private readonly prometheusMetricService: PrometheusMetricService,
+
     // @InjectMetric('success_client_reports')
     // public successClientReportMetric: Gauge<string>,
     // @InjectMetric('fail_client_reports')
@@ -99,8 +102,8 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
         `Finishing Client Reports generation. Fails: ${fails} / ${applications}`,
       );
 
-      // this.failClientReportMetric.set(fails);
-      // this.successClientReportMetric.set(applications);
+      this.prometheusMetricService.setSuccessClientReportsMetric(applications);
+      this.prometheusMetricService.setFailClientReportsMetric(fails);
     } catch (err) {
       this.healthy = false;
       this.logger.error(
