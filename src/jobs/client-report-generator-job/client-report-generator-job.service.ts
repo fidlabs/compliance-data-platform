@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
-import { ClientReportService } from '../../service/client-report/client-report.service';
-import { LotusApiService } from '../../service/lotus-api/lotus-api.service';
-import { AllocatorTechApplicationsResponse } from '../../service/allocator-tech/types.allocator-tech';
 import {
   HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
+import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
+import { AllocatorTechApplicationsResponse } from '../../service/allocator-tech/types.allocator-tech';
+import { ClientReportService } from '../../service/client-report/client-report.service';
+import { LotusApiService } from '../../service/lotus-api/lotus-api.service';
 
 @Injectable()
 export class ClientReportGeneratorJobService extends HealthIndicator {
@@ -22,6 +22,10 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     private readonly allocatorTechService: AllocatorTechService,
     private readonly clientReportService: ClientReportService,
     private readonly lotusApiService: LotusApiService,
+    // @InjectMetric('success_client_reports')
+    // public successClientReportMetric: Gauge<string>,
+    // @InjectMetric('fail_client_reports')
+    // public failClientReportMetric: Gauge<string>,
   ) {
     super();
   }
@@ -94,6 +98,9 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       this.logger.log(
         `Finishing Client Reports generation. Fails: ${fails} / ${applications}`,
       );
+
+      // this.failClientReportMetric.set(fails);
+      // this.successClientReportMetric.set(applications);
     } catch (err) {
       this.healthy = false;
       this.logger.error(
