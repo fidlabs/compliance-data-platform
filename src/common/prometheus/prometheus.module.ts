@@ -8,10 +8,10 @@ import { PrometheusMetricService } from './prometheus.service';
   imports: [
     PrometheusModuleSource.register({
       controller: PrometheusMetricController,
-      pushgateway: {
-        url: process.env.PROMETHEUS_PUSH_GATEWAY ?? 'http://127.0.0.1:9091',
-      },
       customMetricPrefix: 'cdp',
+      defaultMetrics: {
+        enabled: false,
+      },
     }),
   ],
   providers: [...prometheusGauges, PrometheusMetricService],

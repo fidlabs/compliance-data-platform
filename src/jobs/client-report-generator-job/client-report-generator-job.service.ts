@@ -24,11 +24,6 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     private readonly clientReportService: ClientReportService,
     private readonly lotusApiService: LotusApiService,
     private readonly prometheusMetricService: PrometheusMetricService,
-
-    // @InjectMetric('success_client_reports')
-    // public successClientReportMetric: Gauge<string>,
-    // @InjectMetric('fail_client_reports')
-    // public failClientReportMetric: Gauge<string>,
   ) {
     super();
   }
