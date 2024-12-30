@@ -299,6 +299,7 @@ export class ClientReportChecksService {
     const zeroRetrievabilityCount = retrievabilitySuccessRates.filter(
       (p) => p === 0,
     ).length;
+
     if (zeroRetrievabilityCount > 0) {
       const percentage =
         (zeroRetrievabilityCount / retrievabilitySuccessRates.length) * 100;
@@ -334,6 +335,7 @@ export class ClientReportChecksService {
     const lessThan75RetrievabilityCount = retrievabilitySuccessRates.filter(
       (p) => p < 0.75,
     ).length;
+
     if (lessThan75RetrievabilityCount > 0) {
       const percentage =
         (lessThan75RetrievabilityCount / retrievabilitySuccessRates.length) *
