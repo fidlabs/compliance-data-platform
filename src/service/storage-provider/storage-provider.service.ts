@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { LocationService } from '../location/location.service';
 import { PrismaService } from '../../db/prisma.service';
 import { IPResponse } from '../location/types.location';
@@ -6,6 +6,8 @@ import { LotusApiService } from '../lotus-api/lotus-api.service';
 
 @Injectable()
 export class StorageProviderService {
+  private readonly logger = new Logger(StorageProviderService.name);
+
   constructor(
     private readonly locationService: LocationService,
     private readonly prismaService: PrismaService,
@@ -66,10 +68,30 @@ export class StorageProviderService {
     total_deal_size: bigint;
     unique_data_size: bigint;
   }): Promise<IPResponse | null> {
-    const minerInfo = await this.lotusApiService.getMinerInfo(
-      clientProviderDistribution.provider,
-    );
+    let minerInfo;
 
-    return await this.locationService.getLocation(minerInfo.result.Multiaddrs);
+    try {
+      minerInfo = await this.lotusApiService.getMinerInfo(
+        clientProviderDistribution.provider,
+      );
+    } catch (e) {
+      this.logger.error(
+        `Error getting miner info for ${clientProviderDistribution.provider}`,
+        e,
+      );
+      throw e;
+    }
+
+    try {
+      return await this.locationService.getLocation(
+        minerInfo.result.Multiaddrs,
+      );
+    } catch (e) {
+      this.logger.error(
+        `Error getting location for ${minerInfo.result.Multiaddrs}`,
+        e,
+      );
+      throw e;
+    }
   }
 }
