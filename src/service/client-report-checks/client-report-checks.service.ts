@@ -70,6 +70,7 @@ export class ClientReportChecksService {
     for (const provider of providerDistribution) {
       const providerDistributionPercentage =
         Number((provider.total_deal_size * 10000n) / total) / 100;
+
       if (providerDistributionPercentage > this._maxProviderDealPercentage) {
         providersExceedingProviderDeal.push(provider.provider);
       }
@@ -82,7 +83,14 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL,
           result: false,
-          violating_ids: providersExceedingProviderDeal,
+          metadata: {
+            violating_ids: providersExceedingProviderDeal,
+            max_provider_deal_percentage: this._maxProviderDealPercentage,
+            max_providers_exceeding_provider_deal: 0,
+            providers_exceeding_provider_deal:
+              providersExceedingProviderDeal.length,
+            msg: `${providersExceedingProviderDeal.length} storage providers sealed more than ${this._maxProviderDealPercentage.toFixed(2)}% of total datacap`,
+          },
         },
       });
     } else {
@@ -92,6 +100,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL,
           result: true,
+          metadata: {
+            msg: `Storage provider distribution looks healthy`,
+          },
         },
       });
     }
@@ -128,7 +139,14 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION,
           result: false,
-          violating_ids: providersExceedingMaxDuplicationPercentage,
+          metadata: {
+            violating_ids: providersExceedingMaxDuplicationPercentage,
+            max_duplication_percentage: this._maxDuplicationPercentage,
+            max_providers_exceeding_max_duplication: 0,
+            providers_exceeding_max_duplication:
+              providersExceedingMaxDuplicationPercentage.length,
+            msg: `${providersExceedingMaxDuplicationPercentage.length} storage providers sealed too much duplicate data`,
+          },
         },
       });
     } else {
@@ -138,6 +156,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION,
           result: true,
+          metadata: {
+            msg: `Storage provider duplication looks healthy`,
+          },
         },
       });
     }
@@ -174,7 +195,13 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION,
           result: false,
-          violating_ids: providersWithUnknownLocation,
+          metadata: {
+            violating_ids: providersWithUnknownLocation,
+            providers_with_unknown_location:
+              providersWithUnknownLocation.length,
+            max_providers_with_unknown_location: 0,
+            msg: `${providersWithUnknownLocation.length} storage providers have unknown IP location`,
+          },
         },
       });
     } else {
@@ -184,6 +211,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION,
           result: true,
+          metadata: {
+            msg: `Storage provider locations looks healthy`,
+          },
         },
       });
     }
@@ -216,6 +246,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION,
           result: false,
+          metadata: {
+            msg: `All storage providers are located in the same region`,
+          },
         },
       });
     } else {
@@ -225,6 +258,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION,
           result: true,
+          metadata: {
+            msg: `Storage providers are located in different regions`,
+          },
         },
       });
     }
@@ -264,6 +300,9 @@ export class ClientReportChecksService {
       (p) => p === 0,
     ).length;
     if (zeroRetrievabilityCount > 0) {
+      const percentage =
+        (zeroRetrievabilityCount / retrievabilitySuccessRates.length) * 100;
+
       await this.prismaService.client_report_check_result.create({
         data: {
           client_report_id: reportId,
@@ -271,9 +310,10 @@ export class ClientReportChecksService {
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
           result: false,
           metadata: {
-            percentage:
-              (zeroRetrievabilityCount / retrievabilitySuccessRates.length) *
-              100,
+            percentage: percentage,
+            zero_retrievability_providers: zeroRetrievabilityCount,
+            max_zero_retrievability_providers: 0,
+            msg: `${percentage.toFixed(2)}% of storage providers have retrieval success rate equal to zero`,
           },
         },
       });
@@ -284,6 +324,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
           result: true,
+          metadata: {
+            msg: `Storage provider zero retrievability looks healthy`,
+          },
         },
       });
     }
@@ -292,6 +335,10 @@ export class ClientReportChecksService {
       (p) => p < 0.75,
     ).length;
     if (lessThan75RetrievabilityCount > 0) {
+      const percentage =
+        (lessThan75RetrievabilityCount / retrievabilitySuccessRates.length) *
+        100;
+
       await this.prismaService.client_report_check_result.create({
         data: {
           client_report_id: reportId,
@@ -299,10 +346,11 @@ export class ClientReportChecksService {
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
           result: false,
           metadata: {
-            percentage:
-              (lessThan75RetrievabilityCount /
-                retrievabilitySuccessRates.length) *
-              100,
+            percentage: percentage,
+            less_than_75_retrievability_providers:
+              lessThan75RetrievabilityCount,
+            max_less_than_75_retrievability_providers: 0,
+            msg: `${percentage.toFixed(2)}% of storage providers have retrieval success rate less than 75%`,
           },
         },
       });
@@ -313,6 +361,9 @@ export class ClientReportChecksService {
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
           result: true,
+          metadata: {
+            msg: `Storage provider retrievability looks healthy`,
+          },
         },
       });
     }
@@ -341,6 +392,8 @@ export class ClientReportChecksService {
         result: lowReplicaPercentage <= this._maxPercentageForLowReplica,
         metadata: {
           percentage: round(lowReplicaPercentage, 2),
+          max_percentage_for_low_replica: this._maxPercentageForLowReplica,
+          msg: `Low replica percentage is ${lowReplicaPercentage.toFixed(2)}%`,
         },
       },
     });
@@ -361,7 +414,13 @@ export class ClientReportChecksService {
         client_report_id: reportId,
         check: ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING,
         result: cidSharingCount === 0,
-        metadata: { count: cidSharingCount },
+        metadata: {
+          count: cidSharingCount,
+          msg:
+            cidSharingCount === 0
+              ? 'No CID sharing has been observed'
+              : 'CID sharing has been observed',
+        },
       },
     });
   }
