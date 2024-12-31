@@ -230,7 +230,6 @@ model client_report_check_result {
   client_report    client_report     @relation(fields: [client_report_id], references: [id])
   client_report_id BigInt            @db.BigInt
   metadata         Json?
-  violating_ids    String[]
 
   @@unique([check, client_report_id])
 }
