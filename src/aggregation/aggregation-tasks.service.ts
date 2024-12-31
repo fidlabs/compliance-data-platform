@@ -6,6 +6,7 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
+import { PrometheusMetricService } from 'src/common/prometheus';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -15,7 +16,10 @@ export class AggregationTasksService extends HealthIndicator {
   private lastSuccess: Date = null;
   private lastRun: Date = null;
 
-  constructor(private readonly aggregationService: AggregationService) {
+  constructor(
+    private readonly aggregationService: AggregationService,
+    private readonly prometheusMetricService: PrometheusMetricService,
+  ) {
     super();
   }
 
@@ -29,10 +33,12 @@ export class AggregationTasksService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async runAggregationJob() {
     if (!this.aggregationJobInProgress) {
       this.aggregationJobInProgress = true;
+      const endEntireAggregationTimer =
+        this.prometheusMetricService.startEntireAggregationTimer();
 
       try {
         this.logger.log('Starting Aggregations');
@@ -47,6 +53,7 @@ export class AggregationTasksService extends HealthIndicator {
         this.healthy = false;
         this.logger.error(`Error during Aggregations job: ${err}`, err.stack);
       } finally {
+        endEntireAggregationTimer();
         this.aggregationJobInProgress = false;
       }
     } else {
