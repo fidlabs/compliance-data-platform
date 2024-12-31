@@ -1,11 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaDmobService } from '../db/prismaDmob.service';
-import { AggregationRunner } from './aggregation-runner';
-import { PrismaService } from '../db/prisma.service';
-import { AggregationTable } from './aggregation-table';
+import { PrometheusMetricService } from 'src/common/prometheus';
 import { FilSparkService } from 'src/filspark/filspark.service';
 import { PostgresService } from '../db/postgres.service';
 import { PostgresDmobService } from '../db/postgresDmob.service';
+import { PrismaService } from '../db/prisma.service';
+import { PrismaDmobService } from '../db/prismaDmob.service';
+import { AggregationRunner } from './aggregation-runner';
+import { AggregationTable } from './aggregation-table';
 
 @Injectable()
 export class AggregationService {
@@ -19,6 +20,7 @@ export class AggregationService {
     private readonly postgresDmobService: PostgresDmobService,
     @Inject('AggregationRunner')
     private readonly aggregationRunners: AggregationRunner[],
+    private readonly prometheusMetricService: PrometheusMetricService,
   ) {}
 
   async executeWithRetries(maxTries: number, fn: () => Promise<void>) {
@@ -68,7 +70,15 @@ export class AggregationService {
             .every((p) => filledTables.includes(p))
         ) {
           // execute runner
-          this.logger.debug(`STARTING: ${aggregationRunner.getName()}`);
+          const aggregationRunnerName = aggregationRunner.getName();
+
+          this.logger.debug(`STARTING: ${aggregationRunnerName}`);
+
+          // start transaction timer
+          const aggregationTransactionEndTimer =
+            this.prometheusMetricService.startAggregationTransactionTimer(
+              aggregationRunnerName,
+            );
 
           await this.executeWithRetries(3, () =>
             aggregationRunner.run(
@@ -80,7 +90,11 @@ export class AggregationService {
             ),
           );
 
-          this.logger.debug(`FINISHED: ${aggregationRunner.getName()}`);
+          this.logger.debug(`FINISHED: ${aggregationRunnerName}`);
+
+          // stop transaction timer
+          aggregationTransactionEndTimer();
+
           executedRunners++;
 
           // store filled tables
