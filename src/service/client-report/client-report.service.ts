@@ -52,7 +52,16 @@ export class ClientReportService {
                   ),
                 ...(provider.location && {
                   location: {
-                    create: provider.location,
+                    create: {
+                      ip: provider.location.ip,
+                      city: provider.location.city,
+                      region: provider.location.region,
+                      country: provider.location.country,
+                      loc: provider.location.loc,
+                      org: provider.location.org,
+                      postal: provider.location.postal,
+                      timezone: provider.location.timezone,
+                    },
                   },
                 }),
               };
