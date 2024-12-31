@@ -288,7 +288,7 @@ model compliance_report_storage_provider_distribution_location {
   region                   String
   country                  String
   loc                      String
-  org                      String
+  org                      String?
   postal                   String?
   timezone                 String
   hostname                 String?
