@@ -37,8 +37,8 @@ export class AggregationTasksService extends HealthIndicator {
   async runAggregationJob() {
     if (!this.aggregationJobInProgress) {
       this.aggregationJobInProgress = true;
-      const endEntireAggregationTimer =
-        this.prometheusMetricService.startEntireAggregationTimer();
+      const endAllAggregationsTimer =
+        this.prometheusMetricService.startAllAggregationsTimer();
 
       try {
         this.logger.log('Starting Aggregations');
@@ -53,7 +53,7 @@ export class AggregationTasksService extends HealthIndicator {
         this.healthy = false;
         this.logger.error(`Error during Aggregations job: ${err}`, err.stack);
       } finally {
-        endEntireAggregationTimer();
+        endAllAggregationsTimer();
         this.aggregationJobInProgress = false;
       }
     } else {
