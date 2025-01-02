@@ -75,25 +75,29 @@ export class AggregationService {
           this.logger.debug(`STARTING: ${aggregationRunnerName}`);
 
           // start transaction timer
-          const aggregationTransactionEndTimer =
-            this.prometheusMetricService.startAggregationTransactionTimer(
+          const endSingleAggregationTransactionTimer =
+            this.prometheusMetricService.startSingleAggregationTransactionTimer(
               aggregationRunnerName,
             );
 
-          await this.executeWithRetries(3, () =>
-            aggregationRunner.run(
-              this.prismaService,
-              this.prismaDmobService,
-              this.filSparkService,
-              this.postgresService,
-              this.postgresDmobService,
-            ),
-          );
+          try {
+            await this.executeWithRetries(3, () =>
+              aggregationRunner.run(
+                this.prismaService,
+                this.prismaDmobService,
+                this.filSparkService,
+                this.postgresService,
+                this.postgresDmobService,
+              ),
+            );
+          } catch (err) {
+            throw err;
+          } finally {
+            // stop transaction timer
+            endSingleAggregationTransactionTimer();
+          }
 
           this.logger.debug(`FINISHED: ${aggregationRunnerName}`);
-
-          // stop transaction timer
-          aggregationTransactionEndTimer();
 
           executedRunners++;
 

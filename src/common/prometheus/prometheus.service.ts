@@ -21,7 +21,7 @@ export class PrometheusMetricService {
   public setFailClientReportsMetric = (value: number) =>
     this.failClientReports.set(value);
 
-  public startAggregationTransactionTimer = (
+  public startSingleAggregationTransactionTimer = (
     runnerName: string,
   ): (() => void) => {
     return this.aggregationSingleTransactionTimeHistogram
@@ -29,7 +29,7 @@ export class PrometheusMetricService {
       .startTimer();
   };
 
-  public startEntireAggregationTimer = (): (() => void) => {
+  public startAllAggregationsTimer = (): (() => void) => {
     return this.aggregationEntireTimeHistogram.startTimer();
   };
 }
