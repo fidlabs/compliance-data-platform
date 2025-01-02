@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AggregationService } from './aggregation.service';
 import {
   HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/common/prometheus';
+import { AggregationService } from './aggregation.service';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -33,7 +33,7 @@ export class AggregationTasksService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_HOUR)
   async runAggregationJob() {
     if (!this.aggregationJobInProgress) {
       this.aggregationJobInProgress = true;
