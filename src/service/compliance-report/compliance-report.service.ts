@@ -20,6 +20,8 @@ export class ComplianceReportService {
     const verifiersData =
       await this.dataCapStatsService.getVerifiersData(allocator);
 
+    if (!verifiersData) return null;
+
     const verifierClients = await this.dataCapStatsService.getVerifierClients(
       verifiersData.addressId,
     );

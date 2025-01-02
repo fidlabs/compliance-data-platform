@@ -53,12 +53,25 @@ export class StorageProviderService {
       });
 
     return await Promise.all(
-      clientProviderDistribution.map(async (clientProviderDistribution) => ({
-        ...clientProviderDistribution,
-        location: await this.getClientProviderDistributionLocation(
+      clientProviderDistribution.map(async (clientProviderDistribution) => {
+        const location = await this.getClientProviderDistributionLocation(
           clientProviderDistribution,
-        ),
-      })),
+        );
+
+        return {
+          ...clientProviderDistribution,
+          location: {
+            ip: location.ip,
+            city: location.city,
+            region: location.region,
+            country: location.country,
+            loc: location.loc,
+            org: location.org,
+            postal: location.postal,
+            timezone: location.timezone,
+          },
+        };
+      }),
     );
   }
 
