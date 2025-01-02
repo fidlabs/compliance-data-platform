@@ -29,23 +29,6 @@ export class AllocatorTechService {
     return await this.fetchAndCacheApplications();
   }
 
-  async getApplication(
-    client: string,
-  ): Promise<AllocatorTechApplicationsResponse> {
-    const clientAddressMapping =
-      await this.prismaService.client_address_mapping.findUnique({
-        where: {
-          client: client,
-        },
-      });
-
-    if (!clientAddressMapping) return null;
-
-    return (await this.getApplications()).find(
-      (p) => p[0].ID === clientAddressMapping.address,
-    );
-  }
-
   private async fetchAndCacheApplications(): Promise<
     AllocatorTechApplicationsResponse[]
   > {
