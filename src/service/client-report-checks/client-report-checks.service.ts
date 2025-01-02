@@ -89,7 +89,7 @@ export class ClientReportChecksService {
             max_providers_exceeding_provider_deal: 0,
             providers_exceeding_provider_deal:
               providersExceedingProviderDeal.length,
-            msg: `${providersExceedingProviderDeal.length} storage providers sealed more than ${this._maxProviderDealPercentage.toFixed(2)}% of total datacap`,
+            msg: `${providersExceedingProviderDeal.length} storage providers sealed more than ${this._maxProviderDealPercentage}% of total datacap`,
           },
         },
       });
