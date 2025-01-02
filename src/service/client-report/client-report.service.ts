@@ -21,9 +21,7 @@ export class ClientReportService {
     if (!verifiedClientData) return null;
 
     const storageProviderDistribution =
-      await this.storageProviderService.getStorageProviderDistributionWithLocation(
-        client,
-      );
+      await this.storageProviderService.getStorageProviderDistribution(client);
 
     const replicaDistribution = await this.getReplicationDistribution(client);
 
@@ -44,9 +42,7 @@ export class ClientReportService {
                 unique_data_size: provider.unique_data_size,
                 total_deal_size: provider.total_deal_size,
                 retrievability_success_rate:
-                  await this.storageProviderService.getStorageProviderRetrievability(
-                    provider.provider,
-                  ),
+                  provider.retrievability_success_rate,
                 ...(provider.location && {
                   location: {
                     create: provider.location,
