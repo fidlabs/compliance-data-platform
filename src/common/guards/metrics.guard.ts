@@ -6,8 +6,17 @@ export class MetricsAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request: Request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
+    const requiredToken = process.env.PROMETHEUS_AUTH_TOKEN;
 
-    const requiredToken = `Bearer ${process.env.PROMETHEUS_AUTH_TOKEN}`;
-    return authHeader === requiredToken;
+    // enable on development mode
+    if (
+      !requiredToken &&
+      !authHeader &&
+      process.env.NODE_ENV === 'development'
+    ) {
+      return true;
+    }
+
+    return authHeader === `Bearer ${requiredToken}`;
   }
 }
