@@ -13,6 +13,6 @@ export const prometheusHistograms = [
   }),
   makeHistogramProvider({
     name: HistogramMetrics.AGGREGATION_SUMMARY_TIME,
-    help: 'The summary time of entire transaction',
+    help: 'The summary time of entire aggregation',
   }),
 ];
