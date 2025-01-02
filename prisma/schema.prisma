@@ -270,13 +270,14 @@ model compliance_report_client_allocation {
 }
 
 model compliance_report_storage_provider_distribution {
-  id                   String                                                    @id @default(uuid()) @db.Uuid
-  compliance_report    compliance_report                                         @relation(fields: [compliance_report_id], references: [id])
-  compliance_report_id String                                                    @db.Uuid
-  provider             String
-  total_deal_size      BigInt
-  unique_data_size     BigInt
-  location             compliance_report_storage_provider_distribution_location?
+  id                          String                                                    @id @default(uuid()) @db.Uuid
+  compliance_report           compliance_report                                         @relation(fields: [compliance_report_id], references: [id])
+  compliance_report_id        String                                                    @db.Uuid
+  provider                    String
+  total_deal_size             BigInt
+  unique_data_size            BigInt
+  location                    compliance_report_storage_provider_distribution_location?
+  retrievability_success_rate Float?
 }
 
 model compliance_report_storage_provider_distribution_location {

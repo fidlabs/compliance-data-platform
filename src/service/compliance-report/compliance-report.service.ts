@@ -65,20 +65,19 @@ export class ComplianceReportService {
           }),
         },
         storage_provider_distribution: {
-          create: storageProviderDistribution?.map(
-            (storageProviderDistribution) => {
-              return {
-                provider: storageProviderDistribution.provider,
-                unique_data_size: storageProviderDistribution.unique_data_size,
-                total_deal_size: storageProviderDistribution.total_deal_size,
-                ...(storageProviderDistribution.location && {
-                  location: {
-                    create: storageProviderDistribution.location,
-                  },
-                }),
-              };
-            },
-          ),
+          create: storageProviderDistribution?.map((provider) => {
+            return {
+              provider: provider.provider,
+              unique_data_size: provider.unique_data_size,
+              total_deal_size: provider.total_deal_size,
+              retrievability_success_rate: provider.retrievability_success_rate,
+              ...(provider.location && {
+                location: {
+                  create: provider.location,
+                },
+              }),
+            };
+          }),
         },
       },
     });
@@ -88,7 +87,7 @@ export class ComplianceReportService {
     const storageProviderDistribution = [];
     for (const clientId of clientIds) {
       storageProviderDistribution.push(
-        ...(await this.storageProviderService.getStorageProviderDistributionWithLocation(
+        ...(await this.storageProviderService.getStorageProviderDistribution(
           clientId,
         )),
       );
@@ -128,6 +127,11 @@ export class ComplianceReportService {
             id: true,
           },
         },
+        storage_provider_distribution: {
+          omit: {
+            id: true,
+          },
+        },
       },
       orderBy: {
         create_date: 'desc',
@@ -141,16 +145,16 @@ export class ComplianceReportService {
       addressId: string;
       address: string;
       retries: number;
-      auditTrail: 'n/a';
+      auditTrail: string;
       name: string;
       orgName: string;
       initialAllowance: string;
       allowance: string;
-      verifierAddressId: 'f03015751';
+      verifierAddressId: string;
       createdAtHeight: number;
       issueCreateTimestamp: null;
       createMessageTimestamp: number;
-      verifierName: 'Public Open Dataset Pathway';
+      verifierName: string;
       dealCount: number | null;
       providerCount: number | null;
       topProvider: string | null;
@@ -172,7 +176,7 @@ export class ComplianceReportService {
         usedAllowance: string;
         isLdnAllowance: boolean;
         isEFilAllowance: boolean;
-        verifierAddressId: 'f03015751';
+        verifierAddressId: string;
         isFromAutoverifier: boolean;
         retrievalFrequency: string;
         searchedByProposal: boolean;

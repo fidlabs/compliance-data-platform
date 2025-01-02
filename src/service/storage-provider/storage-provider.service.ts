@@ -14,7 +14,44 @@ export class StorageProviderService {
     private readonly lotusApiService: LotusApiService,
   ) {}
 
-  async getStorageProviderRetrievability(
+  async getStorageProviderDistribution(client: string) {
+    const clientProviderDistribution =
+      await this.prismaService.client_provider_distribution.findMany({
+        where: {
+          client: client,
+        },
+      });
+
+    return await Promise.all(
+      clientProviderDistribution.map(async (clientProviderDistribution) => {
+        const location = await this.getClientProviderDistributionLocation(
+          clientProviderDistribution,
+        );
+
+        return {
+          ...clientProviderDistribution,
+          retrievability_success_rate:
+            await this.getStorageProviderRetrievability(
+              clientProviderDistribution.provider,
+            ),
+          ...(location && {
+            location: {
+              ip: location.ip,
+              city: location.city,
+              region: location.region,
+              country: location.country,
+              loc: location.loc,
+              org: location.org,
+              postal: location.postal,
+              timezone: location.timezone,
+            },
+          }),
+        };
+      }),
+    );
+  }
+
+  private async getStorageProviderRetrievability(
     provider: string,
   ): Promise<number | null> {
     const result =
@@ -42,37 +79,6 @@ export class StorageProviderService {
     return result._sum.total > 0
       ? result._sum.successful / result._sum.total
       : null;
-  }
-
-  async getStorageProviderDistributionWithLocation(client: string) {
-    const clientProviderDistribution =
-      await this.prismaService.client_provider_distribution.findMany({
-        where: {
-          client: client,
-        },
-      });
-
-    return await Promise.all(
-      clientProviderDistribution.map(async (clientProviderDistribution) => {
-        const location = await this.getClientProviderDistributionLocation(
-          clientProviderDistribution,
-        );
-
-        return {
-          ...clientProviderDistribution,
-          location: {
-            ip: location.ip,
-            city: location.city,
-            region: location.region,
-            country: location.country,
-            loc: location.loc,
-            org: location.org,
-            postal: location.postal,
-            timezone: location.timezone,
-          },
-        };
-      }),
-    );
   }
 
   private async getClientProviderDistributionLocation(clientProviderDistribution: {
