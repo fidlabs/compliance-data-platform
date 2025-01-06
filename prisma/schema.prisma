@@ -276,6 +276,7 @@ model compliance_report_storage_provider_distribution {
   provider                    String
   total_deal_size             BigInt
   unique_data_size            BigInt
+  perc_of_total_datacap       Float
   location                    compliance_report_storage_provider_distribution_location?
   retrievability_success_rate Float?
 }

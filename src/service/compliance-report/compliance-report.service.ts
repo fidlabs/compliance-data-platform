@@ -70,6 +70,7 @@ export class ComplianceReportService {
               provider: provider.provider,
               unique_data_size: provider.unique_data_size,
               total_deal_size: provider.total_deal_size,
+              perc_of_total_datacap: provider.perc_of_total_datacap,
               retrievability_success_rate: provider.retrievability_success_rate,
               ...(provider.location && {
                 location: {
@@ -85,6 +86,7 @@ export class ComplianceReportService {
 
   private async getStorageProviderDistribution(clientIds: string[]) {
     const storageProviderDistribution = [];
+
     for (const clientId of clientIds) {
       storageProviderDistribution.push(
         ...(await this.storageProviderService.getStorageProviderDistribution(
@@ -92,7 +94,21 @@ export class ComplianceReportService {
         )),
       );
     }
-    return storageProviderDistribution;
+
+    const totalDatacap = Number(
+      storageProviderDistribution.reduce(
+        (acc, curr) => acc + curr.total_deal_size,
+        0n,
+      ),
+    );
+
+    return storageProviderDistribution.map((provider) => {
+      return {
+        ...provider,
+        perc_of_total_datacap:
+          (Number(provider.total_deal_size) / totalDatacap) * 100,
+      };
+    });
   }
 
   async getReports(allocator: string) {
@@ -196,6 +212,7 @@ export class ComplianceReportService {
       allowanceArray: e.allowanceArray,
       clientName: e.name,
     }));
+
     return ClientsData.map((item) => {
       return item.allowanceArray.map((allowanceItem) => ({
         allocation: allowanceItem.allowance,
