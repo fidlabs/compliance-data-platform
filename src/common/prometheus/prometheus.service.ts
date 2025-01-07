@@ -1,7 +1,6 @@
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import { Gauge, Histogram } from 'prom-client';
+import { Gauge } from 'prom-client';
 import { GaugeMetrics } from './metrics/gaugeMetrics';
-import { HistogramMetrics } from './metrics/histogramMetrics';
 
 export class PrometheusMetricService {
   constructor(
@@ -9,10 +8,10 @@ export class PrometheusMetricService {
     private readonly successClientReports: Gauge<string>,
     @InjectMetric(GaugeMetrics.FAIL_CLIENT_REPORTS)
     private readonly failClientReports: Gauge<string>,
-    @InjectMetric(HistogramMetrics.AGGREGATION_SINGLE_TRANSACTION_TIME)
-    private readonly aggregationSingleTransactionTimeHistogram: Histogram<string>,
-    @InjectMetric(HistogramMetrics.AGGREGATION_SUMMARY_TIME)
-    private readonly aggregationEntireTimeHistogram: Histogram<string>,
+    @InjectMetric(GaugeMetrics.AGGREGATION_SINGLE_TRANSACTION_TIME)
+    private readonly aggregationSingleTransactionTime: Gauge<string>,
+    @InjectMetric(GaugeMetrics.AGGREGATION_SUMMARY_TIME)
+    private readonly aggregationEntireTime: Gauge<string>,
   ) {}
 
   public setSuccessClientReportsMetric = (value: number) =>
@@ -24,12 +23,12 @@ export class PrometheusMetricService {
   public startSingleAggregationTransactionTimer = (
     runnerName: string,
   ): (() => void) => {
-    return this.aggregationSingleTransactionTimeHistogram
+    return this.aggregationSingleTransactionTime
       .labels({ runner_name: runnerName })
       .startTimer();
   };
 
   public startAllAggregationsTimer = (): (() => void) => {
-    return this.aggregationEntireTimeHistogram.startTimer();
+    return this.aggregationEntireTime.startTimer();
   };
 }
