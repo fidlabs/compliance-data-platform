@@ -28,18 +28,12 @@ export class ComplianceReportService {
 
     const clientsData = this.getGrantedDatacapInClients(verifierClients.data);
 
-    const clientIds = verifierClients.data.map((client) => {
-      return client.addressId;
-    });
-
     const storageProviderDistribution =
-      await this.getStorageProviderDistribution(clientIds);
-
-    const averageStorageProviderRetrievabilitySuccessRate =
-      storageProviderDistribution.reduce(
-        (acc, curr) => acc + curr.retrievability_success_rate,
-        0,
-      ) / storageProviderDistribution.length;
+      await this.getStorageProviderDistribution(
+        verifierClients.data.map((client) => {
+          return client.addressId;
+        }),
+      );
 
     return await this.prismaService.compliance_report.create({
       data: {
@@ -49,7 +43,10 @@ export class ComplianceReportService {
         filecoin_pulse: `https://filecoinpulse.pages.dev/allocator/${verifiersData.addressId}`,
         multisig: verifiersData.isMultisig,
         avg_retrievability_success_rate:
-          averageStorageProviderRetrievabilitySuccessRate,
+          storageProviderDistribution.reduce(
+            (acc, curr) => acc + curr.retrievability_success_rate,
+            0,
+          ) / storageProviderDistribution.length,
         clients_number: verifierClients.data.length,
         clients: {
           create: verifierClients.data.map((verifierClient) => {
@@ -151,10 +148,19 @@ export class ComplianceReportService {
           omit: {
             id: true,
           },
+          orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }],
         },
         storage_provider_distribution: {
           omit: {
             id: true,
+          },
+          include: {
+            location: {
+              omit: {
+                id: true,
+                provider_distribution_id: true,
+              },
+            },
           },
         },
       },
