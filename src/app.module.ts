@@ -52,6 +52,7 @@ import { ComplianceReportController } from './controller/compliance-report/compl
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
+import { ClientService } from './service/client/client.service';
 
 @Module({
   imports: [
@@ -103,6 +104,7 @@ import { PrometheusMetricModule } from './common/prometheus';
     HistogramHelper,
     GoogleApisService,
     ClientReportService,
+    ClientService,
     LotusApiService,
     LocationService,
     AllocatorTechService,
