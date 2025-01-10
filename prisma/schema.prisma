@@ -241,9 +241,9 @@ model compliance_report {
   name                            String?
   address                         String
   filecoin_pulse                  String
-  clients_number                  Int?
+  clients_number                  Int
   multisig                        Boolean
-  avg_retrievability_success_rate Decimal?                                          @db.Decimal(5, 2)
+  avg_retrievability_success_rate Float?
   avg_time_to_first_deal          Decimal?                                          @db.Decimal(5, 2)
   clients                         compliance_report_client[]
   client_allocations              compliance_report_client_allocation[]
