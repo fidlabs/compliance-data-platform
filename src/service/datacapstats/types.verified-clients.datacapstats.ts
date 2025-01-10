@@ -1,9 +1,9 @@
 export interface DataCapStatsVerifiedClientsResponse {
   count: string;
   data: DataCapStatsVerifiedClientsData[];
-  name: 'Public Open Dataset Pathway';
+  name: string;
   remainingDatacap: string;
-  addressId: 'f03015751';
+  addressId: string;
   address: string;
 }
 
@@ -12,16 +12,16 @@ export interface DataCapStatsVerifiedClientsData {
   addressId: string;
   address: string;
   retries: number;
-  auditTrail: 'n/a';
+  auditTrail: string;
   name: string;
   orgName: string;
   initialAllowance: string;
   allowance: string;
-  verifierAddressId: 'f03015751';
+  verifierAddressId: string;
   createdAtHeight: number;
   issueCreateTimestamp: null;
   createMessageTimestamp: number;
-  verifierName: 'Public Open Dataset Pathway';
+  verifierName: string;
   dealCount: number | null;
   providerCount: number | null;
   topProvider: null | string;
@@ -51,7 +51,7 @@ export interface AllowanceArray {
   usedAllowance: string;
   isLdnAllowance: boolean;
   isEFilAllowance: boolean;
-  verifierAddressId: 'f03015751';
+  verifierAddressId: string;
   isFromAutoverifier: boolean;
   retrievalFrequency: string;
   searchedByProposal: boolean;
@@ -60,17 +60,8 @@ export interface AllowanceArray {
   createMessageTimestamp: number;
 }
 
-export enum Error {
-  AllocationEventNotFound = 'allocation event not found',
-  Empty = '',
-}
+export enum Error {}
 
-export enum Industry {
-  Empty = '',
-  Environment = 'Environment',
-}
+export enum Industry {}
 
-export enum Region {
-  China = 'China',
-  Empty = '',
-}
+export enum Region {}
