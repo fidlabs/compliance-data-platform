@@ -35,6 +35,12 @@ export class ComplianceReportService {
     const storageProviderDistribution =
       await this.getStorageProviderDistribution(clientIds);
 
+    const averageStorageProviderRetrievabilitySuccessRate =
+      storageProviderDistribution.reduce(
+        (acc, curr) => acc + curr.retrievability_success_rate,
+        0,
+      ) / storageProviderDistribution.length;
+
     return await this.prismaService.compliance_report.create({
       data: {
         allocator: verifiersData.addressId,
@@ -42,6 +48,9 @@ export class ComplianceReportService {
         name: verifiersData.name,
         filecoin_pulse: `https://filecoinpulse.pages.dev/allocator/${verifiersData.addressId}`,
         multisig: verifiersData.isMultisig,
+        avg_retrievability_success_rate:
+          averageStorageProviderRetrievabilitySuccessRate,
+        clients_number: verifierClients.data.length,
         clients: {
           create: verifierClients.data.map((verifierClient) => {
             return {
