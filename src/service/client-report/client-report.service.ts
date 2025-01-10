@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
-import { VerifiedClientData } from '../datacapstats/types.datacapstats';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import { ClientService } from '../client/client.service';
 
 @Injectable()
 export class ClientReportService {
@@ -12,6 +12,7 @@ export class ClientReportService {
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly clientReportChecksService: ClientReportChecksService,
     private readonly storageProviderService: StorageProviderService,
+    private readonly clientService: ClientService,
   ) {}
 
   async generateReport(client: string) {
@@ -23,9 +24,10 @@ export class ClientReportService {
     const storageProviderDistribution =
       await this.storageProviderService.getStorageProviderDistribution(client);
 
-    const replicaDistribution = await this.getReplicationDistribution(client);
+    const replicaDistribution =
+      await this.clientService.getReplicationDistribution(client);
 
-    const cidSharing = await this.getCidSharing(client);
+    const cidSharing = await this.clientService.getCidSharing(client);
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -33,7 +35,8 @@ export class ClientReportService {
         client_address: verifiedClientData.address,
         organization_name:
           (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
-        application_url: this.getClientApplicationUrl(verifiedClientData),
+        application_url:
+          this.clientService.getClientApplicationUrl(verifiedClientData),
         storage_provider_distribution: {
           create: await Promise.all(
             storageProviderDistribution?.map(async (provider) => {
@@ -59,11 +62,12 @@ export class ClientReportService {
           create: await Promise.all(
             cidSharing.map(async (c) => ({
               ...c,
-              other_client_application_url: this.getClientApplicationUrl(
-                await this.dataCapStatsService.fetchPrimaryClientDetails(
-                  c.other_client,
+              other_client_application_url:
+                this.clientService.getClientApplicationUrl(
+                  await this.dataCapStatsService.fetchPrimaryClientDetails(
+                    c.other_client,
+                  ),
                 ),
-              ),
             })),
           ),
         },
@@ -73,47 +77,6 @@ export class ClientReportService {
     await this.clientReportChecksService.storeReportChecks(report.id);
 
     return report;
-  }
-
-  private getClientApplicationUrl(
-    verifiedClientData?: VerifiedClientData,
-  ): string | null {
-    let applicationUrl = verifiedClientData?.allowanceArray?.[0]?.auditTrail;
-    if (applicationUrl === 'n/a') applicationUrl = null;
-    return applicationUrl;
-  }
-
-  private async getReplicationDistribution(client: string) {
-    const distribution =
-      await this.prismaService.client_replica_distribution.findMany({
-        where: {
-          client: client,
-        },
-        omit: {
-          client: true,
-        },
-      });
-
-    const total = distribution.reduce(
-      (acc, cur) => acc + cur.total_deal_size,
-      0n,
-    );
-
-    return distribution?.map((distribution) => ({
-      ...distribution,
-      percentage: Number((distribution.total_deal_size * 10000n) / total) / 100,
-    }));
-  }
-
-  private async getCidSharing(client: string) {
-    return this.prismaService.cid_sharing.findMany({
-      where: {
-        client: client,
-      },
-      omit: {
-        client: true,
-      },
-    });
   }
 
   async getClientReports(client: string) {

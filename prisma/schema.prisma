@@ -258,6 +258,7 @@ model compliance_report_client {
   name                 String?
   allocations_number   Int
   total_allocations    BigInt            @db.BigInt
+  application_url      String?
 }
 
 model compliance_report_client_allocation {

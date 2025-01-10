@@ -7,6 +7,7 @@ import {
   Region,
 } from '../datacapstats/types.verified-clients.datacapstats';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import { ClientService } from '../client/client.service';
 
 @Injectable()
 export class ComplianceReportService {
@@ -14,6 +15,7 @@ export class ComplianceReportService {
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly prismaService: PrismaService,
     private readonly storageProviderService: StorageProviderService,
+    private readonly clientService: ClientService,
   ) {}
 
   async generateReport(allocator: string) {
@@ -54,6 +56,8 @@ export class ComplianceReportService {
               client_id: verifierClient.addressId,
               name: verifierClient.name,
               allocations_number: verifierClient.allowanceArray.length,
+              application_url:
+                this.clientService.getClientApplicationUrl(verifierClient),
               total_allocations: verifierClient.allowanceArray.reduce(
                 (acc: number, curr: any) => acc + Number(curr.allowance),
                 0,
