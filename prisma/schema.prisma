@@ -244,21 +244,22 @@ model compliance_report {
   clients_number                  Int
   multisig                        Boolean
   avg_retrievability_success_rate Float?
-  avg_time_to_first_deal          Decimal?                                          @db.Decimal(5, 2)
+  avg_time_to_first_deal          Decimal?
   clients                         compliance_report_client[]
   client_allocations              compliance_report_client_allocation[]
   storage_provider_distribution   compliance_report_storage_provider_distribution[]
 }
 
 model compliance_report_client {
-  id                   String            @id @default(uuid()) @db.Uuid
-  compliance_report    compliance_report @relation(fields: [compliance_report_id], references: [id])
-  compliance_report_id String            @db.Uuid
-  client_id            String
-  name                 String?
-  allocations_number   Int
-  total_allocations    BigInt            @db.BigInt
-  application_url      String?
+  id                    String            @id @default(uuid()) @db.Uuid
+  compliance_report     compliance_report @relation(fields: [compliance_report_id], references: [id])
+  compliance_report_id  String            @db.Uuid
+  client_id             String
+  name                  String?
+  allocations_number    Int
+  total_allocations     BigInt            @db.BigInt
+  application_url       String?
+  application_timestamp DateTime?
 }
 
 model compliance_report_client_allocation {
