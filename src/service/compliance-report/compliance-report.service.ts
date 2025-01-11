@@ -58,6 +58,13 @@ export class ComplianceReportService {
               allocations_number: verifierClient.allowanceArray.length,
               application_url:
                 this.clientService.getClientApplicationUrl(verifierClient),
+              application_timestamp: verifierClient.allowanceArray?.[0]
+                ?.issueCreateTimestamp
+                ? new Date(
+                    verifierClient.allowanceArray[0].issueCreateTimestamp *
+                      1000,
+                  )
+                : null,
               total_allocations: verifierClient.allowanceArray.reduce(
                 (acc: number, curr: any) => acc + Number(curr.allowance),
                 0,
@@ -146,17 +153,20 @@ export class ComplianceReportService {
         clients: {
           omit: {
             id: true,
+            compliance_report_id: true,
           },
         },
         client_allocations: {
           omit: {
             id: true,
+            compliance_report_id: true,
           },
           orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }],
         },
         storage_provider_distribution: {
           omit: {
             id: true,
+            compliance_report_id: true,
           },
           include: {
             location: {
@@ -165,6 +175,9 @@ export class ComplianceReportService {
                 provider_distribution_id: true,
               },
             },
+          },
+          orderBy: {
+            perc_of_total_datacap: 'desc',
           },
         },
       },
@@ -237,6 +250,7 @@ export class ComplianceReportService {
         allocation: allowanceItem.allowance,
         addressId: item.addressId,
         allocationTimestamp: allowanceItem.createMessageTimestamp,
+        applicationTimestamp: allowanceItem.issueCreateTimestamp,
         clientName: item.clientName,
       }));
     })
