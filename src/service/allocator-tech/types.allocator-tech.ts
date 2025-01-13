@@ -1,6 +1,6 @@
 // noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
 
-export interface AllocatorTechApplicationsResponse {
+export interface AllocatorTechApplicationResponse {
   Version: number | string;
   ID: string;
   'Issue Number': string;
@@ -9,6 +9,24 @@ export interface AllocatorTechApplicationsResponse {
   Datacap: Datacap;
   Lifecycle: Lifecycle;
   'Allocation Requests': AllocationRequest[];
+}
+
+export interface AllocatorTechAllocatorResponse {
+  id: number;
+  owner: string;
+  repo: string;
+  installation_id: number;
+  multisig_address: string | null;
+  verifiers_gh_handles: string | null;
+  multisig_threshold: number | null;
+  allocation_amount_type: any | null;
+  address: string | null;
+  tooling: string | null;
+  data_types: string[] | null;
+  required_sps: string | null;
+  required_replicas: string | null;
+  registry_file_path: string | null;
+  client_contract_address: string | null;
 }
 
 export interface AllocationRequest {

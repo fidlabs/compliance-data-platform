@@ -7,7 +7,7 @@ import {
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/common/prometheus';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
-import { AllocatorTechApplicationsResponse } from '../../service/allocator-tech/types.allocator-tech';
+import { AllocatorTechApplicationResponse } from '../../service/allocator-tech/types.allocator-tech';
 import { ClientReportService } from '../../service/client-report/client-report.service';
 import { LotusApiService } from '../../service/lotus-api/lotus-api.service';
 
@@ -40,7 +40,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   }
 
   private async _generateClientReport(
-    application: AllocatorTechApplicationsResponse,
+    application: AllocatorTechApplicationResponse,
   ) {
     // find Filecoin Client ID
     const filecoinId = await this.lotusApiService.getFilecoinClientId(

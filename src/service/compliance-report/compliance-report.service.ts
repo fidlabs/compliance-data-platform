@@ -8,6 +8,7 @@ import {
 } from '../datacapstats/types.verified-clients.datacapstats';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import { ClientService } from '../client/client.service';
+import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 
 @Injectable()
 export class ComplianceReportService {
@@ -16,6 +17,7 @@ export class ComplianceReportService {
     private readonly prismaService: PrismaService,
     private readonly storageProviderService: StorageProviderService,
     private readonly clientService: ClientService,
+    private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
   async generateReport(allocator: string) {
@@ -24,15 +26,19 @@ export class ComplianceReportService {
 
     if (!verifiersData) return null;
 
-    const verifierClients = await this.dataCapStatsService.getVerifierClients(
+    const verifiedClients = await this.dataCapStatsService.getVerifiedClients(
       verifiersData.addressId,
     );
 
-    const clientsData = this.getGrantedDatacapInClients(verifierClients.data);
+    const allocatorInfo = await this.allocatorTechService.getAllocatorInfo(
+      verifiersData.address,
+    );
+
+    const clientsData = this.getGrantedDatacapInClients(verifiedClients.data);
 
     const storageProviderDistribution =
       await this.getStorageProviderDistribution(
-        verifierClients.data.map((client) => {
+        verifiedClients.data.map((client) => {
           return client.addressId;
         }),
       );
@@ -49,9 +55,12 @@ export class ComplianceReportService {
             (acc, curr) => acc + curr.retrievability_success_rate,
             0,
           ) / storageProviderDistribution.length,
-        clients_number: verifierClients.data.length,
+        clients_number: verifiedClients.data.length,
+        data_types: allocatorInfo?.data_types,
+        required_copies: allocatorInfo?.required_replicas,
+        required_sps: allocatorInfo?.required_sps,
         clients: {
-          create: verifierClients.data.map((verifierClient) => {
+          create: verifiedClients.data.map((verifierClient) => {
             return {
               client_id: verifierClient.addressId,
               name: verifierClient.name,
