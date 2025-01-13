@@ -14,6 +14,7 @@ import {
 import { DataCapStatsVerifiedClientsResponse } from './types.verified-clients.datacapstats';
 import { ConfigService } from '@nestjs/config';
 
+// TODO soon to be deprecated
 @Injectable()
 export class DataCapStatsService {
   private readonly logger = new Logger(DataCapStatsService.name);
@@ -59,9 +60,9 @@ export class DataCapStatsService {
     );
   }
 
-  async getVerifierClients(verifiersAddressId: string) {
+  async getVerifiedClients(allocatorAddress: string) {
     const apiKey = await this.getApiKey();
-    const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${verifiersAddressId}`;
+    const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorAddress}`;
 
     const { data } = await firstValueFrom(
       this.httpService
@@ -95,7 +96,7 @@ export class DataCapStatsService {
   }
 
   async getVerifiersData(
-    verifierIdOrAddress: string,
+    allocatorIdOrAddress: string,
   ): Promise<DataCapStatsVerifierData> {
     const apiKey = await this.getApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiers`;
@@ -109,7 +110,7 @@ export class DataCapStatsService {
           params: {
             page: 1,
             limit: 1,
-            filter: verifierIdOrAddress,
+            filter: allocatorIdOrAddress,
           },
         })
         .pipe(

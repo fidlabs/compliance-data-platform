@@ -248,6 +248,9 @@ model compliance_report {
   clients                         compliance_report_client[]
   client_allocations              compliance_report_client_allocation[]
   storage_provider_distribution   compliance_report_storage_provider_distribution[]
+  data_types                      String[]
+  required_copies                 String?
+  required_sps                    String?
 }
 
 model compliance_report_client {
