@@ -70,10 +70,6 @@ export class DataCapStatsService {
           headers: {
             'X-API-KEY': apiKey,
           },
-          params: {
-            page: 1,
-            limit: 20,
-          },
         })
         .pipe(
           catchError((error: AxiosError) => {
