@@ -77,7 +77,15 @@ export class LocationService {
     address: string;
     protocol: string;
   } {
-    const multiaddrInstance = new Multiaddr(Buffer.from(multiAddr, 'base64'));
+    let multiaddrInstance = new Multiaddr(Buffer.from(multiAddr, 'base64'));
+
+    // TODO: temporary fix needed because multiaddr library does not support /dns/ prefix
+    if (multiaddrInstance.toString().startsWith('/dns/')) {
+      multiaddrInstance = new Multiaddr(
+        multiaddrInstance.toString().replace('/dns/', '/dns4/'),
+      );
+    }
+
     return {
       address: multiaddrInstance.nodeAddress().address,
       protocol: multiaddrInstance.protos()[0].name,
