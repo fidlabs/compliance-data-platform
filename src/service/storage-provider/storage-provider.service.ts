@@ -14,11 +14,11 @@ export class StorageProviderService {
     private readonly lotusApiService: LotusApiService,
   ) {}
 
-  async getStorageProviderDistribution(client: string) {
+  async getStorageProviderDistribution(clientId: string) {
     const clientProviderDistribution =
       await this.prismaService.client_provider_distribution.findMany({
         where: {
-          client: client,
+          client: clientId,
         },
       });
 
