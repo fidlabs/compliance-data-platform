@@ -47,8 +47,8 @@ import { APP_FILTER } from '@nestjs/core';
 import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { AppController } from './controller/app/app.controller';
 import { TerminusModule } from '@nestjs/terminus';
-import { ComplianceReportService } from './service/compliance-report/compliance-report.service';
-import { ComplianceReportController } from './controller/compliance-report/compliance-report.controller';
+import { AllocatorReportService } from './service/allocator-report/allocator-report.service';
+import { AllocatorReportController } from './controller/allocator-report/allocator-report.controller';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
@@ -70,7 +70,7 @@ import { ClientService } from './service/client/client.service';
     AllocatorsAccController,
     GoogleApisController,
     ClientReportController,
-    ComplianceReportController,
+    AllocatorReportController,
     AppController,
   ],
   providers: [
@@ -109,7 +109,7 @@ import { ClientService } from './service/client/client.service';
     LocationService,
     AllocatorTechService,
     ClientReportChecksService,
-    ComplianceReportService,
+    AllocatorReportService,
     StorageProviderService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     {

@@ -12,7 +12,7 @@ import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 import { groupBy } from 'lodash';
 
 @Injectable()
-export class ComplianceReportService {
+export class AllocatorReportService {
   constructor(
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly prismaService: PrismaService,
@@ -44,7 +44,7 @@ export class ComplianceReportService {
         }),
       );
 
-    return await this.prismaService.compliance_report.create({
+    return await this.prismaService.allocator_report.create({
       data: {
         allocator: verifiersData.addressId,
         address: verifiersData.address,
@@ -135,7 +135,7 @@ export class ComplianceReportService {
   }
 
   async getReports(allocatorId: string) {
-    return await this.prismaService.compliance_report.findMany({
+    return await this.prismaService.allocator_report.findMany({
       where: {
         allocator: allocatorId,
       },
@@ -150,7 +150,7 @@ export class ComplianceReportService {
   }
 
   async getReport(allocatorId: string, id?: any) {
-    const report = await this.prismaService.compliance_report.findFirst({
+    const report = await this.prismaService.allocator_report.findFirst({
       where: {
         allocator: allocatorId,
         id: id ?? undefined,
@@ -159,20 +159,20 @@ export class ComplianceReportService {
         clients: {
           omit: {
             id: true,
-            compliance_report_id: true,
+            allocator_report_id: true,
           },
         },
         client_allocations: {
           omit: {
             id: true,
-            compliance_report_id: true,
+            allocator_report_id: true,
           },
           orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }],
         },
         storage_provider_distribution: {
           omit: {
             id: true,
-            compliance_report_id: true,
+            allocator_report_id: true,
           },
           include: {
             location: {
