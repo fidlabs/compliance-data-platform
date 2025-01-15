@@ -9,6 +9,7 @@ import {
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import { ClientService } from '../client/client.service';
 import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
+import { groupBy } from 'lodash';
 
 @Injectable()
 export class ComplianceReportService {
@@ -47,7 +48,7 @@ export class ComplianceReportService {
       data: {
         allocator: verifiersData.addressId,
         address: verifiersData.address,
-        name: verifiersData.name,
+        name: verifiersData.name || null,
         multisig: verifiersData.isMultisig,
         avg_retrievability_success_rate:
           storageProviderDistribution.reduce(
@@ -62,7 +63,7 @@ export class ComplianceReportService {
           create: verifiedClients.data.map((verifierClient) => {
             return {
               client_id: verifierClient.addressId,
-              name: verifierClient.name,
+              name: verifierClient.name || null,
               allocations_number: verifierClient.allowanceArray.length,
               application_url:
                 this.clientService.getClientApplicationUrl(verifierClient),
@@ -152,7 +153,7 @@ export class ComplianceReportService {
   }
 
   async getReport(allocator: string, id?: any) {
-    return this.prismaService.compliance_report.findFirst({
+    const report = await this.prismaService.compliance_report.findFirst({
       where: {
         allocator: allocator,
         id: id ?? undefined,
@@ -193,6 +194,14 @@ export class ComplianceReportService {
         create_date: 'desc',
       },
     });
+
+    return {
+      ...report,
+      client_allocations: groupBy(
+        report.client_allocations,
+        (c) => c.client_id,
+      ),
+    };
   }
 
   private getGrantedDatacapInClients(
