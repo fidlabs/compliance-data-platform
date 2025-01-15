@@ -240,11 +240,9 @@ model compliance_report {
   allocator                       String
   name                            String?
   address                         String
-  filecoin_pulse                  String
   clients_number                  Int
   multisig                        Boolean
   avg_retrievability_success_rate Float?
-  avg_time_to_first_deal          Decimal?
   clients                         compliance_report_client[]
   client_allocations              compliance_report_client_allocation[]
   storage_provider_distribution   compliance_report_storage_provider_distribution[]
