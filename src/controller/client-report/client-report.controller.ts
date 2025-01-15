@@ -18,10 +18,10 @@ export class ClientReportController {
 
   @Get(':client')
   @ApiOperation({
-    summary: 'Get list of client reports',
+    summary: 'Get list of client compliance reports',
   })
   @ApiOkResponse({
-    description: 'List of client reports',
+    description: 'List of client compliance reports',
     type: null,
   })
   async getClientReports(@Param('client') client: string) {
@@ -30,10 +30,10 @@ export class ClientReportController {
 
   @Get(':client/latest')
   @ApiOperation({
-    summary: 'Get latest client report',
+    summary: 'Get latest client compliance report',
   })
   @ApiOkResponse({
-    description: 'Client report',
+    description: 'Client compliance report',
     type: null,
   })
   async getClientReport(@Param('client') client: string) {
@@ -46,10 +46,10 @@ export class ClientReportController {
 
   @Get(':client/:id')
   @ApiOperation({
-    summary: 'Get client report by id',
+    summary: 'Get client compliance report by id',
   })
   @ApiOkResponse({
-    description: 'Client report',
+    description: 'Client compliance report',
     type: null,
   })
   async getClientReportById(
@@ -64,10 +64,10 @@ export class ClientReportController {
 
   @Post(':client')
   @ApiOperation({
-    summary: 'Generate report for a given client',
+    summary: 'Generate compliance report for a given client',
   })
   @ApiCreatedResponse({
-    description: 'Client report',
+    description: 'Client compliance report',
     type: null,
   })
   async generateClientReport(@Param('client') client: string) {

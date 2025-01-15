@@ -234,60 +234,60 @@ model client_report_check_result {
   @@unique([check, client_report_id])
 }
 
-model compliance_report {
-  id                              String                                            @id @default(uuid()) @db.Uuid
-  create_date                     DateTime                                          @default(now())
+model allocator_report {
+  id                              String                                           @id @default(uuid()) @db.Uuid
+  create_date                     DateTime                                         @default(now())
   allocator                       String
   name                            String?
   address                         String
   clients_number                  Int
   multisig                        Boolean
   avg_retrievability_success_rate Float?
-  clients                         compliance_report_client[]
-  client_allocations              compliance_report_client_allocation[]
-  storage_provider_distribution   compliance_report_storage_provider_distribution[]
+  clients                         allocator_report_client[]
+  client_allocations              allocator_report_client_allocation[]
+  storage_provider_distribution   allocator_report_storage_provider_distribution[]
   data_types                      String[]
   required_copies                 String?
   required_sps                    String?
 }
 
-model compliance_report_client {
-  id                    String            @id @default(uuid()) @db.Uuid
-  compliance_report     compliance_report @relation(fields: [compliance_report_id], references: [id])
-  compliance_report_id  String            @db.Uuid
+model allocator_report_client {
+  id                    String           @id @default(uuid()) @db.Uuid
+  allocator_report      allocator_report @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id   String           @db.Uuid
   client_id             String
   name                  String?
   allocations_number    Int
-  total_allocations     BigInt            @db.BigInt
+  total_allocations     BigInt           @db.BigInt
   application_url       String?
   application_timestamp DateTime?
 }
 
-model compliance_report_client_allocation {
-  id                   String            @id @default(uuid()) @db.Uuid
-  compliance_report    compliance_report @relation(fields: [compliance_report_id], references: [id])
-  compliance_report_id String            @db.Uuid
-  client_id            String
-  allocation           BigInt            @db.BigInt
-  timestamp            DateTime
+model allocator_report_client_allocation {
+  id                  String           @id @default(uuid()) @db.Uuid
+  allocator_report    allocator_report @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id String           @db.Uuid
+  client_id           String
+  allocation          BigInt           @db.BigInt
+  timestamp           DateTime
 }
 
-model compliance_report_storage_provider_distribution {
-  id                          String                                                    @id @default(uuid()) @db.Uuid
-  compliance_report           compliance_report                                         @relation(fields: [compliance_report_id], references: [id])
-  compliance_report_id        String                                                    @db.Uuid
+model allocator_report_storage_provider_distribution {
+  id                          String                                                   @id @default(uuid()) @db.Uuid
+  allocator_report            allocator_report                                         @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id         String                                                   @db.Uuid
   provider                    String
   total_deal_size             BigInt
   unique_data_size            BigInt
   perc_of_total_datacap       Float
-  location                    compliance_report_storage_provider_distribution_location?
+  location                    allocator_report_storage_provider_distribution_location?
   retrievability_success_rate Float?
 }
 
-model compliance_report_storage_provider_distribution_location {
-  id                       String                                          @id @default(uuid()) @db.Uuid
-  provider_distribution    compliance_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
-  provider_distribution_id String                                          @unique @db.Uuid
+model allocator_report_storage_provider_distribution_location {
+  id                       String                                         @id @default(uuid()) @db.Uuid
+  provider_distribution    allocator_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
+  provider_distribution_id String                                         @unique @db.Uuid
   ip                       String
   city                     String
   region                   String
