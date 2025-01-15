@@ -15,23 +15,25 @@ export class ClientReportService {
     private readonly clientService: ClientService,
   ) {}
 
-  async generateReport(client: string) {
+  async generateReport(clientId: string) {
     const verifiedClientData =
-      await this.dataCapStatsService.fetchPrimaryClientDetails(client);
+      await this.dataCapStatsService.fetchPrimaryClientDetails(clientId);
 
     if (!verifiedClientData) return null;
 
     const storageProviderDistribution =
-      await this.storageProviderService.getStorageProviderDistribution(client);
+      await this.storageProviderService.getStorageProviderDistribution(
+        clientId,
+      );
 
     const replicaDistribution =
-      await this.clientService.getReplicationDistribution(client);
+      await this.clientService.getReplicationDistribution(clientId);
 
-    const cidSharing = await this.clientService.getCidSharing(client);
+    const cidSharing = await this.clientService.getCidSharing(clientId);
 
     const report = await this.prismaService.client_report.create({
       data: {
-        client: client,
+        client: clientId,
         client_address: verifiedClientData.address,
         organization_name:
           (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
@@ -79,10 +81,10 @@ export class ClientReportService {
     return report;
   }
 
-  async getClientReports(client: string) {
+  async getClientReports(clientId: string) {
     return await this.prismaService.client_report.findMany({
       where: {
-        client: client,
+        client: clientId,
       },
       orderBy: {
         create_date: 'desc',
@@ -90,14 +92,14 @@ export class ClientReportService {
     });
   }
 
-  async getClientLatestReport(client: string) {
-    return this.getClientReport(client);
+  async getClientLatestReport(clientId: string) {
+    return this.getClientReport(clientId);
   }
 
-  async getClientReport(client: string, id?: any) {
+  async getClientReport(clientId: string, id?: any) {
     return this.prismaService.client_report.findFirst({
       where: {
-        client: client,
+        client: clientId,
         id: id ?? undefined,
       },
       include: {

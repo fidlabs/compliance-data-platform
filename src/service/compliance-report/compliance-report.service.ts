@@ -21,9 +21,9 @@ export class ComplianceReportService {
     private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
-  async generateReport(allocator: string) {
+  async generateReport(allocatorIdOrAddress: string) {
     const verifiersData =
-      await this.dataCapStatsService.getVerifiersData(allocator);
+      await this.dataCapStatsService.getVerifiersData(allocatorIdOrAddress);
 
     if (!verifiersData) return null;
 
@@ -60,21 +60,18 @@ export class ComplianceReportService {
         required_copies: allocatorInfo?.required_replicas,
         required_sps: allocatorInfo?.required_sps,
         clients: {
-          create: verifiedClients.data.map((verifierClient) => {
+          create: verifiedClients.data.map((client) => {
             return {
-              client_id: verifierClient.addressId,
-              name: verifierClient.name || null,
-              allocations_number: verifierClient.allowanceArray.length,
+              client_id: client.addressId,
+              name: client.name || null,
+              allocations_number: client.allowanceArray.length,
               application_url:
-                this.clientService.getClientApplicationUrl(verifierClient),
-              application_timestamp: verifierClient.allowanceArray?.[0]
+                this.clientService.getClientApplicationUrl(client),
+              application_timestamp: client.allowanceArray?.[0]
                 ?.issueCreateTimestamp
-                ? new Date(
-                    verifierClient.allowanceArray[0].issueCreateTimestamp *
-                      1000,
-                  )
+                ? new Date(client.allowanceArray[0].issueCreateTimestamp * 1000)
                 : null,
-              total_allocations: verifierClient.allowanceArray.reduce(
+              total_allocations: client.allowanceArray.reduce(
                 (acc: number, curr: any) => acc + Number(curr.allowance),
                 0,
               ),
@@ -137,10 +134,10 @@ export class ComplianceReportService {
     });
   }
 
-  async getReports(allocator: string) {
+  async getReports(allocatorId: string) {
     return await this.prismaService.compliance_report.findMany({
       where: {
-        allocator: allocator,
+        allocator: allocatorId,
       },
       orderBy: {
         create_date: 'desc',
@@ -148,14 +145,14 @@ export class ComplianceReportService {
     });
   }
 
-  async getLatestReport(allocator: string) {
-    return this.getReport(allocator);
+  async getLatestReport(allocatorId: string) {
+    return this.getReport(allocatorId);
   }
 
-  async getReport(allocator: string, id?: any) {
+  async getReport(allocatorId: string, id?: any) {
     const report = await this.prismaService.compliance_report.findFirst({
       where: {
-        allocator: allocator,
+        allocator: allocatorId,
         id: id ?? undefined,
       },
       include: {

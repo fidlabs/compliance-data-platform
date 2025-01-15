@@ -15,11 +15,11 @@ export class ClientService {
     return applicationUrl;
   }
 
-  public async getReplicationDistribution(client: string) {
+  public async getReplicationDistribution(clientId: string) {
     const distribution =
       await this.prismaService.client_replica_distribution.findMany({
         where: {
-          client: client,
+          client: clientId,
         },
         omit: {
           client: true,
@@ -37,10 +37,10 @@ export class ClientService {
     }));
   }
 
-  public async getCidSharing(client: string) {
+  public async getCidSharing(clientId: string) {
     return this.prismaService.cid_sharing.findMany({
       where: {
-        client: client,
+        client: clientId,
       },
       omit: {
         client: true,
