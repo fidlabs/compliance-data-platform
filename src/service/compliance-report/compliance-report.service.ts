@@ -48,7 +48,6 @@ export class ComplianceReportService {
         allocator: verifiersData.addressId,
         address: verifiersData.address,
         name: verifiersData.name,
-        filecoin_pulse: `https://filecoinpulse.pages.dev/allocator/${verifiersData.addressId}`,
         multisig: verifiersData.isMultisig,
         avg_retrievability_success_rate:
           storageProviderDistribution.reduce(
