@@ -41,17 +41,17 @@ export class AggregationTasksService extends HealthIndicator {
         this.prometheusMetricService.startAllAggregationsTimer();
 
       try {
-        this.logger.log('Starting Aggregations');
+        this.logger.log('Starting aggregations');
         this.lastRun = new Date();
         this.healthy = true;
 
         await this.aggregationService.runAggregations();
 
         this.lastSuccess = new Date();
-        this.logger.log('Finished Aggregations');
+        this.logger.log('Finished aggregations');
       } catch (err) {
         this.healthy = false;
-        this.logger.error(`Error during Aggregations job: ${err}`, err.stack);
+        this.logger.error(`Error during aggregations job: ${err}`, err.stack);
       } finally {
         endAllAggregationsTimer();
         this.aggregationJobInProgress = false;

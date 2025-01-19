@@ -15,7 +15,7 @@ import { LotusApiService } from '../../service/lotus-api/lotus-api.service';
 export class ClientReportGeneratorJobService extends HealthIndicator {
   private readonly logger = new Logger(ClientReportGeneratorJobService.name);
   private lastRun: Date = null;
-  private lastRunApplications: number = null;
+  private lastRunReports: number = null;
   private lastRunFails: number = null;
   private healthy = true;
 
@@ -31,7 +31,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   async isHealthy(): Promise<HealthIndicatorResult> {
     const result = this.getStatus('client-report-generator', this.healthy, {
       lastRun: this.lastRun,
-      lastRunApplications: this.lastRunApplications,
+      lastRunReports: this.lastRunReports,
       lastRunFails: this.lastRunFails,
     });
 
@@ -71,7 +71,10 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
         fails++;
         this.logger.error(
           `Error during generation of Client Report for application #${application[0].ID}: ${err}`,
+          err.stack,
         );
+
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
       }
 
       if (i > 0 && i % 50 === 0) {
@@ -79,7 +82,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       }
     }
 
-    return { applications: applications.length, fails: fails };
+    return { reports: applications.length, fails: fails };
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
@@ -89,16 +92,16 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       this.lastRun = new Date();
       this.healthy = true;
 
-      const { applications, fails } = await this._runClientReportGeneration();
+      const { reports, fails } = await this._runClientReportGeneration();
 
-      this.lastRunApplications = applications;
+      this.lastRunReports = reports;
       this.lastRunFails = fails;
       this.logger.log(
-        `Finishing Client Reports generation. Fails: ${fails} / ${applications}`,
+        `Finishing Client Reports generation. Fails: ${fails} / ${reports}`,
       );
 
       this.prometheusMetricService.setSuccessClientReportsMetric(
-        applications - fails,
+        reports - fails,
       );
 
       this.prometheusMetricService.setFailClientReportsMetric(fails);

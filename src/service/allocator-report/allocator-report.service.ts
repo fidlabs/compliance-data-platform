@@ -23,7 +23,7 @@ export class AllocatorReportService {
 
   async generateReport(allocatorIdOrAddress: string) {
     const verifiersData =
-      await this.dataCapStatsService.getVerifiersData(allocatorIdOrAddress);
+      await this.dataCapStatsService.getVerifierData(allocatorIdOrAddress);
 
     if (!verifiersData) return null;
 

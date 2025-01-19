@@ -28,6 +28,7 @@ export class DataCapStatsService {
   @UseInterceptors(CacheInterceptor)
   async fetchClientDetails(clientId: string): Promise<VerifiedClientResponse> {
     const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?limit=10&page=1&filter=${clientId}`;
+
     const { data } = await firstValueFrom(
       this.httpService.get<VerifiedClientResponse>(endpoint).pipe(
         catchError((error: AxiosError) => {
@@ -36,6 +37,7 @@ export class DataCapStatsService {
         }),
       ),
     );
+
     return data;
   }
 
@@ -61,7 +63,7 @@ export class DataCapStatsService {
   }
 
   async getVerifiedClients(allocatorAddress: string) {
-    const apiKey = await this.getApiKey();
+    const apiKey = await this.fetchApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorAddress}`;
 
     const { data } = await firstValueFrom(
@@ -91,10 +93,20 @@ export class DataCapStatsService {
     };
   }
 
-  async getVerifiersData(
+  async getVerifierData(
     allocatorIdOrAddress: string,
   ): Promise<DataCapStatsVerifierData> {
-    const apiKey = await this.getApiKey();
+    return (await this._getVerifiers(allocatorIdOrAddress))[0];
+  }
+
+  async getVerifiers(): Promise<DataCapStatsVerifierData[]> {
+    return this._getVerifiers();
+  }
+
+  private async _getVerifiers(
+    allocatorIdOrAddress?: string | null,
+  ): Promise<DataCapStatsVerifierData[]> {
+    const apiKey = await this.fetchApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiers`;
 
     const { data } = await firstValueFrom(
@@ -103,11 +115,13 @@ export class DataCapStatsService {
           headers: {
             'X-API-KEY': apiKey,
           },
-          params: {
-            page: 1,
-            limit: 1,
-            filter: allocatorIdOrAddress,
-          },
+          params: allocatorIdOrAddress
+            ? {
+                page: 1,
+                limit: 1,
+                filter: allocatorIdOrAddress,
+              }
+            : undefined,
         })
         .pipe(
           catchError((error: AxiosError) => {
@@ -116,10 +130,11 @@ export class DataCapStatsService {
           }),
         ),
     );
-    return data.data[0];
+
+    return data.data;
   }
 
-  async getApiKey() {
+  async fetchApiKey(): Promise<string> {
     if (this.apiKey) {
       return this.apiKey;
     } else {
@@ -140,6 +155,7 @@ export class DataCapStatsService {
         }),
       ),
     );
+
     this.apiKey = data;
     return data;
   }

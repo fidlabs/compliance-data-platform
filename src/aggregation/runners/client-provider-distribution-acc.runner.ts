@@ -1,6 +1,6 @@
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/filspark/filspark.service';
+import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 import { PostgresService } from 'src/db/postgres.service';

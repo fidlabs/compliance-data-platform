@@ -23,19 +23,19 @@ export class LotusApiService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getFilecoinClientId(address: string): Promise<string> {
+  async getFilecoinClientId(clientAddress: string): Promise<string> {
     // try to retrieve mapping from DB
     const clientAddressMapping =
       await this.prismaService.client_address_mapping.findFirst({
         where: {
-          address: address,
+          address: clientAddress,
         },
       });
 
     if (clientAddressMapping) return clientAddressMapping.client;
 
     // if address not found in DB -> look up the glif API
-    this.logger.log(`Getting Filecoin Id for address ${address}`);
+    this.logger.log(`Getting Filecoin Id for client address ${clientAddress}`);
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
@@ -43,7 +43,7 @@ export class LotusApiService {
         .post<LotusStateLookupIdResponse>(endpoint, {
           jsonrpc: '2.0',
           method: 'Filecoin.StateLookupID',
-          params: [address, []],
+          params: [clientAddress, []],
           id: 0,
         })
         .pipe(
@@ -56,14 +56,14 @@ export class LotusApiService {
     if (data.error?.code === 3 || !data.result) return null;
 
     this.logger.debug(
-      `Storing mapping for client ${data.result} and address ${address}`,
+      `Storing mapping for client ID ${data.result} and address ${clientAddress}`,
     );
 
     // store result in DB
     await this.prismaService.client_address_mapping.create({
       data: {
         client: data.result,
-        address: address,
+        address: clientAddress,
       },
     });
 
@@ -71,6 +71,21 @@ export class LotusApiService {
   }
 
   async getMinerInfo(provider: string): Promise<LotusStateMinerInfoResponse> {
+    // TODO retries?
+    try {
+      return await this._getMinerInfo(provider);
+    } catch (err) {
+      this.logger.error(
+        `Error getting miner info for ${provider}: ${err}`,
+        err.stack,
+      );
+      throw err;
+    }
+  }
+
+  private async _getMinerInfo(
+    provider: string,
+  ): Promise<LotusStateMinerInfoResponse> {
     const cachedData = await this.cacheManager.get<LotusStateMinerInfoResponse>(
       `${this._minerInfoCacheKey}_${provider}`,
     );
@@ -93,10 +108,11 @@ export class LotusApiService {
           }),
         ),
     );
+
     await this.cacheManager.set(
       `${this._minerInfoCacheKey}_${provider}`,
       data,
-      1000 * 60 * 60 * 2,
+      1000 * 60 * 60 * 2, // 2 hours
     );
 
     return data;
