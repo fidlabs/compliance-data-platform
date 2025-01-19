@@ -30,7 +30,7 @@ import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
 import { PrismaService } from './db/prisma.service';
 import { PrismaDmobService } from './db/prismaDmob.service';
-import { FilSparkService } from './filspark/filspark.service';
+import { FilSparkService } from './service/filspark/filspark.service';
 import { HistogramHelper } from './helper/histogram.helper';
 import { AllocatorService } from './service/allocator/allocator.service';
 import { ClientReportService } from './service/client-report/client-report.service';
@@ -53,6 +53,7 @@ import { StorageProviderService } from './service/storage-provider/storage-provi
 import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
 import { ClientService } from './service/client/client.service';
+import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { ClientService } from './service/client/client.service';
     AggregationService,
     AggregationTasksService,
     ClientReportGeneratorJobService,
+    AllocatorReportGeneratorJobService,
     PrismaService,
     PrismaDmobService,
     FilSparkService,

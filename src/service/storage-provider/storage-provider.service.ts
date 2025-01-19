@@ -87,30 +87,10 @@ export class StorageProviderService {
     total_deal_size: bigint;
     unique_data_size: bigint;
   }): Promise<IPResponse | null> {
-    let minerInfo;
+    const minerInfo = await this.lotusApiService.getMinerInfo(
+      clientProviderDistribution.provider,
+    );
 
-    try {
-      minerInfo = await this.lotusApiService.getMinerInfo(
-        clientProviderDistribution.provider,
-      );
-    } catch (e) {
-      this.logger.error(
-        `Error getting miner info for ${clientProviderDistribution.provider}`,
-        e,
-      );
-      throw e;
-    }
-
-    try {
-      return await this.locationService.getLocation(
-        minerInfo.result.Multiaddrs,
-      );
-    } catch (e) {
-      this.logger.error(
-        `Error getting location for ${minerInfo.result.Multiaddrs}`,
-        e,
-      );
-      throw e;
-    }
+    return this.locationService.getLocation(minerInfo.result.Multiaddrs);
   }
 }

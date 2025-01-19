@@ -11,6 +11,7 @@ import { PostgresDmobService } from '../../db/postgresDmob.service';
 import { AggregationTasksService } from '../../aggregation/aggregation-tasks.service';
 import { ClientReportGeneratorJobService } from '../../jobs/client-report-generator-job/client-report-generator-job.service';
 import { ConfigService } from '@nestjs/config';
+import { AllocatorReportGeneratorJobService } from '../../jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 
 @Controller()
 export class AppController {
@@ -22,6 +23,7 @@ export class AppController {
     private postgresDmobService: PostgresDmobService,
     private aggregationTasksService: AggregationTasksService,
     private clientReportGeneratorJobService: ClientReportGeneratorJobService,
+    private allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
     private configService: ConfigService,
   ) {}
 
@@ -67,6 +69,7 @@ export class AppController {
         }),
       () => this.aggregationTasksService.isHealthy(),
       () => this.clientReportGeneratorJobService.isHealthy(),
+      () => this.allocatorReportGeneratorJobService.isHealthy(),
     ]);
   }
 }

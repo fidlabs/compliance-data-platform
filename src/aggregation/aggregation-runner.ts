@@ -1,4 +1,4 @@
-import { FilSparkService } from 'src/filspark/filspark.service';
+import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { PrismaService } from '../db/prisma.service';
 import { PrismaDmobService } from '../db/prismaDmob.service';
 import { AggregationTable } from './aggregation-table';

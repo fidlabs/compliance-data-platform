@@ -6,10 +6,19 @@ export class PrometheusMetricService {
   constructor(
     @InjectMetric(GaugeMetrics.SUCCESS_CLIENT_REPORTS)
     private readonly successClientReports: Gauge<string>,
+
     @InjectMetric(GaugeMetrics.FAIL_CLIENT_REPORTS)
     private readonly failClientReports: Gauge<string>,
+
+    @InjectMetric(GaugeMetrics.SUCCESS_ALLOCATOR_REPORTS)
+    private readonly successAllocatorReports: Gauge<string>,
+
+    @InjectMetric(GaugeMetrics.FAIL_ALLOCATOR_REPORTS)
+    private readonly failAllocatorReports: Gauge<string>,
+
     @InjectMetric(GaugeMetrics.AGGREGATION_SINGLE_TRANSACTION_TIME)
     private readonly aggregationSingleTransactionTime: Gauge<string>,
+
     @InjectMetric(GaugeMetrics.AGGREGATION_SUMMARY_TIME)
     private readonly aggregationEntireTime: Gauge<string>,
   ) {}
@@ -19,6 +28,12 @@ export class PrometheusMetricService {
 
   public setFailClientReportsMetric = (value: number) =>
     this.failClientReports.set(value);
+
+  public setSuccessAllocatorReportsMetric = (value: number) =>
+    this.successAllocatorReports.set(value);
+
+  public setFailAllocatorReportsMetric = (value: number) =>
+    this.failAllocatorReports.set(value);
 
   public startSingleAggregationTransactionTimer = (
     runnerName: string,

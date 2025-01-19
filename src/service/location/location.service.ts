@@ -21,7 +21,21 @@ export class LocationService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async getLocation(multiAddrs: string[]): Promise<IPResponse | null> {
+  async getLocation(multiAddrs?: string[] | null): Promise<IPResponse | null> {
+    if (!multiAddrs) return null;
+
+    try {
+      return await this._getLocation(multiAddrs);
+    } catch (err) {
+      this.logger.error(
+        `Error getting location for ${multiAddrs}: ${err}`,
+        err.stack,
+      );
+      throw err;
+    }
+  }
+
+  private async _getLocation(multiAddrs: string[]): Promise<IPResponse | null> {
     const ips: string[] = [];
     for (const multiaddr of multiAddrs) {
       ips.push(...(await this.getIpFromMultiaddr(multiaddr)));
@@ -53,6 +67,7 @@ export class LocationService {
 
       return data;
     }
+
     return null;
   }
 
@@ -65,7 +80,7 @@ export class LocationService {
 
     const result = await this.resolveIpAddress(address, protocol);
 
-    await this.cacheManager.set(cacheKey, result, 1000 * 60 * 60 * 24);
+    await this.cacheManager.set(cacheKey, result, 1000 * 60 * 60 * 24); // 24 hours
     return result;
   }
 
@@ -97,6 +112,7 @@ export class LocationService {
     protocol: string,
   ): Promise<string[]> {
     let result: string[];
+
     switch (protocol) {
       case 'dns4':
         result = await resolve4(address);
@@ -109,9 +125,10 @@ export class LocationService {
         result = [address];
         break;
       default:
-        this.logger.error({ address, protocol }, 'Unknown protocol');
+        this.logger.error(`Unknown protocol: ${{ address, protocol }}`);
         result = [];
     }
+
     return result;
   }
 }

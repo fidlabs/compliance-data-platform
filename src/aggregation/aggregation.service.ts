@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrometheusMetricService } from 'src/common/prometheus';
-import { FilSparkService } from 'src/filspark/filspark.service';
+import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { PostgresService } from '../db/postgres.service';
 import { PostgresDmobService } from '../db/postgresDmob.service';
 import { PrismaService } from '../db/prisma.service';
@@ -72,7 +72,7 @@ export class AggregationService {
           // execute runner
           const aggregationRunnerName = aggregationRunner.getName();
 
-          this.logger.debug(`STARTING: ${aggregationRunnerName}`);
+          this.logger.debug(`Starting aggregation: ${aggregationRunnerName}`);
 
           // start transaction timer
           const endSingleAggregationTransactionTimer =
@@ -97,7 +97,7 @@ export class AggregationService {
             endSingleAggregationTransactionTimer();
           }
 
-          this.logger.debug(`FINISHED: ${aggregationRunnerName}`);
+          this.logger.debug(`Finished aggregation: ${aggregationRunnerName}`);
 
           executedRunners++;
 
