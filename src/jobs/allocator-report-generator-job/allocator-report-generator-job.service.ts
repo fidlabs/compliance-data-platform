@@ -8,7 +8,6 @@ import {
 import { PrometheusMetricService } from 'src/common/prometheus';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
 import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
-import { DataCapStatsService } from '../../service/datacapstats/datacapstats.service';
 
 @Injectable()
 export class AllocatorReportGeneratorJobService extends HealthIndicator {
@@ -22,7 +21,6 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     private readonly allocatorTechService: AllocatorTechService,
     private readonly allocatorReportService: AllocatorReportService,
     private readonly prometheusMetricService: PrometheusMetricService,
-    private readonly dataCapStatsService: DataCapStatsService,
   ) {
     super();
   }
@@ -45,8 +43,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
   }
 
   private async _runAllocatorReportGeneration() {
-    // let allocators = await this.allocatorTechService.getAllocators();
-    let allocators = await this.dataCapStatsService.getVerifiers(); // TODO
+    let allocators = await this.allocatorTechService.getAllocators();
 
     allocators = allocators.filter((allocator) => allocator.address);
     let fails = 0;
