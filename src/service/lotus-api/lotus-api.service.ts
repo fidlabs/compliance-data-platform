@@ -3,8 +3,7 @@ import {
   LotusStateLookupIdResponse,
   LotusStateMinerInfoResponse,
 } from './types.lotus-api';
-import { catchError, firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
+import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -39,18 +38,12 @@ export class LotusApiService {
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
-      this.httpService
-        .post<LotusStateLookupIdResponse>(endpoint, {
-          jsonrpc: '2.0',
-          method: 'Filecoin.StateLookupID',
-          params: [clientAddress, []],
-          id: 0,
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            throw error;
-          }),
-        ),
+      this.httpService.post<LotusStateLookupIdResponse>(endpoint, {
+        jsonrpc: '2.0',
+        method: 'Filecoin.StateLookupID',
+        params: [clientAddress, []],
+        id: 0,
+      }),
     );
 
     if (data.error?.code === 3 || !data.result) return null;
@@ -95,18 +88,12 @@ export class LotusApiService {
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
-      this.httpService
-        .post<LotusStateMinerInfoResponse>(endpoint, {
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'Filecoin.StateMinerInfo',
-          params: [provider, null],
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            throw error;
-          }),
-        ),
+      this.httpService.post<LotusStateMinerInfoResponse>(endpoint, {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'Filecoin.StateMinerInfo',
+        params: [provider, null],
+      }),
     );
 
     await this.cacheManager.set(

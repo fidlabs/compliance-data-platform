@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { catchError, lastValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
+import { lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
 import { RetrievabilityInfoDto } from 'src/types/retrievabilityInfo.dto';
 
@@ -16,18 +15,12 @@ export class FilSparkService {
       'https://stats.filspark.com/miners/retrieval-success-rate/summary';
 
     const { data } = await lastValueFrom(
-      this.httpService
-        .get<RetrievabilityInfoDto[]>(endpoint, {
-          params: {
-            from: dateParam,
-            to: dateParam,
-          },
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            throw error;
-          }),
-        ),
+      this.httpService.get<RetrievabilityInfoDto[]>(endpoint, {
+        params: {
+          from: dateParam,
+          to: dateParam,
+        },
+      }),
     );
 
     return data;
