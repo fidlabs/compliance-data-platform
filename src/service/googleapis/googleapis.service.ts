@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { AxiosError } from 'axios';
-import { catchError, lastValueFrom } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
 import { GoogleApisSpreadsheetValuesDto } from '../../types/googleApisSpreadsheetValues.dto';
 import { ConfigService } from '@nestjs/config';
 
@@ -21,17 +20,11 @@ export class GoogleApisService {
     const endpoint = `https://sheets.googleapis.com/v4/spreadsheets/1Rx3ZsUh7rhjdAARBNdBHgdbhBM5zFlEnqghC7A0JZ4k/values/${tab}`;
 
     const { data } = await lastValueFrom(
-      this.httpService
-        .get<GoogleApisSpreadsheetValuesDto>(endpoint, {
-          params: {
-            key: this.configService.get<string>('GOOGLEAPIS_KEY'),
-          },
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            throw error;
-          }),
-        ),
+      this.httpService.get<GoogleApisSpreadsheetValuesDto>(endpoint, {
+        params: {
+          key: this.configService.get<string>('GOOGLEAPIS_KEY'),
+        },
+      }),
     );
     return data;
   }

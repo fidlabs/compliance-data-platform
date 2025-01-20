@@ -1,7 +1,6 @@
 import { Injectable, Logger, UseInterceptors } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { catchError, firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
+import { firstValueFrom } from 'rxjs';
 import {
   VerifiedClientData,
   VerifiedClientResponse,
@@ -30,12 +29,7 @@ export class DataCapStatsService {
     const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?limit=10&page=1&filter=${clientId}`;
 
     const { data } = await firstValueFrom(
-      this.httpService.get<VerifiedClientResponse>(endpoint).pipe(
-        catchError((error: AxiosError) => {
-          this.logger.error(error.response.data);
-          throw error;
-        }),
-      ),
+      this.httpService.get<VerifiedClientResponse>(endpoint),
     );
 
     return data;
@@ -67,18 +61,11 @@ export class DataCapStatsService {
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorAddress}`;
 
     const { data } = await firstValueFrom(
-      this.httpService
-        .get<DataCapStatsVerifiedClientsResponse>(endpoint, {
-          headers: {
-            'X-API-KEY': apiKey,
-          },
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            this.logger.error(error.response.data);
-            throw error;
-          }),
-        ),
+      this.httpService.get<DataCapStatsVerifiedClientsResponse>(endpoint, {
+        headers: {
+          'X-API-KEY': apiKey,
+        },
+      }),
     );
 
     return {
@@ -110,25 +97,18 @@ export class DataCapStatsService {
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiers`;
 
     const { data } = await firstValueFrom(
-      this.httpService
-        .get<DataCapStatsVerifiersResponse>(endpoint, {
-          headers: {
-            'X-API-KEY': apiKey,
-          },
-          params: allocatorIdOrAddress
-            ? {
-                page: 1,
-                limit: 1,
-                filter: allocatorIdOrAddress,
-              }
-            : undefined,
-        })
-        .pipe(
-          catchError((error: AxiosError) => {
-            this.logger.error(error.response.data);
-            throw error;
-          }),
-        ),
+      this.httpService.get<DataCapStatsVerifiersResponse>(endpoint, {
+        headers: {
+          'X-API-KEY': apiKey,
+        },
+        params: allocatorIdOrAddress
+          ? {
+              page: 1,
+              limit: 1,
+              filter: allocatorIdOrAddress,
+            }
+          : undefined,
+      }),
     );
 
     return data.data;
@@ -148,12 +128,7 @@ export class DataCapStatsService {
     const endpoint = `http://api.datacapstats.io/public/api/getApiKey`;
 
     const { data } = await firstValueFrom(
-      this.httpService.get<string>(endpoint).pipe(
-        catchError((error: AxiosError) => {
-          this.logger.error(error.response.data);
-          throw error;
-        }),
-      ),
+      this.httpService.get<string>(endpoint),
     );
 
     this.apiKey = data;

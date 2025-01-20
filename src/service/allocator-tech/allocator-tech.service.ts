@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { catchError, firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
+import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { AllocatorTechApplicationResponse } from './types.allocator-tech';
 import { AllocatorTechAllocatorResponse } from './types.allocator-tech';
@@ -52,12 +51,7 @@ export class AllocatorTechService {
   > {
     const endpoint = `${this.configService.get<string>('ALLOCATOR_TECH_BASE_URL')}/allocators`;
     const { data } = await firstValueFrom(
-      this.httpService.get<AllocatorTechAllocatorResponse[]>(endpoint).pipe(
-        catchError((error: AxiosError) => {
-          this.logger.error(error.response.data);
-          throw error;
-        }),
-      ),
+      this.httpService.get<AllocatorTechAllocatorResponse[]>(endpoint),
     );
 
     // cache
@@ -75,12 +69,7 @@ export class AllocatorTechService {
   > {
     const endpoint = `${this.configService.get<string>('ALLOCATOR_TECH_BASE_URL')}/applications`;
     const { data } = await firstValueFrom(
-      this.httpService.get<AllocatorTechApplicationResponse[]>(endpoint).pipe(
-        catchError((error: AxiosError) => {
-          this.logger.error(error.response.data);
-          throw error;
-        }),
-      ),
+      this.httpService.get<AllocatorTechApplicationResponse[]>(endpoint),
     );
 
     // cache
