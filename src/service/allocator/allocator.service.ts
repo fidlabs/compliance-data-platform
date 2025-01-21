@@ -209,6 +209,9 @@ export class AllocatorService {
 
       const weekProvidersCompliance = weekProviders.map((wp) => {
         let complianceScore = 0;
+        // TODO when business is ready let's switch to using http success rate.
+        // Question - do we make a cutoff date for this? (like use normal rate
+        // till 25w4 and http rate after that)?
         if (
           wp.avg_retrievability_success_rate >
           thisWeekAverageRetrievability._avg.avg_retrievability_success_rate

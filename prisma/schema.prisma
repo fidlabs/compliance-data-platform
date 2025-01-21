@@ -82,33 +82,37 @@ model client_replica_distribution {
 }
 
 model providers_weekly {
-  week                            DateTime
-  provider                        String
-  num_of_clients                  Int
-  biggest_client_total_deal_size  BigInt
-  total_deal_size                 BigInt
-  avg_retrievability_success_rate Float
+  week                                 DateTime
+  provider                             String
+  num_of_clients                       Int
+  biggest_client_total_deal_size       BigInt
+  total_deal_size                      BigInt
+  avg_retrievability_success_rate      Float
+  avg_retrievability_success_rate_http Float?
 
   @@id([week, provider])
 }
 
 model allocators_weekly {
-  week                                     DateTime
-  allocator                                String
-  num_of_clients                           Int
-  biggest_client_sum_of_allocations        BigInt
-  total_sum_of_allocations                 BigInt
-  avg_weighted_retrievability_success_rate Float
+  week                                          DateTime
+  allocator                                     String
+  num_of_clients                                Int
+  biggest_client_sum_of_allocations             BigInt
+  total_sum_of_allocations                      BigInt
+  avg_weighted_retrievability_success_rate      Float
+  avg_weighted_retrievability_success_rate_http Float?
 
   @@id([week, allocator])
 }
 
 model provider_retrievability_daily {
-  date         DateTime
-  provider     String
-  total        Int
-  successful   Int
-  success_rate Float
+  date              DateTime
+  provider          String
+  total             Int
+  successful        Int
+  success_rate      Float
+  successful_http   Int?
+  success_rate_http Float?
 
   @@id([date, provider])
 }
@@ -134,23 +138,25 @@ model client_provider_distribution_weekly_acc {
 }
 
 model providers_weekly_acc {
-  week                            DateTime
-  provider                        String
-  num_of_clients                  Int
-  biggest_client_total_deal_size  BigInt
-  total_deal_size                 BigInt
-  avg_retrievability_success_rate Float
+  week                                 DateTime
+  provider                             String
+  num_of_clients                       Int
+  biggest_client_total_deal_size       BigInt
+  total_deal_size                      BigInt
+  avg_retrievability_success_rate      Float
+  avg_retrievability_success_rate_http Float?
 
   @@id([week, provider])
 }
 
 model allocators_weekly_acc {
-  week                                     DateTime
-  allocator                                String
-  num_of_clients                           Int
-  biggest_client_sum_of_allocations        BigInt
-  total_sum_of_allocations                 BigInt
-  avg_weighted_retrievability_success_rate Float
+  week                                          DateTime
+  allocator                                     String
+  num_of_clients                                Int
+  biggest_client_sum_of_allocations             BigInt
+  total_sum_of_allocations                      BigInt
+  avg_weighted_retrievability_success_rate      Float
+  avg_weighted_retrievability_success_rate_http Float?
 
   @@id([week, allocator])
 }
@@ -169,14 +175,14 @@ model client_report {
 }
 
 model client_report_storage_provider_distribution {
-  id                          BigInt                                                @id @default(autoincrement()) @db.BigInt
-  client_report               client_report                                         @relation(fields: [client_report_id], references: [id])
-  client_report_id            BigInt                                                @db.BigInt
-  provider                    String
-  total_deal_size             BigInt
-  unique_data_size            BigInt
-  location                    client_report_storage_provider_distribution_location?
-  retrievability_success_rate Float?
+  id                               BigInt                                                @id @default(autoincrement()) @db.BigInt
+  client_report                    client_report                                         @relation(fields: [client_report_id], references: [id])
+  client_report_id                 BigInt                                                @db.BigInt
+  provider                         String
+  total_deal_size                  BigInt
+  unique_data_size                 BigInt
+  location                         client_report_storage_provider_distribution_location?
+  retrievability_success_rate_http Float?
 }
 
 model client_report_storage_provider_distribution_location {

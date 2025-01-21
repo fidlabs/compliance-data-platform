@@ -20,6 +20,8 @@ export class ProvidersAccRunner implements AggregationRunner {
       biggest_client_total_deal_size: row.biggest_client_total_deal_size,
       total_deal_size: row.total_deal_size,
       avg_retrievability_success_rate: row.avg_retrievability_success_rate,
+      avg_retrievability_success_rate_http:
+        row.avg_retrievability_success_rate_http,
     }));
 
     await prismaService.$executeRaw`truncate providers_weekly_acc;`;
