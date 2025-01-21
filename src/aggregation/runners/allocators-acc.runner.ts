@@ -22,13 +22,15 @@ export class AllocatorsAccRunner implements AggregationRunner {
           biggest_client_sum_of_allocations: bigint | null;
           total_sum_of_allocations: bigint | null;
           avg_weighted_retrievability_success_rate: number | null;
+          avg_weighted_retrievability_success_rate_http: number | null;
         }>(postgresService.pool);
         const i = queryIterablePool.query(`with
                              allocator_retrievability as (
                                  select
                                      week,
                                      allocator,
-                                     sum(cpdwa.total_deal_size*coalesce(avg_retrievability_success_rate, 0))/sum(cpdwa.total_deal_size) as avg_weighted_retrievability_success_rate
+                                     sum(cpdwa.total_deal_size*coalesce(avg_retrievability_success_rate, 0))/sum(cpdwa.total_deal_size) as avg_weighted_retrievability_success_rate,
+                                     sum(cpdwa.total_deal_size*coalesce(avg_retrievability_success_rate_http, 0))/sum(cpdwa.total_deal_size) as avg_weighted_retrievability_success_rate_http
                                  from client_allocator_distribution_weekly_acc
                                           inner join client_provider_distribution_weekly_acc as cpdwa
                                                      using (client, week)
@@ -43,7 +45,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
                              count(*)::int as num_of_clients,
                              max(sum_of_allocations)::bigint as biggest_client_sum_of_allocations,
                              sum(sum_of_allocations)::bigint as total_sum_of_allocations,
-                             max(coalesce(avg_weighted_retrievability_success_rate, 0)) as avg_weighted_retrievability_success_rate
+                             max(coalesce(avg_weighted_retrievability_success_rate, 0)) as avg_weighted_retrievability_success_rate,
+                             max(coalesce(avg_weighted_retrievability_success_rate_http, 0)) as avg_weighted_retrievability_success_rate_http
                          from client_allocator_distribution_weekly_acc
                                   left join allocator_retrievability
                                             using (week, allocator)
@@ -58,6 +61,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
           biggest_client_sum_of_allocations: bigint | null;
           total_sum_of_allocations: bigint | null;
           avg_weighted_retrievability_success_rate: number | null;
+          avg_weighted_retrievability_success_rate_http: number | null;
         }[] = [];
 
         let isFirstInsert = true;
@@ -71,6 +75,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
             total_sum_of_allocations: rowResult.total_sum_of_allocations,
             avg_weighted_retrievability_success_rate:
               rowResult.avg_weighted_retrievability_success_rate,
+            avg_weighted_retrievability_success_rate_http:
+              rowResult.avg_weighted_retrievability_success_rate_http,
           });
 
           if (data.length === 5000) {

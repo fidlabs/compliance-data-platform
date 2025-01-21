@@ -3,4 +3,6 @@ export class RetrievabilityInfoDto {
   total: string;
   successful: string;
   success_rate: number;
+  successful_http: string;
+  success_rate_http: number;
 }

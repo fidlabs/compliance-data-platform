@@ -21,6 +21,8 @@ export class AllocatorsRunner implements AggregationRunner {
       total_sum_of_allocations: row.total_sum_of_allocations,
       avg_weighted_retrievability_success_rate:
         row.avg_weighted_retrievability_success_rate,
+      avg_weighted_retrievability_success_rate_http:
+        row.avg_weighted_retrievability_success_rate_http,
     }));
 
     await prismaService.$executeRaw`truncate allocators_weekly;`;

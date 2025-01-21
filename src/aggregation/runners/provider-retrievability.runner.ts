@@ -42,6 +42,8 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
       total: parseInt(row.total),
       successful: parseInt(row.successful),
       success_rate: row.success_rate,
+      successful_http: parseInt(row.successful_http),
+      success_rate_http: row.success_rate_http,
     }));
 
     await prismaService.provider_retrievability_daily.createMany({ data });
