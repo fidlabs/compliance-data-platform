@@ -55,7 +55,7 @@ export class AllocatorReportController {
   })
   async getAllocatorReportById(
     @Param('allocator') allocator: string,
-    @Param('id') id: bigint,
+    @Param('id') id: string,
   ) {
     const report = await this.allocatorReportService.getReport(allocator, id);
 
