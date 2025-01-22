@@ -182,6 +182,7 @@ model client_report_storage_provider_distribution {
   total_deal_size                  BigInt
   unique_data_size                 BigInt
   location                         client_report_storage_provider_distribution_location?
+  retrievability_success_rate      Float?
   retrievability_success_rate_http Float?
 }
 
