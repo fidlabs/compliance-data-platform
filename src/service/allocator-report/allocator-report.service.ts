@@ -149,11 +149,11 @@ export class AllocatorReportService {
     return this.getReport(allocatorId);
   }
 
-  async getReport(allocatorId: string, id?: any) {
+  async getReport(allocatorId: string, id?: string) {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
         allocator: allocatorId,
-        id: id ?? undefined,
+        id: id || undefined,
       },
       include: {
         clients: {
