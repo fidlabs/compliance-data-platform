@@ -3,15 +3,14 @@ import { resolve4, resolve6 } from 'dns/promises';
 import { Multiaddr } from 'multiaddr';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
-import { catchError, firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
-import { IPResponse } from './types.location';
+import { firstValueFrom } from 'rxjs';
+import { Address, IPResponse } from './types.location';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 
 @Injectable()
 export class LocationService {
-  private readonly _ipFromMultiaddrCacheKey = 'ipFromMultiaddrCache';
+  private readonly _resolveAddressCacheKey = 'resolveAddressCache';
   private readonly _locationDetailsCacheKey = 'locationDetailsCache';
   private readonly logger = new Logger(LocationService.name);
 
@@ -35,10 +34,59 @@ export class LocationService {
     }
   }
 
+  extractAddressFromString(multiAddr: string): Address {
+    return this.extractAddress(new Multiaddr(multiAddr));
+  }
+
+  extractAddressFromBase64(multiAddr: string): Address {
+    return this.extractAddress(new Multiaddr(Buffer.from(multiAddr, 'base64')));
+  }
+
+  async resolveAddress(address: Address): Promise<string> {
+    const cacheKey = this.getCacheKey(
+      this._resolveAddressCacheKey,
+      JSON.stringify(address),
+    );
+    const cachedData = await this.cacheManager.get<string>(cacheKey);
+    if (cachedData) return cachedData;
+
+    let result: string[];
+
+    switch (address.protocol) {
+      case 'dns4':
+        result = await resolve4(address.address);
+        break;
+      case 'dns6':
+        result = await resolve6(address.address);
+        break;
+      case 'ip4':
+      case 'ip6':
+        result = [address.address];
+        break;
+      default:
+        this.logger.error(`Unknown address / protocol: ${address}`);
+        result = [];
+    }
+
+    await this.cacheManager.set(cacheKey, result[0], 1000 * 60 * 60 * 24); // 24 hours
+    return result[0];
+  }
+
+  async resolveAddressWithPort(address: Address): Promise<string> {
+    const resolvedAddress = await this.resolveAddress(address);
+
+    return address.port
+      ? `${resolvedAddress}:${address.port}`
+      : resolvedAddress;
+  }
+
   private async _getLocation(multiAddrs: string[]): Promise<IPResponse | null> {
     const ips: string[] = [];
+
     for (const multiaddr of multiAddrs) {
-      ips.push(...(await this.getIpFromMultiaddr(multiaddr)));
+      ips.push(
+        await this.resolveAddress(this.extractAddressFromBase64(multiaddr)),
+      );
     }
 
     return await this.getLocationDetails(ips);
@@ -53,13 +101,9 @@ export class LocationService {
       if (cachedData) return cachedData;
 
       const { data } = await firstValueFrom(
-        this.httpService
-          .get<IPResponse>(`https://ipinfo.io/${ip}?token=${ipInfoToken}`)
-          .pipe(
-            catchError((error: AxiosError) => {
-              throw error;
-            }),
-          ),
+        this.httpService.get<IPResponse>(
+          `https://ipinfo.io/${ip}?token=${ipInfoToken}`,
+        ),
       );
 
       if (data.bogon === true) continue;
@@ -71,29 +115,11 @@ export class LocationService {
     return null;
   }
 
-  private async getIpFromMultiaddr(multiAddr: string): Promise<string[]> {
-    const cacheKey = this.getCacheKey(this._ipFromMultiaddrCacheKey, multiAddr);
-    const cachedData = await this.cacheManager.get<string[]>(cacheKey);
-    if (cachedData) return cachedData;
-
-    const { address, protocol } = this.extractAddressAndProtocol(multiAddr);
-
-    const result = await this.resolveIpAddress(address, protocol);
-
-    await this.cacheManager.set(cacheKey, result, 1000 * 60 * 60 * 24); // 24 hours
-    return result;
-  }
-
   private getCacheKey(cacheNameKey: string, key: string): string {
     return `${cacheNameKey}_${key}`;
   }
 
-  private extractAddressAndProtocol(multiAddr: string): {
-    address: string;
-    protocol: string;
-  } {
-    let multiaddrInstance = new Multiaddr(Buffer.from(multiAddr, 'base64'));
-
+  private extractAddress(multiaddrInstance: Multiaddr): Address {
     // TODO: temporary fix needed because multiaddr library does not support /dns/ prefix
     if (multiaddrInstance.toString().startsWith('/dns/')) {
       multiaddrInstance = new Multiaddr(
@@ -103,32 +129,8 @@ export class LocationService {
 
     return {
       address: multiaddrInstance.nodeAddress().address,
+      port: multiaddrInstance.nodeAddress().port,
       protocol: multiaddrInstance.protos()[0].name,
     };
-  }
-
-  private async resolveIpAddress(
-    address: string,
-    protocol: string,
-  ): Promise<string[]> {
-    let result: string[];
-
-    switch (protocol) {
-      case 'dns4':
-        result = await resolve4(address);
-        break;
-      case 'dns6':
-        result = await resolve6(address);
-        break;
-      case 'ip4':
-      case 'ip6':
-        result = [address];
-        break;
-      default:
-        this.logger.error(`Unknown protocol: ${{ address, protocol }}`);
-        result = [];
-    }
-
-    return result;
   }
 }
