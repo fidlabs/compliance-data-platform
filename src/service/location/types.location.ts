@@ -9,3 +9,9 @@ export interface IPResponse {
   timezone: string;
   bogon?: boolean;
 }
+
+export interface Address {
+  address: string;
+  port: number;
+  protocol: string;
+}
