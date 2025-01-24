@@ -20,6 +20,7 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
       provider: dmobResult.provider,
       total_deal_size: dmobResult.total_deal_size,
       unique_data_size: dmobResult.unique_data_size,
+      claims_count: dmobResult.claims_count,
     }));
 
     await prismaService.$executeRaw`truncate client_provider_distribution;`;

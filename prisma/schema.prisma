@@ -53,8 +53,10 @@ model client_provider_distribution {
   provider         String
   total_deal_size  BigInt
   unique_data_size BigInt
+  claims_count     BigInt?
 
   @@id([client, provider])
+  @@index([provider])
 }
 
 model client_claims_hourly {
