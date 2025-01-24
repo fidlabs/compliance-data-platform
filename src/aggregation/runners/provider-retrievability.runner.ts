@@ -20,9 +20,11 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
           date: 'desc',
         },
       });
+
     const latestStoredDate = latestStored
       ? DateTime.fromJSDate(latestStored.date, { zone: 'UTC' })
       : null;
+
     const yesterday = DateTime.now()
       .setZone('UTC')
       .minus({ days: 1 })
