@@ -63,16 +63,20 @@ export class LotusApiService {
     return data.result;
   }
 
-  async getMinerInfo(provider: string): Promise<LotusStateMinerInfoResponse> {
-    // TODO retries?
-    try {
-      return await this._getMinerInfo(provider);
-    } catch (err) {
-      this.logger.error(
-        `Error getting miner info for ${provider}: ${err}`,
-        err.stack,
-      );
-      throw err;
+  async getMinerInfo(
+    provider: string,
+    retries: number = 1,
+  ): Promise<LotusStateMinerInfoResponse> {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await this._getMinerInfo(provider);
+      } catch (err) {
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds
+        } else {
+          throw err;
+        }
+      }
     }
   }
 

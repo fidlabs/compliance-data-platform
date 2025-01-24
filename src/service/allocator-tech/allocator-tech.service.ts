@@ -37,6 +37,11 @@ export class AllocatorTechService {
     return await this.fetchAndCacheAllocators();
   }
 
+  async getNonZeroAllocators(): Promise<AllocatorTechAllocatorResponse[]> {
+    const allocators = await this.getAllocators();
+    return allocators.filter((allocator) => allocator.address);
+  }
+
   async getAllocatorInfo(
     allocatorAddress: string,
   ): Promise<AllocatorTechAllocatorResponse | undefined> {

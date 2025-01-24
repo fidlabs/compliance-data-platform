@@ -39,7 +39,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  private async _generateClientReport(
+  private async generateClientReport(
     application: AllocatorTechApplicationResponse,
   ) {
     // find Filecoin Client ID
@@ -66,7 +66,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
           `Starting generation of Client Report for application #${application[0].ID}`,
         );
 
-        await this._generateClientReport(application);
+        await this.generateClientReport(application);
       } catch (err) {
         fails++;
         this.logger.error(

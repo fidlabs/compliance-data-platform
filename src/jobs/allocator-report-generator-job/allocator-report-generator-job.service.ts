@@ -36,26 +36,23 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  private async _generateAllocatorReport(allocatorAddress: string) {
+  private async generateAllocatorReport(allocatorAddress: string) {
     if (!(await this.allocatorReportService.generateReport(allocatorAddress))) {
       throw new Error(`Allocator not found`);
     }
   }
 
   private async _runAllocatorReportGeneration() {
-    let allocators = await this.allocatorTechService.getAllocators();
-
-    allocators = allocators.filter((allocator) => allocator.address);
+    const allocators = await this.allocatorTechService.getNonZeroAllocators();
     let fails = 0;
 
-    // TODO retries?
     for (const [, allocator] of allocators.entries()) {
       try {
         this.logger.debug(
           `Starting generation of Allocator Report for ${allocator.address}`,
         );
 
-        await this._generateAllocatorReport(allocator.address);
+        await this.generateAllocatorReport(allocator.address);
       } catch (err) {
         fails++;
         this.logger.error(

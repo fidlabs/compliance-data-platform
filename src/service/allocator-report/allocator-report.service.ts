@@ -22,17 +22,17 @@ export class AllocatorReportService {
   ) {}
 
   async generateReport(allocatorIdOrAddress: string) {
-    const verifiersData =
+    const verifierData =
       await this.dataCapStatsService.getVerifierData(allocatorIdOrAddress);
 
-    if (!verifiersData) return null;
+    if (!verifierData) return null;
 
     const verifiedClients = await this.dataCapStatsService.getVerifiedClients(
-      verifiersData.addressId,
+      verifierData.addressId,
     );
 
     const allocatorInfo = await this.allocatorTechService.getAllocatorInfo(
-      verifiersData.address,
+      verifierData.address,
     );
 
     const clientsData = this.getGrantedDatacapInClients(verifiedClients.data);
@@ -46,10 +46,10 @@ export class AllocatorReportService {
 
     return await this.prismaService.allocator_report.create({
       data: {
-        allocator: verifiersData.addressId,
-        address: verifiersData.address,
-        name: verifiersData.name || null,
-        multisig: verifiersData.isMultisig,
+        allocator: verifierData.addressId,
+        address: verifierData.address,
+        name: verifierData.name || null,
+        multisig: verifierData.isMultisig,
         avg_retrievability_success_rate:
           storageProviderDistribution.reduce(
             (acc, curr) => acc + curr.retrievability_success_rate,

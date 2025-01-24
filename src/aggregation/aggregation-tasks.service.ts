@@ -11,7 +11,7 @@ import { AggregationService } from './aggregation.service';
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
   private readonly logger = new Logger(AggregationTasksService.name);
-  private aggregationJobInProgress = false;
+  private jobInProgress = false;
   private healthy = true;
   private lastSuccess: Date = null;
   private lastRun: Date = null;
@@ -35,8 +35,8 @@ export class AggregationTasksService extends HealthIndicator {
 
   @Cron(CronExpression.EVERY_HOUR)
   async runAggregationJob() {
-    if (!this.aggregationJobInProgress) {
-      this.aggregationJobInProgress = true;
+    if (!this.jobInProgress) {
+      this.jobInProgress = true;
       const endAllAggregationsTimer =
         this.prometheusMetricService.startAllAggregationsTimer();
 
@@ -54,7 +54,7 @@ export class AggregationTasksService extends HealthIndicator {
         this.logger.error(`Error during aggregations job: ${err}`, err.stack);
       } finally {
         endAllAggregationsTimer();
-        this.aggregationJobInProgress = false;
+        this.jobInProgress = false;
       }
     } else {
       this.logger.debug(
