@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import {
   HealthCheckService,
   HttpHealthIndicator,
@@ -12,9 +12,12 @@ import { AggregationTasksService } from '../../aggregation/aggregation-tasks.ser
 import { ClientReportGeneratorJobService } from '../../jobs/client-report-generator-job/client-report-generator-job.service';
 import { ConfigService } from '@nestjs/config';
 import { AllocatorReportGeneratorJobService } from '../../jobs/allocator-report-generator-job/allocator-report-generator-job.service';
+import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller()
 export class AppController {
+  private readonly logger = new Logger(AppController.name);
+
   constructor(
     private healthCheckService: HealthCheckService,
     private httpHealthIndicator: HttpHealthIndicator,
@@ -35,6 +38,7 @@ export class AppController {
 
   @Get('health')
   @HealthCheck()
+  @CacheTTL(5000) // 5 seconds
   getHealth() {
     return this.healthCheckService.check([
       () =>
