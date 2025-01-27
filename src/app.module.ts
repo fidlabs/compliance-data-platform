@@ -1,5 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
-import { CacheModule } from '@nestjs/cache-manager';
+import { CacheModule, CacheInterceptor } from '@nestjs/cache-manager';
+import { APP_FILTER } from '@nestjs/core';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -43,7 +45,6 @@ import { ClientReportGeneratorJobService } from './jobs/client-report-generator-
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
-import { APP_FILTER } from '@nestjs/core';
 import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { AppController } from './controller/app/app.controller';
 import { TerminusModule } from '@nestjs/terminus';
@@ -59,8 +60,8 @@ import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-gene
   imports: [
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
-    HttpModule.register({ timeout: 5000 }),
-    CacheModule.register(),
+    HttpModule.register({ timeout: 5000 }), // 5 seconds
+    CacheModule.register({ ttl: 10000 }), // 10 seconds
     TerminusModule.forRoot(),
     PrometheusMetricModule,
   ],
@@ -114,6 +115,7 @@ import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-gene
     AllocatorReportService,
     StorageProviderService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
+    { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {
       provide: 'AggregationRunner',
       useFactory: (
