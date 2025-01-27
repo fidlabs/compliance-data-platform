@@ -55,6 +55,9 @@ import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
 import { ClientService } from './service/client/client.service';
 import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-generator-job/allocator-report-generator-job.service';
+import { HttpService } from '@nestjs/axios';
+import axiosBetterStacktrace from 'axios-better-stacktrace';
+import axios from 'axios';
 
 @Module({
   imports: [
@@ -117,6 +120,14 @@ import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-gene
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {
+      provide: 'AXIOS_INSTANCE',
+      useFactory: () => {
+        const axiosInstance = axios.create();
+        axiosBetterStacktrace(axiosInstance);
+        return axiosInstance;
+      },
+    },
+    {
       provide: 'AggregationRunner',
       useFactory: (
         allocatorsRunner,
@@ -175,6 +186,10 @@ import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-gene
   ],
 })
 export class AppModule implements NestModule {
+  constructor(private readonly httpService: HttpService) {
+    axiosBetterStacktrace(this.httpService.axiosRef);
+  }
+
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(RequestLoggerMiddleware).forRoutes('*');
   }
