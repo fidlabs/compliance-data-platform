@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { AllocatorReportGeneratorJobService } from '../../jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 import { IpniAdvertisementFetcherJobService } from '../../jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { CacheTTL } from '@nestjs/cache-manager';
+import { LocationService } from '../../service/location/location.service';
 
 @Controller()
 export class AppController {
@@ -30,6 +31,7 @@ export class AppController {
     private clientReportGeneratorJobService: ClientReportGeneratorJobService,
     private allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
     private ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
+    private locationService: LocationService,
   ) {}
 
   @Get()
@@ -40,14 +42,9 @@ export class AppController {
 
   @Get('health')
   @HealthCheck()
-  @CacheTTL(5000) // 5 seconds
   getHealth() {
     return this.healthCheckService.check([
-      () =>
-        this.httpHealthIndicator.pingCheck(
-          'ipinfo.io',
-          `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
-        ),
+      () => this.locationService.isHealthy(),
       () =>
         this.httpHealthIndicator.pingCheck(
           'cid.contact',

@@ -23,6 +23,7 @@ export class AllocatorTechService {
     const cachedApplications = await this.cacheManager.get<
       AllocatorTechApplicationResponse[]
     >(this._applicationsCacheKey);
+
     if (cachedApplications) return cachedApplications;
 
     return await this.fetchAndCacheApplications();
@@ -32,6 +33,7 @@ export class AllocatorTechService {
     const cachedAllocators = await this.cacheManager.get<
       AllocatorTechAllocatorResponse[]
     >(this._allocatorsCacheKey);
+
     if (cachedAllocators) return cachedAllocators;
 
     return await this.fetchAndCacheAllocators();

@@ -20,7 +20,7 @@ export class IpniMisreportingCheckerService {
 
     const result: boolean[] = [];
 
-    // need to do this sequentially because of the lotus api rate limit
+    // need to do this sequentially because of the lotus api rate limiting
     // TODO ll: really? check that
     for (const storageProvider of storageProviders) {
       result.push(
