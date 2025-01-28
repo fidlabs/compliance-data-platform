@@ -86,6 +86,7 @@ export class LotusApiService {
     const cachedData = await this.cacheManager.get<LotusStateMinerInfoResponse>(
       `${this._minerInfoCacheKey}_${providerId}`,
     );
+
     if (cachedData) return cachedData;
 
     this.logger.debug(`Getting miner info for ${providerId}`);

@@ -1,17 +1,18 @@
-import { Injectable, Logger, UseInterceptors } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import {
   VerifiedClientData,
   VerifiedClientResponse,
 } from './types.datacapstats';
-import { CacheInterceptor } from '@nestjs/cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   DataCapStatsVerifierData,
   DataCapStatsVerifiersResponse,
 } from './types.verifiers.datacapstats';
 import { DataCapStatsVerifiedClientsResponse } from './types.verified-clients.datacapstats';
 import { ConfigService } from '@nestjs/config';
+import { Cache } from 'cache-manager';
 
 // TODO soon to be deprecated
 @Injectable()
@@ -22,38 +23,36 @@ export class DataCapStatsService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  @UseInterceptors(CacheInterceptor)
-  async fetchClientDetails(clientId: string): Promise<VerifiedClientResponse> {
-    const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?limit=10&page=1&filter=${clientId}`;
-
-    const { data } = await firstValueFrom(
-      this.httpService.get<VerifiedClientResponse>(endpoint),
-    );
-
-    return data;
-  }
-
-  @UseInterceptors(CacheInterceptor)
   async fetchPrimaryClientDetails(
     clientId: string,
   ): Promise<VerifiedClientData> {
-    return this.findPrimaryClientDetails(
-      (await this.fetchClientDetails(clientId))?.data,
-    );
-  }
+    const cachedData =
+      await this.cacheManager.get<VerifiedClientData>(clientId);
 
-  private findPrimaryClientDetails(
-    verifiedClientData?: VerifiedClientData[],
-  ): VerifiedClientData {
-    if (!verifiedClientData || verifiedClientData.length === 0) return null;
+    if (cachedData) return cachedData;
 
-    return verifiedClientData.reduce((prev, curr) =>
+    const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?limit=10&page=1&filter=${clientId}`;
+
+    const { data } = (
+      await firstValueFrom(
+        this.httpService.get<VerifiedClientResponse>(endpoint),
+      )
+    )?.data;
+
+    if (!data || data.length === 0) return null;
+
+    const result = data.reduce((prev, curr) =>
       parseInt(prev.initialAllowance) > parseInt(curr.initialAllowance)
         ? prev
         : curr,
     );
+
+    await this.cacheManager.set(clientId, result, 1000 * 60 * 60 * 24); // 24 hours
+
+    return result;
   }
 
   async getVerifiedClients(allocatorAddress: string) {

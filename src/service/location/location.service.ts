@@ -7,9 +7,14 @@ import { firstValueFrom } from 'rxjs';
 import { Address, IPResponse } from './types.location';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import {
+  HealthIndicator,
+  HealthIndicatorResult,
+  HttpHealthIndicator,
+} from '@nestjs/terminus';
 
 @Injectable()
-export class LocationService {
+export class LocationService extends HealthIndicator {
   private readonly _resolveAddressCacheKey = 'resolveAddressCache';
   private readonly _locationDetailsCacheKey = 'locationDetailsCache';
   private readonly logger = new Logger(LocationService.name);
@@ -17,8 +22,26 @@ export class LocationService {
   constructor(
     private configService: ConfigService,
     private readonly httpService: HttpService,
+    private httpHealthIndicator: HttpHealthIndicator,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) {
+    super();
+  }
+
+  // dedicated, heavily cached healthcheck needed because of ipinfo.io token limits
+  async isHealthy(): Promise<HealthIndicatorResult> {
+    const cachedHealth =
+      await this.cacheManager.get<HealthIndicatorResult>('health');
+
+    if (cachedHealth) return cachedHealth;
+
+    const health = await this.httpHealthIndicator.pingCheck(
+      'ipinfo.io',
+      `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
+    );
+
+    await this.cacheManager.set('health', health, 1000 * 60 * 60); // 1 hour
+  }
 
   async getLocation(multiAddrs?: string[] | null): Promise<IPResponse | null> {
     if (!multiAddrs) return null;
@@ -47,6 +70,7 @@ export class LocationService {
       this._resolveAddressCacheKey,
       JSON.stringify(address),
     );
+
     const cachedData = await this.cacheManager.get<string>(cacheKey);
     if (cachedData) return cachedData;
 
