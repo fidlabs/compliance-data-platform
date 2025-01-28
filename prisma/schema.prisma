@@ -186,6 +186,9 @@ model client_report_storage_provider_distribution {
   location                         client_report_storage_provider_distribution_location?
   retrievability_success_rate      Float?
   retrievability_success_rate_http Float?
+  ipni_misreporting                Boolean
+  ipni_reported_claims_count       BigInt?
+  claims_count                     BigInt
 }
 
 model client_report_storage_provider_distribution_location {
@@ -308,6 +311,15 @@ model allocator_report_storage_provider_distribution_location {
   hostname                 String?
 }
 
+model ipni_publisher_advertisement {
+  id             String  @id
+  previous_id    String? @unique
+  publisher_id   String
+  context_id     String
+  entries_number BigInt  @db.BigInt
+  is_rm          Boolean
+}
+
 enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL
@@ -317,4 +329,5 @@ enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75
   DEAL_DATA_REPLICATION_LOW_REPLICA
   DEAL_DATA_REPLICATION_CID_SHARING
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING
 }

@@ -55,6 +55,9 @@ import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
 import { ClientService } from './service/client/client.service';
 import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-generator-job/allocator-report-generator-job.service';
+import { CidContactService } from './service/cid-contact/cid-contact.service';
+import { IpniAdvertisementFetcherJobService } from './jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
+import { IpniMisreportingCheckerService } from './service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { HttpService } from '@nestjs/axios';
 import axiosBetterStacktrace from 'axios-better-stacktrace';
 import axios from 'axios';
@@ -82,6 +85,8 @@ import axios from 'axios';
     AggregationService,
     AggregationTasksService,
     ClientReportGeneratorJobService,
+    IpniAdvertisementFetcherJobService,
+    CidContactService,
     AllocatorReportGeneratorJobService,
     PrismaService,
     PrismaDmobService,
@@ -109,6 +114,7 @@ import axios from 'axios';
     PostgresDmobService,
     HistogramHelper,
     GoogleApisService,
+    IpniMisreportingCheckerService,
     ClientReportService,
     ClientService,
     LotusApiService,

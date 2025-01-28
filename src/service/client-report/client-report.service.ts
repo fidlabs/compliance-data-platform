@@ -43,12 +43,7 @@ export class ClientReportService {
           create: await Promise.all(
             storageProviderDistribution?.map(async (provider) => {
               return {
-                provider: provider.provider,
-                unique_data_size: provider.unique_data_size,
-                total_deal_size: provider.total_deal_size,
-                // TODO when business is ready switch to http success rate
-                retrievability_success_rate:
-                  provider.retrievability_success_rate,
+                ...provider,
                 ...(provider.location && {
                   location: {
                     create: provider.location,

@@ -57,7 +57,7 @@ export class AggregationTasksService extends HealthIndicator {
         this.jobInProgress = false;
       }
     } else {
-      this.logger.debug(
+      this.logger.warn(
         'Aggregations job still in progress - skipping next execution',
       );
     }

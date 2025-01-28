@@ -12,6 +12,7 @@ import { AggregationTasksService } from '../../aggregation/aggregation-tasks.ser
 import { ClientReportGeneratorJobService } from '../../jobs/client-report-generator-job/client-report-generator-job.service';
 import { ConfigService } from '@nestjs/config';
 import { AllocatorReportGeneratorJobService } from '../../jobs/allocator-report-generator-job/allocator-report-generator-job.service';
+import { IpniAdvertisementFetcherJobService } from '../../jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller()
@@ -24,10 +25,11 @@ export class AppController {
     private typeOrmHealthIndicator: TypeOrmHealthIndicator,
     private postgresService: PostgresService,
     private postgresDmobService: PostgresDmobService,
+    private configService: ConfigService,
     private aggregationTasksService: AggregationTasksService,
     private clientReportGeneratorJobService: ClientReportGeneratorJobService,
     private allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
-    private configService: ConfigService,
+    private ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
   ) {}
 
   @Get()
@@ -45,6 +47,11 @@ export class AppController {
         this.httpHealthIndicator.pingCheck(
           'ipinfo.io',
           `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
+        ),
+      () =>
+        this.httpHealthIndicator.pingCheck(
+          'cid.contact',
+          'https://cid.contact/health',
         ),
       () =>
         this.httpHealthIndicator.pingCheck(
@@ -77,6 +84,7 @@ export class AppController {
       () => this.aggregationTasksService.isHealthy(),
       () => this.clientReportGeneratorJobService.isHealthy(),
       () => this.allocatorReportGeneratorJobService.isHealthy(),
+      () => this.ipniAdvertisementFetcherJobService.isHealthy(),
     ]);
   }
 }
