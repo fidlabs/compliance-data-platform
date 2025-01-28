@@ -318,6 +318,8 @@ model ipni_publisher_advertisement {
   context_id     String
   entries_number BigInt  @db.BigInt
   is_rm          Boolean
+
+  @@index([publisher_id])
 }
 
 enum ClientReportCheck {
