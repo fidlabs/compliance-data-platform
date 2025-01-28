@@ -42,7 +42,10 @@ export class AppController {
   getHealth() {
     return this.healthCheckService.check([
       () =>
-        this.httpHealthIndicator.pingCheck('ipinfo.io', 'https://ipinfo.io'),
+        this.httpHealthIndicator.pingCheck(
+          'ipinfo.io',
+          `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
+        ),
       () =>
         this.httpHealthIndicator.pingCheck(
           'glif-api',
