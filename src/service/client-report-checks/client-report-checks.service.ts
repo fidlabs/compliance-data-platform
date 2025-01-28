@@ -275,27 +275,22 @@ export class ClientReportChecksService {
   }
 
   private async storeProvidersIPNIMisreporting(reportId: bigint) {
-    const providerDistribution =
+    const providerDistribution: any[] =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
           where: {
             client_report_id: reportId,
           },
+          select: {
+            provider: true,
+            ipni_misreporting: true,
+          },
         },
       );
 
-    const misreportingProviders = [];
-
-    for (const provider of providerDistribution) {
-      const status =
-        await this.ipniMisreportingCheckerService.getProviderMisreportingStatus(
-          provider.provider,
-        );
-
-      if (status.misreporting) {
-        misreportingProviders.push(provider.provider);
-      }
-    }
+    const misreportingProviders = providerDistribution.filter(
+      (p) => p.ipni_misreporting,
+    );
 
     if (misreportingProviders.length > 0) {
       const percentage =
@@ -309,7 +304,7 @@ export class ClientReportChecksService {
           result: false,
           metadata: {
             percentage: percentage,
-            violating_ids: misreportingProviders,
+            violating_ids: misreportingProviders.map((p) => p.provider),
             misreporting_providers: misreportingProviders.length,
             max_misreporting_providers: 0,
             msg: `${percentage.toFixed(2)}% of storage providers have misreported their data to IPNI`,
@@ -324,7 +319,7 @@ export class ClientReportChecksService {
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING,
           result: true,
           metadata: {
-            msg: `Storage provider IPNI reporting looks healthy`,
+            msg: `Storage providers IPNI reporting looks healthy`,
           },
         },
       });

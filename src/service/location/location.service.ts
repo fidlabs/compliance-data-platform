@@ -96,14 +96,6 @@ export class LocationService extends HealthIndicator {
     return result[0];
   }
 
-  async resolveAddressWithPort(address: Address): Promise<string> {
-    const resolvedAddress = await this.resolveAddress(address);
-
-    return address.port
-      ? `${resolvedAddress}:${address.port}`
-      : resolvedAddress;
-  }
-
   private async _getLocation(multiAddrs: string[]): Promise<IPResponse | null> {
     const ips: string[] = [];
 
