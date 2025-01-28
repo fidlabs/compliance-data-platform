@@ -13,7 +13,6 @@ import { ClientReportGeneratorJobService } from '../../jobs/client-report-genera
 import { ConfigService } from '@nestjs/config';
 import { AllocatorReportGeneratorJobService } from '../../jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 import { IpniAdvertisementFetcherJobService } from '../../jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
-import { CacheTTL } from '@nestjs/cache-manager';
 import { LocationService } from '../../service/location/location.service';
 
 @Controller()

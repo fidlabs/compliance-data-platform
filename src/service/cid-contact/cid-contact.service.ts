@@ -31,11 +31,13 @@ export class CidContactService {
   public async getIPNIPublisherBaseUrl(
     ipniProvider: IPNIProvider,
   ): Promise<string> {
-    const publisherUrl = await this.locationService.resolveAddressWithPort(
-      this.locationService.extractAddressFromString(
-        ipniProvider.Publisher.Addrs[0],
-      ),
+    const publisherAddress = this.locationService.extractAddressFromString(
+      ipniProvider.Publisher.Addrs[0],
     );
+
+    const publisherUrl = publisherAddress.port
+      ? `${publisherAddress.address}:${publisherAddress.port}`
+      : publisherAddress.address;
 
     return `http://${publisherUrl}`;
   }
