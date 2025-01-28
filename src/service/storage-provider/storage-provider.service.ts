@@ -3,6 +3,8 @@ import { LocationService } from '../location/location.service';
 import { PrismaService } from '../../db/prisma.service';
 import { IPResponse } from '../location/types.location';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
+import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
+import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
 
 @Injectable()
 export class StorageProviderService {
@@ -12,6 +14,7 @@ export class StorageProviderService {
     private readonly locationService: LocationService,
     private readonly prismaService: PrismaService,
     private readonly lotusApiService: LotusApiService,
+    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
 
   async getStorageProviderDistribution(clientId: string) {
@@ -20,20 +23,37 @@ export class StorageProviderService {
         where: {
           client: clientId,
         },
+        omit: {
+          client: true,
+        },
       });
 
     return await Promise.all(
       clientProviderDistribution.map(async (clientProviderDistribution) => {
-        const location = await this.getClientProviderDistributionLocation(
-          clientProviderDistribution,
+        const minerInfo = await this.lotusApiService.getMinerInfo(
+          clientProviderDistribution.provider,
         );
+
+        const ipniMisreportingStatus =
+          await this.ipniMisreportingCheckerService.getProviderMisreportingStatus(
+            clientProviderDistribution.provider,
+            minerInfo,
+          );
+
+        const location =
+          await this.getClientProviderDistributionLocation(minerInfo);
 
         return {
           ...clientProviderDistribution,
+          // TODO when business is ready switch to http success rate
           retrievability_success_rate:
             await this.getStorageProviderRetrievability(
               clientProviderDistribution.provider,
             ),
+          ipni_misreporting: ipniMisreportingStatus.misreporting,
+          ipni_reported_claims_count:
+            ipniMisreportingStatus.ipniReportedClaimsCount,
+          claims_count: ipniMisreportingStatus.actualClaimsCount,
           ...(location && {
             location: {
               ip: location.ip,
@@ -52,7 +72,7 @@ export class StorageProviderService {
   }
 
   private async getStorageProviderRetrievability(
-    provider: string,
+    providerId: string,
   ): Promise<number | null> {
     const result =
       // get data from the last 7 full days
@@ -62,7 +82,7 @@ export class StorageProviderService {
           successful: true,
         },
         where: {
-          provider: provider,
+          provider: providerId,
           date: {
             gte: new Date( // a week ago at 00:00
               new Date(new Date().setDate(new Date().getDate() - 7)).setHours(
@@ -81,16 +101,9 @@ export class StorageProviderService {
       : null;
   }
 
-  private async getClientProviderDistributionLocation(clientProviderDistribution: {
-    client: string;
-    provider: string;
-    total_deal_size: bigint;
-    unique_data_size: bigint;
-  }): Promise<IPResponse | null> {
-    const minerInfo = await this.lotusApiService.getMinerInfo(
-      clientProviderDistribution.provider,
-    );
-
+  private async getClientProviderDistributionLocation(
+    minerInfo: LotusStateMinerInfoResponse,
+  ): Promise<IPResponse | null> {
     return this.locationService.getLocation(minerInfo.result.Multiaddrs);
   }
 }

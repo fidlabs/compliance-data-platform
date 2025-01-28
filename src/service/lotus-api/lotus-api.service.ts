@@ -64,12 +64,12 @@ export class LotusApiService {
   }
 
   async getMinerInfo(
-    provider: string,
+    providerId: string,
     retries: number = 1,
   ): Promise<LotusStateMinerInfoResponse> {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        return await this._getMinerInfo(provider);
+        return await this._getMinerInfo(providerId);
       } catch (err) {
         if (attempt < retries) {
           await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds
@@ -81,14 +81,14 @@ export class LotusApiService {
   }
 
   private async _getMinerInfo(
-    provider: string,
+    providerId: string,
   ): Promise<LotusStateMinerInfoResponse> {
     const cachedData = await this.cacheManager.get<LotusStateMinerInfoResponse>(
-      `${this._minerInfoCacheKey}_${provider}`,
+      `${this._minerInfoCacheKey}_${providerId}`,
     );
     if (cachedData) return cachedData;
 
-    this.logger.debug(`Getting miner info for ${provider}`);
+    this.logger.debug(`Getting miner info for ${providerId}`);
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
@@ -96,12 +96,12 @@ export class LotusApiService {
         jsonrpc: '2.0',
         id: 1,
         method: 'Filecoin.StateMinerInfo',
-        params: [provider, null],
+        params: [providerId, null],
       }),
     );
 
     await this.cacheManager.set(
-      `${this._minerInfoCacheKey}_${provider}`,
+      `${this._minerInfoCacheKey}_${providerId}`,
       data,
       1000 * 60 * 60 * 2, // 2 hours
     );

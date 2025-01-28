@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
 import { round } from 'lodash';
+import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
 
 @Injectable()
 export class ClientReportChecksService {
@@ -11,9 +12,12 @@ export class ClientReportChecksService {
   _maxPercentageForLowReplica: number;
   _lowReplicaThreshold: number;
 
+  private readonly logger = new Logger(ClientReportChecksService.name);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
+    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {
     this._maxProviderDealPercentage = configService.get<number>(
       'CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE',
@@ -41,6 +45,7 @@ export class ClientReportChecksService {
     await this.storeProvidersWithUnknownLocation(reportId);
     await this.storeProvidersInSameLocation(reportId);
     await this.storeProvidersRetrievability(reportId);
+    await this.storeProvidersIPNIMisreporting(reportId);
   }
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
@@ -67,6 +72,7 @@ export class ClientReportChecksService {
     );
 
     const providersExceedingProviderDeal = [];
+
     for (const provider of providerDistribution) {
       const providerDistributionPercentage =
         Number((provider.total_deal_size * 10000n) / total) / 100;
@@ -121,6 +127,7 @@ export class ClientReportChecksService {
       );
 
     const providersExceedingMaxDuplicationPercentage = [];
+
     for (const provider of providerDistribution) {
       if (
         ((provider.total_deal_size - provider.unique_data_size) * 10000n) /
@@ -178,6 +185,7 @@ export class ClientReportChecksService {
       );
 
     const providersWithUnknownLocation = [];
+
     for (const provider of providerDistributionWithLocation) {
       if (
         provider.location == undefined ||
@@ -266,6 +274,63 @@ export class ClientReportChecksService {
     }
   }
 
+  private async storeProvidersIPNIMisreporting(reportId: bigint) {
+    const providerDistribution =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+        },
+      );
+
+    const misreportingProviders = [];
+
+    for (const provider of providerDistribution) {
+      const status =
+        await this.ipniMisreportingCheckerService.getProviderMisreportingStatus(
+          provider.provider,
+        );
+
+      if (status.misreporting) {
+        misreportingProviders.push(provider.provider);
+      }
+    }
+
+    if (misreportingProviders.length > 0) {
+      const percentage =
+        (misreportingProviders.length / providerDistribution.length) * 100;
+
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING,
+          result: false,
+          metadata: {
+            percentage: percentage,
+            violating_ids: misreportingProviders,
+            misreporting_providers: misreportingProviders.length,
+            max_misreporting_providers: 0,
+            msg: `${percentage.toFixed(2)}% of storage providers have misreported their data to IPNI`,
+          },
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING,
+          result: true,
+          metadata: {
+            msg: `Storage provider IPNI reporting looks healthy`,
+          },
+        },
+      });
+    }
+  }
+
   private async storeProvidersRetrievability(reportId: bigint) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
@@ -277,6 +342,7 @@ export class ClientReportChecksService {
       );
 
     const retrievabilitySuccessRates = [];
+
     for (const provider of providerDistribution) {
       const retrievability =
         await this.prismaService.provider_retrievability_daily.findFirst({
