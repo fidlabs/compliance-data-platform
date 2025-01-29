@@ -40,8 +40,8 @@ export class ClientReportService {
         application_url:
           this.clientService.getClientApplicationUrl(verifiedClientData),
         storage_provider_distribution: {
-          create: await Promise.all(
-            storageProviderDistribution?.map(async (provider) => {
+          create:
+            storageProviderDistribution?.map((provider) => {
               return {
                 ...provider,
                 ...(provider.location && {
@@ -51,7 +51,6 @@ export class ClientReportService {
                 }),
               };
             }) ?? [],
-          ),
         },
         replica_distribution: {
           create: replicaDistribution,

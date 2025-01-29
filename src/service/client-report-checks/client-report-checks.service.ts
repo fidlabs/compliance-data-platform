@@ -336,26 +336,9 @@ export class ClientReportChecksService {
         },
       );
 
-    const retrievabilitySuccessRates = [];
-
-    for (const provider of providerDistribution) {
-      const retrievability =
-        await this.prismaService.provider_retrievability_daily.findFirst({
-          where: {
-            provider: provider.provider,
-          },
-          select: {
-            success_rate: true,
-          },
-          orderBy: {
-            date: 'desc',
-          },
-        });
-
-      if (retrievability) {
-        retrievabilitySuccessRates.push(retrievability.success_rate);
-      }
-    }
+    const retrievabilitySuccessRates = providerDistribution.map(
+      (provider) => provider.retrievability_success_rate ?? 0,
+    );
 
     const zeroRetrievabilityCount = retrievabilitySuccessRates.filter(
       (p) => p === 0,
