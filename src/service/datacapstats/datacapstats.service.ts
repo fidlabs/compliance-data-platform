@@ -34,7 +34,7 @@ export class DataCapStatsService {
 
     if (cachedData) return cachedData;
 
-    const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?limit=10&page=1&filter=${clientId}`;
+    const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?filter=${clientId}`;
 
     const { data } = (
       await firstValueFrom(

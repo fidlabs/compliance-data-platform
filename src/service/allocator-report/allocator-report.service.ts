@@ -27,13 +27,10 @@ export class AllocatorReportService {
 
     if (!verifierData) return null;
 
-    const verifiedClients = await this.dataCapStatsService.getVerifiedClients(
-      verifierData.addressId,
-    );
-
-    const allocatorInfo = await this.allocatorTechService.getAllocatorInfo(
-      verifierData.address,
-    );
+    const [verifiedClients, allocatorInfo] = await Promise.all([
+      this.dataCapStatsService.getVerifiedClients(verifierData.addressId),
+      this.allocatorTechService.getAllocatorInfo(verifierData.address),
+    ]);
 
     const clientsData = this.getGrantedDatacapInClients(verifiedClients.data);
 

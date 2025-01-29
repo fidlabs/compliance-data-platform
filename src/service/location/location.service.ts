@@ -31,7 +31,7 @@ export class LocationService extends HealthIndicator {
   // dedicated, heavily cached healthcheck needed because of ipinfo.io token limits
   async isHealthy(): Promise<HealthIndicatorResult> {
     const cachedHealth =
-      await this.cacheManager.get<HealthIndicatorResult>('health');
+      await this.cacheManager.get<HealthIndicatorResult>('locationHealth');
 
     if (cachedHealth) return cachedHealth;
 
@@ -40,7 +40,9 @@ export class LocationService extends HealthIndicator {
       `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
     );
 
-    await this.cacheManager.set('health', health, 1000 * 60 * 60); // 1 hour
+    await this.cacheManager.set('locationHealth', health, 1000 * 60 * 60); // 1 hour
+
+    return health;
   }
 
   async getLocation(multiAddrs?: string[] | null): Promise<IPResponse | null> {
