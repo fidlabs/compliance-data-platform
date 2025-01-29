@@ -186,9 +186,9 @@ model client_report_storage_provider_distribution {
   location                         client_report_storage_provider_distribution_location?
   retrievability_success_rate      Float?
   retrievability_success_rate_http Float?
-  ipni_misreporting                Boolean
+  ipni_misreporting                Boolean?
   ipni_reported_claims_count       BigInt?
-  claims_count                     BigInt
+  claims_count                     BigInt?
 }
 
 model client_report_storage_provider_distribution_location {
