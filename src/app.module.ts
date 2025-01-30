@@ -33,7 +33,7 @@ import { PostgresDmobService } from './db/postgresDmob.service';
 import { PrismaService } from './db/prisma.service';
 import { PrismaDmobService } from './db/prismaDmob.service';
 import { FilSparkService } from './service/filspark/filspark.service';
-import { HistogramHelper } from './helper/histogram.helper';
+import { HistogramHelper } from './utils/histogram.helper';
 import { AllocatorService } from './service/allocator/allocator.service';
 import { ClientReportService } from './service/client-report/client-report.service';
 import { DataCapStatsService } from './service/datacapstats/datacapstats.service';
@@ -67,7 +67,7 @@ import axios from 'axios';
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
     HttpModule.register({ timeout: 5000 }), // 5 seconds
-    CacheModule.register({ ttl: 10000 }), // 10 seconds
+    CacheModule.register({ ttl: 10000, max: 100000 }), // 10 seconds
     TerminusModule.forRoot(),
     PrometheusMetricModule,
   ],

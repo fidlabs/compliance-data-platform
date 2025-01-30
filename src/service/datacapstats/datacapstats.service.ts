@@ -13,6 +13,7 @@ import {
 import { DataCapStatsVerifiedClientsResponse } from './types.verified-clients.datacapstats';
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
+import { Cacheable } from '../../utils/cacheable';
 
 // TODO soon to be deprecated
 @Injectable()
@@ -26,14 +27,10 @@ export class DataCapStatsService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  async fetchPrimaryClientDetails(
+  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  public async fetchPrimaryClientDetails(
     clientId: string,
   ): Promise<VerifiedClientData> {
-    const cachedData =
-      await this.cacheManager.get<VerifiedClientData>(clientId);
-
-    if (cachedData) return cachedData;
-
     const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?filter=${clientId}`;
 
     const { data } = (
@@ -44,18 +41,14 @@ export class DataCapStatsService {
 
     if (!data || data.length === 0) return null;
 
-    const result = data.reduce((prev, curr) =>
+    return data.reduce((prev, curr) =>
       parseInt(prev.initialAllowance) > parseInt(curr.initialAllowance)
         ? prev
         : curr,
     );
-
-    await this.cacheManager.set(clientId, result, 1000 * 60 * 60 * 24); // 24 hours
-
-    return result;
   }
 
-  async getVerifiedClients(allocatorAddress: string) {
+  public async getVerifiedClients(allocatorAddress: string) {
     const apiKey = await this.fetchApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorAddress}`;
 
@@ -79,18 +72,18 @@ export class DataCapStatsService {
     };
   }
 
-  async getVerifierData(
+  public async getVerifierData(
     allocatorIdOrAddress: string,
   ): Promise<DataCapStatsVerifierData> {
     return (await this._getVerifiers(allocatorIdOrAddress))[0];
   }
 
-  async getVerifiers(): Promise<DataCapStatsVerifierData[]> {
+  public async getVerifiers(): Promise<DataCapStatsVerifierData[]> {
     return this._getVerifiers();
   }
 
   private async _getVerifiers(
-    allocatorIdOrAddress?: string | null,
+    allocatorIdOrAddress?: string,
   ): Promise<DataCapStatsVerifierData[]> {
     const apiKey = await this.fetchApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiers`;
@@ -113,7 +106,7 @@ export class DataCapStatsService {
     return data.data;
   }
 
-  async fetchApiKey(): Promise<string> {
+  private async fetchApiKey(): Promise<string> {
     if (this.apiKey) {
       return this.apiKey;
     } else {

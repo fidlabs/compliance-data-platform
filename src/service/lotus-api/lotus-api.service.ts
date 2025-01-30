@@ -9,11 +9,11 @@ import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { PrismaService } from '../../db/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { Cacheable } from '../../utils/cacheable';
 
 @Injectable()
 export class LotusApiService {
   private readonly logger = new Logger(LotusApiService.name);
-  private readonly _minerInfoCacheKey = 'minerInfoCache';
 
   constructor(
     private readonly httpService: HttpService,
@@ -22,7 +22,7 @@ export class LotusApiService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getFilecoinClientId(clientAddress: string): Promise<string> {
+  public async getFilecoinClientId(clientAddress: string): Promise<string> {
     // try to retrieve mapping from DB
     const clientAddressMapping =
       await this.prismaService.client_address_mapping.findFirst({
@@ -63,32 +63,27 @@ export class LotusApiService {
     return data.result;
   }
 
-  async getMinerInfo(
+  public async getMinerInfo(
     providerId: string,
-    retries: number = 1,
+    retries: number = 2,
   ): Promise<LotusStateMinerInfoResponse> {
-    for (let attempt = 0; attempt <= retries; attempt++) {
+    do {
       try {
         return await this._getMinerInfo(providerId);
       } catch (err) {
-        if (attempt < retries) {
+        if (retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds
         } else {
           throw err;
         }
       }
-    }
+    } while (retries-- > 0);
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
   private async _getMinerInfo(
     providerId: string,
   ): Promise<LotusStateMinerInfoResponse> {
-    const cachedData = await this.cacheManager.get<LotusStateMinerInfoResponse>(
-      `${this._minerInfoCacheKey}_${providerId}`,
-    );
-
-    if (cachedData) return cachedData;
-
     this.logger.debug(`Getting miner info for ${providerId}`);
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
@@ -99,12 +94,6 @@ export class LotusApiService {
         method: 'Filecoin.StateMinerInfo',
         params: [providerId, null],
       }),
-    );
-
-    await this.cacheManager.set(
-      `${this._minerInfoCacheKey}_${providerId}`,
-      data,
-      1000 * 60 * 60 * 2, // 2 hours
     );
 
     return data;

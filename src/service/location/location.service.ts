@@ -12,11 +12,10 @@ import {
   HealthIndicatorResult,
   HttpHealthIndicator,
 } from '@nestjs/terminus';
+import { Cacheable } from '../../utils/cacheable';
 
 @Injectable()
 export class LocationService extends HealthIndicator {
-  private readonly _resolveAddressCacheKey = 'resolveAddressCache';
-  private readonly _locationDetailsCacheKey = 'locationDetailsCache';
   private readonly logger = new Logger(LocationService.name);
 
   constructor(
@@ -29,23 +28,15 @@ export class LocationService extends HealthIndicator {
   }
 
   // dedicated, heavily cached healthcheck needed because of ipinfo.io token limits
-  async isHealthy(): Promise<HealthIndicatorResult> {
-    const cachedHealth =
-      await this.cacheManager.get<HealthIndicatorResult>('locationHealth');
-
-    if (cachedHealth) return cachedHealth;
-
-    const health = await this.httpHealthIndicator.pingCheck(
+  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
+  public async isHealthy(): Promise<HealthIndicatorResult> {
+    return await this.httpHealthIndicator.pingCheck(
       'ipinfo.io',
       `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
     );
-
-    await this.cacheManager.set('locationHealth', health, 1000 * 60 * 60); // 1 hour
-
-    return health;
   }
 
-  async getLocation(multiAddrs?: string[] | null): Promise<IPResponse | null> {
+  public async getLocation(multiAddrs?: string[]): Promise<IPResponse | null> {
     if (!multiAddrs) return null;
 
     try {
@@ -59,23 +50,16 @@ export class LocationService extends HealthIndicator {
     }
   }
 
-  extractAddressFromString(multiAddr: string): Address {
+  public extractAddressFromString(multiAddr: string): Address {
     return this.extractAddress(new Multiaddr(multiAddr));
   }
 
-  extractAddressFromBase64(multiAddr: string): Address {
+  public extractAddressFromBase64(multiAddr: string): Address {
     return this.extractAddress(new Multiaddr(Buffer.from(multiAddr, 'base64')));
   }
 
-  async resolveAddress(address: Address): Promise<string> {
-    const cacheKey = this.getCacheKey(
-      this._resolveAddressCacheKey,
-      JSON.stringify(address),
-    );
-
-    const cachedData = await this.cacheManager.get<string>(cacheKey);
-    if (cachedData) return cachedData;
-
+  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  public async resolveAddress(address: Address): Promise<string> {
     let result: string[];
 
     switch (address.protocol) {
@@ -94,10 +78,10 @@ export class LocationService extends HealthIndicator {
         result = [];
     }
 
-    await this.cacheManager.set(cacheKey, result[0], 1000 * 60 * 60 * 24); // 24 hours
     return result[0];
   }
 
+  // returns the location of the first non-bogon IP
   private async _getLocation(multiAddrs: string[]): Promise<IPResponse | null> {
     const ips: string[] = [];
 
@@ -110,31 +94,29 @@ export class LocationService extends HealthIndicator {
     return await this.getLocationDetails(ips);
   }
 
-  private async getLocationDetails(ips: string[]): Promise<IPResponse | null> {
+  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  private async _getLocationDetails(ip: string): Promise<IPResponse | null> {
     const ipInfoToken = this.configService.get<string>('IP_INFO_TOKEN');
 
+    const { data } = await firstValueFrom(
+      this.httpService.get<IPResponse>(
+        `https://ipinfo.io/${ip}?token=${ipInfoToken}`,
+      ),
+    );
+
+    return data;
+  }
+
+  // returns the first non-bogon IP response
+  private async getLocationDetails(ips: string[]): Promise<IPResponse | null> {
     for (const ip of ips) {
-      const cacheKey = this.getCacheKey(this._locationDetailsCacheKey, ip);
-      const cachedData = await this.cacheManager.get<IPResponse>(cacheKey);
-      if (cachedData) return cachedData;
-
-      const { data } = await firstValueFrom(
-        this.httpService.get<IPResponse>(
-          `https://ipinfo.io/${ip}?token=${ipInfoToken}`,
-        ),
-      );
-
+      const data = await this._getLocationDetails(ip);
       if (data.bogon === true) continue;
-      await this.cacheManager.set(cacheKey, data, 1000 * 60 * 60 * 24); // 24 hours
 
       return data;
     }
 
     return null;
-  }
-
-  private getCacheKey(cacheNameKey: string, key: string): string {
-    return `${cacheNameKey}_${key}`;
   }
 
   private extractAddress(multiaddrInstance: Multiaddr): Address {

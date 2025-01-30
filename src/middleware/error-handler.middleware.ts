@@ -10,9 +10,9 @@ import { ConfigService } from '@nestjs/config';
 
 @Catch()
 export class ErrorHandlerMiddleware implements ExceptionFilter {
-  constructor(private configService: ConfigService) {}
-
   private logger = new Logger('HTTP');
+
+  constructor(private configService: ConfigService) {}
 
   catch(exception: Error | HttpException | any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();

@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class PostgresDmobService implements OnModuleInit {
   public pool: Pool;
+
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
