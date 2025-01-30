@@ -3,9 +3,10 @@ import { PrismaService } from '../../db/prisma.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
 import {
-  AggregatedProvidersIPNIMisreportingStatus,
-  ProviderIPNIMisreportingStatus,
+  AggregatedProvidersIPNIReportingStatus,
+  ProviderIPNIReportingStatus,
 } from './types.ipni-misreporting-checker';
+import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 
 @Injectable()
 export class IpniMisreportingCheckerService {
@@ -19,25 +20,25 @@ export class IpniMisreportingCheckerService {
   // because of lotus api rate limiting, this function first tries to get all providers status in parallel
   // and then retries sequentially for failed requests
   // throws error if sequential retry fails for any provider
-  public async getAggregatedProvidersMisreportingStatus(): Promise<AggregatedProvidersIPNIMisreportingStatus> {
+  public async getAggregatedProvidersReportingStatus(): Promise<AggregatedProvidersIPNIReportingStatus> {
     const storageProviders =
       await this.prismaService.client_provider_distribution.findMany({
         distinct: ['provider'],
       });
 
-    const result: ProviderIPNIMisreportingStatus[] = [];
+    const result: ProviderIPNIReportingStatus[] = [];
     const failedProviders: string[] = [];
 
     // try to execute all in parallel
     const promises = storageProviders.map((storageProvider) =>
-      this.getProviderMisreportingStatus(storageProvider.provider),
+      this.getProviderReportingStatus(storageProvider.provider),
     );
 
     const results = await Promise.allSettled(promises);
 
     results.forEach((promiseResult, index) => {
       if (promiseResult.status === 'fulfilled') {
-        result.push(promiseResult.value as ProviderIPNIMisreportingStatus);
+        result.push(promiseResult.value as ProviderIPNIReportingStatus);
       } else {
         failedProviders.push(storageProviders[index].provider);
       }
@@ -45,19 +46,27 @@ export class IpniMisreportingCheckerService {
 
     // retry sequentially for failed requests
     for (const provider of failedProviders) {
-      result.push(await this.getProviderMisreportingStatus(provider));
+      result.push(await this.getProviderReportingStatus(provider));
     }
 
     return {
-      misreporting: result.filter((x) => x.misreporting).length,
+      misreporting: result.filter(
+        (x) => x.status === StorageProviderIpniReportingStatus.MISREPORTING,
+      ).length,
+      notReporting: result.filter(
+        (x) => x.status === StorageProviderIpniReportingStatus.NOT_REPORTING,
+      ).length,
+      ok: result.filter(
+        (x) => x.status === StorageProviderIpniReportingStatus.OK,
+      ).length,
       total: result.length,
     };
   }
 
-  public async getProviderMisreportingStatus(
+  public async getProviderReportingStatus(
     storageProviderId: string,
     minerInfo?: LotusStateMinerInfoResponse,
-  ): Promise<ProviderIPNIMisreportingStatus> {
+  ): Promise<ProviderIPNIReportingStatus> {
     minerInfo ??= await this.lotusApiService.getMinerInfo(storageProviderId);
 
     const actualClaimsCount =
@@ -68,8 +77,14 @@ export class IpniMisreportingCheckerService {
         minerInfo.result.PeerId,
       );
 
+    const status = !ipniReportedClaimsCount
+      ? StorageProviderIpniReportingStatus.NOT_REPORTING
+      : ipniReportedClaimsCount < actualClaimsCount * 0.5
+        ? StorageProviderIpniReportingStatus.MISREPORTING
+        : StorageProviderIpniReportingStatus.OK;
+
     return {
-      misreporting: ipniReportedClaimsCount < actualClaimsCount * 0.5,
+      status: status,
       actualClaimsCount: actualClaimsCount,
       ipniReportedClaimsCount: ipniReportedClaimsCount,
     };

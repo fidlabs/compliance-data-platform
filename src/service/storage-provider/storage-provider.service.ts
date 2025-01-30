@@ -34,8 +34,8 @@ export class StorageProviderService {
           clientProviderDistribution.provider,
         );
 
-        const ipniMisreportingStatus =
-          await this.ipniMisreportingCheckerService.getProviderMisreportingStatus(
+        const ipniReportingStatus =
+          await this.ipniMisreportingCheckerService.getProviderReportingStatus(
             clientProviderDistribution.provider,
             minerInfo,
           );
@@ -50,10 +50,10 @@ export class StorageProviderService {
             await this.getStorageProviderRetrievability(
               clientProviderDistribution.provider,
             ),
-          ipni_misreporting: ipniMisreportingStatus.misreporting,
+          ipni_reporting_status: ipniReportingStatus.status,
           ipni_reported_claims_count:
-            ipniMisreportingStatus.ipniReportedClaimsCount,
-          claims_count: ipniMisreportingStatus.actualClaimsCount,
+            ipniReportingStatus.ipniReportedClaimsCount,
+          claims_count: ipniReportingStatus.actualClaimsCount,
           ...(location && {
             location: {
               ip: location.ip,

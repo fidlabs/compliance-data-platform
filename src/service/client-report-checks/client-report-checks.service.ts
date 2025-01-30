@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
 import { round } from 'lodash';
-import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
+import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 
 @Injectable()
 export class ClientReportChecksService {
@@ -15,9 +15,8 @@ export class ClientReportChecksService {
   private readonly logger = new Logger(ClientReportChecksService.name);
 
   constructor(
-    private readonly configService: ConfigService,
+    configService: ConfigService,
     private readonly prismaService: PrismaService,
-    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {
     this._maxProviderDealPercentage = configService.get<number>(
       'CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE',
@@ -46,6 +45,7 @@ export class ClientReportChecksService {
     await this.storeProvidersInSameLocation(reportId);
     await this.storeProvidersRetrievability(reportId);
     await this.storeProvidersIPNIMisreporting(reportId);
+    await this.storeProvidersIPNINotReporting(reportId);
   }
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
@@ -283,13 +283,14 @@ export class ClientReportChecksService {
           },
           select: {
             provider: true,
-            ipni_misreporting: true,
           },
         },
       );
 
     const misreportingProviders = providerDistribution.filter(
-      (p) => p.ipni_misreporting,
+      (p) =>
+        p.ipni_reporting_status ===
+        StorageProviderIpniReportingStatus.MISREPORTING,
     );
 
     if (misreportingProviders.length > 0) {
@@ -319,7 +320,60 @@ export class ClientReportChecksService {
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING,
           result: true,
           metadata: {
-            msg: `Storage providers IPNI reporting looks healthy`,
+            msg: `Storage providers IPNI reporting looks healthy (1/2)`,
+          },
+        },
+      });
+    }
+  }
+
+  private async storeProvidersIPNINotReporting(reportId: bigint) {
+    const providerDistribution: any[] =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+          select: {
+            provider: true,
+          },
+        },
+      );
+
+    const notReportingProviders = providerDistribution.filter(
+      (p) =>
+        p.ipni_reporting_status ===
+        StorageProviderIpniReportingStatus.NOT_REPORTING,
+    );
+
+    if (notReportingProviders.length > 0) {
+      const percentage =
+        (notReportingProviders.length / providerDistribution.length) * 100;
+
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING,
+          result: false,
+          metadata: {
+            percentage: percentage,
+            violating_ids: notReportingProviders.map((p) => p.provider),
+            not_reporting_providers: notReportingProviders.length,
+            max_not_reporting_providers: 0,
+            msg: `${percentage.toFixed(2)}% of storage providers have not reported their data to IPNI`,
+          },
+        },
+      });
+    } else {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING,
+          result: true,
+          metadata: {
+            msg: `Storage providers IPNI reporting looks healthy (2/2)`,
           },
         },
       });
