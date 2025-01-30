@@ -1,20 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 
-export class AggregatedProvidersIPNIMisreportingStatus {
+export class AggregatedProvidersIPNIReportingStatus {
   @ApiProperty()
   misreporting: number;
+
+  @ApiProperty()
+  notReporting: number;
+
+  @ApiProperty()
+  ok: number;
 
   @ApiProperty()
   total: number;
 }
 
-export class ProviderIPNIMisreportingStatus {
-  @ApiProperty()
-  misreporting: boolean;
-
-  @ApiProperty()
+export class ProviderIPNIReportingStatus {
+  status: StorageProviderIpniReportingStatus;
   actualClaimsCount: number;
-
-  @ApiProperty({ nullable: true })
   ipniReportedClaimsCount: number | null;
 }
