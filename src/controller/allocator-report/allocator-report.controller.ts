@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Logger,
   NotFoundException,
   Param,
   Post,
@@ -11,12 +12,29 @@ import {
   ApiOperation,
 } from '@nestjs/swagger';
 import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
+import { AggregatedProvidersIPNIMisreportingStatus } from '../../service/ipni-misreporting-checker/types.ipni-misreporting-checker';
+import { IpniMisreportingCheckerService } from '../../service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 
 @Controller('allocatorReport')
 export class AllocatorReportController {
+  private readonly logger = new Logger(AllocatorReportController.name);
+
   constructor(
     private readonly allocatorReportService: AllocatorReportService,
+    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
+
+  @Get('/aggregated-ipni-status')
+  @ApiOperation({
+    summary: 'Get aggregated providers IPNI misreporting status',
+  })
+  @ApiOkResponse({
+    description: 'Aggregated providers IPNI misreporting status',
+    type: AggregatedProvidersIPNIMisreportingStatus,
+  })
+  async getAggregatedProvidersIPNIMisreportingStatus(): Promise<AggregatedProvidersIPNIMisreportingStatus> {
+    return await this.ipniMisreportingCheckerService.getAggregatedProvidersMisreportingStatus();
+  }
 
   @Get(':allocator')
   @ApiOperation({
