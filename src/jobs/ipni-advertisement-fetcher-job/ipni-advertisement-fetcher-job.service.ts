@@ -105,7 +105,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
   private async runAdvertisementBackfillProcess(
     currentAd: IPNIAdvertisement,
     baseUrl: string,
-    adLimit?: number | null,
+    adLimit?: number,
   ): Promise<void> {
     do {
       try {

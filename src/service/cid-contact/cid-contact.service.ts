@@ -1,30 +1,21 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { LocationService } from '../location/location.service';
 import { IPNIAdvertisement, IPNIProvider } from './types.cid-contact';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 
 @Injectable()
 export class CidContactService {
   private readonly logger = new Logger(CidContactService.name);
+
   constructor(
     private readonly httpService: HttpService,
     private readonly locationService: LocationService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   public async getIPNIProviders(): Promise<IPNIProvider[]> {
-    const cachedProviders =
-      await this.cacheManager.get<IPNIProvider[]>('ipniProviders');
-
-    if (cachedProviders) return cachedProviders;
-
     const endpoint = 'https://cid.contact/providers';
     const { data } = await lastValueFrom(this.httpService.get(endpoint));
-
-    await this.cacheManager.set('ipniProviders', data, 1000 * 60 * 60); // 1 hour
     return data;
   }
 

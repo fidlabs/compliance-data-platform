@@ -7,10 +7,10 @@ import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipn
 
 @Injectable()
 export class ClientReportChecksService {
-  _maxProviderDealPercentage: number;
-  _maxDuplicationPercentage: number;
-  _maxPercentageForLowReplica: number;
-  _lowReplicaThreshold: number;
+  public _maxProviderDealPercentage: number;
+  public _maxDuplicationPercentage: number;
+  public _maxPercentageForLowReplica: number;
+  public _lowReplicaThreshold: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 

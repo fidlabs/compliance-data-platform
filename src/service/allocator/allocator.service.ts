@@ -6,7 +6,7 @@ import {
   getAllocatorBiggestClientDistributionAcc,
   getAllocatorRetrievabilityAcc,
 } from '../../../prisma/generated/client/sql';
-import { HistogramHelper } from '../../helper/histogram.helper';
+import { HistogramHelper } from '../../utils/histogram.helper';
 import { RetrievabilityWeekResponseDto } from '../../types/retrievabilityWeekResponse.dto';
 import { groupBy } from 'lodash';
 import { ProviderComplianceScoreRange } from '../../types/providerComplianceScoreRange';
@@ -14,7 +14,7 @@ import { SpsComplianceWeekResponseDto } from '../../types/spsComplianceWeekRespo
 import { SpsComplianceWeekDto } from '../../types/spsComplianceWeek.dto';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
-import { modelName } from 'src/helper/prisma.helper';
+import { modelName } from 'src/utils/prisma.helper';
 import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
 import { SpsComplianceSingleAllocatorDto } from 'src/types/spsComplianceSingleAllocator.dto';
 import { SpsComplianceHistogramWeekDto } from 'src/types/spsComplianceHistogramWeek.dto';

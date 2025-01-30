@@ -9,10 +9,10 @@ import {
   getProviderRetrievabilityAcc,
 } from '../../../prisma/generated/client/sql';
 import { RetrievabilityWeekResponseDto } from '../../types/retrievabilityWeekResponse.dto';
-import { HistogramHelper } from '../../helper/histogram.helper';
+import { HistogramHelper } from '../../utils/histogram.helper';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
-import { modelName } from 'src/helper/prisma.helper';
+import { modelName } from 'src/utils/prisma.helper';
 import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
 
 @Injectable()
