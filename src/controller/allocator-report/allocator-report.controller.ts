@@ -12,8 +12,6 @@ import {
   ApiOperation,
 } from '@nestjs/swagger';
 import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
-import { AggregatedProvidersIPNIReportingStatus } from '../../service/ipni-misreporting-checker/types.ipni-misreporting-checker';
-import { IpniMisreportingCheckerService } from '../../service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 
 @Controller('allocatorReport')
 export class AllocatorReportController {
@@ -21,21 +19,7 @@ export class AllocatorReportController {
 
   constructor(
     private readonly allocatorReportService: AllocatorReportService,
-    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
-
-  // TODO move this
-  @Get('/aggregated-ipni-status')
-  @ApiOperation({
-    summary: 'Get aggregated providers IPNI reporting status',
-  })
-  @ApiOkResponse({
-    description: 'Aggregated providers IPNI reporting status',
-    type: AggregatedProvidersIPNIReportingStatus,
-  })
-  async getAggregatedProvidersIPNIReportingStatus(): Promise<AggregatedProvidersIPNIReportingStatus> {
-    return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatus();
-  }
 
   @Get(':allocator')
   @ApiOperation({
