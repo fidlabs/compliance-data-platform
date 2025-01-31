@@ -8,11 +8,12 @@ import {
 import { ClientReportService } from '../../service/client-report/client-report.service';
 import {
   ApiCreatedResponse,
+  ApiExcludeController,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
 
-@Controller('clientReport')
+@Controller('client-report')
 export class ClientReportController {
   constructor(private readonly clientReportsService: ClientReportService) {}
 
@@ -77,3 +78,7 @@ export class ClientReportController {
     return report;
   }
 }
+
+@Controller('clientReport')
+@ApiExcludeController()
+export class ClientReportControllerRedirect extends ClientReportController {}
