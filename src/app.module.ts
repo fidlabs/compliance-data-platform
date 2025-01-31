@@ -58,7 +58,6 @@ import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-gene
 import { CidContactService } from './service/cid-contact/cid-contact.service';
 import { IpniAdvertisementFetcherJobService } from './jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { IpniMisreportingCheckerService } from './service/ipni-misreporting-checker/ipni-misreporting-checker.service';
-import { StorageProviderReportController } from './controller/storage-provider-report/storage-provider-report.controller';
 import { HttpService } from '@nestjs/axios';
 import axiosBetterStacktrace from 'axios-better-stacktrace';
 import axios from 'axios';
@@ -80,7 +79,6 @@ import axios from 'axios';
     GoogleApisController,
     ClientReportController,
     AllocatorReportController,
-    StorageProviderReportController,
     AppController,
   ],
   providers: [
