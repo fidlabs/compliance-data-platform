@@ -2,15 +2,15 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import {
-  VerifiedClientData,
-  VerifiedClientResponse,
+  DataCapStatsVerifiedClientData,
+  DataCapStatsVerifiedClientsResponse,
 } from './types.datacapstats';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   DataCapStatsVerifierData,
   DataCapStatsVerifiersResponse,
-} from './types.verifiers.datacapstats';
-import { DataCapStatsVerifiedClientsResponse } from './types.verified-clients.datacapstats';
+} from './types.datacapstats';
+import { DataCapStatsPublicVerifiedClientsResponse } from './types.datacapstats';
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
 import { Cacheable } from '../../utils/cacheable';
@@ -30,12 +30,12 @@ export class DataCapStatsService {
   @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
   public async fetchPrimaryClientDetails(
     clientId: string,
-  ): Promise<VerifiedClientData> {
+  ): Promise<DataCapStatsVerifiedClientData> {
     const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?filter=${clientId}`;
 
     const { data } = (
       await firstValueFrom(
-        this.httpService.get<VerifiedClientResponse>(endpoint),
+        this.httpService.get<DataCapStatsVerifiedClientsResponse>(endpoint),
       )
     )?.data;
 
@@ -48,28 +48,24 @@ export class DataCapStatsService {
     );
   }
 
-  public async getVerifiedClients(allocatorAddress: string) {
+  public async getVerifiedClients(
+    allocatorAddress: string,
+  ): Promise<DataCapStatsPublicVerifiedClientsResponse> {
     const apiKey = await this.fetchApiKey();
     const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorAddress}`;
 
     const { data } = await firstValueFrom(
-      this.httpService.get<DataCapStatsVerifiedClientsResponse>(endpoint, {
-        headers: {
-          'X-API-KEY': apiKey,
+      this.httpService.get<DataCapStatsPublicVerifiedClientsResponse>(
+        endpoint,
+        {
+          headers: {
+            'X-API-KEY': apiKey,
+          },
         },
-      }),
+      ),
     );
 
-    return {
-      data: data.data.map((e) => ({
-        ...e,
-        allowanceArray: e.allowanceArray.map((a) => ({
-          ...a,
-          allowance: Number(a.allowance),
-        })),
-      })),
-      count: data.count,
-    };
+    return data;
   }
 
   public async getVerifierData(
