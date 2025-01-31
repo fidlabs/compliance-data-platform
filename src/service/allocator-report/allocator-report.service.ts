@@ -1,15 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { PrismaService } from '../../db/prisma.service';
-import {
-  Error,
-  Industry,
-  Region,
-} from '../datacapstats/types.verified-clients.datacapstats';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import { ClientService } from '../client/client.service';
 import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
-import { groupBy } from 'lodash';
+import { DataCapStatsPublicVerifiedClientsResponse } from '../datacapstats/types.datacapstats';
 
 @Injectable()
 export class AllocatorReportService {
@@ -32,7 +27,7 @@ export class AllocatorReportService {
       this.allocatorTechService.getAllocatorInfo(verifierData.address),
     ]);
 
-    const clientsData = this.getGrantedDatacapInClients(verifiedClients.data);
+    const clientsData = this.getGrantedDatacapInClients(verifiedClients);
 
     const storageProviderDistribution =
       await this.getStorageProviderDistribution(
@@ -79,7 +74,7 @@ export class AllocatorReportService {
           create: clientsData.map((clientData) => {
             return {
               client_id: clientData.addressId,
-              allocation: clientData.allocation,
+              allocation: Number(clientData.allocation),
               timestamp: new Date(clientData.allocationTimestamp * 1000),
             };
           }),
@@ -207,58 +202,9 @@ export class AllocatorReportService {
   }
 
   private getGrantedDatacapInClients(
-    data: {
-      id: number;
-      addressId: string;
-      address: string;
-      retries: number;
-      auditTrail: string;
-      name: string;
-      orgName: string;
-      initialAllowance: string;
-      allowance: string;
-      verifierAddressId: string;
-      createdAtHeight: number;
-      issueCreateTimestamp: null;
-      createMessageTimestamp: number;
-      verifierName: string;
-      dealCount: number | null;
-      providerCount: number | null;
-      topProvider: string | null;
-      receivedDatacapChange: string;
-      usedDatacapChange: string;
-      allowanceArray: {
-        id: number;
-        error: Error;
-        height: number;
-        msgCID: string;
-        retries: number;
-        addressId: string;
-        allowance: number;
-        auditTrail: string;
-        allowanceTTD: number;
-        isDataPublic: string;
-        issueCreator: string;
-        providerList: any[];
-        usedAllowance: string;
-        isLdnAllowance: boolean;
-        isEFilAllowance: boolean;
-        verifierAddressId: string;
-        isFromAutoverifier: boolean;
-        retrievalFrequency: string;
-        searchedByProposal: boolean;
-        issueCreateTimestamp: number;
-        hasRemainingAllowance: boolean;
-        createMessageTimestamp: number;
-      }[];
-      region: Region;
-      website: string;
-      industry: Industry;
-      usedDatacap: string;
-      remainingDatacap: string;
-    }[],
+    data: DataCapStatsPublicVerifiedClientsResponse,
   ) {
-    const ClientsData = data.map((e) => ({
+    const ClientsData = data.data.map((e) => ({
       addressId: e.addressId,
       allowanceArray: e.allowanceArray,
       clientName: e.name,

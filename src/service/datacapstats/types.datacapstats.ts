@@ -1,22 +1,20 @@
-// noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
-
-export interface VerifiedClientResponse {
+export interface DataCapStatsVerifiedClientsResponse {
+  count: string;
+  data: DataCapStatsVerifiedClientData[];
   totalRemainingDatacap: string;
   clientsWithActiveDeals: string;
   countOfClientsWhoHaveDcAndDeals: string;
   numberOfClients: string;
-  count: string;
-  data: VerifiedClientData[];
 }
 
-export interface VerifiedClientData {
+export interface DataCapStatsVerifiedClientData {
   id: number;
   addressId: string;
   address: string;
   retries: number;
-  auditTrail: string;
+  auditTrail: string | null;
   name: string;
-  orgName: null | string;
+  orgName: string | null;
   initialAllowance: string;
   allowance: string;
   verifierAddressId: string;
@@ -29,35 +27,83 @@ export interface VerifiedClientData {
   topProvider: string;
   receivedDatacapChange: string;
   usedDatacapChange: string;
-  allowanceArray: VerifiedClientAllowance[];
+  allowanceArray: {
+    id: number;
+    error: string;
+    height: number;
+    msgCID: string;
+    retries: number;
+    addressId: string;
+    allowance: string;
+    auditTrail: string | null;
+    allowanceTTD: number;
+    isDataPublic: string;
+    issueCreator: string | null;
+    providerList: any[];
+    usedAllowance: string;
+    isLdnAllowance: boolean;
+    isEFilAllowance: boolean;
+    verifierAddressId: string;
+    isFromAutoverifier: boolean;
+    retrievalFrequency: string;
+    searchedByProposal: boolean;
+    issueCreateTimestamp: number | null;
+    hasRemainingAllowance: boolean;
+    createMessageTimestamp: number;
+  }[];
   region: string;
-  website: null | string;
+  website: string | null;
   industry: string;
   usedDatacap: string;
   remainingDatacap: string;
 }
 
-export interface VerifiedClientAllowance {
-  id: number;
-  error: string;
-  height: number;
-  msgCID: string;
-  retries: number;
+export interface DataCapStatsPublicVerifiedClientsResponse {
+  count: string;
+  data: DataCapStatsVerifiedClientData[];
+  name: string;
+  remainingDatacap: string;
   addressId: string;
+  address: string;
+}
+
+export interface DataCapStatsVerifiersResponse {
+  count: string;
+  data: DataCapStatsVerifierData[];
+}
+
+export interface DataCapStatsVerifierData {
+  id: number;
+  addressId: string;
+  address: string;
+  retries: number;
+  auditTrail: string | null;
+  name: string | null;
+  orgName: string | null;
+  initialAllowance: string;
   allowance: string;
-  auditTrail: null | string;
-  allowanceTTD: number;
-  isDataPublic: string;
-  issueCreator: null | string;
-  providerList: any[];
-  usedAllowance: string;
-  isLdnAllowance: boolean;
-  isEFilAllowance: boolean;
-  verifierAddressId: string;
-  isFromAutoverifier: boolean;
-  retrievalFrequency: string;
-  searchedByProposal: boolean;
+  removed: boolean;
+  inffered: boolean;
+  isMultisig: boolean;
+  createdAtHeight: number;
   issueCreateTimestamp: number | null;
-  hasRemainingAllowance: boolean;
   createMessageTimestamp: number;
+  verifiedClientsCount: number;
+  receivedDatacapChange: string;
+  allowanceArray: {
+    id: number;
+    error: string;
+    height: number;
+    msgCID: string;
+    retries: number;
+    addressId: string;
+    allowance: string;
+    auditTrail: string | null;
+    verifierId: number;
+    auditStatus: any;
+    issueCreateTimestamp: number | null;
+    createMessageTimestamp: number;
+  }[];
+  auditStatus: any;
+  remainingDatacap: string;
 }
