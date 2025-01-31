@@ -150,7 +150,7 @@ export class AllocatorReportService {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
         allocator: allocatorId,
-        id: id || undefined,
+        id: id ?? undefined,
       },
       include: {
         clients: {
@@ -189,13 +189,21 @@ export class AllocatorReportService {
       },
     });
 
-    return {
-      ...report,
-      client_allocations: groupBy(
-        report.client_allocations,
-        (c) => c.client_id,
-      ),
-    };
+    return (
+      report && {
+        ...report,
+        clients: report.clients?.map((client) => ({
+          ...client,
+          allocations: report.client_allocations
+            ?.filter((allocation) => allocation.client_id === client.client_id)
+            ?.map((allocation) => ({
+              ...allocation,
+              client_id: undefined,
+            })),
+        })),
+        client_allocations: undefined,
+      }
+    );
   }
 
   private getGrantedDatacapInClients(

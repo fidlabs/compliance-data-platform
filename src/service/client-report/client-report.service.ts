@@ -76,7 +76,7 @@ export class ClientReportService {
     return report;
   }
 
-  async getClientReports(clientId: string) {
+  async getReports(clientId: string) {
     return await this.prismaService.client_report.findMany({
       where: {
         client: clientId,
@@ -87,11 +87,11 @@ export class ClientReportService {
     });
   }
 
-  async getClientLatestReport(clientId: string) {
-    return this.getClientReport(clientId);
+  async getLatestReport(clientId: string) {
+    return this.getReport(clientId);
   }
 
-  async getClientReport(clientId: string, id?: any) {
+  async getReport(clientId: string, id?: any) {
     return this.prismaService.client_report.findFirst({
       where: {
         client: clientId,
