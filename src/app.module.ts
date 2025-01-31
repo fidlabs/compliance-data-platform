@@ -22,7 +22,10 @@ import { ProviderRetrievabilityRunner } from './aggregation/runners/provider-ret
 import { ProvidersAccRunner } from './aggregation/runners/providers-acc.runner';
 import { ProvidersRunner } from './aggregation/runners/providers.runner';
 import { UnifiedVerifiedDealRunner } from './aggregation/runners/unified-verified-deal.runner';
-import { ClientReportController } from './controller/client-report/client-report.controller';
+import {
+  ClientReportController,
+  ClientReportControllerRedirect,
+} from './controller/client-report/client-report.controller';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
 import { ProvidersAccController } from './controller/stats/accumulative/providers/providers.controller';
@@ -49,7 +52,10 @@ import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { AppController } from './controller/app/app.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { AllocatorReportService } from './service/allocator-report/allocator-report.service';
-import { AllocatorReportController } from './controller/allocator-report/allocator-report.controller';
+import {
+  AllocatorReportController,
+  AllocatorReportControllerRedirect,
+} from './controller/allocator-report/allocator-report.controller';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { ProviderService } from './service/provider/provider.service';
 import { PrometheusMetricModule } from './common/prometheus';
@@ -78,7 +84,9 @@ import axios from 'axios';
     AllocatorsAccController,
     GoogleApisController,
     ClientReportController,
+    ClientReportControllerRedirect,
     AllocatorReportController,
+    AllocatorReportControllerRedirect,
     AppController,
   ],
   providers: [

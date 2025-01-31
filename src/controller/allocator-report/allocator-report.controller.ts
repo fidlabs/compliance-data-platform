@@ -8,12 +8,13 @@ import {
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
+  ApiExcludeController,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
 import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
 
-@Controller('allocatorReport')
+@Controller('allocator-report')
 export class AllocatorReportController {
   private readonly logger = new Logger(AllocatorReportController.name);
 
@@ -81,3 +82,7 @@ export class AllocatorReportController {
     return report;
   }
 }
+
+@Controller('allocatorReport')
+@ApiExcludeController()
+export class AllocatorReportControllerRedirect extends AllocatorReportController {}
