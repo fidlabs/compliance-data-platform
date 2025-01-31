@@ -79,7 +79,6 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
       } catch (err) {
         this.logger.error(
           `Error during IPNI Advertisement Fetcher for ${provider.AddrInfo.ID}: ${err}`,
-          err.stack,
         );
       }
     }

@@ -281,9 +281,6 @@ export class ClientReportChecksService {
           where: {
             client_report_id: reportId,
           },
-          select: {
-            provider: true,
-          },
         },
       );
 
@@ -333,9 +330,6 @@ export class ClientReportChecksService {
         {
           where: {
             client_report_id: reportId,
-          },
-          select: {
-            provider: true,
           },
         },
       );
