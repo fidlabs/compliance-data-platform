@@ -8,18 +8,18 @@ import { SpsComplianceHistogramWeekResponseDto } from 'src/types/spsComplianceHi
 
 @Controller('stats/acc/allocators')
 export class AllocatorsAccController {
-  constructor(private readonly allocatorAccService: AllocatorService) {}
+  constructor(private readonly allocatorService: AllocatorService) {}
 
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponseDto })
   async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponseDto> {
-    return await this.allocatorAccService.getAllocatorRetrievability(true);
+    return await this.allocatorService.getAllocatorRetrievability(true);
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponseDto })
   async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponseDto> {
-    return await this.allocatorAccService.getAllocatorBiggestClientDistribution(
+    return await this.allocatorService.getAllocatorBiggestClientDistribution(
       true,
     );
   }
@@ -28,14 +28,12 @@ export class AllocatorsAccController {
   @ApiOperation({ deprecated: true })
   @ApiOkResponse({ type: SpsComplianceHistogramWeekResponseDto })
   async getAllocatorSpsComplianceHistogram(): Promise<SpsComplianceHistogramWeekResponseDto> {
-    return await this.allocatorAccService.getAllocatorSpsComplianceHistogram(
-      true,
-    );
+    return await this.allocatorService.getAllocatorSpsComplianceHistogram(true);
   }
 
   @Get('sps-compliance-data')
   @ApiOkResponse({ type: SpsComplianceWeekResponseDto })
   async getAllocatorSpsCompliance(): Promise<SpsComplianceWeekResponseDto> {
-    return await this.allocatorAccService.getAllocatorSpsCompliance(true);
+    return await this.allocatorService.getAllocatorSpsCompliance(true);
   }
 }

@@ -1,109 +1,111 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { LocationService } from '../location/location.service';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
-import { IPResponse } from '../location/types.location';
-import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
-import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
+import {
+  getProviderBiggestClientDistribution,
+  getProviderBiggestClientDistributionAcc,
+  getProviderClientsWeekly,
+  getProviderClientsWeeklyAcc,
+  getProviderRetrievability,
+  getProviderRetrievabilityAcc,
+} from '../../../prisma/generated/client/sql';
+import { RetrievabilityWeekResponseDto } from '../../types/retrievabilityWeekResponse.dto';
+import { HistogramHelper } from '../../utils/histogram.helper';
+import { DateTime } from 'luxon';
+import { Prisma } from 'prisma/generated/client';
+import { modelName } from 'src/utils/prisma.helper';
+import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
 
 @Injectable()
 export class StorageProviderService {
-  private readonly logger = new Logger(StorageProviderService.name);
-
   constructor(
-    private readonly locationService: LocationService,
     private readonly prismaService: PrismaService,
-    private readonly lotusApiService: LotusApiService,
-    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
+    private readonly histogramHelper: HistogramHelper,
   ) {}
 
-  async getStorageProviderDistribution(clientId: string) {
-    const clientProviderDistribution =
-      await this.prismaService.client_provider_distribution.findMany({
-        where: {
-          client: clientId,
+  async getProviderClients(
+    isAccumulative: boolean,
+  ): Promise<HistogramWeekResponseDto> {
+    const clientProviderDistributionWeeklyTable = isAccumulative
+      ? Prisma.ModelName.client_provider_distribution_weekly_acc
+      : Prisma.ModelName.client_provider_distribution_weekly;
+
+    const providerCountResult = await this.prismaService.$queryRaw<
+      [
+        {
+          count: number;
         },
-        omit: {
-          client: true,
-        },
-      });
+      ]
+    >`select count(distinct provider)::int
+      from ${modelName(clientProviderDistributionWeeklyTable)}`;
 
-    return await Promise.all(
-      clientProviderDistribution.map(async (clientProviderDistribution) => {
-        const minerInfo = await this.lotusApiService.getMinerInfo(
-          clientProviderDistribution.provider,
-        );
+    const query = isAccumulative
+      ? getProviderClientsWeeklyAcc
+      : getProviderClientsWeekly;
 
-        const ipniReportingStatus =
-          await this.ipniMisreportingCheckerService.getProviderReportingStatus(
-            clientProviderDistribution.provider,
-            minerInfo,
-          );
-
-        const location =
-          await this.getClientProviderDistributionLocation(minerInfo);
-
-        return {
-          ...clientProviderDistribution,
-          // TODO when business is ready switch to http success rate
-          retrievability_success_rate:
-            await this.getStorageProviderRetrievability(
-              clientProviderDistribution.provider,
-            ),
-          ipni_reporting_status: ipniReportingStatus.status,
-          ipni_reported_claims_count:
-            ipniReportingStatus.ipniReportedClaimsCount,
-          claims_count: ipniReportingStatus.actualClaimsCount,
-          ...(location && {
-            location: {
-              ip: location.ip,
-              city: location.city,
-              region: location.region,
-              country: location.country,
-              loc: location.loc,
-              org: location.org,
-              postal: location.postal,
-              timezone: location.timezone,
-            },
-          }),
-        };
-      }),
+    return await this.histogramHelper.getWeeklyHistogramResult(
+      await this.prismaService.$queryRawTyped(query()),
+      providerCountResult[0].count,
     );
   }
 
-  private async getStorageProviderRetrievability(
-    providerId: string,
-  ): Promise<number | null> {
-    const result =
-      // get data from the last 7 full days
-      await this.prismaService.provider_retrievability_daily.aggregate({
-        _sum: {
-          total: true,
-          successful: true,
-        },
-        where: {
-          provider: providerId,
-          date: {
-            gte: new Date( // a week ago at 00:00
-              new Date(new Date().setDate(new Date().getDate() - 7)).setHours(
-                0,
-                0,
-                0,
-                0,
-              ),
-            ),
-          },
-        },
-      });
+  async getProviderBiggestClientDistribution(
+    isAccumulative: boolean,
+  ): Promise<HistogramWeekResponseDto> {
+    const clientProviderDistributionWeeklyTable = isAccumulative
+      ? Prisma.ModelName.client_provider_distribution_weekly_acc
+      : Prisma.ModelName.client_provider_distribution_weekly;
 
-    return result._sum.total > 0
-      ? result._sum.successful / result._sum.total
-      : null;
+    const providerCountResult = await this.prismaService.$queryRaw<
+      [
+        {
+          count: number;
+        },
+      ]
+    >`select count(distinct provider)::int
+      from ${modelName(clientProviderDistributionWeeklyTable)}`;
+
+    const query = isAccumulative
+      ? getProviderBiggestClientDistributionAcc
+      : getProviderBiggestClientDistribution;
+
+    return await this.histogramHelper.getWeeklyHistogramResult(
+      await this.prismaService.$queryRawTyped(query()),
+      providerCountResult[0].count,
+    );
   }
 
-  private async getClientProviderDistributionLocation(
-    minerInfo: LotusStateMinerInfoResponse,
-  ): Promise<IPResponse | null> {
-    return this.locationService.getLocation(minerInfo.result.Multiaddrs);
+  async getProviderRetrievability(
+    isAccumulative: boolean,
+  ): Promise<RetrievabilityWeekResponseDto> {
+    const providersWeeklyTable = isAccumulative
+      ? Prisma.ModelName.providers_weekly_acc
+      : Prisma.ModelName.providers_weekly;
+
+    const providerCountAndAverageSuccessRate = await this.prismaService
+      .$queryRaw<
+      [
+        {
+          count: number;
+          averageSuccessRate: number;
+        },
+      ]
+    >`select count(distinct provider)::int,
+             100 * avg(avg_retrievability_success_rate) as "averageSuccessRate"
+      from ${modelName(providersWeeklyTable)} where week = ${DateTime.now().toUTC().minus({ week: 1 }).startOf('week').toJSDate()};`;
+
+    const query = isAccumulative
+      ? getProviderRetrievabilityAcc
+      : getProviderRetrievability;
+
+    const weeklyHistogramResult =
+      await this.histogramHelper.getWeeklyHistogramResult(
+        await this.prismaService.$queryRawTyped(query()),
+        providerCountAndAverageSuccessRate[0].count,
+      );
+
+    return RetrievabilityWeekResponseDto.of(
+      providerCountAndAverageSuccessRate[0].averageSuccessRate,
+      weeklyHistogramResult,
+    );
   }
 }

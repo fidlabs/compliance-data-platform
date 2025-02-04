@@ -83,6 +83,7 @@ export class AllocatorReportController {
   }
 }
 
+// TODO remove me
 @Controller('allocatorReport')
 @ApiExcludeController()
 export class AllocatorReportControllerRedirect extends AllocatorReportController {}
