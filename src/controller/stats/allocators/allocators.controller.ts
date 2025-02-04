@@ -1,31 +1,33 @@
 import { Controller, Get } from '@nestjs/common';
-import { AllocatorService } from '../../../service/allocator/allocator.service';
-import { RetrievabilityWeekResponseDto } from '../../../types/retrievabilityWeekResponse.dto';
-import { HistogramWeekResponseDto } from '../../../types/histogramWeek.response.dto';
-import { SpsComplianceWeekResponseDto } from '../../../types/spsComplianceWeekResponse.dto';
+import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse } from '@nestjs/swagger';
+import { AllocatorComplianceWeekResponse } from 'src/service/allocator/types.allocator';
+import {
+  HistogramWeekResponse,
+  RetrievabilityWeekResponse,
+} from 'src/service/histogram-helper/types.histogram-helper';
 
 @Controller('stats/allocators')
 export class AllocatorsController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
   @Get('retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponseDto })
-  async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponseDto> {
+  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getAllocatorRetrievability(false);
   }
 
   @Get('biggest-client-distribution')
-  @ApiOkResponse({ type: HistogramWeekResponseDto })
-  async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponseDto> {
+  @ApiOkResponse({ type: HistogramWeekResponse })
+  async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getAllocatorBiggestClientDistribution(
       false,
     );
   }
 
   @Get('sps-compliance')
-  @ApiOkResponse({ type: SpsComplianceWeekResponseDto })
-  async getAllocatorSpsCompliance(): Promise<SpsComplianceWeekResponseDto> {
-    return await this.allocatorService.getAllocatorSpsCompliance(false);
+  @ApiOkResponse({ type: AllocatorComplianceWeekResponse })
+  async getAllocatorSpsCompliance(): Promise<AllocatorComplianceWeekResponse> {
+    return await this.allocatorService.getAllocatorCompliance(false);
   }
 }

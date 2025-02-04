@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LocationService } from '../location/location.service';
-import { PrismaService } from '../../db/prisma.service';
+import { PrismaService } from 'src/db/prisma.service';
 import { IPResponse } from '../location/types.location';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';

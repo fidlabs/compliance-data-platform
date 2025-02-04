@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
-import { GoogleApisSpreadsheetValuesDto } from '../../types/googleApisSpreadsheetValues.dto';
 import { ConfigService } from '@nestjs/config';
+import { GoogleApisSpreadsheetValues } from './types.googleapis';
 
 @Injectable()
 export class GoogleApisService {
@@ -15,12 +15,12 @@ export class GoogleApisService {
 
   async getAllocatorsOverview(
     tab?: string,
-  ): Promise<GoogleApisSpreadsheetValuesDto> {
+  ): Promise<GoogleApisSpreadsheetValues> {
     tab ||= 'GRAPHS';
     const endpoint = `https://sheets.googleapis.com/v4/spreadsheets/1Rx3ZsUh7rhjdAARBNdBHgdbhBM5zFlEnqghC7A0JZ4k/values/${tab}`;
 
     const { data } = await lastValueFrom(
-      this.httpService.get<GoogleApisSpreadsheetValuesDto>(endpoint, {
+      this.httpService.get<GoogleApisSpreadsheetValues>(endpoint, {
         params: {
           key: this.configService.get<string>('GOOGLEAPIS_KEY'),
         },

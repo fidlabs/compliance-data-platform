@@ -36,7 +36,6 @@ import { PostgresDmobService } from './db/postgresDmob.service';
 import { PrismaService } from './db/prisma.service';
 import { PrismaDmobService } from './db/prismaDmob.service';
 import { FilSparkService } from './service/filspark/filspark.service';
-import { HistogramHelper } from './utils/histogram.helper';
 import { AllocatorService } from './service/allocator/allocator.service';
 import { ClientReportService } from './service/client-report/client-report.service';
 import { DataCapStatsService } from './service/datacapstats/datacapstats.service';
@@ -67,6 +66,7 @@ import { IpniMisreportingCheckerService } from './service/ipni-misreporting-chec
 import { HttpService } from '@nestjs/axios';
 import axiosBetterStacktrace from 'axios-better-stacktrace';
 import axios from 'axios';
+import { HistogramHelperService } from './service/histogram-helper/histogram-helper.service';
 
 @Module({
   imports: [
@@ -120,7 +120,7 @@ import axios from 'axios';
     AllocatorService,
     PostgresService,
     PostgresDmobService,
-    HistogramHelper,
+    HistogramHelperService,
     GoogleApisService,
     IpniMisreportingCheckerService,
     ClientReportService,

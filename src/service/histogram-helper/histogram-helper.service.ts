@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { groupBy } from 'lodash';
-import { HistogramWeekDto } from '../types/histogramWeek.dto';
-import { HistogramDto } from '../types/histogram.dto';
-import { HistogramWeekResponseDto } from '../types/histogramWeek.response.dto';
+import {
+  Histogram,
+  HistogramWeek,
+  HistogramWeekResponse,
+} from './types.histogram-helper';
 
 @Injectable()
-export class HistogramHelper {
-  private readonly logger = new Logger(HistogramHelper.name);
+export class HistogramHelperService {
+  private readonly logger = new Logger(HistogramHelperService.name);
 
   async getWeeklyHistogramResult(
     results: {
@@ -16,21 +18,17 @@ export class HistogramHelper {
       week: Date;
     }[],
     totalCount: number,
-  ): Promise<HistogramWeekResponseDto> {
+  ): Promise<HistogramWeekResponse> {
     const resultsByWeek = groupBy(results, (p) => p.week);
 
-    const histogramWeekDtos: HistogramWeekDto[] = [];
+    const histogramWeekDtos: HistogramWeek[] = [];
     for (const key in resultsByWeek) {
       const value = resultsByWeek[key];
       const weekResponses = value.map((r) => {
-        return new HistogramDto(
-          r.valueFromExclusive,
-          r.valueToInclusive,
-          r.count,
-        );
+        return new Histogram(r.valueFromExclusive, r.valueToInclusive, r.count);
       });
       histogramWeekDtos.push(
-        new HistogramWeekDto(
+        new HistogramWeek(
           new Date(key),
           weekResponses,
           weekResponses.reduce(
@@ -55,7 +53,7 @@ export class HistogramHelper {
 
       if (missingValues.length > 0) {
         histogramWeekDto.results.push(
-          ...missingValues.map((v) => new HistogramDto(v - maxMinSpan, v, 0)),
+          ...missingValues.map((v) => new Histogram(v - maxMinSpan, v, 0)),
         );
 
         histogramWeekDto.results.sort(
@@ -68,12 +66,12 @@ export class HistogramHelper {
       histogramWeekDtos.sort((a, b) => a.week.getTime() - b.week.getTime()),
     );
 
-    return new HistogramWeekResponseDto(totalCount, histogramWeekDtosSorted);
+    return new HistogramWeekResponse(totalCount, histogramWeekDtosSorted);
   }
 
   // removes current week from histogram responses (as there is no full data for current week)
   private removeCurrentWeekFromHistogramWeekDtos(
-    histogramWeekDtosSorted: HistogramWeekDto[],
+    histogramWeekDtosSorted: HistogramWeek[],
   ) {
     if (histogramWeekDtosSorted.length === 0) return histogramWeekDtosSorted;
 
@@ -88,9 +86,7 @@ export class HistogramHelper {
     return histogramWeekDtosSorted;
   }
 
-  private getAllHistogramBucketTopValues(
-    histogramWeekDtos: HistogramWeekDto[],
-  ) {
+  private getAllHistogramBucketTopValues(histogramWeekDtos: HistogramWeek[]) {
     if (histogramWeekDtos.length === 0)
       return { maxMinSpan: 0, allBucketTopValues: [] };
 

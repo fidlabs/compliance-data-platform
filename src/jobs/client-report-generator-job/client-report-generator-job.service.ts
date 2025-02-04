@@ -6,10 +6,10 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/prometheus/prometheus';
-import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
-import { AllocatorTechApplicationResponse } from '../../service/allocator-tech/types.allocator-tech';
-import { ClientReportService } from '../../service/client-report/client-report.service';
-import { LotusApiService } from '../../service/lotus-api/lotus-api.service';
+import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
+import { AllocatorTechApplicationResponse } from 'src/service/allocator-tech/types.allocator-tech';
+import { ClientReportService } from 'src/service/client-report/client-report.service';
+import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
 
 @Injectable()
 export class ClientReportGeneratorJobService extends HealthIndicator {

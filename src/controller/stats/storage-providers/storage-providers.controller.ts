@@ -1,10 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { StorageProviderService } from '../../../service/storage-provider/storage-provider.service';
-import { HistogramWeekResponseDto } from '../../../types/histogramWeek.response.dto';
-import { RetrievabilityWeekResponseDto } from '../../../types/retrievabilityWeekResponse.dto';
+import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { AggregatedProvidersIPNIReportingStatus } from '../../../service/ipni-misreporting-checker/types.ipni-misreporting-checker';
-import { IpniMisreportingCheckerService } from '../../../service/ipni-misreporting-checker/ipni-misreporting-checker.service';
+import { AggregatedProvidersIPNIReportingStatus } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
+import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
+import {
+  HistogramWeekResponse,
+  RetrievabilityWeekResponse,
+} from 'src/service/histogram-helper/types.histogram-helper';
 
 @Controller('stats/providers')
 export class StorageProvidersController {
@@ -26,22 +28,22 @@ export class StorageProvidersController {
   }
 
   @Get('clients')
-  @ApiOkResponse({ type: HistogramWeekResponseDto })
-  async getProviderClients(): Promise<HistogramWeekResponseDto> {
+  @ApiOkResponse({ type: HistogramWeekResponse })
+  async getProviderClients(): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderClients(false);
   }
 
   @Get('biggest-client-distribution')
-  @ApiOkResponse({ type: HistogramWeekResponseDto })
-  async getProviderBiggestClientDistribution(): Promise<HistogramWeekResponseDto> {
+  @ApiOkResponse({ type: HistogramWeekResponse })
+  async getProviderBiggestClientDistribution(): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderBiggestClientDistribution(
       false,
     );
   }
 
   @Get('retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponseDto })
-  async getProviderRetrievability(): Promise<RetrievabilityWeekResponseDto> {
+  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievability(false);
   }
 }

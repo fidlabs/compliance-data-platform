@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrometheusMetricService } from 'src/prometheus/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { PostgresService } from '../db/postgres.service';
-import { PostgresDmobService } from '../db/postgresDmob.service';
-import { PrismaService } from '../db/prisma.service';
-import { PrismaDmobService } from '../db/prismaDmob.service';
+import { PostgresService } from 'src/db/postgres.service';
+import { PostgresDmobService } from 'src/db/postgresDmob.service';
+import { PrismaService } from 'src/db/prisma.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
 

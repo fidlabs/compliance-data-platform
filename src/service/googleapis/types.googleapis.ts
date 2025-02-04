@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class GoogleApisSpreadsheetValuesDto {
+export class GoogleApisSpreadsheetValues {
   @ApiProperty({
     description: 'Range of the returned data',
     example: 'GRAPHS!A1:X1021',

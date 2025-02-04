@@ -4,7 +4,7 @@ import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 import { QueryIterablePool } from 'pg-iterator';
-import { PostgresService } from '../../db/postgres.service';
+import { PostgresService } from 'src/db/postgres.service';
 import { PostgresDmobService } from 'src/db/postgresDmob.service';
 
 export class UnifiedVerifiedDealRunner implements AggregationRunner {
