@@ -2,13 +2,16 @@ import { Controller, Get } from '@nestjs/common';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { AggregatedProvidersIPNIReportingStatus } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
-import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
+import { StorageProviderComplianceWeekResponse } from 'src/service/storage-provider/types.storage-provider';
+import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
+import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('stats/providers')
+@CacheTTL(1000 * 60 * 60) // 1 hour
 export class StorageProvidersController {
   constructor(
     private readonly storageProviderService: StorageProviderService,
@@ -45,5 +48,11 @@ export class StorageProvidersController {
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievability(false);
+  }
+
+  @Get('compliance')
+  @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
+  async getProviderCompliance(): Promise<StorageProviderComplianceWeekResponse> {
+    return await this.storageProviderService.getProviderCompliance(false);
   }
 }

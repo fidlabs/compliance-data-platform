@@ -1,19 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ProviderComplianceScoreRange } from '../storage-provider/types.storage-provider';
+import {
+  ProviderComplianceScoreRange,
+  StorageProviderComplianceWeekPercentage,
+} from '../storage-provider/types.storage-provider';
 import { HistogramWeekResponse } from '../histogram-helper/types.histogram-helper';
 
-export class AllocatorComplianceWeekSingle {
+export class AllocatorComplianceWeekSingle extends StorageProviderComplianceWeekPercentage {
   @ApiProperty({ type: String })
   id: string;
-
-  @ApiProperty({ type: Number })
-  compliantSpsPercentage: number;
-
-  @ApiProperty({ type: Number })
-  partiallyCompliantSpsPercentage: number;
-
-  @ApiProperty({ type: Number })
-  nonCompliantSpsPercentage: number;
 }
 
 export class AllocatorComplianceWeek {
