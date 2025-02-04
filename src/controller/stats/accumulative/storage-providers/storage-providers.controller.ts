@@ -5,8 +5,11 @@ import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
+import { StorageProviderComplianceWeekResponse } from 'src/service/storage-provider/types.storage-provider';
+import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('stats/acc/providers')
+@CacheTTL(1000 * 60 * 60) // 1 hour
 export class StorageProvidersAccController {
   constructor(
     private readonly storageProviderService: StorageProviderService,
@@ -30,5 +33,11 @@ export class StorageProvidersAccController {
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievability(true);
+  }
+
+  @Get('compliance-data')
+  @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
+  async getProviderCompliance(): Promise<StorageProviderComplianceWeekResponse> {
+    return await this.storageProviderService.getProviderCompliance(true);
   }
 }

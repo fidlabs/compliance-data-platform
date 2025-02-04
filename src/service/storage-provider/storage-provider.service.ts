@@ -11,7 +11,12 @@ import {
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/utils/prisma.helper';
-import { ProviderComplianceScoreRange } from './types.storage-provider';
+import {
+  ProviderComplianceScoreRange,
+  StorageProviderComplianceWeek,
+  StorageProviderComplianceWeekPercentage,
+  StorageProviderComplianceWeekResponse,
+} from './types.storage-provider';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekResponse,
@@ -112,6 +117,38 @@ export class StorageProviderService {
     );
   }
 
+  public async getProviderCompliance(
+    isAccumulative: boolean,
+  ): Promise<StorageProviderComplianceWeekResponse> {
+    const weeks = await this.getWeeksTracked(isAccumulative);
+
+    const result: StorageProviderComplianceWeek[] = await Promise.all(
+      weeks.map(async (week) => {
+        const thisWeekAverageRetrievability =
+          await this.getWeekAverageProviderRetrievability(week, isAccumulative);
+
+        const weekProviders = await this.getWeekProviders(week, isAccumulative);
+
+        const weekProvidersCompliance = weekProviders.map((wp) =>
+          this.getWeekProviderComplianceScore(
+            wp,
+            thisWeekAverageRetrievability,
+          ),
+        );
+
+        return {
+          week: week,
+          ...this.getCompliantProvidersPercentage(
+            weekProvidersCompliance,
+            weekProviders.map((wp) => wp.provider),
+          ),
+        };
+      }),
+    );
+
+    return new StorageProviderComplianceWeekResponse(result);
+  }
+
   public async getWeekProvidersForClients(
     week: Date,
     isAccumulative: boolean,
@@ -132,6 +169,7 @@ export class StorageProviderService {
         select: {
           provider: true,
         },
+        distinct: ['provider'],
       })
     ).map((p) => p.provider);
   }
@@ -230,11 +268,7 @@ export class StorageProviderService {
       provider: string;
     }[],
     providers: string[],
-  ): {
-    compliantSpsPercentage: number;
-    partiallyCompliantSpsPercentage: number;
-    nonCompliantSpsPercentage: number;
-  } {
+  ): StorageProviderComplianceWeekPercentage {
     return {
       compliantSpsPercentage: this._getCompliantProvidersPercentage(
         weekProvidersCompliance,

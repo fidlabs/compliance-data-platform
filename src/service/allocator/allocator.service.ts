@@ -18,7 +18,10 @@ import {
   AllocatorComplianceWeek,
   AllocatorComplianceWeekResponse,
 } from './types.allocator';
-import { ProviderComplianceScoreRange } from '../storage-provider/types.storage-provider';
+import {
+  ProviderComplianceScoreRange,
+  StorageProviderComplianceWeekPercentage,
+} from '../storage-provider/types.storage-provider';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekResponse,
@@ -128,7 +131,6 @@ export class AllocatorService {
     ]);
   }
 
-  // TODO cache?
   public async getAllocatorCompliance(
     isAccumulative: boolean,
   ): Promise<AllocatorComplianceWeekResponse> {
@@ -166,28 +168,24 @@ export class AllocatorService {
         (a) => a.allocator,
       );
 
-      const weekResult: AllocatorComplianceWeekSingle[] = [];
+      const weekResult: AllocatorComplianceWeekSingle[] = await Promise.all(
+        Object.entries(byAllocators).map(async ([allocator, clients]) => {
+          const weekProvidersForAllocator =
+            await this.storageProviderService.getWeekProvidersForClients(
+              week,
+              isAccumulative,
+              clients.map((p) => p.client),
+            );
 
-      for (const allocator in byAllocators) {
-        const _weekProvidersForAllocator =
-          await this.storageProviderService.getWeekProvidersForClients(
-            week,
-            isAccumulative,
-            byAllocators[allocator].map((p) => p.client),
-          );
-
-        const weekProvidersForAllocator = [
-          ...new Set(_weekProvidersForAllocator),
-        ];
-
-        weekResult.push({
-          id: allocator,
-          ...this.storageProviderService.getCompliantProvidersPercentage(
-            weekProvidersCompliance,
-            weekProvidersForAllocator,
-          ),
-        });
-      }
+          return {
+            id: allocator,
+            ...this.storageProviderService.getCompliantProvidersPercentage(
+              weekProvidersCompliance,
+              weekProvidersForAllocator,
+            ),
+          };
+        }),
+      );
 
       result.push({
         week: week,
@@ -315,22 +313,18 @@ export class AllocatorService {
   }
 
   private getPercentValue(
-    result: {
-      nonCompliantSpsPercentage: number;
-      partiallyCompliantSpsPercentage: number;
-      compliantSpsPercentage: number;
-    },
+    data: StorageProviderComplianceWeekPercentage,
     providerComplianceScoreRange: ProviderComplianceScoreRange,
-  ) {
+  ): number {
     switch (providerComplianceScoreRange) {
       case ProviderComplianceScoreRange.NonCompliant:
-        return result.nonCompliantSpsPercentage;
+        return data.nonCompliantSpsPercentage;
 
       case ProviderComplianceScoreRange.PartiallyCompliant:
-        return result.partiallyCompliantSpsPercentage;
+        return data.partiallyCompliantSpsPercentage;
 
       case ProviderComplianceScoreRange.Compliant:
-        return result.compliantSpsPercentage;
+        return data.compliantSpsPercentage;
     }
   }
 }

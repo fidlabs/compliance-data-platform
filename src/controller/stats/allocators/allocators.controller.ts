@@ -6,8 +6,10 @@ import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
+import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('stats/allocators')
+@CacheTTL(1000 * 60 * 60) // 1 hour
 export class AllocatorsController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
