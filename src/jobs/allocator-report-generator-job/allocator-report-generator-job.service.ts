@@ -5,7 +5,7 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { PrometheusMetricService } from 'src/common/prometheus';
+import { PrometheusMetricService } from 'src/prometheus/prometheus';
 import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
 import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
 

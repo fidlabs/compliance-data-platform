@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../db/prisma.service';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
-import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class ClientReportService {
     private readonly prismaService: PrismaService,
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly clientReportChecksService: ClientReportChecksService,
-    private readonly storageProviderService: StorageProviderService,
+    private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
   ) {}
 

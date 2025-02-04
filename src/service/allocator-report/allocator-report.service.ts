@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { PrismaService } from '../../db/prisma.service';
-import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
 import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 import { DataCapStatsPublicVerifiedClientsResponse } from '../datacapstats/types.datacapstats';
@@ -11,7 +11,7 @@ export class AllocatorReportService {
   constructor(
     private readonly dataCapStatsService: DataCapStatsService,
     private readonly prismaService: PrismaService,
-    private readonly storageProviderService: StorageProviderService,
+    private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
     private readonly allocatorTechService: AllocatorTechService,
   ) {}

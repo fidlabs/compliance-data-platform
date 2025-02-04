@@ -127,7 +127,9 @@ export class AllocatorService {
             },
           })
     ).length;
+
     const { results } = await this.getAllocatorSpsCompliance(isAccumulative);
+
     return new SpsComplianceHistogramWeekResponseDto([
       await this.calculateSpsComplianceWeekDto(
         results,
@@ -410,6 +412,7 @@ export class AllocatorService {
     complianceScore: ProviderComplianceScoreRange,
   ) {
     const validComplianceScores: number[] = [];
+
     switch (complianceScore) {
       case ProviderComplianceScoreRange.NonCompliant:
         validComplianceScores.push(0);

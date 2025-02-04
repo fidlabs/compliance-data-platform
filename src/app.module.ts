@@ -28,9 +28,9 @@ import {
 } from './controller/client-report/client-report.controller';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
-import { ProvidersAccController } from './controller/stats/accumulative/providers/providers.controller';
+import { StorageProvidersAccController } from './controller/stats/accumulative/storage-providers/storage-providers.controller';
 import { AllocatorsController } from './controller/stats/allocators/allocators.controller';
-import { ProvidersController } from './controller/stats/providers/providers.controller';
+import { StorageProvidersController } from './controller/stats/storage-providers/storage-providers.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
 import { PrismaService } from './db/prisma.service';
@@ -56,9 +56,9 @@ import {
   AllocatorReportController,
   AllocatorReportControllerRedirect,
 } from './controller/allocator-report/allocator-report.controller';
+import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
-import { ProviderService } from './service/provider/provider.service';
-import { PrometheusMetricModule } from './common/prometheus';
+import { PrometheusMetricModule } from './prometheus/prometheus';
 import { ClientService } from './service/client/client.service';
 import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 import { CidContactService } from './service/cid-contact/cid-contact.service';
@@ -78,9 +78,9 @@ import axios from 'axios';
     PrometheusMetricModule,
   ],
   controllers: [
-    ProvidersController,
+    StorageProvidersController,
     AllocatorsController,
-    ProvidersAccController,
+    StorageProvidersAccController,
     AllocatorsAccController,
     GoogleApisController,
     ClientReportController,
@@ -116,7 +116,7 @@ import axios from 'axios';
     ProvidersRunner,
     ProvidersAccRunner,
     UnifiedVerifiedDealRunner,
-    ProviderService,
+    StorageProviderService,
     AllocatorService,
     PostgresService,
     PostgresDmobService,
@@ -130,7 +130,7 @@ import axios from 'axios';
     AllocatorTechService,
     ClientReportChecksService,
     AllocatorReportService,
-    StorageProviderService,
+    StorageProviderReportService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {

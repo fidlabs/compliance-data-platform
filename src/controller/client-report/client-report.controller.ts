@@ -78,6 +78,7 @@ export class ClientReportController {
   }
 }
 
+// TODO remove me
 @Controller('clientReport')
 @ApiExcludeController()
 export class ClientReportControllerRedirect extends ClientReportController {}
