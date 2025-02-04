@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataCapStatsService } from '../datacapstats/datacapstats.service';
-import { PrismaService } from '../../db/prisma.service';
+import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
 import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';

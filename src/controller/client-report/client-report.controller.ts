@@ -5,7 +5,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { ClientReportService } from '../../service/client-report/client-report.service';
+import { ClientReportService } from 'src/service/client-report/client-report.service';
 import {
   ApiCreatedResponse,
   ApiExcludeController,

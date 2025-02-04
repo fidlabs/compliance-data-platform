@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../db/prisma.service';
+import { PrismaService } from 'src/db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
 import { round } from 'lodash';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';

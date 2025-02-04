@@ -1,24 +1,28 @@
 import { Controller, Get } from '@nestjs/common';
-import { AllocatorService } from '../../../../service/allocator/allocator.service';
-import { RetrievabilityWeekResponseDto } from '../../../../types/retrievabilityWeekResponse.dto';
-import { HistogramWeekResponseDto } from '../../../../types/histogramWeek.response.dto';
-import { SpsComplianceWeekResponseDto } from '../../../../types/spsComplianceWeekResponse.dto';
+import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { SpsComplianceHistogramWeekResponseDto } from 'src/types/spsComplianceHistogramWeekResponse.dto';
+import {
+  AllocatorComplianceHistogramWeekResponse,
+  AllocatorComplianceWeekResponse,
+} from 'src/service/allocator/types.allocator';
+import {
+  HistogramWeekResponse,
+  RetrievabilityWeekResponse,
+} from 'src/service/histogram-helper/types.histogram-helper';
 
 @Controller('stats/acc/allocators')
 export class AllocatorsAccController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
   @Get('retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponseDto })
-  async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponseDto> {
+  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getAllocatorRetrievability(true);
   }
 
   @Get('biggest-client-distribution')
-  @ApiOkResponse({ type: HistogramWeekResponseDto })
-  async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponseDto> {
+  @ApiOkResponse({ type: HistogramWeekResponse })
+  async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getAllocatorBiggestClientDistribution(
       true,
     );
@@ -26,14 +30,14 @@ export class AllocatorsAccController {
 
   @Get('sps-compliance')
   @ApiOperation({ deprecated: true })
-  @ApiOkResponse({ type: SpsComplianceHistogramWeekResponseDto })
-  async getAllocatorSpsComplianceHistogram(): Promise<SpsComplianceHistogramWeekResponseDto> {
-    return await this.allocatorService.getAllocatorSpsComplianceHistogram(true);
+  @ApiOkResponse({ type: AllocatorComplianceHistogramWeekResponse })
+  async getAllocatorComplianceHistogram(): Promise<AllocatorComplianceHistogramWeekResponse> {
+    return await this.allocatorService.getAllocatorComplianceHistogram(true);
   }
 
   @Get('sps-compliance-data')
-  @ApiOkResponse({ type: SpsComplianceWeekResponseDto })
-  async getAllocatorSpsCompliance(): Promise<SpsComplianceWeekResponseDto> {
-    return await this.allocatorService.getAllocatorSpsCompliance(true);
+  @ApiOkResponse({ type: AllocatorComplianceWeekResponse })
+  async getAllocatorCompliance(): Promise<AllocatorComplianceWeekResponse> {
+    return await this.allocatorService.getAllocatorCompliance(true);
   }
 }

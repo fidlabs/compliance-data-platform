@@ -1,4 +1,4 @@
-export class RetrievabilityInfoDto {
+export class RetrievabilityInfo {
   miner_id: string;
   total: string;
   successful: string;

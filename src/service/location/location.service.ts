@@ -12,7 +12,7 @@ import {
   HealthIndicatorResult,
   HttpHealthIndicator,
 } from '@nestjs/terminus';
-import { Cacheable } from '../../utils/cacheable';
+import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()
 export class LocationService extends HealthIndicator {

@@ -5,12 +5,12 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { PrismaService } from '../../db/prisma.service';
-import { CidContactService } from '../../service/cid-contact/cid-contact.service';
+import { PrismaService } from 'src/db/prisma.service';
+import { CidContactService } from 'src/service/cid-contact/cid-contact.service';
 import {
   IPNIAdvertisement,
   IPNIProvider,
-} from '../../service/cid-contact/types.cid-contact';
+} from 'src/service/cid-contact/types.cid-contact';
 
 @Injectable()
 export class IpniAdvertisementFetcherJobService extends HealthIndicator {

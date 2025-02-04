@@ -3,7 +3,7 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
-import { PostgresService } from '../../db/postgres.service';
+import { PostgresService } from 'src/db/postgres.service';
 import { QueryIterablePool } from 'pg-iterator';
 
 export class ClientClaimsRunner implements AggregationRunner {

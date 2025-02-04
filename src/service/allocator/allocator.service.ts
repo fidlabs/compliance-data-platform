@@ -1,37 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../db/prisma.service';
+import { PrismaService } from 'src/db/prisma.service';
 import {
   getAllocatorBiggestClientDistribution,
   getAllocatorRetrievability,
   getAllocatorBiggestClientDistributionAcc,
   getAllocatorRetrievabilityAcc,
 } from '../../../prisma/generated/client/sql';
-import { HistogramHelper } from '../../utils/histogram.helper';
-import { RetrievabilityWeekResponseDto } from '../../types/retrievabilityWeekResponse.dto';
 import { groupBy } from 'lodash';
-import { ProviderComplianceScoreRange } from '../../types/providerComplianceScoreRange';
-import { SpsComplianceWeekResponseDto } from '../../types/spsComplianceWeekResponse.dto';
-import { SpsComplianceWeekDto } from '../../types/spsComplianceWeek.dto';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/utils/prisma.helper';
-import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
-import { SpsComplianceSingleAllocatorDto } from 'src/types/spsComplianceSingleAllocator.dto';
-import { SpsComplianceHistogramWeekDto } from 'src/types/spsComplianceHistogramWeek.dto';
-import { SpsComplianceHistogramWeekResponseDto } from 'src/types/spsComplianceHistogramWeekResponse.dto';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import {
+  AllocatorComplianceHistogramWeek,
+  AllocatorComplianceHistogramWeekResponse,
+  AllocatorComplianceWeekSingle,
+  AllocatorComplianceWeek,
+  AllocatorComplianceWeekResponse,
+} from './types.allocator';
+import { ProviderComplianceScoreRange } from '../storage-provider/types.storage-provider';
+import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
+import {
+  HistogramWeekResponse,
+  RetrievabilityWeekResponse,
+} from '../histogram-helper/types.histogram-helper';
 
 @Injectable()
 export class AllocatorService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly histogramHelper: HistogramHelper,
+    private readonly histogramHelper: HistogramHelperService,
     private readonly storageProviderService: StorageProviderService,
   ) {}
 
   public async getAllocatorRetrievability(
     isAccumulative: boolean,
-  ): Promise<RetrievabilityWeekResponseDto> {
+  ): Promise<RetrievabilityWeekResponse> {
     const lastWeek = DateTime.now()
       .toUTC()
       .minus({ week: 1 })
@@ -66,7 +70,7 @@ export class AllocatorService {
         allocatorCountResult[0].count,
       );
 
-    return RetrievabilityWeekResponseDto.of(
+    return RetrievabilityWeekResponse.of(
       averageSuccessRate * 100,
       weeklyHistogramResult,
     );
@@ -74,7 +78,7 @@ export class AllocatorService {
 
   public async getAllocatorBiggestClientDistribution(
     isAccumulative: boolean,
-  ): Promise<HistogramWeekResponseDto> {
+  ): Promise<HistogramWeekResponse> {
     const clientAllocatorDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_allocator_distribution_weekly_acc
       : Prisma.ModelName.client_allocator_distribution_weekly;
@@ -98,14 +102,14 @@ export class AllocatorService {
     );
   }
 
-  public async getAllocatorSpsComplianceHistogram(
+  public async getAllocatorComplianceHistogram(
     isAccumulative: boolean,
-  ): Promise<SpsComplianceHistogramWeekResponseDto> {
+  ): Promise<AllocatorComplianceHistogramWeekResponse> {
     const allocatorCount = await this.getAllocatorCount(isAccumulative);
 
-    const { results } = await this.getAllocatorSpsCompliance(isAccumulative);
+    const { results } = await this.getAllocatorCompliance(isAccumulative);
 
-    return new SpsComplianceHistogramWeekResponseDto([
+    return new AllocatorComplianceHistogramWeekResponse([
       await this.calculateSpsComplianceWeek(
         results,
         allocatorCount,
@@ -125,13 +129,13 @@ export class AllocatorService {
   }
 
   // TODO cache?
-  public async getAllocatorSpsCompliance(
+  public async getAllocatorCompliance(
     isAccumulative: boolean,
-  ): Promise<SpsComplianceWeekResponseDto> {
+  ): Promise<AllocatorComplianceWeekResponse> {
     const weeks =
       await this.storageProviderService.getWeeksTracked(isAccumulative);
 
-    const result: SpsComplianceWeekDto[] = [];
+    const result: AllocatorComplianceWeek[] = [];
 
     for (const week of weeks) {
       const thisWeekAverageRetrievability =
@@ -162,7 +166,7 @@ export class AllocatorService {
         (a) => a.allocator,
       );
 
-      const weekResult: SpsComplianceSingleAllocatorDto[] = [];
+      const weekResult: AllocatorComplianceWeekSingle[] = [];
 
       for (const allocator in byAllocators) {
         const _weekProvidersForAllocator =
@@ -192,7 +196,7 @@ export class AllocatorService {
       });
     }
 
-    return new SpsComplianceWeekResponseDto(result);
+    return new AllocatorComplianceWeekResponse(result);
   }
 
   private async getAllocatorCount(isAccumulative: boolean): Promise<number> {
@@ -250,11 +254,11 @@ export class AllocatorService {
   }
 
   private async calculateSpsComplianceWeek(
-    calculationResults: SpsComplianceWeekDto[],
+    calculationResults: AllocatorComplianceWeek[],
     allocatorCount: number,
     providerComplianceScoreRange: ProviderComplianceScoreRange,
   ) {
-    return SpsComplianceHistogramWeekDto.of(
+    return AllocatorComplianceHistogramWeek.of(
       providerComplianceScoreRange,
       await this.histogramHelper.getWeeklyHistogramResult(
         this.getSpsComplianceBuckets(
@@ -267,7 +271,7 @@ export class AllocatorService {
   }
 
   private getSpsComplianceBuckets(
-    unsortedResults: SpsComplianceWeekDto[],
+    unsortedResults: AllocatorComplianceWeek[],
     providerComplianceScoreRange: ProviderComplianceScoreRange,
   ): {
     valueFromExclusive: number | null;

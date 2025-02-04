@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../db/prisma.service';
+import { PrismaService } from 'src/db/prisma.service';
 import {
   getProviderBiggestClientDistribution,
   getProviderBiggestClientDistributionAcc,
@@ -8,25 +8,26 @@ import {
   getProviderRetrievability,
   getProviderRetrievabilityAcc,
 } from '../../../prisma/generated/client/sql';
-import { RetrievabilityWeekResponseDto } from '../../types/retrievabilityWeekResponse.dto';
-import { HistogramHelper } from '../../utils/histogram.helper';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/utils/prisma.helper';
-import { HistogramWeekResponseDto } from '../../types/histogramWeek.response.dto';
-import { ProviderComplianceScoreRange } from '../../types/providerComplianceScoreRange';
-import { SpsComplianceWeekDto } from '../../types/spsComplianceWeek.dto';
+import { ProviderComplianceScoreRange } from './types.storage-provider';
+import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
+import {
+  HistogramWeekResponse,
+  RetrievabilityWeekResponse,
+} from '../histogram-helper/types.histogram-helper';
 
 @Injectable()
 export class StorageProviderService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly histogramHelper: HistogramHelper,
+    private readonly histogramHelper: HistogramHelperService,
   ) {}
 
   public async getProviderClients(
     isAccumulative: boolean,
-  ): Promise<HistogramWeekResponseDto> {
+  ): Promise<HistogramWeekResponse> {
     const clientProviderDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_provider_distribution_weekly_acc
       : Prisma.ModelName.client_provider_distribution_weekly;
@@ -52,7 +53,7 @@ export class StorageProviderService {
 
   public async getProviderBiggestClientDistribution(
     isAccumulative: boolean,
-  ): Promise<HistogramWeekResponseDto> {
+  ): Promise<HistogramWeekResponse> {
     const clientProviderDistributionWeeklyTable = isAccumulative
       ? Prisma.ModelName.client_provider_distribution_weekly_acc
       : Prisma.ModelName.client_provider_distribution_weekly;
@@ -78,7 +79,7 @@ export class StorageProviderService {
 
   public async getProviderRetrievability(
     isAccumulative: boolean,
-  ): Promise<RetrievabilityWeekResponseDto> {
+  ): Promise<RetrievabilityWeekResponse> {
     const providersWeeklyTable = isAccumulative
       ? Prisma.ModelName.providers_weekly_acc
       : Prisma.ModelName.providers_weekly;
@@ -105,7 +106,7 @@ export class StorageProviderService {
         providerCountAndAverageSuccessRate[0].count,
       );
 
-    return RetrievabilityWeekResponseDto.of(
+    return RetrievabilityWeekResponse.of(
       providerCountAndAverageSuccessRate[0].averageSuccessRate,
       weeklyHistogramResult,
     );

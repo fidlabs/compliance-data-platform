@@ -6,7 +6,7 @@ import { AllocatorTechApplicationResponse } from './types.allocator-tech';
 import { AllocatorTechAllocatorResponse } from './types.allocator-tech';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { Cacheable } from '../../utils/cacheable';
+import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()
 export class AllocatorTechService {

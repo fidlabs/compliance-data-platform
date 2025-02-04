@@ -6,14 +6,14 @@ import {
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
-import { PostgresService } from '../../db/postgres.service';
-import { PostgresDmobService } from '../../db/postgresDmob.service';
-import { AggregationTasksService } from '../../aggregation/aggregation-tasks.service';
-import { ClientReportGeneratorJobService } from '../../jobs/client-report-generator-job/client-report-generator-job.service';
+import { PostgresService } from 'src/db/postgres.service';
+import { PostgresDmobService } from 'src/db/postgresDmob.service';
+import { AggregationTasksService } from 'src/aggregation/aggregation-tasks.service';
+import { ClientReportGeneratorJobService } from 'src/jobs/client-report-generator-job/client-report-generator-job.service';
 import { ConfigService } from '@nestjs/config';
-import { AllocatorReportGeneratorJobService } from '../../jobs/allocator-report-generator-job/allocator-report-generator-job.service';
-import { IpniAdvertisementFetcherJobService } from '../../jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
-import { LocationService } from '../../service/location/location.service';
+import { AllocatorReportGeneratorJobService } from 'src/jobs/allocator-report-generator-job/allocator-report-generator-job.service';
+import { IpniAdvertisementFetcherJobService } from 'src/jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
+import { LocationService } from 'src/service/location/location.service';
 
 @Controller()
 export class AppController {

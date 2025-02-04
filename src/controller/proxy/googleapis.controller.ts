@@ -1,21 +1,21 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { GetAllocatorsOverviewRequest } from 'src/types/getAllocatorsOverviewRequest.dto';
 import { GoogleApisService } from 'src/service/googleapis/googleapis.service';
-import { GoogleApisSpreadsheetValuesDto } from '../../types/googleApisSpreadsheetValues.dto';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { GoogleApisSpreadsheetValues } from 'src/service/googleapis/types.googleapis';
+import { GetAllocatorsOverviewRequest } from './types.googleapis';
 
 @Controller('proxy/googleapis')
 export class GoogleApisController {
   constructor(private readonly googleApisService: GoogleApisService) {}
 
   @Get('allocators-overview')
-  @ApiOkResponse({ type: GoogleApisSpreadsheetValuesDto })
+  @ApiOkResponse({ type: GoogleApisSpreadsheetValues })
   @ApiOperation({
     summary: 'Get allocators overview from Google Sheets',
   })
   async getAllocatorsOverview(
     @Query() query: GetAllocatorsOverviewRequest,
-  ): Promise<GoogleApisSpreadsheetValuesDto> {
+  ): Promise<GoogleApisSpreadsheetValues> {
     return await this.googleApisService.getAllocatorsOverview(query.tab);
   }
 }

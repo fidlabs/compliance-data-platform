@@ -13,7 +13,7 @@ import {
 import { DataCapStatsPublicVerifiedClientsResponse } from './types.datacapstats';
 import { ConfigService } from '@nestjs/config';
 import { Cache } from 'cache-manager';
-import { Cacheable } from '../../utils/cacheable';
+import { Cacheable } from 'src/utils/cacheable';
 
 // TODO soon to be deprecated
 @Injectable()

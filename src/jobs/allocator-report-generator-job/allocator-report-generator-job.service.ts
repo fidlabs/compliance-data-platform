@@ -6,8 +6,8 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/prometheus/prometheus';
-import { AllocatorTechService } from '../../service/allocator-tech/allocator-tech.service';
-import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
+import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
+import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
 
 @Injectable()
 export class AllocatorReportGeneratorJobService extends HealthIndicator {

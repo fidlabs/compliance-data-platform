@@ -12,7 +12,7 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
-import { AllocatorReportService } from '../../service/allocator-report/allocator-report.service';
+import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
 
 @Controller('allocator-report')
 export class AllocatorReportController {
