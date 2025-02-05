@@ -4,8 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { AllocatorTechApplicationResponse } from './types.allocator-tech';
 import { AllocatorTechAllocatorResponse } from './types.allocator-tech';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { Cache } from 'cache-manager';
+import { Cache } from '@nestjs/cache-manager';
 import { createHash } from 'crypto';
 
 // wraps the manual usage of cache-manager

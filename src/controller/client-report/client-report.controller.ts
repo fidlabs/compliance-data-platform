@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Post,
@@ -12,10 +13,14 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
+import { CACHE_MANAGER, CacheKey, Cache } from '@nestjs/cache-manager';
 
 @Controller('client-report')
 export class ClientReportController {
-  constructor(private readonly clientReportsService: ClientReportService) {}
+  constructor(
+    private readonly clientReportsService: ClientReportService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   @Get(':client')
   @ApiOperation({
@@ -30,6 +35,7 @@ export class ClientReportController {
   }
 
   @Get(':client/latest')
+  @CacheKey('client-report-latest')
   @ApiOperation({
     summary: 'Get latest client compliance report',
   })
@@ -72,8 +78,11 @@ export class ClientReportController {
   })
   async generateClientReport(@Param('client') client: string) {
     const report = await this.clientReportsService.generateReport(client);
-
     if (!report) throw new NotFoundException();
+
+    // invalidate the cache for the latest report
+    await this.cacheManager.del('client-report-latest');
+
     return report;
   }
 }
