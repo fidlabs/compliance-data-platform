@@ -14,6 +14,7 @@ import { modelName } from 'src/utils/prisma';
 import {
   ProviderComplianceScoreRange,
   StorageProviderComplianceWeek,
+  StorageProviderComplianceWeekCount,
   StorageProviderComplianceWeekPercentage,
   StorageProviderComplianceWeekResponse,
 } from './types.storage-provider';
@@ -138,7 +139,7 @@ export class StorageProviderService {
 
         return {
           week: week,
-          ...this.getCompliantProvidersPercentage(
+          ...this.getProviderComplianceWeekCount(
             weekProvidersCompliance,
             weekProviders.map((wp) => wp.provider),
           ),
@@ -262,38 +263,67 @@ export class StorageProviderService {
     };
   }
 
-  public getCompliantProvidersPercentage(
+  public getProviderComplianceWeekCount(
     weekProvidersCompliance: {
       complianceScore: number;
       provider: string;
     }[],
-    providers: string[],
-  ): StorageProviderComplianceWeekPercentage {
+    allProviders: string[],
+  ): StorageProviderComplianceWeekCount {
     return {
-      compliantSpsPercentage: this._getCompliantProvidersPercentage(
+      compliantSps: this._getProviderComplianceWeekCount(
         weekProvidersCompliance,
-        providers,
+        allProviders,
         ProviderComplianceScoreRange.Compliant,
       ),
-      partiallyCompliantSpsPercentage: this._getCompliantProvidersPercentage(
+      partiallyCompliantSps: this._getProviderComplianceWeekCount(
         weekProvidersCompliance,
-        providers,
+        allProviders,
         ProviderComplianceScoreRange.PartiallyCompliant,
       ),
-      nonCompliantSpsPercentage: this._getCompliantProvidersPercentage(
+      nonCompliantSps: this._getProviderComplianceWeekCount(
         weekProvidersCompliance,
-        providers,
+        allProviders,
         ProviderComplianceScoreRange.NonCompliant,
       ),
+      totalSps: allProviders.length,
     };
   }
 
-  private _getCompliantProvidersPercentage(
+  public getProviderComplianceWeekPercentage(
     weekProvidersCompliance: {
       complianceScore: number;
       provider: string;
     }[],
-    providers: string[],
+    allProviders: string[],
+  ): StorageProviderComplianceWeekPercentage {
+    return {
+      compliantSpsPercentage: this._getProviderComplianceWeekPercentage(
+        weekProvidersCompliance,
+        allProviders,
+        ProviderComplianceScoreRange.Compliant,
+      ),
+      partiallyCompliantSpsPercentage:
+        this._getProviderComplianceWeekPercentage(
+          weekProvidersCompliance,
+          allProviders,
+          ProviderComplianceScoreRange.PartiallyCompliant,
+        ),
+      nonCompliantSpsPercentage: this._getProviderComplianceWeekPercentage(
+        weekProvidersCompliance,
+        allProviders,
+        ProviderComplianceScoreRange.NonCompliant,
+      ),
+      totalSps: allProviders.length,
+    };
+  }
+
+  private _getProviderComplianceWeekCount(
+    weekProvidersCompliance: {
+      complianceScore: number;
+      provider: string;
+    }[],
+    allProviders: string[],
     validComplianceScore: ProviderComplianceScoreRange,
   ): number {
     const validComplianceScores: number[] = [];
@@ -310,14 +340,29 @@ export class StorageProviderService {
         break;
     }
 
-    return (
-      (100 *
-        weekProvidersCompliance.filter(
-          (p) =>
-            providers.includes(p.provider) &&
-            validComplianceScores.includes(p.complianceScore),
-        ).length) /
-      providers.length
-    );
+    return weekProvidersCompliance.filter(
+      (p) =>
+        allProviders.includes(p.provider) &&
+        validComplianceScores.includes(p.complianceScore),
+    ).length;
+  }
+
+  private _getProviderComplianceWeekPercentage(
+    weekProvidersCompliance: {
+      complianceScore: number;
+      provider: string;
+    }[],
+    allProviders: string[],
+    validComplianceScore: ProviderComplianceScoreRange,
+  ): number {
+    return allProviders.length
+      ? (this._getProviderComplianceWeekCount(
+          weekProvidersCompliance,
+          allProviders,
+          validComplianceScore,
+        ) /
+          allProviders.length) *
+          100
+      : 0;
   }
 }

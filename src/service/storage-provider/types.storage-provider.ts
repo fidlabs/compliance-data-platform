@@ -15,9 +15,26 @@ export class StorageProviderComplianceWeekPercentage {
 
   @ApiProperty({ type: Number })
   nonCompliantSpsPercentage: number;
+
+  @ApiProperty({ type: Number })
+  totalSps: number;
 }
 
-export class StorageProviderComplianceWeek extends StorageProviderComplianceWeekPercentage {
+export class StorageProviderComplianceWeekCount {
+  @ApiProperty({ type: Number })
+  compliantSps: number;
+
+  @ApiProperty({ type: Number })
+  partiallyCompliantSps: number;
+
+  @ApiProperty({ type: Number })
+  nonCompliantSps: number;
+
+  @ApiProperty({ type: Number })
+  totalSps: number;
+}
+
+export class StorageProviderComplianceWeek extends StorageProviderComplianceWeekCount {
   @ApiProperty({
     type: String,
     format: 'date',

@@ -158,7 +158,7 @@ export class AllocatorService {
 
           return {
             id: allocator,
-            ...this.storageProviderService.getCompliantProvidersPercentage(
+            ...this.storageProviderService.getProviderComplianceWeekPercentage(
               weekProvidersCompliance,
               weekProvidersForAllocator,
             ),
