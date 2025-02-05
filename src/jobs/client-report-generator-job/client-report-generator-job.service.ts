@@ -28,7 +28,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     super();
   }
 
-  async isHealthy(): Promise<HealthIndicatorResult> {
+  async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus('client-report-generator', this.healthy, {
       lastRun: this.lastRun,
       lastRunReports: this.lastRunReports,

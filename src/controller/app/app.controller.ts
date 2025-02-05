@@ -43,7 +43,7 @@ export class AppController {
   @HealthCheck()
   getHealth() {
     return this.healthCheckService.check([
-      () => this.locationService.isHealthy(),
+      () => this.locationService.getHealth(),
       () =>
         this.httpHealthIndicator.pingCheck(
           'cid.contact',
@@ -77,10 +77,10 @@ export class AppController {
         this.typeOrmHealthIndicator.pingCheck('database-dmob', {
           connection: this.postgresDmobService.pool,
         }),
-      () => this.aggregationTasksService.isHealthy(),
-      () => this.clientReportGeneratorJobService.isHealthy(),
-      () => this.allocatorReportGeneratorJobService.isHealthy(),
-      () => this.ipniAdvertisementFetcherJobService.isHealthy(),
+      () => this.aggregationTasksService.getHealth(),
+      () => this.clientReportGeneratorJobService.getHealth(),
+      () => this.allocatorReportGeneratorJobService.getHealth(),
+      () => this.ipniAdvertisementFetcherJobService.getHealth(),
     ]);
   }
 }

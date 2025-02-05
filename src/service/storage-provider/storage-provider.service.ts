@@ -10,7 +10,7 @@ import {
 } from '../../../prisma/generated/client/sql';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
-import { modelName } from 'src/utils/prisma.helper';
+import { modelName } from 'src/utils/prisma';
 import {
   ProviderComplianceScoreRange,
   StorageProviderComplianceWeek,
