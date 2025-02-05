@@ -9,7 +9,7 @@ import {
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
-import { modelName } from 'src/utils/prisma.helper';
+import { modelName } from 'src/utils/prisma';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
   AllocatorComplianceHistogramWeek,

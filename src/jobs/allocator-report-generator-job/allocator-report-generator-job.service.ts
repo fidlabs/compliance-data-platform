@@ -25,7 +25,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     super();
   }
 
-  async isHealthy(): Promise<HealthIndicatorResult> {
+  async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus('allocator-report-generator', this.healthy, {
       lastRun: this.lastRun,
       lastRunReports: this.lastRunReports,

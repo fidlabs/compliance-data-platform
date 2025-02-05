@@ -29,7 +29,7 @@ export class LocationService extends HealthIndicator {
 
   // dedicated, heavily cached healthcheck needed because of ipinfo.io token limits
   @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
-  public async isHealthy(): Promise<HealthIndicatorResult> {
+  public async getHealth(): Promise<HealthIndicatorResult> {
     return await this.httpHealthIndicator.pingCheck(
       'ipinfo.io',
       `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
