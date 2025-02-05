@@ -5,17 +5,12 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Address, IPResponse } from './types.location';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import {
-  HealthIndicator,
-  HealthIndicatorResult,
-  HttpHealthIndicator,
-} from '@nestjs/terminus';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { HealthIndicatorResult, HttpHealthIndicator } from '@nestjs/terminus';
 import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()
-export class LocationService extends HealthIndicator {
+export class LocationService {
   private readonly logger = new Logger(LocationService.name);
 
   constructor(
@@ -23,9 +18,7 @@ export class LocationService extends HealthIndicator {
     private readonly httpService: HttpService,
     private httpHealthIndicator: HttpHealthIndicator,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {
-    super();
-  }
+  ) {}
 
   // dedicated, heavily cached healthcheck needed because of ipinfo.io token limits
   @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour

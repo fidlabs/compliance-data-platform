@@ -5,8 +5,7 @@ import {
 } from './types.lotus-api';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { PrismaService } from 'src/db/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { Cacheable } from 'src/utils/cacheable';

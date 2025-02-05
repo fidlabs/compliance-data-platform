@@ -73,7 +73,7 @@ import { HistogramHelperService } from './service/histogram-helper/histogram-hel
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
     HttpModule.register({ timeout: 5000 }), // 5 seconds
-    CacheModule.register({ ttl: 10000, max: 100000 }), // 10 seconds
+    CacheModule.register({ ttl: 1000 * 60, max: 100000 }), // 1 minute
     TerminusModule.forRoot(),
     PrometheusMetricModule,
   ],

@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { AllocatorReportGeneratorJobService } from 'src/jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 import { IpniAdvertisementFetcherJobService } from 'src/jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { LocationService } from 'src/service/location/location.service';
+import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller()
 export class AppController {
@@ -41,6 +42,7 @@ export class AppController {
 
   @Get('health')
   @HealthCheck()
+  @CacheTTL(1000 * 10) // 10 seconds
   getHealth() {
     return this.healthCheckService.check([
       () => this.locationService.getHealth(),
