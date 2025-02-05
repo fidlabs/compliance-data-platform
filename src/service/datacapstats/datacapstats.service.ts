@@ -5,14 +5,13 @@ import {
   DataCapStatsVerifiedClientData,
   DataCapStatsVerifiedClientsResponse,
 } from './types.datacapstats';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   DataCapStatsVerifierData,
   DataCapStatsVerifiersResponse,
 } from './types.datacapstats';
 import { DataCapStatsPublicVerifiedClientsResponse } from './types.datacapstats';
 import { ConfigService } from '@nestjs/config';
-import { Cache } from 'cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 
 // TODO soon to be deprecated

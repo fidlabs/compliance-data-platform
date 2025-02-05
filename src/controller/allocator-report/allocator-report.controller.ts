@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Inject,
   Logger,
   NotFoundException,
   Param,
@@ -13,6 +14,7 @@ import {
   ApiOperation,
 } from '@nestjs/swagger';
 import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
+import { Cache, CACHE_MANAGER, CacheKey } from '@nestjs/cache-manager';
 
 @Controller('allocator-report')
 export class AllocatorReportController {
@@ -20,6 +22,7 @@ export class AllocatorReportController {
 
   constructor(
     private readonly allocatorReportService: AllocatorReportService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   @Get(':allocator')
@@ -35,6 +38,7 @@ export class AllocatorReportController {
   }
 
   @Get(':allocator/latest')
+  @CacheKey('allocator-report-latest')
   @ApiOperation({
     summary: 'Get latest allocator compliance report',
   })
@@ -77,8 +81,11 @@ export class AllocatorReportController {
   })
   async generateAllocatorReport(@Param('allocator') allocator: string) {
     const report = await this.allocatorReportService.generateReport(allocator);
-
     if (!report) throw new NotFoundException();
+
+    // invalidate the cache for the latest report
+    await this.cacheManager.del('allocator-report-latest');
+
     return report;
   }
 }
