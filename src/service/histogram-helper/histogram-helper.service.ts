@@ -20,13 +20,14 @@ export class HistogramHelperService {
     totalCount: number,
   ): Promise<HistogramWeekResponse> {
     const resultsByWeek = groupBy(results, (p) => p.week);
-
     const histogramWeekDtos: HistogramWeek[] = [];
+
     for (const key in resultsByWeek) {
       const value = resultsByWeek[key];
       const weekResponses = value.map((r) => {
         return new Histogram(r.valueFromExclusive, r.valueToInclusive, r.count);
       });
+
       histogramWeekDtos.push(
         new HistogramWeek(
           new Date(key),
