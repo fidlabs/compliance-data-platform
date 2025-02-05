@@ -2,21 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getAllocatorBiggestClientDistribution,
-  getAllocatorRetrievability,
   getAllocatorBiggestClientDistributionAcc,
+  getAllocatorRetrievability,
   getAllocatorRetrievabilityAcc,
 } from '../../../prisma/generated/client/sql';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
-import { Prisma } from 'prisma/generated/client';
-import { modelName } from 'src/utils/prisma';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
   AllocatorComplianceHistogramWeek,
   AllocatorComplianceHistogramWeekResponse,
-  AllocatorComplianceWeekSingle,
   AllocatorComplianceWeek,
   AllocatorComplianceWeekResponse,
+  AllocatorComplianceWeekSingle,
 } from './types.allocator';
 import {
   ProviderComplianceScoreRange,
@@ -27,6 +25,8 @@ import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
+import { modelName } from 'src/utils/prisma';
+import { Prisma } from 'prisma/generated/client';
 
 @Injectable()
 export class AllocatorService {
@@ -45,23 +45,13 @@ export class AllocatorService {
       .startOf('week')
       .toJSDate();
 
-    const averageSuccessRate = await this.getWeekAverageAllocatorRetrievability(
-      lastWeek,
-      isAccumulative,
-    );
+    const lastWeekAverageSuccessRate =
+      await this.getWeekAverageAllocatorRetrievability(
+        lastWeek,
+        isAccumulative,
+      );
 
-    const clientAllocatorDistributionWeeklyTable = isAccumulative
-      ? Prisma.ModelName.client_allocator_distribution_weekly_acc
-      : Prisma.ModelName.client_allocator_distribution_weekly;
-
-    const allocatorCountResult = await this.prismaService.$queryRaw<
-      [
-        {
-          count: number;
-        },
-      ]
-    >`select count(distinct allocator)::int
-      from ${modelName(clientAllocatorDistributionWeeklyTable)}`;
+    const allocatorCount = await this.getAllocatorCount();
 
     const query = isAccumulative
       ? getAllocatorRetrievabilityAcc
@@ -70,11 +60,11 @@ export class AllocatorService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
-        allocatorCountResult[0].count,
+        allocatorCount,
       );
 
     return RetrievabilityWeekResponse.of(
-      averageSuccessRate * 100,
+      lastWeekAverageSuccessRate * 100,
       weeklyHistogramResult,
     );
   }
@@ -82,18 +72,7 @@ export class AllocatorService {
   public async getAllocatorBiggestClientDistribution(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
-    const clientAllocatorDistributionWeeklyTable = isAccumulative
-      ? Prisma.ModelName.client_allocator_distribution_weekly_acc
-      : Prisma.ModelName.client_allocator_distribution_weekly;
-
-    const allocatorCountResult = await this.prismaService.$queryRaw<
-      [
-        {
-          count: number;
-        },
-      ]
-    >`select count(distinct allocator)::int
-      from ${modelName(clientAllocatorDistributionWeeklyTable)}`;
+    const allocatorCount = await this.getAllocatorCount();
 
     const query = isAccumulative
       ? getAllocatorBiggestClientDistributionAcc
@@ -101,14 +80,14 @@ export class AllocatorService {
 
     return await this.histogramHelper.getWeeklyHistogramResult(
       await this.prismaService.$queryRawTyped(query()),
-      allocatorCountResult[0].count,
+      allocatorCount,
     );
   }
 
   public async getAllocatorComplianceHistogram(
     isAccumulative: boolean,
   ): Promise<AllocatorComplianceHistogramWeekResponse> {
-    const allocatorCount = await this.getAllocatorCount(isAccumulative);
+    const allocatorCount = await this.getAllocatorCount();
 
     const { results } = await this.getAllocatorCompliance(isAccumulative);
 
@@ -197,19 +176,17 @@ export class AllocatorService {
     return new AllocatorComplianceWeekResponse(result);
   }
 
-  private async getAllocatorCount(isAccumulative: boolean): Promise<number> {
+  private async getAllocatorCount(): Promise<number> {
     return (
-      await (
-        (isAccumulative
-          ? this.prismaService.allocators_weekly_acc
-          : this.prismaService.allocators_weekly) as any
-      ).findMany({
-        distinct: ['allocator'],
-        select: {
-          allocator: true,
-        },
-      })
-    ).length;
+      await this.prismaService.$queryRaw<
+        [
+          {
+            count: number;
+          },
+        ]
+      >`select count(distinct allocator)::int
+      from ${modelName(Prisma.ModelName.allocators_weekly_acc)}`
+    )[0].count;
   }
 
   private async getWeekAverageAllocatorRetrievability(
