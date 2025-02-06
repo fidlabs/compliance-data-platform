@@ -36,14 +36,7 @@ export class AllocatorTechService {
       this.httpService.get<AllocatorTechAllocatorResponse[]>(endpoint),
     );
 
-    return data;
-  }
-
-  public async getNonZeroAllocators(): Promise<
-    AllocatorTechAllocatorResponse[]
-  > {
-    const allocators = await this.getAllocators();
-    return allocators.filter((allocator) => allocator.address);
+    return data.filter((allocator) => allocator.address);
   }
 
   public async getAllocatorInfo(

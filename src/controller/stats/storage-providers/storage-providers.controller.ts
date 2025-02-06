@@ -33,13 +33,13 @@ export class StorageProvidersController {
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getProviderClients(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderClients(false);
+    return await this.storageProviderService.getProviderClientsWeekly(false);
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getProviderBiggestClientDistribution(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderBiggestClientDistribution(
+    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
       false,
     );
   }
@@ -47,12 +47,14 @@ export class StorageProvidersController {
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
-    return await this.storageProviderService.getProviderRetrievability(false);
+    return await this.storageProviderService.getProviderRetrievabilityWeekly(
+      false,
+    );
   }
 
   @Get('compliance')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
   public async getProviderCompliance(): Promise<StorageProviderComplianceWeekResponse> {
-    return await this.storageProviderService.getProviderCompliance(false);
+    return await this.storageProviderService.getProviderComplianceWeekly(false);
   }
 }
