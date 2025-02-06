@@ -6,7 +6,7 @@ import { AggregationTable } from '../aggregation-table';
 import { getProvidersWeekly } from '../../../prisma/generated/client/sql';
 
 export class ProvidersRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

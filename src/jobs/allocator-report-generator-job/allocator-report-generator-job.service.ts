@@ -25,7 +25,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     super();
   }
 
-  async getHealth(): Promise<HealthIndicatorResult> {
+  public async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus('allocator-report-generator', this.healthy, {
       lastRun: this.lastRun,
       lastRunReports: this.lastRunReports,
@@ -68,7 +68,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
-  async runAllocatorReportGenerationJob() {
+  public async runAllocatorReportGenerationJob() {
     try {
       this.logger.log('Starting Allocator Reports generation');
       this.lastRun = new Date();

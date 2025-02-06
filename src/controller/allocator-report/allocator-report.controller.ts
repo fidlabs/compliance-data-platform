@@ -33,7 +33,7 @@ export class AllocatorReportController {
     description: 'List of allocator compliance reports',
     type: null,
   })
-  async getAllocatorReports(@Param('allocator') allocator: string) {
+  public async getAllocatorReports(@Param('allocator') allocator: string) {
     return await this.allocatorReportService.getReports(allocator);
   }
 
@@ -46,7 +46,7 @@ export class AllocatorReportController {
     description: 'Allocator compliance report',
     type: null,
   })
-  async getAllocatorReport(@Param('allocator') allocator: string) {
+  public async getAllocatorReport(@Param('allocator') allocator: string) {
     const report = await this.allocatorReportService.getLatestReport(allocator);
 
     if (!report) throw new NotFoundException();
@@ -61,7 +61,7 @@ export class AllocatorReportController {
     description: 'Allocator compliance report',
     type: null,
   })
-  async getAllocatorReportById(
+  public async getAllocatorReportById(
     @Param('allocator') allocator: string,
     @Param('id') id: string,
   ) {
@@ -79,7 +79,7 @@ export class AllocatorReportController {
     description: 'Allocator compliance report',
     type: null,
   })
-  async generateAllocatorReport(@Param('allocator') allocator: string) {
+  public async generateAllocatorReport(@Param('allocator') allocator: string) {
     const report = await this.allocatorReportService.generateReport(allocator);
     if (!report) throw new NotFoundException();
 

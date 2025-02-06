@@ -13,7 +13,7 @@ export class GoogleApisService {
     private readonly httpService: HttpService,
   ) {}
 
-  async getAllocatorsOverview(
+  public async getAllocatorsOverview(
     tab?: string,
   ): Promise<GoogleApisSpreadsheetValues> {
     tab ||= 'GRAPHS';

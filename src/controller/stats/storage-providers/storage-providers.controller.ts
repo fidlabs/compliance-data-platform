@@ -26,19 +26,19 @@ export class StorageProvidersController {
     description: 'Aggregated storage providers IPNI reporting status',
     type: AggregatedProvidersIPNIReportingStatus,
   })
-  async getAggregatedProvidersIPNIReportingStatus(): Promise<AggregatedProvidersIPNIReportingStatus> {
+  public async getAggregatedProvidersIPNIReportingStatus(): Promise<AggregatedProvidersIPNIReportingStatus> {
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatus();
   }
 
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  async getProviderClients(): Promise<HistogramWeekResponse> {
+  public async getProviderClients(): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderClients(false);
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  async getProviderBiggestClientDistribution(): Promise<HistogramWeekResponse> {
+  public async getProviderBiggestClientDistribution(): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderBiggestClientDistribution(
       false,
     );
@@ -46,13 +46,13 @@ export class StorageProvidersController {
 
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
+  public async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievability(false);
   }
 
   @Get('compliance')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
-  async getProviderCompliance(): Promise<StorageProviderComplianceWeekResponse> {
+  public async getProviderCompliance(): Promise<StorageProviderComplianceWeekResponse> {
     return await this.storageProviderService.getProviderCompliance(false);
   }
 }

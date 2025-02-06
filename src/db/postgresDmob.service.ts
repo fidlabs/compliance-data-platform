@@ -8,7 +8,7 @@ export class PostgresDmobService implements OnModuleInit {
 
   constructor(private configService: ConfigService) {}
 
-  async onModuleInit() {
+  public async onModuleInit() {
     this.pool = new Pool({
       connectionString: this.configService.get<string>('DMOB_DATABASE_URL'),
     });

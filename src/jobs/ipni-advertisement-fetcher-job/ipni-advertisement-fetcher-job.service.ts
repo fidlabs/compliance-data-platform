@@ -25,7 +25,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
     super();
   }
 
-  async getHealth(): Promise<HealthIndicatorResult> {
+  public async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus(
       'ipni-advertisement-fetcher',
       this.healthy,
@@ -37,7 +37,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_8PM)
-  async runIPNIAdvertisementFetcherJob() {
+  public async runIPNIAdvertisementFetcherJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
 

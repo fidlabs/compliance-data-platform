@@ -17,7 +17,7 @@ export class StorageProviderReportService {
     private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
 
-  async getStorageProviderDistribution(clientId: string) {
+  public async getStorageProviderDistribution(clientId: string) {
     const clientProviderDistribution =
       await this.prismaService.client_provider_distribution.findMany({
         where: {

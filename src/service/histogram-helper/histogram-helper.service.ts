@@ -10,7 +10,7 @@ import {
 export class HistogramHelperService {
   private readonly logger = new Logger(HistogramHelperService.name);
 
-  async getWeeklyHistogramResult(
+  public async getWeeklyHistogramResult(
     results: {
       valueFromExclusive: number | null;
       valueToInclusive: number | null;

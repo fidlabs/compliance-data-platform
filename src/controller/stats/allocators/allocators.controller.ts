@@ -15,13 +15,13 @@ export class AllocatorsController {
 
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
+  public async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getAllocatorRetrievability(false);
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
+  public async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getAllocatorBiggestClientDistribution(
       false,
     );
@@ -29,7 +29,7 @@ export class AllocatorsController {
 
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorComplianceWeekResponse })
-  async getAllocatorSpsCompliance(): Promise<AllocatorComplianceWeekResponse> {
+  public async getAllocatorSpsCompliance(): Promise<AllocatorComplianceWeekResponse> {
     return await this.allocatorService.getAllocatorCompliance(false);
   }
 }

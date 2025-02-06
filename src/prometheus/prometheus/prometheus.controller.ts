@@ -8,7 +8,7 @@ import { PrometheusAuthGuard } from '../guards/prometheus.guard';
 export class PrometheusMetricController extends PrometheusController {
   @Get()
   @UseGuards(PrometheusAuthGuard)
-  async index(@Res({ passthrough: true }) response: Response) {
+  public async index(@Res({ passthrough: true }) response: Response) {
     return super.index(response);
   }
 }

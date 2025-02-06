@@ -8,7 +8,7 @@ import { PostgresService } from 'src/db/postgres.service';
 import { PostgresDmobService } from 'src/db/postgresDmob.service';
 
 export class UnifiedVerifiedDealRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

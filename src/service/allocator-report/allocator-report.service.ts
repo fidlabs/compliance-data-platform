@@ -16,7 +16,7 @@ export class AllocatorReportService {
     private readonly allocatorTechService: AllocatorTechService,
   ) {}
 
-  async generateReport(allocatorIdOrAddress: string) {
+  public async generateReport(allocatorIdOrAddress: string) {
     const verifierData =
       await this.dataCapStatsService.getVerifierData(allocatorIdOrAddress);
 
@@ -126,7 +126,7 @@ export class AllocatorReportService {
     });
   }
 
-  async getReports(allocatorId: string) {
+  public async getReports(allocatorId: string) {
     return await this.prismaService.allocator_report.findMany({
       where: {
         allocator: allocatorId,
@@ -137,11 +137,11 @@ export class AllocatorReportService {
     });
   }
 
-  async getLatestReport(allocatorId: string) {
+  public async getLatestReport(allocatorId: string) {
     return this.getReport(allocatorId);
   }
 
-  async getReport(allocatorId: string, id?: string) {
+  public async getReport(allocatorId: string, id?: string) {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
         allocator: allocatorId,

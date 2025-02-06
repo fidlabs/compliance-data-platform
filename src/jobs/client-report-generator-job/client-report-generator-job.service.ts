@@ -28,7 +28,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     super();
   }
 
-  async getHealth(): Promise<HealthIndicatorResult> {
+  public async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus('client-report-generator', this.healthy, {
       lastRun: this.lastRun,
       lastRunReports: this.lastRunReports,
@@ -85,7 +85,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
-  async runClientReportGenerationJob() {
+  public async runClientReportGenerationJob() {
     try {
       this.logger.log('Starting Client Reports generation');
       this.lastRun = new Date();

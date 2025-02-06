@@ -6,7 +6,7 @@ import { AggregationTable } from '../aggregation-table';
 import { getClientReplicaDistribution } from '../../../prismaDmob/generated/client/sql';
 
 export class ClientReplicaDistributionRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

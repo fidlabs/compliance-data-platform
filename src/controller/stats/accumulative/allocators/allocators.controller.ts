@@ -18,13 +18,13 @@ export class AllocatorsAccController {
 
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
+  public async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getAllocatorRetrievability(true);
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
+  public async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getAllocatorBiggestClientDistribution(
       true,
     );
@@ -33,13 +33,13 @@ export class AllocatorsAccController {
   @Get('sps-compliance')
   @ApiOperation({ deprecated: true })
   @ApiOkResponse({ type: AllocatorComplianceHistogramWeekResponse })
-  async getAllocatorComplianceHistogram(): Promise<AllocatorComplianceHistogramWeekResponse> {
+  public async getAllocatorComplianceHistogram(): Promise<AllocatorComplianceHistogramWeekResponse> {
     return await this.allocatorService.getAllocatorComplianceHistogram(true);
   }
 
   @Get('sps-compliance-data')
   @ApiOkResponse({ type: AllocatorComplianceWeekResponse })
-  async getAllocatorCompliance(): Promise<AllocatorComplianceWeekResponse> {
+  public async getAllocatorCompliance(): Promise<AllocatorComplianceWeekResponse> {
     return await this.allocatorService.getAllocatorCompliance(true);
   }
 }

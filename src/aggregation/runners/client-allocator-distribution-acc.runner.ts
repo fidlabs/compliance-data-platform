@@ -6,7 +6,7 @@ import { AggregationTable } from '../aggregation-table';
 import { getClientAllocatorDistributionWeeklyAcc } from '../../../prismaDmob/generated/client/sql';
 
 export class ClientAllocatorDistributionAccRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

@@ -7,7 +7,7 @@ import { PostgresService } from 'src/db/postgres.service';
 import { QueryIterablePool } from 'pg-iterator';
 
 export class AllocatorsAccRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

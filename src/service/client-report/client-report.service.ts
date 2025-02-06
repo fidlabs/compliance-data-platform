@@ -15,7 +15,7 @@ export class ClientReportService {
     private readonly clientService: ClientService,
   ) {}
 
-  async generateReport(clientId: string) {
+  public async generateReport(clientId: string) {
     const verifiedClientData =
       await this.dataCapStatsService.fetchPrimaryClientDetails(clientId);
 
@@ -76,7 +76,7 @@ export class ClientReportService {
     return report;
   }
 
-  async getReports(clientId: string) {
+  public async getReports(clientId: string) {
     return await this.prismaService.client_report.findMany({
       where: {
         client: clientId,
@@ -87,11 +87,11 @@ export class ClientReportService {
     });
   }
 
-  async getLatestReport(clientId: string) {
+  public async getLatestReport(clientId: string) {
     return this.getReport(clientId);
   }
 
-  async getReport(clientId: string, id?: any) {
+  public async getReport(clientId: string, id?: any) {
     return this.prismaService.client_report.findFirst({
       where: {
         client: clientId,

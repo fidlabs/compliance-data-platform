@@ -8,7 +8,7 @@ export class PostgresService implements OnModuleInit {
 
   constructor(private configService: ConfigService) {}
 
-  async onModuleInit() {
+  public async onModuleInit() {
     this.pool = new Pool({
       connectionString: this.configService.get<string>('DATABASE_URL'),
     });

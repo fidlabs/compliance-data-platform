@@ -30,7 +30,7 @@ export class ClientReportController {
     description: 'List of client compliance reports',
     type: null,
   })
-  async getClientReports(@Param('client') client: string) {
+  public async getClientReports(@Param('client') client: string) {
     return await this.clientReportsService.getReports(client);
   }
 
@@ -43,7 +43,7 @@ export class ClientReportController {
     description: 'Client compliance report',
     type: null,
   })
-  async getClientReport(@Param('client') client: string) {
+  public async getClientReport(@Param('client') client: string) {
     const report = await this.clientReportsService.getLatestReport(client);
 
     if (!report) throw new NotFoundException();
@@ -58,7 +58,7 @@ export class ClientReportController {
     description: 'Client compliance report',
     type: null,
   })
-  async getClientReportById(
+  public async getClientReportById(
     @Param('client') client: string,
     @Param('id') id: bigint,
   ) {
@@ -76,7 +76,7 @@ export class ClientReportController {
     description: 'Client compliance report',
     type: null,
   })
-  async generateClientReport(@Param('client') client: string) {
+  public async generateClientReport(@Param('client') client: string) {
     const report = await this.clientReportsService.generateReport(client);
     if (!report) throw new NotFoundException();
 
