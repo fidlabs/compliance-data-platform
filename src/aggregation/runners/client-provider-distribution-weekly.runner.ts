@@ -8,7 +8,7 @@ import { getClientProviderDistributionWeekly } from '../../../prismaDmob/generat
 export class ClientProviderDistributionWeeklyRunner
   implements AggregationRunner
 {
-  async run(
+  public async run(
     prismaService: PrismaService,
     prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

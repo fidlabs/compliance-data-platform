@@ -6,7 +6,7 @@ import { AggregationTable } from '../aggregation-table';
 import { getCidSharing } from '../../../prismaDmob/generated/client/sql';
 
 export class CidSharingRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     prismaDmobService: PrismaDmobService,
     _filSparkService: FilSparkService,

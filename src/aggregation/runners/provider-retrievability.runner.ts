@@ -6,7 +6,7 @@ import { AggregationTable } from '../aggregation-table';
 import { DateTime } from 'luxon';
 
 export class ProviderRetrievabilityRunner implements AggregationRunner {
-  async run(
+  public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
     filSparkService: FilSparkService,

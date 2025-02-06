@@ -23,7 +23,7 @@ export class AggregationTasksService extends HealthIndicator {
     super();
   }
 
-  async getHealth(): Promise<HealthIndicatorResult> {
+  public async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus('aggregation-tasks', this.healthy, {
       lastSuccess: this.lastSuccess,
       lastRun: this.lastRun,
@@ -34,7 +34,7 @@ export class AggregationTasksService extends HealthIndicator {
   }
 
   @Cron(CronExpression.EVERY_HOUR)
-  async runAggregationJob() {
+  public async runAggregationJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
       const endAllAggregationsTimer =

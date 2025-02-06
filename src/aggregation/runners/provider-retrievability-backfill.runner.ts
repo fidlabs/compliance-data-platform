@@ -7,7 +7,7 @@ import { DateTime } from 'luxon';
 
 export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
   // will fetch 1 day worth of data each run until everything is backfilled
-  async run(
+  public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
     filSparkService: FilSparkService,

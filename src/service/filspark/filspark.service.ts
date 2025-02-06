@@ -10,7 +10,9 @@ export class FilSparkService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  async fetchRetrievability(date?: DateTime): Promise<RetrievabilityInfo[]> {
+  public async fetchRetrievability(
+    date?: DateTime,
+  ): Promise<RetrievabilityInfo[]> {
     const dateParam = date?.toFormat('yyyy-MM-dd');
     const endpoint =
       'https://stats.filspark.com/miners/retrieval-success-rate/summary';

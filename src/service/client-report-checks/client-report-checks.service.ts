@@ -32,7 +32,7 @@ export class ClientReportChecksService {
     );
   }
 
-  async storeReportChecks(reportId: bigint) {
+  public async storeReportChecks(reportId: bigint) {
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
     await this.storeDealDataSharedWithOtherClientsChecks(reportId);

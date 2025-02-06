@@ -13,7 +13,7 @@ export class GoogleApisController {
   @ApiOperation({
     summary: 'Get allocators overview from Google Sheets',
   })
-  async getAllocatorsOverview(
+  public async getAllocatorsOverview(
     @Query() query: GetAllocatorsOverviewRequest,
   ): Promise<GoogleApisSpreadsheetValues> {
     return await this.googleApisService.getAllocatorsOverview(query.tab);

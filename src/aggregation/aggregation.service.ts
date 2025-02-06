@@ -23,7 +23,7 @@ export class AggregationService {
     private readonly prometheusMetricService: PrometheusMetricService,
   ) {}
 
-  async executeWithRetries(maxTries: number, fn: () => Promise<void>) {
+  public async executeWithRetries(maxTries: number, fn: () => Promise<void>) {
     let success = false;
     let executionNumber = 0;
     let lastErr;
@@ -52,7 +52,7 @@ export class AggregationService {
     }
   }
 
-  async runAggregations() {
+  public async runAggregations() {
     const filledTables: AggregationTable[] = [];
     const pendingAggregationRunners = Object.assign(
       [],
