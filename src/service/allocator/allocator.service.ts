@@ -36,7 +36,7 @@ export class AllocatorService {
     private readonly storageProviderService: StorageProviderService,
   ) {}
 
-  public async getAllocatorRetrievability(
+  public async getAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeek = DateTime.now()
@@ -45,7 +45,7 @@ export class AllocatorService {
       .startOf('week')
       .toJSDate();
 
-    const lastWeekAverageSuccessRate =
+    const lastWeekAverageRetrievability =
       await this.getWeekAverageAllocatorRetrievability(
         lastWeek,
         isAccumulative,
@@ -64,12 +64,12 @@ export class AllocatorService {
       );
 
     return RetrievabilityWeekResponse.of(
-      lastWeekAverageSuccessRate * 100,
+      lastWeekAverageRetrievability * 100,
       weeklyHistogramResult,
     );
   }
 
-  public async getAllocatorBiggestClientDistribution(
+  public async getAllocatorBiggestClientDistributionWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
     const allocatorCount = await this.getAllocatorCount();
@@ -89,7 +89,7 @@ export class AllocatorService {
   ): Promise<AllocatorComplianceHistogramWeekResponse> {
     const allocatorCount = await this.getAllocatorCount();
 
-    const { results } = await this.getAllocatorCompliance(isAccumulative);
+    const { results } = await this.getAllocatorComplianceWeekly(isAccumulative);
 
     return new AllocatorComplianceHistogramWeekResponse([
       await this.calculateSpsComplianceWeek(
@@ -110,7 +110,7 @@ export class AllocatorService {
     ]);
   }
 
-  public async getAllocatorCompliance(
+  public async getAllocatorComplianceWeekly(
     isAccumulative: boolean,
   ): Promise<AllocatorComplianceWeekResponse> {
     const weeks =
@@ -160,7 +160,7 @@ export class AllocatorService {
             id: allocator,
             ...this.storageProviderService.getProviderComplianceWeekPercentage(
               weekProvidersCompliance,
-              weekProvidersForAllocator,
+              weekProvidersForAllocator.map((p) => p.provider),
             ),
           };
         }),
@@ -176,7 +176,7 @@ export class AllocatorService {
     return new AllocatorComplianceWeekResponse(result);
   }
 
-  private async getAllocatorCount(): Promise<number> {
+  public async getAllocatorCount(): Promise<number> {
     return (
       await this.prismaService.$queryRaw<
         [
@@ -189,7 +189,7 @@ export class AllocatorService {
     )[0].count;
   }
 
-  private async getWeekAverageAllocatorRetrievability(
+  public async getWeekAverageAllocatorRetrievability(
     week: Date,
     isAccumulative: boolean,
   ): Promise<number> {
@@ -209,7 +209,7 @@ export class AllocatorService {
     )._avg.avg_weighted_retrievability_success_rate;
   }
 
-  private async getWeekAllocatorsWithClients(
+  public async getWeekAllocatorsWithClients(
     week: Date,
     isAccumulative: boolean,
   ) {
@@ -232,7 +232,7 @@ export class AllocatorService {
     calculationResults: AllocatorComplianceWeek[],
     allocatorCount: number,
     providerComplianceScoreRange: ProviderComplianceScoreRange,
-  ) {
+  ): Promise<AllocatorComplianceHistogramWeek> {
     return AllocatorComplianceHistogramWeek.of(
       providerComplianceScoreRange,
       await this.histogramHelper.getWeeklyHistogramResult(

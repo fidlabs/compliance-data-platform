@@ -31,21 +31,10 @@ export class StorageProviderService {
     private readonly histogramHelper: HistogramHelperService,
   ) {}
 
-  public async getProviderClients(
+  public async getProviderClientsWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
-    const clientProviderDistributionWeeklyTable = isAccumulative
-      ? Prisma.ModelName.client_provider_distribution_weekly_acc
-      : Prisma.ModelName.client_provider_distribution_weekly;
-
-    const providerCountResult = await this.prismaService.$queryRaw<
-      [
-        {
-          count: number;
-        },
-      ]
-    >`select count(distinct provider)::int
-      from ${modelName(clientProviderDistributionWeeklyTable)}`;
+    const providerCount = await this.getProviderCount();
 
     const query = isAccumulative
       ? getProviderClientsWeeklyAcc
@@ -53,25 +42,14 @@ export class StorageProviderService {
 
     return await this.histogramHelper.getWeeklyHistogramResult(
       await this.prismaService.$queryRawTyped(query()),
-      providerCountResult[0].count,
+      providerCount,
     );
   }
 
-  public async getProviderBiggestClientDistribution(
+  public async getProviderBiggestClientDistributionWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
-    const clientProviderDistributionWeeklyTable = isAccumulative
-      ? Prisma.ModelName.client_provider_distribution_weekly_acc
-      : Prisma.ModelName.client_provider_distribution_weekly;
-
-    const providerCountResult = await this.prismaService.$queryRaw<
-      [
-        {
-          count: number;
-        },
-      ]
-    >`select count(distinct provider)::int
-      from ${modelName(clientProviderDistributionWeeklyTable)}`;
+    const providerCount = await this.getProviderCount();
 
     const query = isAccumulative
       ? getProviderBiggestClientDistributionAcc
@@ -79,28 +57,32 @@ export class StorageProviderService {
 
     return await this.histogramHelper.getWeeklyHistogramResult(
       await this.prismaService.$queryRawTyped(query()),
-      providerCountResult[0].count,
+      providerCount,
     );
   }
 
-  public async getProviderRetrievability(
+  public async getProviderCount(): Promise<number> {
+    return (
+      await this.prismaService.$queryRaw<
+        [{ count: number }]
+      >`select count(distinct provider)::int
+        from ${modelName(Prisma.ModelName.providers_weekly_acc)}`
+    )[0].count;
+  }
+
+  public async getProviderRetrievabilityWeekly(
     isAccumulative: boolean,
   ): Promise<RetrievabilityWeekResponse> {
-    const providersWeeklyTable = isAccumulative
-      ? Prisma.ModelName.providers_weekly_acc
-      : Prisma.ModelName.providers_weekly;
+    const lastWeek = DateTime.now()
+      .toUTC()
+      .minus({ week: 1 })
+      .startOf('week')
+      .toJSDate();
 
-    const providerCountAndAverageSuccessRate = await this.prismaService
-      .$queryRaw<
-      [
-        {
-          count: number;
-          averageSuccessRate: number;
-        },
-      ]
-    >`select count(distinct provider)::int,
-             100 * avg(avg_retrievability_success_rate) as "averageSuccessRate"
-      from ${modelName(providersWeeklyTable)} where week = ${DateTime.now().toUTC().minus({ week: 1 }).startOf('week').toJSDate()};`;
+    const lastWeekAverageRetrievability =
+      await this.getWeekAverageProviderRetrievability(lastWeek, isAccumulative);
+
+    const providerCount = await this.getProviderCount();
 
     const query = isAccumulative
       ? getProviderRetrievabilityAcc
@@ -109,16 +91,16 @@ export class StorageProviderService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
-        providerCountAndAverageSuccessRate[0].count,
+        providerCount,
       );
 
     return RetrievabilityWeekResponse.of(
-      providerCountAndAverageSuccessRate[0].averageSuccessRate,
+      lastWeekAverageRetrievability * 100,
       weeklyHistogramResult,
     );
   }
 
-  public async getProviderCompliance(
+  public async getProviderComplianceWeekly(
     isAccumulative: boolean,
   ): Promise<StorageProviderComplianceWeekResponse> {
     const weeks = await this.getWeeksTracked(isAccumulative);
@@ -154,25 +136,23 @@ export class StorageProviderService {
     week: Date,
     isAccumulative: boolean,
     clients: string[],
-  ): Promise<string[]> {
-    return (
-      await (
-        (isAccumulative
-          ? this.prismaService.client_provider_distribution_weekly_acc
-          : this.prismaService.client_provider_distribution_weekly) as any
-      ).findMany({
-        where: {
-          week: week,
-          client: {
-            in: clients,
-          },
+  ) {
+    return await (
+      (isAccumulative
+        ? this.prismaService.client_provider_distribution_weekly_acc
+        : this.prismaService.client_provider_distribution_weekly) as any
+    ).findMany({
+      where: {
+        week: week,
+        client: {
+          in: clients,
         },
-        select: {
-          provider: true,
-        },
-        distinct: ['provider'],
-      })
-    ).map((p) => p.provider);
+      },
+      select: {
+        provider: true,
+      },
+      distinct: ['provider'],
+    });
   }
 
   public async getWeekProviders(week: Date, isAccumulative: boolean) {

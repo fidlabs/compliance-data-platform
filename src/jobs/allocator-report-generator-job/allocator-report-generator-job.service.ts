@@ -43,7 +43,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
   }
 
   private async _runAllocatorReportGeneration() {
-    const allocators = await this.allocatorTechService.getNonZeroAllocators();
+    const allocators = await this.allocatorTechService.getAllocators();
     let fails = 0;
 
     for (const [, allocator] of allocators.entries()) {
