@@ -44,7 +44,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   ) {
     // find Filecoin Client ID
     const filecoinId = await this.lotusApiService.getFilecoinClientId(
-      application[0].ID,
+      application.ID,
     );
 
     if (!filecoinId) {
@@ -63,15 +63,14 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     for (const [i, application] of applications.entries()) {
       try {
         this.logger.debug(
-          `Starting generation of Client Report for application #${application[0].ID}`,
+          `Starting generation of Client Report for application #${application.ID}`,
         );
 
         await this.generateClientReport(application);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of Client Report for application #${application[0].ID}: ${err}`,
-          err.stack,
+          `Error during generation of Client Report for application #${application.ID}: ${err}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
