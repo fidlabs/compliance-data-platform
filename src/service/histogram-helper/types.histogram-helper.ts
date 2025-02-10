@@ -1,19 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class Histogram {
-  @ApiProperty({ nullable: true })
-  valueFromExclusive: number | null;
+  @ApiProperty()
+  valueFromExclusive: number;
 
-  @ApiProperty({ nullable: true })
-  valueToInclusive: number | null;
+  @ApiProperty()
+  valueToInclusive: number;
 
-  @ApiProperty({ nullable: true })
-  count: number | null;
+  @ApiProperty()
+  count: number;
 
   constructor(
-    valueFromExclusive: number | null,
-    valueToInclusive: number | null,
-    count: number | null,
+    valueFromExclusive: number,
+    valueToInclusive: number,
+    count: number,
   ) {
     this.valueFromExclusive = valueFromExclusive;
     this.valueToInclusive = valueToInclusive;
@@ -29,21 +29,68 @@ export class HistogramWeek {
   })
   week: Date;
 
+  @ApiProperty({
+    description: 'Number of allocators / storage providers in the week',
+  })
+  total: number;
+
   @ApiProperty({ type: Histogram, isArray: true })
   results: Histogram[];
 
-  @ApiProperty()
-  total: number;
-
-  constructor(week: Date, results: Histogram[], total: number) {
+  constructor(week: Date, total: number, results: Histogram[]) {
     this.week = week;
-    this.results = results;
     this.total = total;
+    this.results = results;
+  }
+}
+
+export class HistogramWeekFlat extends Histogram {
+  week: Date;
+
+  constructor(
+    valueFromExclusive: number,
+    valueToInclusive: number,
+    count: number,
+    week: Date,
+  ) {
+    super(valueFromExclusive, valueToInclusive, count);
+    this.week = week;
+  }
+}
+
+export class RetrievabilityHistogramWeek extends HistogramWeek {
+  @ApiProperty({
+    description: 'Average retrievability success rate in the week',
+  })
+  averageSuccessRate: number;
+
+  constructor(
+    week: Date,
+    total: number,
+    results: Histogram[],
+    averageSuccessRate: number,
+  ) {
+    super(week, total, results);
+    this.averageSuccessRate = averageSuccessRate;
+  }
+
+  public static of(
+    histogramWeek: HistogramWeek,
+    averageSuccessRate: number,
+  ): RetrievabilityHistogramWeek {
+    return new RetrievabilityHistogramWeek(
+      histogramWeek.week,
+      histogramWeek.total,
+      histogramWeek.results,
+      averageSuccessRate,
+    );
   }
 }
 
 export class HistogramWeekResponse {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Total number of allocators / storage providers',
+  })
   total: number;
 
   @ApiProperty({ type: HistogramWeek, isArray: true })
@@ -55,22 +102,35 @@ export class HistogramWeekResponse {
   }
 }
 
+export class RetrievabilityHistogramWeekResponse {
+  @ApiProperty({
+    description: 'Total number of allocators / storage providers',
+  })
+  total: number;
+
+  @ApiProperty({ type: RetrievabilityHistogramWeek, isArray: true })
+  results: RetrievabilityHistogramWeek[];
+
+  constructor(total: number, results: RetrievabilityHistogramWeek[]) {
+    this.total = total;
+    this.results = results;
+  }
+}
+
 export class RetrievabilityWeekResponse {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Last week average retrievability success rate',
+  })
   averageSuccessRate: number;
 
-  @ApiProperty({ type: HistogramWeekResponse })
-  histogram: HistogramWeekResponse;
+  @ApiProperty({ type: RetrievabilityHistogramWeekResponse })
+  histogram: RetrievabilityHistogramWeekResponse;
 
-  public static of(
+  constructor(
     averageSuccessRate: number,
-    histogram: HistogramWeekResponse,
-  ): RetrievabilityWeekResponse {
-    const dto = new RetrievabilityWeekResponse();
-
-    dto.averageSuccessRate = averageSuccessRate;
-    dto.histogram = histogram;
-
-    return dto;
+    histogram: RetrievabilityHistogramWeekResponse,
+  ) {
+    this.averageSuccessRate = averageSuccessRate;
+    this.histogram = histogram;
   }
 }

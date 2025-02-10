@@ -3,7 +3,7 @@ import { groupBy } from 'lodash';
 import {
   Histogram,
   HistogramWeek,
-  HistogramWeekResponse,
+  HistogramWeekFlat,
 } from './types.histogram-helper';
 
 @Injectable()
@@ -11,14 +11,8 @@ export class HistogramHelperService {
   private readonly logger = new Logger(HistogramHelperService.name);
 
   public async getWeeklyHistogramResult(
-    results: {
-      valueFromExclusive: number | null;
-      valueToInclusive: number | null;
-      count: number | null;
-      week: Date;
-    }[],
-    totalCount: number,
-  ): Promise<HistogramWeekResponse> {
+    results: HistogramWeekFlat[],
+  ): Promise<HistogramWeek[]> {
     const resultsByWeek = groupBy(results, (p) => p.week);
     const histogramWeekDtos: HistogramWeek[] = [];
 
@@ -31,11 +25,11 @@ export class HistogramHelperService {
       histogramWeekDtos.push(
         new HistogramWeek(
           new Date(key),
-          weekResponses,
           weekResponses.reduce(
             (partialSum, response) => partialSum + response.count,
             0,
           ),
+          weekResponses,
         ),
       );
     }
@@ -63,11 +57,9 @@ export class HistogramHelperService {
       }
     }
 
-    const histogramWeekDtosSorted = this.removeCurrentWeekFromHistogramWeekDtos(
+    return this.removeCurrentWeekFromHistogramWeekDtos(
       histogramWeekDtos.sort((a, b) => a.week.getTime() - b.week.getTime()),
     );
-
-    return new HistogramWeekResponse(totalCount, histogramWeekDtosSorted);
   }
 
   // removes current week from histogram responses (as there is no full data for current week)

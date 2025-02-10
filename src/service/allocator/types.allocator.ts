@@ -41,16 +41,12 @@ export class AllocatorComplianceHistogramWeek {
   @ApiProperty({ type: HistogramWeekResponse })
   histogram: HistogramWeekResponse;
 
-  public static of(
+  constructor(
     scoreRange: ProviderComplianceScoreRange,
     histogram: HistogramWeekResponse,
   ) {
-    const dto = new AllocatorComplianceHistogramWeek();
-
-    dto.scoreRange = scoreRange;
-    dto.histogram = histogram;
-
-    return dto;
+    this.scoreRange = scoreRange;
+    this.histogram = histogram;
   }
 }
 
