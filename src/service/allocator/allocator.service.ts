@@ -10,19 +10,15 @@ import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
-  AllocatorComplianceHistogramWeek,
-  AllocatorComplianceHistogramWeekResponse,
   AllocatorComplianceWeek,
   AllocatorComplianceWeekResponse,
   AllocatorComplianceWeekSingle,
 } from './types.allocator';
-import {
-  ProviderComplianceScoreRange,
-  StorageProviderComplianceWeekPercentage,
-} from '../storage-provider/types.storage-provider';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekResponse,
+  RetrievabilityHistogramWeek,
+  RetrievabilityHistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
 import { modelName } from 'src/utils/prisma';
@@ -60,12 +56,24 @@ export class AllocatorService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
-        allocatorCount,
       );
 
-    return RetrievabilityWeekResponse.of(
+    return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
-      weeklyHistogramResult,
+      new RetrievabilityHistogramWeekResponse(
+        allocatorCount,
+        await Promise.all(
+          weeklyHistogramResult.map(async (histogramWeek) =>
+            RetrievabilityHistogramWeek.of(
+              histogramWeek,
+              await this.getWeekAverageAllocatorRetrievability(
+                histogramWeek.week,
+                isAccumulative,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -78,36 +86,12 @@ export class AllocatorService {
       ? getAllocatorBiggestClientDistributionAcc
       : getAllocatorBiggestClientDistribution;
 
-    return await this.histogramHelper.getWeeklyHistogramResult(
-      await this.prismaService.$queryRawTyped(query()),
+    return new HistogramWeekResponse(
       allocatorCount,
+      await this.histogramHelper.getWeeklyHistogramResult(
+        await this.prismaService.$queryRawTyped(query()),
+      ),
     );
-  }
-
-  public async getAllocatorComplianceHistogram(
-    isAccumulative: boolean,
-  ): Promise<AllocatorComplianceHistogramWeekResponse> {
-    const allocatorCount = await this.getAllocatorCount();
-
-    const { results } = await this.getAllocatorComplianceWeekly(isAccumulative);
-
-    return new AllocatorComplianceHistogramWeekResponse([
-      await this.calculateSpsComplianceWeek(
-        results,
-        allocatorCount,
-        ProviderComplianceScoreRange.NonCompliant,
-      ),
-      await this.calculateSpsComplianceWeek(
-        results,
-        allocatorCount,
-        ProviderComplianceScoreRange.PartiallyCompliant,
-      ),
-      await this.calculateSpsComplianceWeek(
-        results,
-        allocatorCount,
-        ProviderComplianceScoreRange.Compliant,
-      ),
-    ]);
   }
 
   public async getAllocatorComplianceWeekly(
@@ -119,7 +103,7 @@ export class AllocatorService {
     const result: AllocatorComplianceWeek[] = [];
 
     for (const week of weeks) {
-      const thisWeekAverageRetrievability =
+      const weekAverageRetrievability =
         await this.storageProviderService.getWeekAverageProviderRetrievability(
           week,
           isAccumulative,
@@ -133,7 +117,7 @@ export class AllocatorService {
       const weekProvidersCompliance = weekProviders.map((wp) => {
         return this.storageProviderService.getWeekProviderComplianceScore(
           wp,
-          thisWeekAverageRetrievability,
+          weekAverageRetrievability,
         );
       });
 
@@ -226,82 +210,5 @@ export class AllocatorService {
         allocator: true,
       },
     });
-  }
-
-  private async calculateSpsComplianceWeek(
-    calculationResults: AllocatorComplianceWeek[],
-    allocatorCount: number,
-    providerComplianceScoreRange: ProviderComplianceScoreRange,
-  ): Promise<AllocatorComplianceHistogramWeek> {
-    return AllocatorComplianceHistogramWeek.of(
-      providerComplianceScoreRange,
-      await this.histogramHelper.getWeeklyHistogramResult(
-        this.getSpsComplianceBuckets(
-          calculationResults,
-          providerComplianceScoreRange,
-        ),
-        allocatorCount,
-      ),
-    );
-  }
-
-  private getSpsComplianceBuckets(
-    unsortedResults: AllocatorComplianceWeek[],
-    providerComplianceScoreRange: ProviderComplianceScoreRange,
-  ): {
-    valueFromExclusive: number | null;
-    valueToInclusive: number | null;
-    count: number | null;
-    week: Date;
-  }[] {
-    let valueFromExclusive = -5;
-
-    const result: {
-      valueFromExclusive: number | null;
-      valueToInclusive: number | null;
-      count: number | null;
-      week: Date;
-    }[] = [];
-
-    do {
-      result.push(
-        ...unsortedResults.map((r) => {
-          const count = r.allocators.filter(
-            (p) =>
-              this.getPercentValue(p, providerComplianceScoreRange) >
-                valueFromExclusive &&
-              this.getPercentValue(p, providerComplianceScoreRange) <=
-                valueFromExclusive + 5,
-          ).length;
-
-          return {
-            valueFromExclusive: valueFromExclusive,
-            valueToInclusive: valueFromExclusive + 5,
-            week: r.week,
-            count: count,
-          };
-        }),
-      );
-
-      valueFromExclusive += 5;
-    } while (valueFromExclusive < 95);
-
-    return result;
-  }
-
-  private getPercentValue(
-    data: StorageProviderComplianceWeekPercentage,
-    providerComplianceScoreRange: ProviderComplianceScoreRange,
-  ): number {
-    switch (providerComplianceScoreRange) {
-      case ProviderComplianceScoreRange.NonCompliant:
-        return data.nonCompliantSpsPercentage;
-
-      case ProviderComplianceScoreRange.PartiallyCompliant:
-        return data.partiallyCompliantSpsPercentage;
-
-      case ProviderComplianceScoreRange.Compliant:
-        return data.compliantSpsPercentage;
-    }
   }
 }

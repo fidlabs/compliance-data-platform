@@ -30,13 +30,6 @@ export class AllocatorsAccController {
     );
   }
 
-  @Get('sps-compliance')
-  @ApiOperation({ deprecated: true })
-  @ApiOkResponse({ type: AllocatorComplianceHistogramWeekResponse })
-  public async getAllocatorComplianceHistogram(): Promise<AllocatorComplianceHistogramWeekResponse> {
-    return await this.allocatorService.getAllocatorComplianceHistogram(true);
-  }
-
   @Get('sps-compliance-data')
   @ApiOkResponse({ type: AllocatorComplianceWeekResponse })
   public async getAllocatorCompliance(): Promise<AllocatorComplianceWeekResponse> {

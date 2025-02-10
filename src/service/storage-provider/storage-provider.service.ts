@@ -21,6 +21,8 @@ import {
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekResponse,
+  RetrievabilityHistogramWeek,
+  RetrievabilityHistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
 
@@ -40,9 +42,11 @@ export class StorageProviderService {
       ? getProviderClientsWeeklyAcc
       : getProviderClientsWeekly;
 
-    return await this.histogramHelper.getWeeklyHistogramResult(
-      await this.prismaService.$queryRawTyped(query()),
+    return new HistogramWeekResponse(
       providerCount,
+      await this.histogramHelper.getWeeklyHistogramResult(
+        await this.prismaService.$queryRawTyped(query()),
+      ),
     );
   }
 
@@ -55,9 +59,11 @@ export class StorageProviderService {
       ? getProviderBiggestClientDistributionAcc
       : getProviderBiggestClientDistribution;
 
-    return await this.histogramHelper.getWeeklyHistogramResult(
-      await this.prismaService.$queryRawTyped(query()),
+    return new HistogramWeekResponse(
       providerCount,
+      await this.histogramHelper.getWeeklyHistogramResult(
+        await this.prismaService.$queryRawTyped(query()),
+      ),
     );
   }
 
@@ -91,12 +97,24 @@ export class StorageProviderService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
-        providerCount,
       );
 
-    return RetrievabilityWeekResponse.of(
+    return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
-      weeklyHistogramResult,
+      new RetrievabilityHistogramWeekResponse(
+        providerCount,
+        await Promise.all(
+          weeklyHistogramResult.map(async (histogramWeek) =>
+            RetrievabilityHistogramWeek.of(
+              histogramWeek,
+              await this.getWeekAverageProviderRetrievability(
+                histogramWeek.week,
+                isAccumulative,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -107,16 +125,13 @@ export class StorageProviderService {
 
     const result: StorageProviderComplianceWeek[] = await Promise.all(
       weeks.map(async (week) => {
-        const thisWeekAverageRetrievability =
+        const weekAverageRetrievability =
           await this.getWeekAverageProviderRetrievability(week, isAccumulative);
 
         const weekProviders = await this.getWeekProviders(week, isAccumulative);
 
         const weekProvidersCompliance = weekProviders.map((wp) =>
-          this.getWeekProviderComplianceScore(
-            wp,
-            thisWeekAverageRetrievability,
-          ),
+          this.getWeekProviderComplianceScore(wp, weekAverageRetrievability),
         );
 
         return {
@@ -213,7 +228,7 @@ export class StorageProviderService {
       total_deal_size: bigint | null;
       provider: string;
     },
-    thisWeekAverageRetrievability: number,
+    weekAverageRetrievability: number,
   ): {
     complianceScore: number;
     provider: string;
@@ -224,8 +239,7 @@ export class StorageProviderService {
     // Question - do we make a cutoff date for this? (like use normal rate
     // till 25w4 and http rate after that)?
     if (
-      providerWeekly.avg_retrievability_success_rate >
-      thisWeekAverageRetrievability
+      providerWeekly.avg_retrievability_success_rate > weekAverageRetrievability
     )
       complianceScore++;
 
