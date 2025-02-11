@@ -5,8 +5,8 @@ with provider_retrievability_weekly as (
         sum(total) as total,
         sum(successful) as successful,
         sum(successful::float8)/sum(total::float8) as success_rate,
-        sum(coalesce(successful, 0)) as successful_http,
-        sum(coalesce(successful, 0)::float8)/sum(total::float8) as success_rate_http
+        sum(coalesce(successful_http, 0)) as successful_http,
+        sum(coalesce(successful_http, 0)::float8)/sum(total::float8) as success_rate_http
     from provider_retrievability_daily
     group by
         week,

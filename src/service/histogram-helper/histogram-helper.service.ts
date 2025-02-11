@@ -17,9 +17,13 @@ export class HistogramHelperService {
     const histogramWeekDtos: HistogramWeek[] = [];
 
     for (const key in resultsByWeek) {
-      const value = resultsByWeek[key];
-      const weekResponses = value.map((r) => {
-        return new Histogram(r.valueFromExclusive, r.valueToInclusive, r.count);
+      const weekResponses = resultsByWeek[key].map((r) => {
+        return new Histogram(
+          r.valueFromExclusive,
+          r.valueToInclusive,
+          r.count,
+          r.totalDatacap,
+        );
       });
 
       histogramWeekDtos.push(
@@ -34,7 +38,7 @@ export class HistogramHelperService {
       );
     }
 
-    // calculate missing histogram buckets
+    // calculate missing, empty histogram buckets
     const { maxMinSpan, allBucketTopValues } =
       this.getAllHistogramBucketTopValues(histogramWeekDtos);
 
@@ -48,7 +52,7 @@ export class HistogramHelperService {
 
       if (missingValues.length > 0) {
         histogramWeekDto.results.push(
-          ...missingValues.map((v) => new Histogram(v - maxMinSpan, v, 0)),
+          ...missingValues.map((v) => new Histogram(v - maxMinSpan, v, 0, 0)),
         );
 
         histogramWeekDto.results.sort(
