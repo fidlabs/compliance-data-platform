@@ -1,10 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import {
-  AllocatorComplianceHistogramWeekResponse,
-  AllocatorComplianceWeekResponse,
-} from 'src/service/allocator/types.allocator';
+import { ApiOkResponse } from '@nestjs/swagger';
+import { AllocatorComplianceWeekResponse } from 'src/service/allocator/types.allocator';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
