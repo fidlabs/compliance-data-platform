@@ -1,23 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class Histogram {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Bucket (valueFromExclusive, valueToInclusive> starting value',
+  })
   valueFromExclusive: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Bucket (valueFromExclusive, valueToInclusive> ending value',
+  })
   valueToInclusive: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Number of allocators / storage providers in the bucket',
+  })
   count: number;
+
+  @ApiProperty({
+    description:
+      'Total datacap of allocators / storage providers in the bucket',
+  })
+  totalDatacap: number;
 
   constructor(
     valueFromExclusive: number,
     valueToInclusive: number,
     count: number,
+    totalDatacap: number,
   ) {
     this.valueFromExclusive = valueFromExclusive;
     this.valueToInclusive = valueToInclusive;
     this.count = count;
+    this.totalDatacap = totalDatacap;
   }
 }
 
@@ -51,9 +65,10 @@ export class HistogramWeekFlat extends Histogram {
     valueFromExclusive: number,
     valueToInclusive: number,
     count: number,
+    totalDatacap: number,
     week: Date,
   ) {
-    super(valueFromExclusive, valueToInclusive, count);
+    super(valueFromExclusive, valueToInclusive, count, totalDatacap);
     this.week = week;
   }
 }
