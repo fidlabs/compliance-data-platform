@@ -1,6 +1,6 @@
-with clients_per_provider as (select count(distinct client) as clients_count,
-                                     week,
-                                     sum("total_deal_size") as "totalDatacap"
+with clients_per_provider as (select week                   as "week",
+                                     count(distinct client) as clients_count,
+                                     sum(total_deal_size)   as "totalDatacap"
                               from client_provider_distribution_weekly
                               group by provider, week)
 select week                       as "week",
@@ -9,5 +9,5 @@ select week                       as "week",
        count(*)::int              as "count",
        sum("totalDatacap")::float as "totalDatacap"
 from clients_per_provider
-group by 1, 2, 3
-order by 3, 1;
+group by "valueFromExclusive", "valueToInclusive", week
+order by week, "valueFromExclusive";

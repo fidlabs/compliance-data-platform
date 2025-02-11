@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  ProviderComplianceScoreRange,
-  StorageProviderComplianceWeekPercentage,
-} from '../storage-provider/types.storage-provider';
-import { HistogramWeekResponse } from '../histogram-helper/types.histogram-helper';
+import { StorageProviderComplianceWeekPercentage } from '../storage-provider/types.storage-provider';
 
 export class AllocatorComplianceWeekSingle extends StorageProviderComplianceWeekPercentage {
   @ApiProperty({ type: String })
@@ -30,31 +26,6 @@ export class AllocatorComplianceWeekResponse {
   results: AllocatorComplianceWeek[];
 
   constructor(results: AllocatorComplianceWeek[]) {
-    this.results = results;
-  }
-}
-
-export class AllocatorComplianceHistogramWeek {
-  @ApiProperty({ enum: ProviderComplianceScoreRange })
-  scoreRange: ProviderComplianceScoreRange;
-
-  @ApiProperty({ type: HistogramWeekResponse })
-  histogram: HistogramWeekResponse;
-
-  constructor(
-    scoreRange: ProviderComplianceScoreRange,
-    histogram: HistogramWeekResponse,
-  ) {
-    this.scoreRange = scoreRange;
-    this.histogram = histogram;
-  }
-}
-
-export class AllocatorComplianceHistogramWeekResponse {
-  @ApiProperty({ type: AllocatorComplianceHistogramWeek, isArray: true })
-  results: AllocatorComplianceHistogramWeek[];
-
-  constructor(results: AllocatorComplianceHistogramWeek[]) {
     this.results = results;
   }
 }
