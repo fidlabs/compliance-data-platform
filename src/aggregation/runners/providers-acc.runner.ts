@@ -4,8 +4,11 @@ import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 import { getProvidersWeeklyAcc } from '../../../prisma/generated/client/sql';
+import { Logger } from '@nestjs/common';
 
 export class ProvidersAccRunner implements AggregationRunner {
+  private readonly logger = new Logger(ProvidersAccRunner.name);
+
   public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
@@ -25,7 +28,9 @@ export class ProvidersAccRunner implements AggregationRunner {
     }));
 
     await prismaService.$executeRaw`truncate providers_weekly_acc;`;
+    this.logger.log('Truncated providers_weekly_acc');
     await prismaService.providers_weekly_acc.createMany({ data });
+    this.logger.log('Inserted providers_weekly_acc');
   }
 
   getFilledTables(): AggregationTable[] {

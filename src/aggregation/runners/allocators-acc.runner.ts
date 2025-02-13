@@ -5,8 +5,11 @@ import { AggregationRunner } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 import { PostgresService } from 'src/db/postgres.service';
 import { QueryIterablePool } from 'pg-iterator';
+import { Logger } from '@nestjs/common';
 
 export class AllocatorsAccRunner implements AggregationRunner {
+  private readonly logger = new Logger(AllocatorsAccRunner.name);
+
   public async run(
     prismaService: PrismaService,
     _prismaDmobService: PrismaDmobService,
@@ -82,12 +85,15 @@ export class AllocatorsAccRunner implements AggregationRunner {
           if (data.length === 5000) {
             if (isFirstInsert) {
               await tx.$executeRaw`truncate allocators_weekly_acc`;
+              this.logger.log('Truncated allocators_weekly_acc');
               isFirstInsert = false;
             }
 
             await tx.allocators_weekly_acc.createMany({
               data,
             });
+
+            this.logger.log('Inserted allocators_weekly_acc');
 
             data.length = 0;
           }
@@ -96,10 +102,14 @@ export class AllocatorsAccRunner implements AggregationRunner {
         if (data.length > 0) {
           if (isFirstInsert) {
             await tx.$executeRaw`truncate allocators_weekly_acc`;
+            this.logger.log('Truncated allocators_weekly_acc');
           }
+
           await tx.allocators_weekly_acc.createMany({
             data,
           });
+
+          this.logger.log('Inserted allocators_weekly_acc');
         }
       },
       {

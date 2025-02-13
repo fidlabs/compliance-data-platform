@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getProviderBiggestClientDistribution,
@@ -20,6 +20,7 @@ import {
 } from './types.storage-provider';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
+  HistogramWeekFlat,
   HistogramWeekResponse,
   RetrievabilityHistogramWeek,
   RetrievabilityHistogramWeekResponse,
@@ -28,6 +29,8 @@ import {
 
 @Injectable()
 export class StorageProviderService {
+  private readonly logger = new Logger(StorageProviderService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly histogramHelper: HistogramHelperService,
@@ -94,10 +97,17 @@ export class StorageProviderService {
       ? getProviderRetrievabilityAcc
       : getProviderRetrievability;
 
-    const weeklyHistogramResult =
-      await this.histogramHelper.getWeeklyHistogramResult(
-        await this.prismaService.$queryRawTyped(query()),
+    const queryResult: HistogramWeekFlat[] =
+      await this.prismaService.$queryRawTyped(query());
+
+    if (!queryResult || queryResult.length === 0 || !queryResult[0]) {
+      this.logger.error(
+        `Database getProviderRetrievability${isAccumulative ? 'Acc' : ''} query returned no results, this should not happen: ${queryResult}`,
       );
+    }
+
+    const weeklyHistogramResult =
+      await this.histogramHelper.getWeeklyHistogramResult(queryResult);
 
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
@@ -107,10 +117,10 @@ export class StorageProviderService {
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
               histogramWeek,
-              await this.getWeekAverageProviderRetrievability(
+              (await this.getWeekAverageProviderRetrievability(
                 histogramWeek.week,
                 isAccumulative,
-              ),
+              )) * 100,
             ),
           ),
         ),
@@ -200,6 +210,7 @@ export class StorageProviderService {
     ).map((p) => p.week);
   }
 
+  // returns 0 - 1
   public async getWeekAverageProviderRetrievability(
     week: Date,
     isAccumulative: boolean,
