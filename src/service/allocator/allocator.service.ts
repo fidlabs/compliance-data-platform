@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getAllocatorBiggestClientDistribution,
@@ -16,6 +16,7 @@ import {
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
+  HistogramWeekFlat,
   HistogramWeekResponse,
   RetrievabilityHistogramWeek,
   RetrievabilityHistogramWeekResponse,
@@ -26,6 +27,8 @@ import { Prisma } from 'prisma/generated/client';
 
 @Injectable()
 export class AllocatorService {
+  private readonly logger = new Logger(AllocatorService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly histogramHelper: HistogramHelperService,
@@ -53,10 +56,17 @@ export class AllocatorService {
       ? getAllocatorRetrievabilityAcc
       : getAllocatorRetrievability;
 
-    const weeklyHistogramResult =
-      await this.histogramHelper.getWeeklyHistogramResult(
-        await this.prismaService.$queryRawTyped(query()),
+    const queryResult: HistogramWeekFlat[] =
+      await this.prismaService.$queryRawTyped(query());
+
+    if (!queryResult || queryResult.length === 0 || !queryResult[0]) {
+      this.logger.error(
+        `Database getAllocatorRetrievability${isAccumulative ? 'Acc' : ''} query returned no results, this should not happen: ${queryResult}`,
       );
+    }
+
+    const weeklyHistogramResult =
+      await this.histogramHelper.getWeeklyHistogramResult(queryResult);
 
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
@@ -66,10 +76,10 @@ export class AllocatorService {
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
               histogramWeek,
-              await this.getWeekAverageAllocatorRetrievability(
+              (await this.getWeekAverageAllocatorRetrievability(
                 histogramWeek.week,
                 isAccumulative,
-              ),
+              )) * 100,
             ),
           ),
         ),
@@ -173,6 +183,7 @@ export class AllocatorService {
     )[0].count;
   }
 
+  // returns 0 - 1
   public async getWeekAverageAllocatorRetrievability(
     week: Date,
     isAccumulative: boolean,
