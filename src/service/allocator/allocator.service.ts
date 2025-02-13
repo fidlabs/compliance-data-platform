@@ -10,9 +10,9 @@ import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
-  AllocatorComplianceWeek,
-  AllocatorComplianceWeekResponse,
-  AllocatorComplianceWeekSingle,
+  AllocatorSpsComplianceWeek,
+  AllocatorSpsComplianceWeekResponse,
+  AllocatorSpsComplianceWeekSingle,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -105,13 +105,13 @@ export class AllocatorService {
     );
   }
 
-  public async getAllocatorComplianceWeekly(
+  public async getAllocatorSpsComplianceWeekly(
     isAccumulative: boolean,
-  ): Promise<AllocatorComplianceWeekResponse> {
+  ): Promise<AllocatorSpsComplianceWeekResponse> {
     const weeks =
       await this.storageProviderService.getWeeksTracked(isAccumulative);
 
-    const result: AllocatorComplianceWeek[] = [];
+    const results: AllocatorSpsComplianceWeek[] = [];
 
     for (const week of weeks) {
       const weekAverageRetrievability =
@@ -125,9 +125,12 @@ export class AllocatorService {
         isAccumulative,
       );
 
-      const weekProvidersCompliance = weekProviders.map((wp) => {
+      const weekProvidersCompliance: {
+        complianceScore: number;
+        provider: string;
+      }[] = weekProviders.map((provider) => {
         return this.storageProviderService.getWeekProviderComplianceScore(
-          wp,
+          provider,
           weekAverageRetrievability,
         );
       });
@@ -137,16 +140,18 @@ export class AllocatorService {
         isAccumulative,
       );
 
-      const byAllocators = groupBy(
+      const clientsByAllocator = groupBy(
         weekAllocatorsWithClients,
         (a) => a.allocator,
       );
 
-      const weekResult: AllocatorComplianceWeekSingle[] = await Promise.all(
-        Object.entries(byAllocators).map(async ([allocator, clients]) => {
-          const weekProvidersForAllocator =
-            await this.storageProviderService.getWeekProvidersForClients(
-              week,
+      const weekResult: AllocatorSpsComplianceWeekSingle[] = await Promise.all(
+        Object.entries(clientsByAllocator).map(
+          // prettier-ignore
+          async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
+            const weekProvidersForAllocator =
+              await this.storageProviderService.getWeekProvidersForClients(
+                week,
               isAccumulative,
               clients.map((p) => p.client),
             );
@@ -158,19 +163,20 @@ export class AllocatorService {
               weekProvidersForAllocator.map((p) => p.provider),
             ),
           };
-        }),
+          },
+        ),
       );
 
-      result.push({
+      results.push({
         week: week,
         allocators: weekResult,
         total: weekResult.length,
       });
     }
 
-    return new AllocatorComplianceWeekResponse(
+    return new AllocatorSpsComplianceWeekResponse(
       this.histogramHelper.withoutCurrentWeek(
-        this.histogramHelper.sorted(result),
+        this.histogramHelper.sorted(results),
       ),
     );
   }
@@ -212,7 +218,7 @@ export class AllocatorService {
   public async getWeekAllocatorsWithClients(
     week: Date,
     isAccumulative: boolean,
-  ) {
+  ): Promise<{ client: string; allocator: string }[]> {
     return (
       (isAccumulative
         ? this.prismaService.client_allocator_distribution_weekly_acc

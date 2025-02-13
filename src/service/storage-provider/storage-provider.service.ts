@@ -132,7 +132,7 @@ export class StorageProviderService {
   public async getProviderComplianceWeekly(
     isAccumulative: boolean,
   ): Promise<StorageProviderComplianceWeekResponse> {
-    const weeks = await this.getWeeksTracked(isAccumulative);
+    const weeks = await this.getProvidersWeeklyWeeksTracked(isAccumulative);
 
     const result: StorageProviderComplianceWeek[] = await Promise.all(
       weeks.map(async (week) => {
@@ -141,15 +141,18 @@ export class StorageProviderService {
 
         const weekProviders = await this.getWeekProviders(week, isAccumulative);
 
-        const weekProvidersCompliance = weekProviders.map((wp) =>
-          this.getWeekProviderComplianceScore(wp, weekAverageRetrievability),
+        const weekProvidersCompliance = weekProviders.map((provider) =>
+          this.getWeekProviderComplianceScore(
+            provider,
+            weekAverageRetrievability,
+          ),
         );
 
         return {
           week: week,
           ...this.getProviderComplianceWeekCount(
             weekProvidersCompliance,
-            weekProviders.map((wp) => wp.provider),
+            weekProviders.map((provider) => provider.provider),
           ),
         };
       }),
@@ -166,7 +169,7 @@ export class StorageProviderService {
     week: Date,
     isAccumulative: boolean,
     clients: string[],
-  ) {
+  ): Promise<{ provider: string }[]> {
     return await (
       (isAccumulative
         ? this.prismaService.client_provider_distribution_weekly_acc
@@ -197,7 +200,9 @@ export class StorageProviderService {
     });
   }
 
-  public async getWeeksTracked(isAccumulative: boolean): Promise<Date[]> {
+  public async getProvidersWeeklyWeeksTracked(
+    isAccumulative: boolean,
+  ): Promise<Date[]> {
     return (
       await (
         (isAccumulative
