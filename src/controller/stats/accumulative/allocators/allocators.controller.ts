@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { AllocatorComplianceWeekResponse } from 'src/service/allocator/types.allocator';
+import { AllocatorSpsComplianceWeekResponse } from 'src/service/allocator/types.allocator';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
@@ -28,8 +28,8 @@ export class AllocatorsAccController {
   }
 
   @Get('sps-compliance-data')
-  @ApiOkResponse({ type: AllocatorComplianceWeekResponse })
-  public async getAllocatorCompliance(): Promise<AllocatorComplianceWeekResponse> {
-    return await this.allocatorService.getAllocatorComplianceWeekly(true);
+  @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
+  public async getAllocatorSpsCompliance(): Promise<AllocatorSpsComplianceWeekResponse> {
+    return await this.allocatorService.getAllocatorSpsComplianceWeekly(true);
   }
 }
