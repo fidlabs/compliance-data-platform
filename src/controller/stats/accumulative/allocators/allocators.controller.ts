@@ -9,7 +9,7 @@ import {
 import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('stats/acc/allocators')
-@CacheTTL(1000 * 60 * 60) // 1 hour
+@CacheTTL(1000 * 60 * 30) // 30 minutes
 export class AllocatorsAccController {
   constructor(private readonly allocatorService: AllocatorService) {}
 

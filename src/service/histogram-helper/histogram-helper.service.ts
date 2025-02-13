@@ -12,9 +12,11 @@ export class HistogramHelperService {
 
   public async getWeeklyHistogramResult(
     results: HistogramWeekFlat[],
+    maxRangeTopValue?: number,
+    minRangeLowValue: number = 0,
   ): Promise<HistogramWeek[]> {
     const resultsByWeek = groupBy(results, (p) => p.week);
-    const histogramWeekDtos: HistogramWeek[] = [];
+    const histogramWeeks: HistogramWeek[] = [];
 
     for (const key in resultsByWeek) {
       const weekResponses = resultsByWeek[key].map((r) => {
@@ -26,7 +28,7 @@ export class HistogramHelperService {
         );
       });
 
-      histogramWeekDtos.push(
+      histogramWeeks.push(
         new HistogramWeek(
           new Date(key),
           weekResponses.reduce(
@@ -38,72 +40,116 @@ export class HistogramHelperService {
       );
     }
 
-    // calculate missing, empty histogram buckets
-    const { maxMinSpan, allBucketTopValues } =
-      this.getAllHistogramBucketTopValues(histogramWeekDtos);
+    return this.withoutCurrentWeek(
+      this.sorted(
+        this.withMissingBuckets(
+          histogramWeeks,
+          maxRangeTopValue,
+          minRangeLowValue,
+        ),
+      ),
+    );
+  }
 
-    for (const histogramWeekDto of histogramWeekDtos) {
+  // removes current week from histogram responses (as there is no full data for current week)
+  public withoutCurrentWeek<T extends { week: Date }>(
+    histogramWeeksSorted: T[],
+  ): T[] {
+    if (histogramWeeksSorted.length === 0) return histogramWeeksSorted;
+
+    const lastHistogramWeek =
+      histogramWeeksSorted[histogramWeeksSorted.length - 1].week;
+
+    const lastHistogramWeekEndTime = new Date(
+      lastHistogramWeek.getTime() + 7 * 24 * 60 * 60 * 1000,
+    );
+
+    if (new Date() < lastHistogramWeekEndTime) histogramWeeksSorted.pop();
+    return histogramWeeksSorted;
+  }
+
+  public sorted<T extends { week: Date }>(histogramWeeks: T[]): T[] {
+    return histogramWeeks.sort((a, b) => a.week.getTime() - b.week.getTime());
+  }
+
+  // calculate missing, empty histogram buckets
+  private withMissingBuckets(
+    _histogramWeeks: HistogramWeek[],
+    maxRangeTopValue?: number,
+    minRangeLowValue: number = 0,
+  ): HistogramWeek[] {
+    const histogramWeeks = _histogramWeeks;
+    const maxMinSpan = this.getMaxMinSpan(histogramWeeks);
+    const allBucketTopValues = this.getAllHistogramBucketTopValues(
+      histogramWeeks,
+      maxMinSpan,
+      maxRangeTopValue,
+      minRangeLowValue,
+    );
+
+    for (const histogramWeek of histogramWeeks) {
       const missingValues = allBucketTopValues.filter(
         (topValue) =>
-          !histogramWeekDto.results.some(
-            (p) => p.valueToInclusive === topValue,
-          ),
+          !histogramWeek.results.some((p) => p.valueToInclusive === topValue),
       );
 
       if (missingValues.length > 0) {
-        histogramWeekDto.results.push(
+        histogramWeek.results.push(
           ...missingValues.map((v) => new Histogram(v - maxMinSpan, v, 0, 0)),
         );
 
-        histogramWeekDto.results.sort(
+        histogramWeek.results.sort(
           (a, b) => a.valueToInclusive - b.valueToInclusive,
         );
       }
     }
 
-    return this.removeCurrentWeekFromHistogramWeekDtos(
-      histogramWeekDtos.sort((a, b) => a.week.getTime() - b.week.getTime()),
-    );
+    return histogramWeeks;
   }
 
-  // removes current week from histogram responses (as there is no full data for current week)
-  private removeCurrentWeekFromHistogramWeekDtos(
-    histogramWeekDtosSorted: HistogramWeek[],
-  ) {
-    if (histogramWeekDtosSorted.length === 0) return histogramWeekDtosSorted;
-
-    const lastHistogramWeekDtoWeek =
-      histogramWeekDtosSorted[histogramWeekDtosSorted.length - 1].week;
-
-    const lastHistogramWeekDtoWeekEnd = new Date(
-      lastHistogramWeekDtoWeek.getTime() + 7 * 24 * 60 * 60 * 1000,
-    );
-
-    if (new Date() < lastHistogramWeekDtoWeekEnd) histogramWeekDtosSorted.pop();
-    return histogramWeekDtosSorted;
-  }
-
-  private getAllHistogramBucketTopValues(histogramWeekDtos: HistogramWeek[]) {
-    if (histogramWeekDtos.length === 0)
-      return { maxMinSpan: 0, allBucketTopValues: [] };
+  private getMaxMinSpan(histogramWeeks: HistogramWeek[]): number {
+    if (histogramWeeks.length === 0) return 0;
 
     const maxRangeTopValue = Math.max(
-      ...histogramWeekDtos.flatMap((p) =>
+      ...histogramWeeks.flatMap((p) =>
         p.results.map((r) => r.valueToInclusive),
       ),
     );
 
-    const maxHistogramEntry = histogramWeekDtos
+    const maxHistogramEntry = histogramWeeks
       .flatMap((p) => p.results)
       .find((p) => p.valueToInclusive === maxRangeTopValue);
 
-    const maxMinSpan =
-      maxHistogramEntry.valueToInclusive - maxHistogramEntry.valueFromExclusive;
+    return (
+      maxHistogramEntry.valueToInclusive - maxHistogramEntry.valueFromExclusive
+    );
+  }
+
+  private getAllHistogramBucketTopValues(
+    histogramWeeks: HistogramWeek[],
+    maxMinSpan: number,
+    maxRangeTopValue?: number,
+    minRangeLowValue: number | undefined = 0,
+  ): number[] {
+    if (histogramWeeks.length === 0) return [];
+
+    maxRangeTopValue ??= Math.max(
+      ...histogramWeeks.flatMap((p) =>
+        p.results.map((r) => r.valueToInclusive),
+      ),
+    );
+
+    minRangeLowValue ??= Math.min(
+      ...histogramWeeks.flatMap((p) =>
+        p.results.map((r) => r.valueFromExclusive),
+      ),
+    );
 
     const allBucketTopValues: number[] = [];
-    for (let i = maxRangeTopValue; i > 0; i -= maxMinSpan) {
+    for (let i = maxRangeTopValue; i > minRangeLowValue; i -= maxMinSpan) {
       allBucketTopValues.push(i);
     }
-    return { maxMinSpan, allBucketTopValues };
+
+    return allBucketTopValues;
   }
 }
