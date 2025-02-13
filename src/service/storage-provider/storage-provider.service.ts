@@ -66,6 +66,7 @@ export class StorageProviderService {
       providerCount,
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
+        100,
       ),
     );
   }
@@ -107,7 +108,7 @@ export class StorageProviderService {
     }
 
     const weeklyHistogramResult =
-      await this.histogramHelper.getWeeklyHistogramResult(queryResult);
+      await this.histogramHelper.getWeeklyHistogramResult(queryResult, 100);
 
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,

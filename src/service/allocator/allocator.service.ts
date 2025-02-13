@@ -66,7 +66,7 @@ export class AllocatorService {
     }
 
     const weeklyHistogramResult =
-      await this.histogramHelper.getWeeklyHistogramResult(queryResult);
+      await this.histogramHelper.getWeeklyHistogramResult(queryResult, 100);
 
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
@@ -100,6 +100,7 @@ export class AllocatorService {
       allocatorCount,
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
+        100,
       ),
     );
   }

@@ -27,26 +27,24 @@ export class IpniMisreportingCheckerService {
       });
 
     const result: ProviderIPNIReportingStatus[] = [];
-    const failedProviders: string[] = [];
 
     // try to execute all in parallel
-    const promises = storageProviders.map((storageProvider) =>
-      this.getProviderReportingStatus(storageProvider.provider),
+    const promiseResults = await Promise.allSettled(
+      storageProviders.map((storageProvider) =>
+        this.getProviderReportingStatus(storageProvider.provider),
+      ),
     );
 
-    const results = await Promise.allSettled(promises);
-
-    results.forEach((promiseResult, index) => {
-      if (promiseResult.status === 'fulfilled') {
-        result.push(promiseResult.value as ProviderIPNIReportingStatus);
+    for (let i = 0; i < promiseResults.length; i++) {
+      if (promiseResults[i].status === 'fulfilled') {
+        // prettier-ignore
+        result.push((promiseResults[i] as PromiseFulfilledResult<ProviderIPNIReportingStatus>).value);
       } else {
-        failedProviders.push(storageProviders[index].provider);
+        // retry sequentially for failed requests
+        result.push(
+          await this.getProviderReportingStatus(storageProviders[i].provider),
+        );
       }
-    });
-
-    // retry sequentially for failed requests
-    for (const provider of failedProviders) {
-      result.push(await this.getProviderReportingStatus(provider));
     }
 
     return {
