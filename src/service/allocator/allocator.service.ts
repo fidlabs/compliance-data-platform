@@ -168,7 +168,11 @@ export class AllocatorService {
       });
     }
 
-    return new AllocatorComplianceWeekResponse(result);
+    return new AllocatorComplianceWeekResponse(
+      this.histogramHelper.withoutCurrentWeek(
+        this.histogramHelper.sorted(result),
+      ),
+    );
   }
 
   public async getAllocatorCount(): Promise<number> {

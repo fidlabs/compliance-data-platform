@@ -10,16 +10,17 @@ import {
 export class HistogramHelperService {
   private readonly logger = new Logger(HistogramHelperService.name);
 
+  // converts flat database results to buckets grouped by week
   public async getWeeklyHistogramResult(
-    results: HistogramWeekFlat[],
+    histogramWeeksFlat: HistogramWeekFlat[],
     maxRangeTopValue?: number,
     minRangeLowValue: number = 0,
   ): Promise<HistogramWeek[]> {
-    const resultsByWeek = groupBy(results, (p) => p.week);
-    const histogramWeeks: HistogramWeek[] = [];
+    const histogramsByWeek = groupBy(histogramWeeksFlat, (p) => p.week);
+    const results: HistogramWeek[] = [];
 
-    for (const key in resultsByWeek) {
-      const weekResponses = resultsByWeek[key].map((r) => {
+    for (const week in histogramsByWeek) {
+      const weekResults = histogramsByWeek[week].map((r) => {
         return new Histogram(
           r.valueFromExclusive,
           r.valueToInclusive,
@@ -28,30 +29,27 @@ export class HistogramHelperService {
         );
       });
 
-      histogramWeeks.push(
+      results.push(
         new HistogramWeek(
-          new Date(key),
-          weekResponses.reduce(
+          new Date(week),
+          weekResults.reduce(
             (partialSum, response) => partialSum + response.count,
             0,
           ),
-          weekResponses,
+          weekResults,
         ),
       );
     }
 
     return this.withoutCurrentWeek(
       this.sorted(
-        this.withMissingBuckets(
-          histogramWeeks,
-          maxRangeTopValue,
-          minRangeLowValue,
-        ),
+        this.withMissingBuckets(results, maxRangeTopValue, minRangeLowValue),
       ),
     );
   }
 
-  // removes current week from histogram responses (as there is no full data for current week)
+  // removes current week from histogram responses if necessary
+  // as there is no full data for current week yet
   public withoutCurrentWeek<T extends { week: Date }>(
     histogramWeeksSorted: T[],
   ): T[] {
@@ -60,11 +58,13 @@ export class HistogramHelperService {
     const lastHistogramWeek =
       histogramWeeksSorted[histogramWeeksSorted.length - 1].week;
 
-    const lastHistogramWeekEndTime = new Date(
-      lastHistogramWeek.getTime() + 7 * 24 * 60 * 60 * 1000,
+    const lastHistogramWeekStartPlusOneDay = new Date(
+      lastHistogramWeek.getTime() + 24 * 60 * 60 * 1000,
     );
 
-    if (new Date() < lastHistogramWeekEndTime) histogramWeeksSorted.pop();
+    if (new Date() < lastHistogramWeekStartPlusOneDay)
+      histogramWeeksSorted.pop();
+
     return histogramWeeksSorted;
   }
 
@@ -74,13 +74,12 @@ export class HistogramHelperService {
 
   // calculate missing, empty histogram buckets
   private withMissingBuckets(
-    _histogramWeeks: HistogramWeek[],
+    histogramWeeks: HistogramWeek[],
     maxRangeTopValue?: number,
     minRangeLowValue: number = 0,
   ): HistogramWeek[] {
-    const histogramWeeks = _histogramWeeks;
     const maxMinSpan = this.getMaxMinSpan(histogramWeeks);
-    const allBucketTopValues = this.getAllHistogramBucketTopValues(
+    const allBucketsTopValues = this.getAllBucketsTopValues(
       histogramWeeks,
       maxMinSpan,
       maxRangeTopValue,
@@ -88,14 +87,14 @@ export class HistogramHelperService {
     );
 
     for (const histogramWeek of histogramWeeks) {
-      const missingValues = allBucketTopValues.filter(
+      const missingBuckets = allBucketsTopValues.filter(
         (topValue) =>
           !histogramWeek.results.some((p) => p.valueToInclusive === topValue),
       );
 
-      if (missingValues.length > 0) {
+      if (missingBuckets.length > 0) {
         histogramWeek.results.push(
-          ...missingValues.map((v) => new Histogram(v - maxMinSpan, v, 0, 0)),
+          ...missingBuckets.map((v) => new Histogram(v - maxMinSpan, v, 0, 0)),
         );
 
         histogramWeek.results.sort(
@@ -125,7 +124,7 @@ export class HistogramHelperService {
     );
   }
 
-  private getAllHistogramBucketTopValues(
+  private getAllBucketsTopValues(
     histogramWeeks: HistogramWeek[],
     maxMinSpan: number,
     maxRangeTopValue?: number,
