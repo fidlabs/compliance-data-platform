@@ -155,7 +155,11 @@ export class StorageProviderService {
       }),
     );
 
-    return new StorageProviderComplianceWeekResponse(result);
+    return new StorageProviderComplianceWeekResponse(
+      this.histogramHelper.withoutCurrentWeek(
+        this.histogramHelper.sorted(result),
+      ),
+    );
   }
 
   public async getWeekProvidersForClients(
