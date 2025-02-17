@@ -108,8 +108,7 @@ export class AllocatorService {
   public async getAllocatorSpsComplianceWeekly(
     isAccumulative: boolean,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
-    const weeks =
-      await this.storageProviderService.getWeeksTracked(isAccumulative);
+    const weeks = await this.storageProviderService.getWeeksTracked();
 
     const results: AllocatorSpsComplianceWeek[] = [];
 
@@ -152,17 +151,22 @@ export class AllocatorService {
             const weekProvidersForAllocator =
               await this.storageProviderService.getWeekProvidersForClients(
                 week,
-              isAccumulative,
-              clients.map((p) => p.client),
-            );
+                isAccumulative,
+                clients.map((p) => p.client),
+              );
 
-          return {
-            id: allocator,
-            ...this.storageProviderService.getProviderComplianceWeekPercentage(
-              weekProvidersCompliance,
-              weekProvidersForAllocator.map((p) => p.provider),
-            ),
-          };
+            return {
+              id: allocator,
+              totalDatacap: await this.getWeekAllocatorDatacap(
+                week,
+                isAccumulative,
+                allocator,
+              ),
+              ...this.storageProviderService.getProviderComplianceWeekPercentage(
+                weekProvidersCompliance,
+                weekProvidersForAllocator.map((p) => p.provider),
+              ),
+            };
           },
         ),
       );
@@ -178,6 +182,30 @@ export class AllocatorService {
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),
       ),
+    );
+  }
+
+  public async getWeekAllocatorDatacap(
+    week: Date,
+    isAccumulative: boolean,
+    allocatorId: string,
+  ): Promise<number> {
+    return Number(
+      (
+        await (
+          (isAccumulative
+            ? this.prismaService.allocators_weekly_acc
+            : this.prismaService.allocators_weekly) as any
+        ).aggregate({
+          _sum: {
+            total_sum_of_allocations: true,
+          },
+          where: {
+            allocator: allocatorId,
+            week: week,
+          },
+        })
+      )._sum.total_sum_of_allocations,
     );
   }
 

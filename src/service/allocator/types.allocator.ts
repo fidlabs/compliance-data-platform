@@ -4,6 +4,9 @@ import { StorageProviderComplianceWeekPercentage } from '../storage-provider/typ
 export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceWeekPercentage {
   @ApiProperty({ type: String })
   id: string;
+
+  @ApiProperty()
+  totalDatacap: number;
 }
 
 export class AllocatorSpsComplianceWeek {
