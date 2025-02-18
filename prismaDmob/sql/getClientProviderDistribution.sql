@@ -18,9 +18,9 @@ with miner_pieces as (
 select
     client,
     provider,
-    sum(total_deal_size)::bigint as total_deal_size,
-    sum(piece_size)::bigint      as unique_data_size,
-    sum(claims_count)::bigint    as claims_count
+    sum(total_deal_size)::float as total_deal_size,
+    sum(piece_size)::float      as unique_data_size,
+    sum(claims_count)::float    as claims_count
 from  miner_pieces
 group by
     client,

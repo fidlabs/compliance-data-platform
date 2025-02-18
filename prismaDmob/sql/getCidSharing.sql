@@ -18,7 +18,7 @@ with
 select 
     'f0' || cids."clientId" as client,
     'f0' || other_dc."clientId" as other_client,
-    sum(other_dc."pieceSize")::bigint as total_deal_size,
+    sum(other_dc."pieceSize")::float as total_deal_size,
     count(distinct other_dc."pieceCid")::int as unique_cid_count
 from cids
 join nv22_unified_verified_deal other_dc

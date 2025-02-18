@@ -26,7 +26,7 @@ select
     client,
     allocator,
     sum(num_of_allocations)::int as num_of_allocations,
-    sum(sum_of_allocations)::bigint as sum_of_allocations
+    sum(sum_of_allocations)::float as sum_of_allocations
 from weeks
 inner join distributions
     on weeks.week >= distributions.week

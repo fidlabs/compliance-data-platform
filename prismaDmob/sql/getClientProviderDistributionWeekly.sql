@@ -20,8 +20,8 @@ select
     week,
     client,
     provider,
-    sum(total_deal_size)::bigint as total_deal_size,
-    sum(piece_size)::bigint      as unique_data_size
+    sum(total_deal_size)::float as total_deal_size,
+    sum(piece_size)::float      as unique_data_size
 from  miner_pieces
 group by
     week,
