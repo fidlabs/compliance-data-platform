@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrometheusMetricService } from 'src/prometheus/prometheus';
+import { PrometheusMetricService } from 'src/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { PostgresService } from 'src/db/postgres.service';
 import { PostgresDmobService } from 'src/db/postgresDmob.service';
@@ -76,7 +76,7 @@ export class AggregationService {
 
           // start transaction timer
           const endSingleAggregationTransactionTimer =
-            this.prometheusMetricService.startSingleAggregationTransactionTimer(
+            this.prometheusMetricService.allocatorMetrics.startTimerByRunnerNameMetric(
               aggregationRunnerName,
             );
 

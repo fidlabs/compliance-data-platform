@@ -5,9 +5,9 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { PrometheusMetricService } from 'src/prometheus/prometheus';
-import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
+import { PrometheusMetricService } from 'src/prometheus';
 import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
+import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
 
 @Injectable()
 export class AllocatorReportGeneratorJobService extends HealthIndicator {
@@ -82,11 +82,13 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
         `Finishing Allocator Reports generation. Fails: ${fails} / ${reports}`,
       );
 
-      this.prometheusMetricService.setSuccessAllocatorReportsMetric(
+      this.prometheusMetricService.allocatorMetrics.setSuccessAllocatorReportsMetric(
         reports - fails,
       );
 
-      this.prometheusMetricService.setFailAllocatorReportsMetric(fails);
+      this.prometheusMetricService.allocatorMetrics.setFailAllocatorReportsMetric(
+        fails,
+      );
     } catch (err) {
       this.healthy = false;
       this.logger.error(

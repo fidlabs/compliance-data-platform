@@ -5,7 +5,7 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { PrometheusMetricService } from 'src/prometheus/prometheus';
+import { PrometheusMetricService } from 'src/prometheus';
 import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
 import { AllocatorTechApplicationResponse } from 'src/service/allocator-tech/types.allocator-tech';
 import { ClientReportService } from 'src/service/client-report/client-report.service';
@@ -99,11 +99,13 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
         `Finishing Client Reports generation. Fails: ${fails} / ${reports}`,
       );
 
-      this.prometheusMetricService.setSuccessClientReportsMetric(
+      this.prometheusMetricService.clientMetrics.setFailReportsCountMetric(
         reports - fails,
       );
 
-      this.prometheusMetricService.setFailClientReportsMetric(fails);
+      this.prometheusMetricService.clientMetrics.setFailReportsCountMetric(
+        fails,
+      );
     } catch (err) {
       this.healthy = false;
       this.logger.error(
