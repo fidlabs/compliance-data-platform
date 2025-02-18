@@ -170,6 +170,8 @@ export class StorageProviderService {
     isAccumulative: boolean,
     clients: string[],
   ): Promise<{ provider: string }[]> {
+    this.logger.debug('Running getWeekProvidersForClients');
+
     return await (
       (isAccumulative
         ? this.prismaService.client_provider_distribution_weekly_acc
@@ -189,6 +191,8 @@ export class StorageProviderService {
   }
 
   public async getWeekProviders(week: Date, isAccumulative: boolean) {
+    this.logger.debug('Running getWeekProviders');
+
     return (
       (isAccumulative
         ? this.prismaService.providers_weekly_acc
