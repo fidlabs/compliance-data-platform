@@ -6,4 +6,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   public async onModuleInit() {
     await this.$connect();
   }
+
+  async getMetrics() {
+    const metrics = await this.$metrics.prometheus();
+    return metrics;
+  }
 }
