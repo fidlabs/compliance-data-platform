@@ -74,10 +74,12 @@ export class AppController {
       () =>
         this.typeOrmHealthIndicator.pingCheck('database', {
           connection: this.postgresService.pool,
+          timeout: 2000,
         }),
       () =>
         this.typeOrmHealthIndicator.pingCheck('database-dmob', {
           connection: this.postgresDmobService.pool,
+          timeout: 2000,
         }),
       () => this.aggregationTasksService.getHealth(),
       () => this.clientReportGeneratorJobService.getHealth(),
