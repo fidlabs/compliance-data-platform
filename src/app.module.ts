@@ -57,7 +57,7 @@ import {
 } from './controller/allocator-report/allocator-report.controller';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
-import { PrometheusMetricModule } from './prometheus/prometheus';
+import { PrometheusMetricModule } from './prometheus';
 import { ClientService } from './service/client/client.service';
 import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 import { CidContactService } from './service/cid-contact/cid-contact.service';

@@ -5,7 +5,7 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { PrometheusMetricService } from 'src/prometheus/prometheus';
+import { PrometheusMetricService } from 'src/prometheus';
 import { AggregationService } from './aggregation.service';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class AggregationTasksService extends HealthIndicator {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
       const endAllAggregationsTimer =
-        this.prometheusMetricService.startAllAggregationsTimer();
+        this.prometheusMetricService.allocatorMetrics.startAggregateTimer();
 
       try {
         this.logger.log('Starting aggregations');
