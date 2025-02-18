@@ -25,12 +25,12 @@ export class ClientClaimsRunner implements AggregationRunner {
         const queryIterablePool = new QueryIterablePool<{
           client: string;
           hour: Date;
-          total_deal_size: bigint | null;
+          total_deal_size: number | null;
         }>(postgresService.pool);
 
         const i = queryIterablePool.query(`select client,
                                                 hour,
-                                                sum(total_deal_size)::bigint as total_deal_size
+                                                sum(total_deal_size)::float as total_deal_size
                                          from unified_verified_deal_hourly
                                          group by client,
                                                   hour;`);
@@ -40,7 +40,7 @@ export class ClientClaimsRunner implements AggregationRunner {
         const data: {
           client: string;
           hour: Date;
-          total_deal_size: bigint | null;
+          total_deal_size: number | null;
         }[] = [];
 
         const storeDataEndTimerMetric =

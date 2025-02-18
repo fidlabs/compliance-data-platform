@@ -27,8 +27,8 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
           week: Date | null;
           client: string | null;
           provider: string | null;
-          total_deal_size: bigint | null;
-          unique_data_size: bigint | null;
+          total_deal_size: number | null;
+          unique_data_size: number | null;
         }>(postgresDmobService.pool);
 
         const i = queryIterablePool.query(`with miner_pieces
@@ -53,8 +53,8 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
                                          select weeks.week                   as week,
                                                 client,
                                                 provider,
-                                                sum(total_deal_size)::bigint as total_deal_size,
-                                                sum(piece_size)::bigint      as unique_data_size
+                                                sum(total_deal_size)::float as total_deal_size,
+                                                sum(piece_size)::float      as unique_data_size
                                          from weeks
                                                   inner join miner_pieces
                                                              on weeks.week >= miner_pieces.week
@@ -68,8 +68,8 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
           week: Date | null;
           client: string | null;
           provider: string | null;
-          total_deal_size: bigint | null;
-          unique_data_size: bigint | null;
+          total_deal_size: number | null;
+          unique_data_size: number | null;
         }[] = [];
 
         let isFirstInsert = true;

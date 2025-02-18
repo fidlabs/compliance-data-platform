@@ -16,8 +16,8 @@ with replicas as (
 select
     client,
     num_of_replicas::int as num_of_replicas,
-    sum(total_deal_size)::bigint as total_deal_size,
-    sum(piece_size)::bigint as unique_data_size
+    sum(total_deal_size)::float as total_deal_size,
+    sum(piece_size)::float as unique_data_size
 from replicas
 group by
   client,
