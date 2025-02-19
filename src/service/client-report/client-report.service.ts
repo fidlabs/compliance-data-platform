@@ -71,7 +71,7 @@ export class ClientReportService {
       },
     });
 
-    await this.clientReportChecksService.storeReportChecks(report.id);
+    await this.clientReportChecksService.storeReportChecks(Number(report.id));
 
     return report;
   }
@@ -87,11 +87,11 @@ export class ClientReportService {
     });
   }
 
-  public async getLatestReport(clientId: string) {
-    return this.getReport(clientId);
+  public async getLatestReport(clientId: string, full = false) {
+    return this.getReport(clientId, undefined, full);
   }
 
-  public async getReport(clientId: string, id?: any) {
+  public async getReport(clientId: string, id?: any, full = false) {
     return this.prismaService.client_report.findFirst({
       where: {
         client: clientId,
@@ -100,28 +100,36 @@ export class ClientReportService {
       include: {
         storage_provider_distribution: {
           omit: {
-            id: true,
-            client_report_id: true,
+            ...(!full && {
+              id: true,
+              client_report_id: true,
+            }),
           },
           include: {
             location: {
               omit: {
-                id: true,
-                provider_distribution_id: true,
+                ...(!full && {
+                  id: true,
+                  provider_distribution_id: true,
+                }),
               },
             },
           },
         },
         replica_distribution: {
           omit: {
-            id: true,
-            client_report_id: true,
+            ...(!full && {
+              id: true,
+              client_report_id: true,
+            }),
           },
         },
         cid_sharing: {
           omit: {
-            id: true,
-            client_report_id: true,
+            ...(!full && {
+              id: true,
+              client_report_id: true,
+            }),
           },
         },
         check_results: {

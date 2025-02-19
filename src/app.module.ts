@@ -67,6 +67,8 @@ import { HttpService } from '@nestjs/axios';
 import axiosBetterStacktrace from 'axios-better-stacktrace';
 import axios from 'axios';
 import { HistogramHelperService } from './service/histogram-helper/histogram-helper.service';
+import { GitHubIssueParserService } from './service/github-issue-parser/github-issue-parser.service';
+import { GithubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Module({
   imports: [
@@ -125,6 +127,8 @@ import { HistogramHelperService } from './service/histogram-helper/histogram-hel
     IpniMisreportingCheckerService,
     ClientReportService,
     ClientService,
+    GitHubIssueParserService,
+    GithubTriggersHandlerService,
     LotusApiService,
     LocationService,
     AllocatorTechService,

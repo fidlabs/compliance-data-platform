@@ -1,4 +1,4 @@
-import { getClientAllocatorDistributionWeeklyAcc } from '../../../prismaDmob/generated/client/sql';
+import { getClientAllocatorDistributionWeeklyAcc } from 'prismaDmob/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,

@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { getProvidersWeeklyAcc } from '../../../prisma/generated/client/sql';
+import { getProvidersWeeklyAcc } from 'prisma/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,

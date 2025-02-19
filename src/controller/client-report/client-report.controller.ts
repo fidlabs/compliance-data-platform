@@ -1,7 +1,9 @@
 import {
+  Body,
   Controller,
   Get,
   Inject,
+  Logger,
   NotFoundException,
   Param,
   Post,
@@ -10,17 +12,28 @@ import { ClientReportService } from 'src/service/client-report/client-report.ser
 import {
   ApiCreatedResponse,
   ApiExcludeController,
+  ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
 import { CACHE_MANAGER, CacheKey, Cache } from '@nestjs/cache-manager';
+import { GithubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller('client-report')
 export class ClientReportController {
+  private readonly logger = new Logger(ClientReportController.name);
+
   constructor(
     private readonly clientReportsService: ClientReportService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly githubTriggersHandlerService: GithubTriggersHandlerService,
   ) {}
+
+  @Post('/gh-trigger')
+  @ApiExcludeEndpoint()
+  public async gitHubTrigger(@Body() body: any) {
+    await this.githubTriggersHandlerService.handleTrigger(body);
+  }
 
   @Get(':client')
   @ApiOperation({

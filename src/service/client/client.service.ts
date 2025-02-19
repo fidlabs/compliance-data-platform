@@ -1,9 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()
 export class ClientService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly prismaDmobService: PrismaDmobService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  ) {}
 
   public getClientApplicationUrl(clientData?: {
     allowanceArray: {
@@ -35,6 +42,24 @@ export class ClientService {
       ...distribution,
       percentage: Number((distribution.total_deal_size * 10000n) / total) / 100,
     }));
+  }
+
+  @Cacheable() // cache forever
+  public async getClientIdByAddress(
+    clientAddress: string,
+  ): Promise<string | null> {
+    return (
+      (
+        await this.prismaDmobService.verified_client.findFirst({
+          where: {
+            address: clientAddress,
+          },
+          select: {
+            addressId: true,
+          },
+        })
+      )?.addressId ?? null
+    );
   }
 
   public async getCidSharing(clientId: string) {

@@ -32,7 +32,8 @@ export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
           date: 'desc',
         },
       });
-    if (retrieved.length == 0) return;
+
+    if (!retrieved.length) return;
     const retrievedUtc = retrieved.map((v) =>
       DateTime.fromJSDate(v.date, { zone: 'UTC' }),
     );

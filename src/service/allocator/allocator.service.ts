@@ -5,7 +5,7 @@ import {
   getAllocatorBiggestClientDistributionAcc,
   getAllocatorRetrievability,
   getAllocatorRetrievabilityAcc,
-} from '../../../prisma/generated/client/sql';
+} from 'prisma/generated/client/sql';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
