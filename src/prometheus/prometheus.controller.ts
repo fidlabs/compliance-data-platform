@@ -20,6 +20,7 @@ export class PrometheusMetricController extends PrometheusController {
   @Get('db-metrics')
   @UseGuards(PrometheusAuthGuard)
   async dbMetrics() {
-    return this.prismaService.$metrics.prometheus();
+    const prismaMetrics = await this.prismaService.getMetrics();
+    return prismaMetrics;
   }
 }
