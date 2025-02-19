@@ -1,4 +1,4 @@
-import { getClientProviderDistributionWeekly } from '../../../prismaDmob/generated/client/sql';
+import { getClientProviderDistributionWeekly } from 'prismaDmob/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,

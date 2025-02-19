@@ -43,7 +43,9 @@
     "prom-client": "^15.1.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "axios-better-stacktrace": "^2.1.7"
+    "axios-better-stacktrace": "^2.1.7",
+    "@octokit/auth-app": "^6.1.3",
+    "probot": "^13.4.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.5",

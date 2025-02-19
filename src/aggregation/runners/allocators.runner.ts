@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { getAllocatorsWeekly } from '../../../prisma/generated/client/sql';
+import { getAllocatorsWeekly } from 'prisma/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,

@@ -188,7 +188,7 @@ export class ClientReportChecksService {
 
     for (const provider of providerDistributionWithLocation) {
       if (
-        provider.location == undefined ||
+        provider.location === undefined ||
         provider.location.country === null ||
         provider.location.country === ''
       ) {

@@ -1,4 +1,4 @@
-import { getProviderFirstClient } from '../../../prisma/generated/client/sql';
+import { getProviderFirstClient } from 'prisma/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
