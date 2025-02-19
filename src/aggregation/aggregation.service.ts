@@ -1,6 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrometheusMetricService } from 'src/prometheus';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { PostgresService } from 'src/db/postgres.service';
 import { PostgresDmobService } from 'src/db/postgresDmob.service';
 import { PrismaService } from 'src/db/prisma.service';
