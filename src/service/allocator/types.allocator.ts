@@ -17,18 +17,34 @@ export class AllocatorSpsComplianceWeek {
   })
   week: Date;
 
-  @ApiProperty({ type: AllocatorSpsComplianceWeekSingle, isArray: true })
-  allocators: AllocatorSpsComplianceWeekSingle[];
-
   @ApiProperty()
   total: number;
+
+  @ApiProperty({
+    description:
+      'Average storage providers retrievability success rate in the week',
+  })
+  averageSuccessRate: number;
+
+  @ApiProperty({ type: AllocatorSpsComplianceWeekSingle, isArray: true })
+  allocators: AllocatorSpsComplianceWeekSingle[];
 }
 
 export class AllocatorSpsComplianceWeekResponse {
+  @ApiProperty({
+    description:
+      'Last week average storage providers retrievability success rate',
+  })
+  averageSuccessRate: number;
+
   @ApiProperty({ type: AllocatorSpsComplianceWeek, isArray: true })
   results: AllocatorSpsComplianceWeek[];
 
-  constructor(results: AllocatorSpsComplianceWeek[]) {
+  constructor(
+    averageSuccessRate: number,
+    results: AllocatorSpsComplianceWeek[],
+  ) {
+    this.averageSuccessRate = averageSuccessRate;
     this.results = results;
   }
 }
