@@ -1,22 +1,25 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
-import { PostgresService } from 'src/db/postgres.service';
-import { PostgresDmobService } from 'src/db/postgresDmob.service';
 import { QueryIterablePool } from 'pg-iterator';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class ClientProviderDistributionAccRunner implements AggregationRunner {
-  public async run(
-    prismaService: PrismaService,
-    _prismaDmobService: PrismaDmobService,
-    _filSparkService: FilSparkService,
-    _postgresService: PostgresService,
-    postgresDmobService: PostgresDmobService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    postgresDmobService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
     await prismaService.$transaction(
       async (tx) => {
+        const getDataEndTimerMetric =
+          prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+            runnerName,
+          );
+
         const queryIterablePool = new QueryIterablePool<{
           week: Date | null;
           client: string | null;
@@ -56,6 +59,8 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
                                                   client,
                                                   provider;`);
 
+        getDataEndTimerMetric();
+
         const data: {
           week: Date | null;
           client: string | null;
@@ -65,6 +70,12 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
         }[] = [];
 
         let isFirstInsert = true;
+
+        const storeDataEndTimerMetric =
+          prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+            runnerName,
+          );
+
         for await (const rowResult of i) {
           data.push({
             week: rowResult.week,
@@ -96,6 +107,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
             data,
           });
         }
+        storeDataEndTimerMetric();
       },
       {
         timeout: Number.MAX_SAFE_INTEGER,
