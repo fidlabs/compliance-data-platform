@@ -7,6 +7,7 @@ import { clientPrometheusMetrics } from './client-metrics/metrics';
 import { pgPoolPrometheusMetrics } from './db-metrics/metrics';
 import { PrometheusMetricController } from './prometheus.controller';
 import { PrometheusMetricService } from './prometheus.service';
+import { aggregatePrometheusMetrics } from './aggregate-metrics/metrics';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PrometheusMetricService } from './prometheus.service';
   providers: [
     ...allocatorPrometheusMetrics,
     ...clientPrometheusMetrics,
+    ...aggregatePrometheusMetrics,
     ...pgPoolPrometheusMetrics,
     PrometheusMetricService,
     PrismaService,
