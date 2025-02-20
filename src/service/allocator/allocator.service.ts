@@ -171,7 +171,7 @@ export class AllocatorService {
 
             return {
               id: allocator,
-              totalDatacap: await this.getWeekAllocatorDatacap(
+              totalDatacap: await this.getWeekAllocatorTotalDatacap(
                 week,
                 isAccumulative,
                 allocator,
@@ -180,6 +180,7 @@ export class AllocatorService {
                 weekProvidersCompliance,
                 weekProvidersForAllocator.map((p) => p.provider),
               ),
+              totalSps: weekProvidersForAllocator.length,
             };
           },
           ),
@@ -201,7 +202,7 @@ export class AllocatorService {
     );
   }
 
-  public async getWeekAllocatorDatacap(
+  public async getWeekAllocatorTotalDatacap(
     week: Date,
     isAccumulative: boolean,
     allocatorId: string,
