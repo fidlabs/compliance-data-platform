@@ -41,7 +41,7 @@ export class AllocatorSpsComplianceWeek {
 export class AllocatorSpsComplianceWeekResponse {
   @ApiProperty({
     description:
-      'Last week average storage providers retrievability success rate',
+      'Last full week average storage providers retrievability success rate',
   })
   averageSuccessRate: number;
 

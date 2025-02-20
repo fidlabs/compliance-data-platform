@@ -110,15 +110,8 @@ export class AllocatorService {
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
-    const lastWeek = DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate();
-
     const lastWeekAverageProviderRetrievability =
-      await this.storageProviderService.getWeekAverageProviderRetrievability(
-        lastWeek,
+      await this.storageProviderService.getLastWeekAverageProviderRetrievability(
         isAccumulative,
       );
 
@@ -188,14 +181,14 @@ export class AllocatorService {
 
       results.push({
         week: week,
-        averageSuccessRate: weekAverageProvidersRetrievability,
+        averageSuccessRate: weekAverageProvidersRetrievability * 100,
         total: weekAllocators.length,
         allocators: weekAllocators,
       });
     }
 
     return new AllocatorSpsComplianceWeekResponse(
-      lastWeekAverageProviderRetrievability,
+      lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),
       ),

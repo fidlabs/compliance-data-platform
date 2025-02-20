@@ -84,14 +84,8 @@ export class StorageProviderService {
   public async getProviderRetrievabilityWeekly(
     isAccumulative: boolean,
   ): Promise<RetrievabilityWeekResponse> {
-    const lastWeek = DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate();
-
     const lastWeekAverageRetrievability =
-      await this.getWeekAverageProviderRetrievability(lastWeek, isAccumulative);
+      await this.getLastWeekAverageProviderRetrievability(isAccumulative);
 
     const providerCount = await this.getProviderCount();
 
@@ -130,10 +124,25 @@ export class StorageProviderService {
     );
   }
 
+  public getLastWeekAverageProviderRetrievability(
+    isAccumulative: boolean,
+  ): Promise<number> {
+    const lastWeek = DateTime.now()
+      .toUTC()
+      .minus({ week: 1 })
+      .startOf('week')
+      .toJSDate();
+
+    return this.getWeekAverageProviderRetrievability(lastWeek, isAccumulative);
+  }
+
   public async getProviderComplianceWeekly(
     isAccumulative: boolean,
   ): Promise<StorageProviderComplianceWeekResponse> {
     const weeks = await this.getWeeksTracked();
+
+    const lastWeekAverageRetrievability =
+      await this.getLastWeekAverageProviderRetrievability(isAccumulative);
 
     const result: StorageProviderComplianceWeek[] = await Promise.all(
       weeks.map(async (week) => {
@@ -151,6 +160,7 @@ export class StorageProviderService {
 
         return {
           week: week,
+          averageSuccessRate: weekAverageRetrievability * 100,
           totalSps: weekProviders.length,
           ...this.getProviderComplianceWeekCount(
             weekProvidersCompliance,
@@ -166,6 +176,7 @@ export class StorageProviderService {
     );
 
     return new StorageProviderComplianceWeekResponse(
+      lastWeekAverageRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(result),
       ),

@@ -134,7 +134,7 @@ export class RetrievabilityHistogramWeekResponse {
 
 export class RetrievabilityWeekResponse {
   @ApiProperty({
-    description: 'Last week average retrievability success rate',
+    description: 'Last full week average retrievability success rate',
   })
   averageSuccessRate: number;
 
