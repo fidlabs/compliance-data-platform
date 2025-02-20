@@ -38,7 +38,7 @@ export class AggregationTasksService extends HealthIndicator {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
       const endAllAggregationsTimer =
-        this.prometheusMetricService.allocatorReportGeneratorMetrics.startAggregateTimer();
+        this.prometheusMetricService.aggregateMetrics.startAggregateTimer();
 
       try {
         this.logger.log('Starting aggregations');

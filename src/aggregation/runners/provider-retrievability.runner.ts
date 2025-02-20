@@ -12,11 +12,13 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
+    const {
+      startGetDataTimerByRunnerNameMetric,
+      startStoreDataTimerByRunnerNameMetric,
+    } = prometheusMetricService.aggregateMetrics;
 
     const getDataEndTimerMetric =
-      prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
-        runnerName,
-      );
+      startGetDataTimerByRunnerNameMetric(runnerName);
 
     const latestStored =
       await prismaService.provider_retrievability_daily.findFirst({
@@ -58,9 +60,7 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
     }));
 
     const storeDataEndTimerMetric =
-      prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
-        runnerName,
-      );
+      startStoreDataTimerByRunnerNameMetric(runnerName);
 
     await prismaService.provider_retrievability_daily.createMany({ data });
 
