@@ -1,7 +1,9 @@
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge } from 'prom-client';
 import { AllocatorGaugeMetricsType } from './metrics';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class AllocatorReportGeneratorMetrics {
   constructor(
     @InjectMetric(AllocatorGaugeMetricsType.SUCCESS_ALLOCATOR_REPORTS_COUNT)
