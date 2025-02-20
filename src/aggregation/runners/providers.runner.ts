@@ -16,10 +16,10 @@ export class ProvidersRunner implements AggregationRunner {
     const runnerName = this.getName();
 
     const getDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
         runnerName,
       );
 
-      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
     const result = await prismaService.$queryRawTyped(getProvidersWeekly());
 
     getDataEndTimerMetric();
