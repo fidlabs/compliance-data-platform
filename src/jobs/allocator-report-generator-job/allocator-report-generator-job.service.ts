@@ -82,11 +82,11 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
         `Finishing Allocator Reports generation. Fails: ${fails} / ${reports}`,
       );
 
-      this.prometheusMetricService.allocatorMetrics.setSuccessAllocatorReportsMetric(
+      this.prometheusMetricService.allocatorReportGeneratorMetrics.setSuccessAllocatorReportsMetric(
         reports - fails,
       );
 
-      this.prometheusMetricService.allocatorMetrics.setFailAllocatorReportsMetric(
+      this.prometheusMetricService.allocatorReportGeneratorMetrics.setFailAllocatorReportsMetric(
         fails,
       );
     } catch (err) {

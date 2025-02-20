@@ -76,7 +76,7 @@ export class AggregationService {
 
           // start transaction timer
           const endSingleAggregationTransactionTimer =
-            this.prometheusMetricService.allocatorMetrics.startTimerByRunnerNameMetric(
+            this.prometheusMetricService.allocatorReportGeneratorMetrics.startTimerByRunnerNameMetric(
               aggregationRunnerName,
             );
 

@@ -16,7 +16,7 @@ export class AllocatorsRunner implements AggregationRunner {
     const runnerName = this.getName();
 
     const getDataEndTimerMetric =
-      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+      prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
         runnerName,
       );
 
@@ -37,7 +37,7 @@ export class AllocatorsRunner implements AggregationRunner {
     }));
 
     const storeDataEndTimerMetric =
-      prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+      prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
         runnerName,
       );
 

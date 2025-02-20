@@ -21,7 +21,7 @@ export class PgPoolMetrics {
   setPgPoolAllConnectionsCount = (value: number) =>
     this.pgPoolAllConnectionsCount.set(value);
 
-  @Interval(10000)
+  @Interval(10000) // 10 seconds
   async updateMetrics() {
     try {
       const result = await this.prisma.$queryRaw<
