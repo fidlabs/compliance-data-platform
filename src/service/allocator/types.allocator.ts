@@ -2,11 +2,19 @@ import { ApiProperty } from '@nestjs/swagger';
 import { StorageProviderComplianceWeekPercentage } from '../storage-provider/types.storage-provider';
 
 export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceWeekPercentage {
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, description: 'Allocator ID' })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Total datacap of the allocator in the week',
+  })
   totalDatacap: number;
+
+  @ApiProperty({
+    description:
+      'Total number of storage providers for the allocator in the week',
+  })
+  totalSps: number;
 }
 
 export class AllocatorSpsComplianceWeek {
