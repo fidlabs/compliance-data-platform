@@ -1,7 +1,9 @@
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge } from 'prom-client';
 import { ClientGaugeMetricsType } from './metrics';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class ClientReportGeneratorMetrics {
   constructor(
     @InjectMetric(ClientGaugeMetricsType.SUCCESS_CLIENT_REPORTS_COUNT)

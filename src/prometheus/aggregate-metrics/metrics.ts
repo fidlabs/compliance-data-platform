@@ -20,10 +20,12 @@ const aggregatePrometheusGauges = [
   makeGaugeProvider({
     name: AggregateGaugeMetricsType.AGGREGATION_SINGLE_TRANSACTION_GET_DATA_TIME,
     help: 'The time of getting data for a single transaction',
+    labelNames: ['runner_name'],
   }),
   makeGaugeProvider({
     name: AggregateGaugeMetricsType.AGGREGATION_SINGLE_TRANSACTION_STORE_DATA_TIME,
     help: 'The time of storing data for a single transaction',
+    labelNames: ['runner_name'],
   }),
 ];
 

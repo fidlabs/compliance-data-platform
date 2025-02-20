@@ -8,6 +8,10 @@ import { pgPoolPrometheusMetrics } from './db-metrics/metrics';
 import { PrometheusMetricController } from './prometheus.controller';
 import { PrometheusMetricService } from './prometheus.service';
 import { aggregatePrometheusMetrics } from './aggregate-metrics/metrics';
+import { ClientReportGeneratorMetrics } from './client-metrics';
+import { AllocatorReportGeneratorMetrics } from './allocator-metrics';
+import { PgPoolMetrics } from './db-metrics';
+import { AggregateMetrics } from './aggregate-metrics';
 
 @Module({
   imports: [
@@ -27,6 +31,10 @@ import { aggregatePrometheusMetrics } from './aggregate-metrics/metrics';
     PrometheusMetricService,
     PrismaService,
     ConfigService,
+    ClientReportGeneratorMetrics,
+    AllocatorReportGeneratorMetrics,
+    PgPoolMetrics,
+    AggregateMetrics,
   ],
   exports: [PrometheusMetricService],
 })
