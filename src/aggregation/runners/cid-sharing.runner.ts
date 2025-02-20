@@ -13,10 +13,13 @@ export class CidSharingRunner implements AggregationRunner {
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
 
+    const {
+      startGetDataTimerByRunnerNameMetric,
+      startStoreDataTimerByRunnerNameMetric,
+    } = prometheusMetricService.aggregateMetrics;
+
     const getDataEndTimerMetric =
-      prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
-        runnerName,
-      );
+      startGetDataTimerByRunnerNameMetric(runnerName);
 
     const result = await prismaDmobService.$queryRawTyped(getCidSharing());
 
@@ -30,9 +33,7 @@ export class CidSharingRunner implements AggregationRunner {
     }));
 
     const storeDataEndTimerMetric =
-      prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
-        runnerName,
-      );
+      startStoreDataTimerByRunnerNameMetric(runnerName);
 
     await prismaService.$executeRaw`truncate cid_sharing;`;
     await prismaService.cid_sharing.createMany({ data });

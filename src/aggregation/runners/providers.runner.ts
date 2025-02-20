@@ -15,10 +15,13 @@ export class ProvidersRunner implements AggregationRunner {
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
 
+    const {
+      startGetDataTimerByRunnerNameMetric,
+      startStoreDataTimerByRunnerNameMetric,
+    } = prometheusMetricService.aggregateMetrics;
+
     const getDataEndTimerMetric =
-      prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
-        runnerName,
-      );
+      startGetDataTimerByRunnerNameMetric(runnerName);
 
     const result = await prismaService.$queryRawTyped(getProvidersWeekly());
 
@@ -35,9 +38,7 @@ export class ProvidersRunner implements AggregationRunner {
     }));
 
     const storeDataEndTimerMetric =
-      prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
-        runnerName,
-      );
+      startStoreDataTimerByRunnerNameMetric(runnerName);
 
     await prismaService.$executeRaw`truncate providers_weekly;`;
     this.logger.log('Truncated providers_weekly');

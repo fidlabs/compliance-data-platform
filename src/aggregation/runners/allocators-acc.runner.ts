@@ -15,6 +15,10 @@ export class AllocatorsAccRunner implements AggregationRunner {
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
+    const {
+      startGetDataTimerByRunnerNameMetric,
+      startStoreDataTimerByRunnerNameMetric,
+    } = prometheusMetricService.aggregateMetrics;
 
     await prismaService.$transaction(
       async (tx) => {
@@ -29,9 +33,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
         }>(postgresService.pool);
 
         const getDataEndTimerMetric =
-          prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
-            runnerName,
-          );
+          startGetDataTimerByRunnerNameMetric(runnerName);
 
         const i = queryIterablePool.query(`with
                              allocator_retrievability as (
@@ -78,9 +80,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
         let isFirstInsert = true;
 
         const storeDataEndTimerMetric =
-          prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
-            runnerName,
-          );
+          startStoreDataTimerByRunnerNameMetric(runnerName);
 
         for await (const rowResult of i) {
           data.push({

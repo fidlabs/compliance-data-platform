@@ -13,12 +13,15 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
 
+    const {
+      startGetDataTimerByRunnerNameMetric,
+      startStoreDataTimerByRunnerNameMetric,
+    } = prometheusMetricService.aggregateMetrics;
+
     await prismaService.$transaction(
       async (tx) => {
         const getDataEndTimerMetric =
-          prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
-            runnerName,
-          );
+          startGetDataTimerByRunnerNameMetric(runnerName);
 
         const queryIterablePool = new QueryIterablePool<{
           week: Date | null;
@@ -72,9 +75,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
         let isFirstInsert = true;
 
         const storeDataEndTimerMetric =
-          prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
-            runnerName,
-          );
+          startStoreDataTimerByRunnerNameMetric(runnerName);
 
         for await (const rowResult of i) {
           data.push({
