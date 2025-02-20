@@ -6,16 +6,22 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class PgPoolMetrics {
   constructor(
-    @InjectMetric(PgPoolCdpGaugeMetricsType.PG_POOL_ACTIVE_CONNECTIONS_COUNT)
-    private readonly pgPoolActiveConnectionsCount: Gauge<string>,
+    @InjectMetric(PgPoolCdpGaugeMetricsType.PG_POOL_CLIENT_EXIST_COUNT)
+    private readonly pgPoolClientExist: Gauge<string>,
 
-    @InjectMetric(PgPoolCdpGaugeMetricsType.PG_POOL_ALL_CONNECTIONS_COUNT)
-    private readonly pgPoolAllConnectionsCount: Gauge<string>,
+    @InjectMetric(PgPoolCdpGaugeMetricsType.PG_POOL_CLIENT_IDLE_COUNT)
+    private readonly pgPoolClientIdle: Gauge<string>,
+
+    @InjectMetric(PgPoolCdpGaugeMetricsType.PG_POOL_CLIENT_IDLE_COUNT)
+    private readonly pgPoolClientWaiting: Gauge<string>,
   ) {}
 
-  setPgPoolActiveConnectionsCount = (value: number) =>
-    this.pgPoolActiveConnectionsCount.set(value);
+  setPgPoolExistClientCount = (value: number) =>
+    this.pgPoolClientExist.set(value);
 
-  setPgPoolAllConnectionsCount = (value: number) =>
-    this.pgPoolAllConnectionsCount.set(value);
+  setPgPoolIdleClientCount = (value: number) =>
+    this.pgPoolClientIdle.set(value);
+
+  setPgPoolWaitingClientCount = (value: number) =>
+    this.pgPoolClientWaiting.set(value);
 }

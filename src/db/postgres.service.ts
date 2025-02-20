@@ -13,4 +13,18 @@ export class PostgresService implements OnModuleInit {
       connectionString: this.configService.get<string>('DATABASE_URL'),
     });
   }
+
+  public async getMetrics(): Promise<{
+    totalCount: number;
+    idleCount: number;
+    waitingCount: number;
+  }> {
+    const { totalCount, idleCount, waitingCount } = this.pool;
+
+    return {
+      totalCount,
+      idleCount,
+      waitingCount,
+    };
+  }
 }
