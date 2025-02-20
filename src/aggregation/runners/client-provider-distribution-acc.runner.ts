@@ -16,7 +16,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
     await prismaService.$transaction(
       async (tx) => {
         const getDataEndTimerMetric =
-          prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+          prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
             runnerName,
           );
 
@@ -72,7 +72,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
         let isFirstInsert = true;
 
         const storeDataEndTimerMetric =
-          prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+          prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
             runnerName,
           );
 

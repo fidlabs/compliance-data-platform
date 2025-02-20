@@ -2,7 +2,7 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge } from 'prom-client';
 import { AllocatorGaugeMetricsType } from './metrics';
 
-export class AllocatorMetrics {
+export class AllocatorReportGeneratorMetrics {
   constructor(
     @InjectMetric(AllocatorGaugeMetricsType.AGGREGATION_SINGLE_TRANSACTION_TIME)
     private readonly transactionTimeByRunnerName: Gauge<string>,

@@ -29,7 +29,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
         }>(postgresService.pool);
 
         const getDataEndTimerMetric =
-          prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+          prometheusMetricService.allocatorReportGeneratorMetrics.startGetDataTimerByRunnerNameMetric(
             runnerName,
           );
 
@@ -78,7 +78,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
         let isFirstInsert = true;
 
         const storeDataEndTimerMetric =
-          prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+          prometheusMetricService.allocatorReportGeneratorMetrics.startStoreDataTimerByRunnerNameMetric(
             runnerName,
           );
 
