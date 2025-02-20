@@ -1,19 +1,28 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
 import { getClientProviderDistribution } from '../../../prismaDmob/generated/client/sql';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class ClientProviderDistributionRunner implements AggregationRunner {
-  public async run(
-    prismaService: PrismaService,
-    prismaDmobService: PrismaDmobService,
-    _filSparkService: FilSparkService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    prismaDmobService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
+    const getDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     const result = await prismaDmobService.$queryRawTyped(
       getClientProviderDistribution(),
     );
+
+    getDataEndTimerMetric();
 
     const data = result.map((dmobResult) => ({
       client: dmobResult.client,
@@ -23,10 +32,17 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
       claims_count: dmobResult.claims_count,
     }));
 
+    const storeDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     await prismaService.$executeRaw`truncate client_provider_distribution;`;
     await prismaService.client_provider_distribution.createMany({
       data,
     });
+
+    storeDataEndTimerMetric();
   }
 
   getFilledTables(): AggregationTable[] {

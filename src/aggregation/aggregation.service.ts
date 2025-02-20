@@ -1,10 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrometheusMetricService } from 'src/prometheus';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { PostgresService } from 'src/db/postgres.service';
 import { PostgresDmobService } from 'src/db/postgresDmob.service';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
+import { PrometheusMetricService } from 'src/prometheus';
+import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
 
@@ -82,13 +82,14 @@ export class AggregationService {
 
           try {
             await this.executeWithRetries(3, () =>
-              aggregationRunner.run(
-                this.prismaService,
-                this.prismaDmobService,
-                this.filSparkService,
-                this.postgresService,
-                this.postgresDmobService,
-              ),
+              aggregationRunner.run({
+                prismaService: this.prismaService,
+                prismaDmobService: this.prismaDmobService,
+                filSparkService: this.filSparkService,
+                postgresService: this.postgresService,
+                postgresDmobService: this.postgresDmobService,
+                prometheusMetricService: this.prometheusMetricService,
+              }),
             );
           } catch (err) {
             throw err;

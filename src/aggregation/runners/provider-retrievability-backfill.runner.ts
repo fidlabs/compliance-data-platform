@@ -1,17 +1,24 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
 import { DateTime } from 'luxon';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
   // will fetch 1 day worth of data each run until everything is backfilled
-  public async run(
-    prismaService: PrismaService,
-    _prismaDmobService: PrismaDmobService,
-    filSparkService: FilSparkService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    filSparkService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
+    const getDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     const retrieved =
       await prismaService.provider_retrievability_daily.findMany({
         distinct: ['date'],
@@ -45,6 +52,8 @@ export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
     const retrievabilityData =
       await filSparkService.fetchRetrievability(backfillDate);
 
+    getDataEndTimerMetric();
+
     const data = retrievabilityData.map((row) => ({
       date: backfillDate.toJSDate(),
       provider: row.miner_id,
@@ -55,7 +64,14 @@ export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
       success_rate_http: row.success_rate_http,
     }));
 
+    const storeDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     await prismaService.provider_retrievability_daily.createMany({ data });
+
+    storeDataEndTimerMetric();
   }
 
   getFilledTables(): AggregationTable[] {

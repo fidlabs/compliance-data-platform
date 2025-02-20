@@ -1,20 +1,25 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
-import { PostgresService } from 'src/db/postgres.service';
 import { QueryIterablePool } from 'pg-iterator';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class ClientClaimsRunner implements AggregationRunner {
-  public async run(
-    prismaService: PrismaService,
-    _prismaDmobService: PrismaDmobService,
-    _filSparkService: FilSparkService,
-    postgresService: PostgresService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    postgresService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
     await prismaService.$transaction(
       async (tx) => {
+        const getDataEndTimerMetric =
+          prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+            runnerName,
+          );
+
         const queryIterablePool = new QueryIterablePool<{
           client: string;
           hour: Date;
@@ -28,11 +33,18 @@ export class ClientClaimsRunner implements AggregationRunner {
                                          group by client,
                                                   hour;`);
 
+        getDataEndTimerMetric();
+
         const data: {
           client: string;
           hour: Date;
           total_deal_size: bigint | null;
         }[] = [];
+
+        const storeDataEndTimerMetric =
+          prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+            runnerName,
+          );
 
         let isFirstInsert = true;
         for await (const rowResult of i) {
@@ -64,6 +76,7 @@ export class ClientClaimsRunner implements AggregationRunner {
             data,
           });
         }
+        storeDataEndTimerMetric();
       },
       {
         timeout: Number.MAX_SAFE_INTEGER,

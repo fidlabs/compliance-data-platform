@@ -1,21 +1,21 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
-import { PostgresService } from 'src/db/postgres.service';
-import { QueryIterablePool } from 'pg-iterator';
 import { Logger } from '@nestjs/common';
+import { QueryIterablePool } from 'pg-iterator';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class AllocatorsAccRunner implements AggregationRunner {
   private readonly logger = new Logger(AllocatorsAccRunner.name);
 
-  public async run(
-    prismaService: PrismaService,
-    _prismaDmobService: PrismaDmobService,
-    _filSparkService: FilSparkService,
-    postgresService: PostgresService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    postgresService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
     await prismaService.$transaction(
       async (tx) => {
         const queryIterablePool = new QueryIterablePool<{
@@ -27,6 +27,12 @@ export class AllocatorsAccRunner implements AggregationRunner {
           avg_weighted_retrievability_success_rate: number | null;
           avg_weighted_retrievability_success_rate_http: number | null;
         }>(postgresService.pool);
+
+        const getDataEndTimerMetric =
+          prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+            runnerName,
+          );
+
         const i = queryIterablePool.query(`with
                              allocator_retrievability as (
                                  select
@@ -57,6 +63,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
                              week,
                              allocator;`);
 
+        getDataEndTimerMetric();
+
         const data: {
           week: Date;
           allocator: string;
@@ -68,6 +76,12 @@ export class AllocatorsAccRunner implements AggregationRunner {
         }[] = [];
 
         let isFirstInsert = true;
+
+        const storeDataEndTimerMetric =
+          prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+            runnerName,
+          );
+
         for await (const rowResult of i) {
           data.push({
             week: rowResult.week,
@@ -111,6 +125,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
 
           this.logger.log('Inserted allocators_weekly_acc');
         }
+
+        storeDataEndTimerMetric();
       },
       {
         timeout: Number.MAX_SAFE_INTEGER,

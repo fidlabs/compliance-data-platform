@@ -99,7 +99,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
         `Finishing Client Reports generation. Fails: ${fails} / ${reports}`,
       );
 
-      this.prometheusMetricService.clientMetrics.setFailReportsCountMetric(
+      this.prometheusMetricService.clientMetrics.setSuccessReportsCountMetric(
         reports - fails,
       );
 

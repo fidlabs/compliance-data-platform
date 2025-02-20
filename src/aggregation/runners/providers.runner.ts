@@ -1,21 +1,28 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
-import { getProvidersWeekly } from '../../../prisma/generated/client/sql';
 import { Logger } from '@nestjs/common';
+import { getProvidersWeekly } from '../../../prisma/generated/client/sql';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class ProvidersRunner implements AggregationRunner {
   private readonly logger = new Logger(ProvidersRunner.name);
 
-  public async run(
-    prismaService: PrismaService,
-    _prismaDmobService: PrismaDmobService,
-    _filSparkService: FilSparkService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
+    const getDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     const result = await prismaService.$queryRawTyped(getProvidersWeekly());
 
+    getDataEndTimerMetric();
     const data = result.map((row) => ({
       week: row.week,
       provider: row.provider,
@@ -27,10 +34,16 @@ export class ProvidersRunner implements AggregationRunner {
         row.avg_retrievability_success_rate_http,
     }));
 
+    const storeDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     await prismaService.$executeRaw`truncate providers_weekly;`;
     this.logger.log('Truncated providers_weekly');
     await prismaService.providers_weekly.createMany({ data });
     this.logger.log('Inserted providers_weekly');
+    storeDataEndTimerMetric();
   }
 
   getFilledTables(): AggregationTable[] {

@@ -1,16 +1,23 @@
-import { PrismaService } from 'src/db/prisma.service';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { FilSparkService } from 'src/service/filspark/filspark.service';
-import { AggregationRunner } from '../aggregation-runner';
-import { AggregationTable } from '../aggregation-table';
 import { DateTime } from 'luxon';
+import {
+  AggregationRunner,
+  AggregationRunnerRunServices,
+} from '../aggregation-runner';
+import { AggregationTable } from '../aggregation-table';
 
 export class ProviderRetrievabilityRunner implements AggregationRunner {
-  public async run(
-    prismaService: PrismaService,
-    _prismaDmobService: PrismaDmobService,
-    filSparkService: FilSparkService,
-  ): Promise<void> {
+  public async run({
+    prismaService,
+    filSparkService,
+    prometheusMetricService,
+  }: AggregationRunnerRunServices): Promise<void> {
+    const runnerName = this.getName();
+
+    const getDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startGetDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     const latestStored =
       await prismaService.provider_retrievability_daily.findFirst({
         select: {
@@ -38,6 +45,8 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
     const retrievabilityData =
       await filSparkService.fetchRetrievability(yesterday);
 
+    getDataEndTimerMetric();
+
     const data = retrievabilityData.map((row) => ({
       date: yesterday.toJSDate(),
       provider: row.miner_id,
@@ -48,7 +57,14 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
       success_rate_http: row.success_rate_http,
     }));
 
+    const storeDataEndTimerMetric =
+      prometheusMetricService.allocatorMetrics.startStoreDataTimerByRunnerNameMetric(
+        runnerName,
+      );
+
     await prismaService.provider_retrievability_daily.createMany({ data });
+
+    storeDataEndTimerMetric();
   }
 
   getFilledTables(): AggregationTable[] {
