@@ -110,10 +110,22 @@ export class AllocatorService {
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
+    const lastWeek = DateTime.now()
+      .toUTC()
+      .minus({ week: 1 })
+      .startOf('week')
+      .toJSDate();
+
+    const lastWeekAverageProviderRetrievability =
+      await this.storageProviderService.getWeekAverageProviderRetrievability(
+        lastWeek,
+        isAccumulative,
+      );
+
     const results: AllocatorSpsComplianceWeek[] = [];
 
     for (const week of weeks) {
-      const weekAverageRetrievability =
+      const weekAverageProvidersRetrievability =
         await this.storageProviderService.getWeekAverageProviderRetrievability(
           week,
           isAccumulative,
@@ -125,12 +137,13 @@ export class AllocatorService {
       );
 
       const weekProvidersCompliance: {
+        // TODO refactor to a type
         complianceScore: number;
         provider: string;
       }[] = weekProviders.map((provider) => {
         return this.storageProviderService.getWeekProviderComplianceScore(
           provider,
-          weekAverageRetrievability,
+          weekAverageProvidersRetrievability,
         );
       });
 
@@ -144,10 +157,11 @@ export class AllocatorService {
         (a) => a.allocator,
       );
 
-      const weekResult: AllocatorSpsComplianceWeekSingle[] = await Promise.all(
-        Object.entries(clientsByAllocator).map(
-          // prettier-ignore
-          async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
+      const weekAllocators: AllocatorSpsComplianceWeekSingle[] =
+        await Promise.all(
+          Object.entries(clientsByAllocator).map(
+            // prettier-ignore
+            async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
             const weekProvidersForAllocator =
               await this.storageProviderService.getWeekProvidersForClients(
                 week,
@@ -168,17 +182,19 @@ export class AllocatorService {
               ),
             };
           },
-        ),
-      );
+          ),
+        );
 
       results.push({
         week: week,
-        allocators: weekResult,
-        total: weekResult.length,
+        averageSuccessRate: weekAverageProvidersRetrievability,
+        total: weekAllocators.length,
+        allocators: weekAllocators,
       });
     }
 
     return new AllocatorSpsComplianceWeekResponse(
+      lastWeekAverageProviderRetrievability,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),
       ),
