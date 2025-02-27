@@ -73,7 +73,7 @@ export class ClientReportController {
   })
   public async getClientReportById(
     @Param('client') client: string,
-    @Param('id') id: bigint,
+    @Param('id') id: number,
   ) {
     const report = await this.clientReportsService.getReport(client, id);
 

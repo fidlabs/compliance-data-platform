@@ -32,13 +32,13 @@ export class ClientReportChecksService {
     );
   }
 
-  public async storeReportChecks(reportId: bigint) {
+  public async storeReportChecks(reportId: number) {
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
     await this.storeDealDataSharedWithOtherClientsChecks(reportId);
   }
 
-  private async storeStorageProviderDistributionChecks(reportId: bigint) {
+  private async storeStorageProviderDistributionChecks(reportId: number) {
     await this.storeProvidersExceedingProviderDealResults(reportId);
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
@@ -48,15 +48,15 @@ export class ClientReportChecksService {
     await this.storeProvidersIPNINotReporting(reportId);
   }
 
-  private async storeDealDataReplicationChecks(reportId: bigint) {
+  private async storeDealDataReplicationChecks(reportId: number) {
     await this.storeDealDataLowReplica(reportId);
   }
 
-  private async storeDealDataSharedWithOtherClientsChecks(reportId: bigint) {
+  private async storeDealDataSharedWithOtherClientsChecks(reportId: number) {
     await this.storeDealDataSharedWithOtherClientsCidSharing(reportId);
   }
 
-  private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
+  private async storeProvidersExceedingProviderDealResults(reportId: number) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -115,7 +115,7 @@ export class ClientReportChecksService {
   }
 
   private async storeProvidersExceedingMaxDuplicationPercentage(
-    reportId: bigint,
+    reportId: number,
   ) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
@@ -171,7 +171,7 @@ export class ClientReportChecksService {
     }
   }
 
-  private async storeProvidersWithUnknownLocation(reportId: bigint) {
+  private async storeProvidersWithUnknownLocation(reportId: number) {
     const providerDistributionWithLocation =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -227,7 +227,7 @@ export class ClientReportChecksService {
     }
   }
 
-  private async storeProvidersInSameLocation(reportId: bigint) {
+  private async storeProvidersInSameLocation(reportId: number) {
     const providerDistributionWithLocation =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -274,7 +274,7 @@ export class ClientReportChecksService {
     }
   }
 
-  private async storeProvidersIPNIMisreporting(reportId: bigint) {
+  private async storeProvidersIPNIMisreporting(reportId: number) {
     const providerDistribution: any[] =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -324,7 +324,7 @@ export class ClientReportChecksService {
     }
   }
 
-  private async storeProvidersIPNINotReporting(reportId: bigint) {
+  private async storeProvidersIPNINotReporting(reportId: number) {
     const providerDistribution: any[] =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -374,7 +374,7 @@ export class ClientReportChecksService {
     }
   }
 
-  private async storeProvidersRetrievability(reportId: bigint) {
+  private async storeProvidersRetrievability(reportId: number) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -463,7 +463,7 @@ export class ClientReportChecksService {
     }
   }
 
-  private async storeDealDataLowReplica(reportId: bigint) {
+  private async storeDealDataLowReplica(reportId: number) {
     const replicaDistribution =
       await this.prismaService.client_report_replica_distribution.findMany({
         where: {
@@ -494,7 +494,7 @@ export class ClientReportChecksService {
   }
 
   private async storeDealDataSharedWithOtherClientsCidSharing(
-    reportId: bigint,
+    reportId: number,
   ) {
     const cidSharingCount =
       await this.prismaService.client_report_cid_sharing.count({
