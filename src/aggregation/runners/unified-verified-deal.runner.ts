@@ -28,14 +28,14 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
           client: string | null;
           provider: string | null;
           num_of_claims: number | null;
-          total_deal_size: number | null;
+          total_deal_size: bigint | null;
         }>(postgresDmobService.pool);
         const i =
           queryIterablePool.query(`select date_trunc('hour', to_timestamp("termStart" * 30 + 1598306400)) as hour,
                                         'f0' || "clientId"                                              as client,
                                         'f0' || "providerId"                                            as provider,
                                         count(*)::int                                                   as num_of_claims,
-                                        sum("pieceSize")::float                                         as total_deal_size
+                                        sum("pieceSize")::bigint                                        as total_deal_size
                                  from unified_verified_deal
                                  where "termStart" >= 3847920                                           -- nv22 start
                                    and to_timestamp("termStart" * 30 + 1598306400) <= current_timestamp -- deals that didn't start yet
@@ -50,7 +50,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
           client: string | null;
           provider: string | null;
           num_of_claims: number | null;
-          total_deal_size: number | null;
+          total_deal_size: bigint | null;
         }[] = [];
 
         let isFirstInsert = true;

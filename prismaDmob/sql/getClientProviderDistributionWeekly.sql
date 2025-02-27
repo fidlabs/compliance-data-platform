@@ -11,10 +11,10 @@ with "miner_pieces" as (select date_trunc('week', to_timestamp("termStart" * 30 
                                  "client",
                                  "provider",
                                  "pieceCid")
-select "week"                        as "week",
-       "client"                      as "client",
-       "provider"                    as "provider",
-       sum("total_deal_size")::float as "total_deal_size",
-       sum("piece_size")::float      as "unique_data_size"
+select "week"                         as "week",
+       "client"                       as "client",
+       "provider"                     as "provider",
+       sum("total_deal_size")::bigint as "total_deal_size",
+       sum("piece_size")::bigint      as "unique_data_size"
 from "miner_pieces"
 group by "week", "client", "provider";
