@@ -17,7 +17,7 @@ import {
   ApiOperation,
 } from '@nestjs/swagger';
 import { CACHE_MANAGER, CacheKey, Cache } from '@nestjs/cache-manager';
-import { GithubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
+import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller('client-report')
 export class ClientReportController {
@@ -26,13 +26,13 @@ export class ClientReportController {
   constructor(
     private readonly clientReportsService: ClientReportService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private readonly githubTriggersHandlerService: GithubTriggersHandlerService,
+    private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
   ) {}
 
   @Post('/gh-trigger')
   @ApiExcludeEndpoint()
   public async gitHubTrigger(@Body() body: any) {
-    await this.githubTriggersHandlerService.handleTrigger(body);
+    await this.gitHubTriggersHandlerService.handleTrigger(body);
   }
 
   @Get(':client')

@@ -18,7 +18,7 @@ export class RequestLoggerMiddleware implements NestMiddleware {
       const requestEndAt = process.hrtime(requestStartAt);
       const responseTime = requestEndAt[0] * 1e3 + requestEndAt[1] * 1e-6;
 
-      this.logger.log(
+      this.logger.debug(
         `${request.method} ${request.originalUrl}: ${response.statusCode} +${responseTime.toFixed(0)}ms`,
       );
 
