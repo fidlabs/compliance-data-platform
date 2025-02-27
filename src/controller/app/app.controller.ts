@@ -21,17 +21,17 @@ export class AppController {
   private readonly logger = new Logger(AppController.name);
 
   constructor(
-    private healthCheckService: HealthCheckService,
-    private httpHealthIndicator: HttpHealthIndicator,
-    private typeOrmHealthIndicator: TypeOrmHealthIndicator,
-    private postgresService: PostgresService,
-    private postgresDmobService: PostgresDmobService,
-    private configService: ConfigService,
-    private aggregationTasksService: AggregationTasksService,
-    private clientReportGeneratorJobService: ClientReportGeneratorJobService,
-    private allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
-    private ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
-    private locationService: LocationService,
+    private readonly healthCheckService: HealthCheckService,
+    private readonly httpHealthIndicator: HttpHealthIndicator,
+    private readonly typeOrmHealthIndicator: TypeOrmHealthIndicator,
+    private readonly postgresService: PostgresService,
+    private readonly postgresDmobService: PostgresDmobService,
+    private readonly configService: ConfigService,
+    private readonly aggregationTasksService: AggregationTasksService,
+    private readonly clientReportGeneratorJobService: ClientReportGeneratorJobService,
+    private readonly allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
+    private readonly ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
+    private readonly locationService: LocationService,
   ) {}
 
   @Get()

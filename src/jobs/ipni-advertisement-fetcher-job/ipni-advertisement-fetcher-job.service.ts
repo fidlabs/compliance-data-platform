@@ -27,7 +27,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
 
   public async getHealth(): Promise<HealthIndicatorResult> {
     const result = this.getStatus(
-      'ipni-advertisement-fetcher',
+      IpniAdvertisementFetcherJobService.name,
       this.healthy,
       {},
     );
