@@ -36,8 +36,8 @@ export class GithubTriggersHandlerService {
   private async handleIssueCommentCreated(context: any) {
     let responseBody: string | null;
 
-    if (context.comment.body === 'checker:manualTrigger') {
-      responseBody = await this._checkerManualTrigger(context);
+    if (context.comment.body.trim() === 'checker:manualTrigger') {
+      responseBody = await this.checkerManualTrigger(context);
     }
 
     if (responseBody) {
@@ -53,21 +53,32 @@ export class GithubTriggersHandlerService {
     }
   }
 
-  private async _checkerManualTrigger(context: any): Promise<string | null> {
+  private async checkerManualTrigger(context: any): Promise<string> {
+    try {
+      return await this._checkerManualTrigger(context);
+    } catch (err) {
+      this.logger.warn(`Error handling checker:manualTrigger trigger: ${err}`);
+      return `Error during generation of client report: ${err.message}`;
+    }
+  }
+
+  private async _checkerManualTrigger(context: any): Promise<string> {
     const clientAddress = await this.gitHubIssueParserService.getClientAddress(
       context.issue,
     );
 
     if (!clientAddress) {
-      this.logger.warn(
+      throw new Error(
         `No client address found in GitHub issue: ${context.issue.url}`,
       );
-
-      return null;
     }
 
     const clientId =
       await this.clientService.getClientIdByAddress(clientAddress);
+
+    if (!clientId) {
+      throw new Error(`Client ID not found for address: ${clientAddress}`);
+    }
 
     let clientReport = await this.clientReportsService.getLatestReport(
       clientId,
@@ -77,7 +88,7 @@ export class GithubTriggersHandlerService {
     if (
       !clientReport ||
       new Date().getTime() - clientReport.create_date.getTime() >
-        1000 * 60 * 60 * 30 // report older than 30 hours
+        1000 * 60 * 60 * 30 // report older than 30 hours (24 hours + some buffer)
     ) {
       await this.clientReportsService.generateReport(clientId);
 
@@ -88,22 +99,21 @@ export class GithubTriggersHandlerService {
     }
 
     if (!clientReport) {
-      this.logger.warn(
+      throw new Error(
         `Client not found: address: ${clientAddress}, ID: ${clientId}`,
       );
-      return null;
     }
 
     const responseLines: string[] = [];
 
     // prettier-ignore
     {
-      responseLines.push('## DataCap Client Report Summary[^1]');
+      responseLines.push('## DataCap Client Report Summary [^1]');
       responseLines.push(`**Client address:** \`${clientReport.client_address}\``);
       responseLines.push(`**Client ID:** \`${clientReport.client}\``);
       responseLines.push(`**Report ID:** \`${clientReport.id}\``);
       const timeAgoString = this._generateTimeAgoString(clientReport.create_date, new Date());
-      responseLines.push(`**Generated at:** ${clientReport.create_date.toUTCString()} (${timeAgoString})`);
+      responseLines.push(`**Generated at:** ${clientReport.create_date.toUTCString()} (${timeAgoString}) [^2]`);
 
       responseLines.push('');
       responseLines.push('### Report checks');
