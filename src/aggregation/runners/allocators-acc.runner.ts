@@ -26,8 +26,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
           week: Date;
           allocator: string;
           num_of_clients: number | null;
-          biggest_client_sum_of_allocations: number | null;
-          total_sum_of_allocations: number | null;
+          biggest_client_sum_of_allocations: bigint | null;
+          total_sum_of_allocations: bigint | null;
           avg_weighted_retrievability_success_rate: number | null;
           avg_weighted_retrievability_success_rate_http: number | null;
         }>(postgresService.pool);
@@ -54,8 +54,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
                              week,
                              allocator,
                              count(*)::int as num_of_clients,
-                             max(sum_of_allocations)::float as biggest_client_sum_of_allocations,
-                             sum(sum_of_allocations)::float as total_sum_of_allocations,
+                             max(sum_of_allocations)::bigint as biggest_client_sum_of_allocations,
+                             sum(sum_of_allocations)::bigint as total_sum_of_allocations,
                              max(coalesce(avg_weighted_retrievability_success_rate, 0)) as avg_weighted_retrievability_success_rate,
                              max(coalesce(avg_weighted_retrievability_success_rate_http, 0)) as avg_weighted_retrievability_success_rate_http
                          from client_allocator_distribution_weekly_acc
@@ -71,8 +71,8 @@ export class AllocatorsAccRunner implements AggregationRunner {
           week: Date;
           allocator: string;
           num_of_clients: number | null;
-          biggest_client_sum_of_allocations: number | null;
-          total_sum_of_allocations: number | null;
+          biggest_client_sum_of_allocations: bigint | null;
+          total_sum_of_allocations: bigint | null;
           avg_weighted_retrievability_success_rate: number | null;
           avg_weighted_retrievability_success_rate_http: number | null;
         }[] = [];

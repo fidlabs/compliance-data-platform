@@ -17,8 +17,8 @@ with "allocator_retrievability" as (select "week"                               
 select "week"                                                       as "week",
        "allocator"                                                  as "allocator",
        "num_of_clients"::int                                        as "num_of_clients",
-       "biggest_client_sum_of_allocations"::float                   as "biggest_client_sum_of_allocations",
-       "total_sum_of_allocations"::float                            as "total_sum_of_allocations",
+       "biggest_client_sum_of_allocations"::bigint                  as "biggest_client_sum_of_allocations",
+       "total_sum_of_allocations"::bigint                           as "total_sum_of_allocations",
        coalesce("avg_weighted_retrievability_success_rate", 0)      as "avg_weighted_retrievability_success_rate",
        coalesce("avg_weighted_retrievability_success_rate_http", 0) as "avg_weighted_retrievability_success_rate_http"
 from "allocator_stats"
