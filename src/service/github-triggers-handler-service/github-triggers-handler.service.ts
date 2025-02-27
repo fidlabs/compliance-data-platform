@@ -6,6 +6,13 @@ import { Octokit } from '@octokit/core';
 import { ClientReportService } from '../client-report/client-report.service';
 import { ConfigService } from '@nestjs/config';
 
+class GitHubTriggerError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = GitHubTriggerError.name;
+  }
+}
+
 @Injectable()
 export class GitHubTriggersHandlerService {
   private readonly logger = new Logger(GitHubTriggersHandlerService.name);
@@ -25,8 +32,17 @@ export class GitHubTriggersHandlerService {
   private async handleIssueCommentCreated(context: any) {
     let responseBody: string | null;
 
-    if (context.comment.body.trim() === 'checker:manualTrigger') {
-      responseBody = await this.checkerManualTrigger(context);
+    try {
+      if (context.comment.body.trim() === 'checker:manualTrigger') {
+        responseBody = await this.checkerManualTrigger(context);
+      }
+    } catch (err) {
+      this.logger.error(
+        `Error handling GitHub issue comment created trigger: ${err}`,
+        err.stack,
+      );
+
+      responseBody = `Error: internal server error`;
     }
 
     if (responseBody) {
@@ -61,8 +77,14 @@ export class GitHubTriggersHandlerService {
     try {
       return await this._checkerManualTrigger(context);
     } catch (err) {
-      this.logger.warn(`Error handling checker:manualTrigger trigger: ${err}`);
-      return `Error during generation of client report: ${err.message}`;
+      if (err instanceof GitHubTriggerError) {
+        this.logger.warn(
+          `Error handling checker:manualTrigger trigger: ${err}`,
+        );
+        return `Error during generation of client report: ${err.message}`;
+      }
+
+      throw err;
     }
   }
 
@@ -72,7 +94,7 @@ export class GitHubTriggersHandlerService {
     );
 
     if (!clientAddress) {
-      throw new Error(
+      throw new GitHubTriggerError(
         `No client address found in GitHub issue: ${context.issue.url}`,
       );
     }
@@ -81,7 +103,9 @@ export class GitHubTriggersHandlerService {
       await this.clientService.getClientIdByAddress(clientAddress);
 
     if (!clientId) {
-      throw new Error(`Client ID not found for address: ${clientAddress}`);
+      throw new GitHubTriggerError(
+        `Client ID not found for address: ${clientAddress}`,
+      );
     }
 
     let clientReport = await this.clientReportsService.getLatestReport(
@@ -101,7 +125,7 @@ export class GitHubTriggersHandlerService {
     }
 
     if (!clientReport) {
-      throw new Error(
+      throw new GitHubTriggerError(
         `Client not found: address: ${clientAddress}, ID: ${clientId}`,
       );
     }

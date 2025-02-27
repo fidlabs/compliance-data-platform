@@ -24,7 +24,7 @@ export class AggregationTasksService extends HealthIndicator {
   }
 
   public async getHealth(): Promise<HealthIndicatorResult> {
-    const result = this.getStatus('aggregation-tasks', this.healthy, {
+    const result = this.getStatus(AggregationTasksService.name, this.healthy, {
       lastSuccess: this.lastSuccess,
       lastRun: this.lastRun,
     });

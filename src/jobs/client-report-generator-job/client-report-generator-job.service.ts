@@ -29,11 +29,15 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   }
 
   public async getHealth(): Promise<HealthIndicatorResult> {
-    const result = this.getStatus('client-report-generator', this.healthy, {
-      lastRun: this.lastRun,
-      lastRunReports: this.lastRunReports,
-      lastRunFails: this.lastRunFails,
-    });
+    const result = this.getStatus(
+      ClientReportGeneratorJobService.name,
+      this.healthy,
+      {
+        lastRun: this.lastRun,
+        lastRunReports: this.lastRunReports,
+        lastRunFails: this.lastRunFails,
+      },
+    );
 
     if (this.healthy) return result;
     throw new HealthCheckError('Healthcheck failed', result);
