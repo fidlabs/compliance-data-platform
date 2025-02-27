@@ -186,7 +186,7 @@ export class StorageProviderService {
   public async getWeekProvidersTotalDatacap(
     week: Date,
     isAccumulative: boolean,
-  ): Promise<{ total_deal_size: number; provider: string }[]> {
+  ): Promise<{ total_deal_size: bigint; provider: string }[]> {
     return (
       (isAccumulative
         ? this.prismaService.providers_weekly_acc
@@ -280,8 +280,8 @@ export class StorageProviderService {
     providerWeekly: {
       avg_retrievability_success_rate: number;
       num_of_clients: number;
-      biggest_client_total_deal_size: number | null;
-      total_deal_size: number | null;
+      biggest_client_total_deal_size: bigint | null;
+      total_deal_size: bigint | null;
       provider: string;
     },
     weekAverageRetrievability: number,
@@ -302,8 +302,8 @@ export class StorageProviderService {
     if (providerWeekly.num_of_clients > 3) complianceScore++;
 
     if (
-      providerWeekly.biggest_client_total_deal_size * 100 <=
-      30 * providerWeekly.total_deal_size
+      providerWeekly.biggest_client_total_deal_size * 100n <=
+      30n * providerWeekly.total_deal_size
     )
       complianceScore++;
 
@@ -346,7 +346,7 @@ export class StorageProviderService {
     }[],
     validProviders: string[],
     weekProvidersTotalDatacap: {
-      total_deal_size: number | null;
+      total_deal_size: bigint | null;
       provider: string;
     }[],
   ): StorageProviderComplianceWeekTotalDatacap {
@@ -457,7 +457,7 @@ export class StorageProviderService {
     validProviders: string[],
     validComplianceScore: ProviderComplianceScoreRange,
     weekProvidersTotalDatacap: {
-      total_deal_size: number | null;
+      total_deal_size: bigint | null;
       provider: string;
     }[],
   ): number {
@@ -471,7 +471,7 @@ export class StorageProviderService {
     return Number(
       weekProvidersTotalDatacap
         .filter((p) => validWeekProviders.includes(p.provider))
-        .reduce((acc, p) => acc + p.total_deal_size, 0) ?? 0,
+        .reduce((acc, p) => acc + p.total_deal_size, 0n) ?? 0,
     );
   }
 

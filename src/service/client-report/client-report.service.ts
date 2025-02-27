@@ -72,7 +72,7 @@ export class ClientReportService {
       },
     });
 
-    await this.clientReportChecksService.storeReportChecks(Number(report.id));
+    await this.clientReportChecksService.storeReportChecks(report.id);
 
     return report;
   }
