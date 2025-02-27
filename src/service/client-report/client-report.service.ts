@@ -35,8 +35,9 @@ export class ClientReportService {
       data: {
         client: clientId,
         client_address: verifiedClientData.address,
-        organization_name:
-          (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? ''),
+        organization_name: (
+          (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? '')
+        ).trim(),
         application_url:
           this.clientService.getClientApplicationUrl(verifiedClientData),
         storage_provider_distribution: {
