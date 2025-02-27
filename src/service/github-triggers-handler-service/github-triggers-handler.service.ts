@@ -90,9 +90,7 @@ export class GithubTriggersHandlerService {
       new Date().getTime() - clientReport.create_date.getTime() >
         1000 * 60 * 60 * 30 // report older than 30 hours (24 hours + some buffer)
     ) {
-      await this.clientReportsService.generateReport(clientId);
-
-      clientReport = await this.clientReportsService.getLatestReport(
+      clientReport = await this.clientReportsService.generateReport(
         clientId,
         true,
       );
