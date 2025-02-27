@@ -25,8 +25,8 @@ export class PrometheusMetricService {
       this.pgPoolMetrics.setPgPoolExistClientCount(totalCount);
       this.pgPoolMetrics.setPgPoolIdleClientCount(idleCount);
       this.pgPoolMetrics.setPgPoolWaitingClientCount(waitingCount);
-    } catch (error) {
-      console.error('Error fetching PGPool connections:', error);
+    } catch (err) {
+      console.error('Error fetching PGPool connections:', err);
     }
   }
 }

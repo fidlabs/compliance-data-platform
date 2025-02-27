@@ -63,14 +63,14 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     for (const [i, application] of applications.entries()) {
       try {
         this.logger.debug(
-          `Starting generation of Client Report for application #${application.ID}`,
+          `Starting generation of client report for application #${application.ID}`,
         );
 
         await this.generateClientReport(application);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of Client Report for application #${application.ID}: ${err}`,
+          `Error during generation of client report for application #${application.ID}: ${err}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
@@ -87,7 +87,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   public async runClientReportGenerationJob() {
     try {
-      this.logger.log('Starting Client Reports generation');
+      this.logger.log('Starting client reports generation');
       this.lastRun = new Date();
       this.healthy = true;
 
@@ -96,7 +96,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       this.lastRunReports = reports;
       this.lastRunFails = fails;
       this.logger.log(
-        `Finishing Client Reports generation. Fails: ${fails} / ${reports}`,
+        `Finishing client reports generation. Fails: ${fails} / ${reports}`,
       );
 
       this.prometheusMetricService.clientReportGeneratorMetrics.setSuccessReportsCountMetric(
@@ -109,7 +109,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     } catch (err) {
       this.healthy = false;
       this.logger.error(
-        `Error during Client Reports generation job: ${err}`,
+        `Error during client reports generation job: ${err}`,
         err.stack,
       );
     }

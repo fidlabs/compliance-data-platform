@@ -49,14 +49,14 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     for (const [, allocator] of allocators.entries()) {
       try {
         this.logger.debug(
-          `Starting generation of Allocator Report for ${allocator.address}`,
+          `Starting generation of allocator report for ${allocator.address}`,
         );
 
         await this.generateAllocatorReport(allocator.address);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of Allocator Report for ${allocator.address}: ${err}`,
+          `Error during generation of allocator report for ${allocator.address}: ${err}`,
           err.stack,
         );
 
@@ -70,7 +70,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   public async runAllocatorReportGenerationJob() {
     try {
-      this.logger.log('Starting Allocator Reports generation');
+      this.logger.log('Starting allocator reports generation');
       this.lastRun = new Date();
       this.healthy = true;
 
@@ -79,7 +79,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
       this.lastRunReports = reports;
       this.lastRunFails = fails;
       this.logger.log(
-        `Finishing Allocator Reports generation. Fails: ${fails} / ${reports}`,
+        `Finishing allocator reports generation. Fails: ${fails} / ${reports}`,
       );
 
       this.prometheusMetricService.allocatorReportGeneratorMetrics.setSuccessAllocatorReportsMetric(
@@ -92,7 +92,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     } catch (err) {
       this.healthy = false;
       this.logger.error(
-        `Error during Allocator Reports generation job: ${err}`,
+        `Error during allocator reports generation job: ${err}`,
         err.stack,
       );
     }
