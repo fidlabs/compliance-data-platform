@@ -43,7 +43,7 @@ export class CidContactService {
         advertisementId,
       );
     } catch (err) {
-      throw new Error(`Error fetching IPNI advertisement: ${err}`);
+      throw new Error(`Error fetching IPNI advertisement: ${err.message}`);
     }
   }
 

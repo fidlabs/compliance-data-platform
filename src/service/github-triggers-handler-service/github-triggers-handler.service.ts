@@ -7,8 +7,8 @@ import { ClientReportService } from '../client-report/client-report.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class GithubTriggersHandlerService {
-  private readonly logger = new Logger(GithubTriggersHandlerService.name);
+export class GitHubTriggersHandlerService {
+  private readonly logger = new Logger(GitHubTriggersHandlerService.name);
 
   constructor(
     private readonly gitHubIssueParserService: GitHubIssueParserService,
@@ -22,6 +22,28 @@ export class GithubTriggersHandlerService {
       await this.handleIssueCommentCreated(context);
   }
 
+  private async handleIssueCommentCreated(context: any) {
+    let responseBody: string | null;
+
+    if (context.comment.body.trim() === 'checker:manualTrigger') {
+      responseBody = await this.checkerManualTrigger(context);
+    }
+
+    if (responseBody) {
+      const response = await this.getOctokit(context).request(
+        'POST /repos/{owner}/{repo}/issues/{issue_number}/comments',
+        {
+          owner: context.repository.owner.login,
+          repo: context.repository.name,
+          issue_number: context.issue.number,
+          body: responseBody,
+        },
+      );
+
+      this.logger.log(`GitHub issue comment posted: ${response.data.html_url}`);
+    }
+  }
+
   private getOctokit(context: any): Octokit {
     return new Octokit({
       authStrategy: createAppAuth,
@@ -33,25 +55,7 @@ export class GithubTriggersHandlerService {
     });
   }
 
-  private async handleIssueCommentCreated(context: any) {
-    let responseBody: string | null;
-
-    if (context.comment.body.trim() === 'checker:manualTrigger') {
-      responseBody = await this.checkerManualTrigger(context);
-    }
-
-    if (responseBody) {
-      await this.getOctokit(context).request(
-        'POST /repos/{owner}/{repo}/issues/{issue_number}/comments',
-        {
-          owner: context.repository.owner.login,
-          repo: context.repository.name,
-          issue_number: context.issue.number,
-          body: responseBody,
-        },
-      );
-    }
-  }
+  //
 
   private async checkerManualTrigger(context: any): Promise<string> {
     try {
@@ -132,7 +136,7 @@ export class GithubTriggersHandlerService {
     return responseLines.join('\n');
   }
 
-  private _generateTimeAgoString(from: Date, to: Date): string | null {
+  private _generateTimeAgoString(from: Date, to: Date): string {
     const diff = to.getTime() - from.getTime();
 
     const minutes = Math.floor(diff / 1000 / 60);

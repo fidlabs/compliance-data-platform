@@ -36,7 +36,7 @@ export class LocationService {
       return await this._getLocation(multiAddrs);
     } catch (err) {
       this.logger.error(
-        `Error getting location for ${multiAddrs}: ${err}`,
+        `Error getting location for ${multiAddrs}: ${err.message}`,
         err.stack,
       );
       throw err;

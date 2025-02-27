@@ -68,7 +68,7 @@ import axiosBetterStacktrace from 'axios-better-stacktrace';
 import axios from 'axios';
 import { HistogramHelperService } from './service/histogram-helper/histogram-helper.service';
 import { GitHubIssueParserService } from './service/github-issue-parser/github-issue-parser.service';
-import { GithubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
+import { GitHubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Module({
   imports: [
@@ -128,7 +128,7 @@ import { GithubTriggersHandlerService } from './service/github-triggers-handler-
     ClientReportService,
     ClientService,
     GitHubIssueParserService,
-    GithubTriggersHandlerService,
+    GitHubTriggersHandlerService,
     LotusApiService,
     LocationService,
     AllocatorTechService,
