@@ -15,7 +15,7 @@ export class ClientReportService {
     private readonly clientService: ClientService,
   ) {}
 
-  public async generateReport(clientId: string) {
+  public async generateReport(clientId: string, returnFull = false) {
     const verifiedClientData =
       await this.dataCapStatsService.fetchPrimaryClientDetails(clientId);
 
@@ -74,7 +74,7 @@ export class ClientReportService {
 
     await this.clientReportChecksService.storeReportChecks(report.id);
 
-    return report;
+    return this.getReport(clientId, report.id, returnFull);
   }
 
   public async getReports(clientId: string) {
