@@ -74,7 +74,7 @@ export class ClientReportService {
 
     await this.clientReportChecksService.storeReportChecks(report.id);
 
-    return this.getReport(clientId, report.id, returnFull);
+    return this.getReport(report.client, report.id, returnFull);
   }
 
   public async getReports(clientId: string) {
