@@ -15,6 +15,7 @@ import { AllocatorReportGeneratorJobService } from 'src/jobs/allocator-report-ge
 import { IpniAdvertisementFetcherJobService } from 'src/jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { LocationService } from 'src/service/location/location.service';
 import { CacheTTL } from '@nestjs/cache-manager';
+import { GitHubTriggersHandlerService } from '../../service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller()
 export class AppController {
@@ -32,6 +33,7 @@ export class AppController {
     private readonly allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
     private readonly ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
     private readonly locationService: LocationService,
+    private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
   ) {}
 
   @Get()
@@ -85,6 +87,7 @@ export class AppController {
       () => this.clientReportGeneratorJobService.getHealth(),
       () => this.allocatorReportGeneratorJobService.getHealth(),
       () => this.ipniAdvertisementFetcherJobService.getHealth(),
+      () => this.gitHubTriggersHandlerService.getHealth(),
     ]);
   }
 }

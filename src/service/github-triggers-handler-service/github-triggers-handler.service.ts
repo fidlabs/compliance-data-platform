@@ -5,6 +5,11 @@ import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import { ClientReportService } from '../client-report/client-report.service';
 import { ConfigService } from '@nestjs/config';
+import {
+  HealthCheckError,
+  HealthIndicator,
+  HealthIndicatorResult,
+} from '@nestjs/terminus';
 
 class GitHubTriggerError extends Error {
   constructor(message: string) {
@@ -14,15 +19,29 @@ class GitHubTriggerError extends Error {
 }
 
 @Injectable()
-export class GitHubTriggersHandlerService {
+export class GitHubTriggersHandlerService extends HealthIndicator {
   private readonly logger = new Logger(GitHubTriggersHandlerService.name);
+  private healthy = true;
 
   constructor(
     private readonly gitHubIssueParserService: GitHubIssueParserService,
     private readonly clientService: ClientService,
     private readonly clientReportsService: ClientReportService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    super();
+  }
+
+  public async getHealth(): Promise<HealthIndicatorResult> {
+    const result = this.getStatus(
+      GitHubTriggersHandlerService.name,
+      this.healthy,
+      {},
+    );
+
+    if (this.healthy) return result;
+    throw new HealthCheckError('Healthcheck failed', result);
+  }
 
   public async handleTrigger(context: any) {
     if (context.action === 'created' && context.comment?.body)
@@ -35,8 +54,10 @@ export class GitHubTriggersHandlerService {
     try {
       if (context.comment.body.trim() === 'checker:manualTrigger') {
         responseBody = await this.checkerManualTrigger(context);
+        this.healthy = true;
       }
     } catch (err) {
+      this.healthy = false;
       this.logger.error(
         `Error handling GitHub issue comment created trigger: ${err}`,
         err.stack,
@@ -81,6 +102,7 @@ export class GitHubTriggersHandlerService {
         this.logger.warn(
           `Error handling checker:manualTrigger trigger: ${err}`,
         );
+
         return `Error during generation of client report: ${err.message}`;
       }
 

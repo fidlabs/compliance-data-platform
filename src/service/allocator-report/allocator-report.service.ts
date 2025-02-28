@@ -36,7 +36,7 @@ export class AllocatorReportService {
         }),
       );
 
-    return await this.prismaService.allocator_report.create({
+    const report = await this.prismaService.allocator_report.create({
       data: {
         allocator: verifierData.addressId,
         address: verifierData.address,
@@ -97,6 +97,8 @@ export class AllocatorReportService {
         },
       },
     });
+
+    return this.getReport(report.allocator, report.id);
   }
 
   private async getStorageProviderDistribution(clientIds: string[]) {
