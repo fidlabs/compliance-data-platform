@@ -5,6 +5,8 @@ import {
   getAllocatorBiggestClientDistributionAcc,
   getAllocatorRetrievability,
   getAllocatorRetrievabilityAcc,
+  getAllocatorClientsWeekly,
+  getAllocatorClientsWeeklyAcc,
 } from 'prisma/generated/client/sql';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
@@ -35,6 +37,21 @@ export class AllocatorService {
     private readonly storageProviderService: StorageProviderService,
   ) {}
 
+  public async getAllocatorClientsWeekly(
+    isAccumulative: boolean,
+  ): Promise<HistogramWeekResponse> {
+    const query = isAccumulative
+      ? getAllocatorClientsWeeklyAcc
+      : getAllocatorClientsWeekly;
+
+    return new HistogramWeekResponse(
+      await this.getAllocatorCount(),
+      await this.histogramHelper.getWeeklyHistogramResult(
+        await this.prismaService.$queryRawTyped(query()),
+      ),
+    );
+  }
+
   public async getAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
   ): Promise<RetrievabilityWeekResponse> {
@@ -49,8 +66,6 @@ export class AllocatorService {
         lastWeek,
         isAccumulative,
       );
-
-    const allocatorCount = await this.getAllocatorCount();
 
     const query = isAccumulative
       ? getAllocatorRetrievabilityAcc
@@ -71,7 +86,7 @@ export class AllocatorService {
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
       new RetrievabilityHistogramWeekResponse(
-        allocatorCount,
+        await this.getAllocatorCount(),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
@@ -90,14 +105,12 @@ export class AllocatorService {
   public async getAllocatorBiggestClientDistributionWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
-    const allocatorCount = await this.getAllocatorCount();
-
     const query = isAccumulative
       ? getAllocatorBiggestClientDistributionAcc
       : getAllocatorBiggestClientDistribution;
 
     return new HistogramWeekResponse(
-      allocatorCount,
+      await this.getAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
         100,

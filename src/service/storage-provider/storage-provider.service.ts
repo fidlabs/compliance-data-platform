@@ -40,14 +40,12 @@ export class StorageProviderService {
   public async getProviderClientsWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
-    const providerCount = await this.getProviderCount();
-
     const query = isAccumulative
       ? getProviderClientsWeeklyAcc
       : getProviderClientsWeekly;
 
     return new HistogramWeekResponse(
-      providerCount,
+      await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
       ),
@@ -57,14 +55,12 @@ export class StorageProviderService {
   public async getProviderBiggestClientDistributionWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
-    const providerCount = await this.getProviderCount();
-
     const query = isAccumulative
       ? getProviderBiggestClientDistributionAcc
       : getProviderBiggestClientDistribution;
 
     return new HistogramWeekResponse(
-      providerCount,
+      await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
         100,
@@ -87,8 +83,6 @@ export class StorageProviderService {
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability(isAccumulative);
 
-    const providerCount = await this.getProviderCount();
-
     const query = isAccumulative
       ? getProviderRetrievabilityAcc
       : getProviderRetrievability;
@@ -108,7 +102,7 @@ export class StorageProviderService {
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
       new RetrievabilityHistogramWeekResponse(
-        providerCount,
+        await this.getProviderCount(),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
