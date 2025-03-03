@@ -15,7 +15,7 @@ import { AllocatorReportGeneratorJobService } from 'src/jobs/allocator-report-ge
 import { IpniAdvertisementFetcherJobService } from 'src/jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { LocationService } from 'src/service/location/location.service';
 import { CacheTTL } from '@nestjs/cache-manager';
-import { GitHubTriggersHandlerService } from '../../service/github-triggers-handler-service/github-triggers-handler.service';
+import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller()
 export class AppController {
