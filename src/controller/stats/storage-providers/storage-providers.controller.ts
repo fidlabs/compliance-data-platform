@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   ApiExcludeController,
@@ -9,7 +9,10 @@ import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
-import { StorageProviderComplianceWeekResponse } from 'src/service/storage-provider/types.storage-provider';
+import {
+  StorageProviderComplianceMetrics,
+  StorageProviderComplianceWeekResponse,
+} from 'src/service/storage-provider/types.storage-provider';
 import { CacheTTL } from '@nestjs/cache-manager';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { AggregatedProvidersIPNIReportingStatus } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
@@ -50,9 +53,12 @@ export class StorageProvidersAccController {
 
   @Get('compliance-data')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
-  public async getProviderCompliance(): Promise<StorageProviderComplianceWeekResponse> {
+  public async getProviderCompliance(
+    @Query() query: StorageProviderComplianceMetrics,
+  ): Promise<StorageProviderComplianceWeekResponse> {
     return await this.storageProviderService.getProviderComplianceWeekly(
       this.isAccumulative,
+      query,
     );
   }
 

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getProviderBiggestClientDistribution,
@@ -12,7 +12,8 @@ import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/utils/prisma';
 import {
-  ProviderComplianceScoreRange,
+  StorageProviderComplianceMetrics,
+  StorageProviderComplianceScoreRange,
   StorageProviderComplianceWeek,
   StorageProviderComplianceWeekCount,
   StorageProviderComplianceWeekPercentage,
@@ -27,6 +28,8 @@ import {
   RetrievabilityHistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
+import { Cacheable } from '../../utils/cacheable';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class StorageProviderService {
@@ -35,6 +38,7 @@ export class StorageProviderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly histogramHelper: HistogramHelperService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   public async getProviderClientsWeekly(
@@ -132,6 +136,7 @@ export class StorageProviderService {
 
   public async getProviderComplianceWeekly(
     isAccumulative: boolean,
+    metricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<StorageProviderComplianceWeekResponse> {
     const weeks = await this.getWeeksTracked();
 
@@ -149,7 +154,12 @@ export class StorageProviderService {
           this.getWeekProviderComplianceScore(
             provider,
             weekAverageRetrievability,
+            metricsToCheck,
           ),
+        );
+
+        const weekProvidersIds = weekProviders.map(
+          (provider) => provider.provider,
         );
 
         return {
@@ -158,11 +168,11 @@ export class StorageProviderService {
           totalSps: weekProviders.length,
           ...this.getProviderComplianceWeekCount(
             weekProvidersCompliance,
-            weekProviders.map((provider) => provider.provider),
+            weekProvidersIds,
           ),
           ...this.getProviderComplianceWeekTotalDatacap(
             weekProvidersCompliance,
-            weekProviders.map((provider) => provider.provider),
+            weekProvidersIds,
             await this.getWeekProvidersTotalDatacap(week, isAccumulative),
           ),
         };
@@ -196,13 +206,11 @@ export class StorageProviderService {
     });
   }
 
-  public async getWeekProvidersForClients(
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  private async _getWeekProvidersForClients(
     week: Date,
     isAccumulative: boolean,
-    clients: string[],
-  ): Promise<{ provider: string }[]> {
-    this.logger.debug('Running getWeekProvidersForClients');
-
+  ): Promise<{ provider: string; client: string }[]> {
     return await (
       (isAccumulative
         ? this.prismaService.client_provider_distribution_weekly_acc
@@ -210,20 +218,34 @@ export class StorageProviderService {
     ).findMany({
       where: {
         week: week,
-        client: {
-          in: clients,
-        },
       },
       select: {
         provider: true,
+        client: true,
       },
-      distinct: ['provider'],
+      distinct: ['provider', 'client'],
     });
   }
 
-  public async getWeekProviders(week: Date, isAccumulative: boolean) {
-    this.logger.debug('Running getWeekProviders');
+  public async getWeekProvidersForClients(
+    week: Date,
+    isAccumulative: boolean,
+    clients: string[],
+  ): Promise<string[]> {
+    const providers = await this._getWeekProvidersForClients(
+      week,
+      isAccumulative,
+    );
 
+    const result = providers
+      .filter((p) => clients.includes(p.client))
+      .map((p) => p.provider);
+
+    return [...new Set(result)];
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getWeekProviders(week: Date, isAccumulative: boolean) {
     return (
       (isAccumulative
         ? this.prismaService.providers_weekly_acc
@@ -270,6 +292,7 @@ export class StorageProviderService {
     )._avg.avg_retrievability_success_rate;
   }
 
+  // returns compliance score 0 - 3 per provider
   public getWeekProviderComplianceScore(
     providerWeekly: {
       avg_retrievability_success_rate: number;
@@ -279,6 +302,7 @@ export class StorageProviderService {
       provider: string;
     },
     weekAverageRetrievability: number,
+    metricsToCheck?: StorageProviderComplianceMetrics,
   ): {
     complianceScore: number;
     provider: string;
@@ -289,15 +313,21 @@ export class StorageProviderService {
     // Question - do we make a cutoff date for this? (like use normal rate
     // till 25w4 and http rate after that)?
     if (
+      metricsToCheck?.retrievability === 'false' ||
       providerWeekly.avg_retrievability_success_rate > weekAverageRetrievability
     )
       complianceScore++;
 
-    if (providerWeekly.num_of_clients > 3) complianceScore++;
+    if (
+      metricsToCheck?.numberOfClients === 'false' ||
+      providerWeekly.num_of_clients > 3
+    )
+      complianceScore++;
 
     if (
+      metricsToCheck?.totalDealSize === 'false' ||
       providerWeekly.biggest_client_total_deal_size * 100n <=
-      30n * providerWeekly.total_deal_size
+        30n * providerWeekly.total_deal_size
     )
       complianceScore++;
 
@@ -318,17 +348,17 @@ export class StorageProviderService {
       compliantSps: this._getProviderComplianceWeekCount(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.Compliant,
+        StorageProviderComplianceScoreRange.Compliant,
       ),
       partiallyCompliantSps: this._getProviderComplianceWeekCount(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.PartiallyCompliant,
+        StorageProviderComplianceScoreRange.PartiallyCompliant,
       ),
       nonCompliantSps: this._getProviderComplianceWeekCount(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.NonCompliant,
+        StorageProviderComplianceScoreRange.NonCompliant,
       ),
     };
   }
@@ -348,20 +378,20 @@ export class StorageProviderService {
       compliantSpsTotalDatacap: this._getProviderComplianceWeekTotalDatacap(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.Compliant,
+        StorageProviderComplianceScoreRange.Compliant,
         weekProvidersTotalDatacap,
       ),
       partiallyCompliantSpsTotalDatacap:
         this._getProviderComplianceWeekTotalDatacap(
           weekProvidersCompliance,
           validProviders,
-          ProviderComplianceScoreRange.PartiallyCompliant,
+          StorageProviderComplianceScoreRange.PartiallyCompliant,
           weekProvidersTotalDatacap,
         ),
       nonCompliantSpsTotalDatacap: this._getProviderComplianceWeekTotalDatacap(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.NonCompliant,
+        StorageProviderComplianceScoreRange.NonCompliant,
         weekProvidersTotalDatacap,
       ),
     };
@@ -378,18 +408,18 @@ export class StorageProviderService {
       compliantSpsPercentage: this._getProviderComplianceWeekPercentage(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.Compliant,
+        StorageProviderComplianceScoreRange.Compliant,
       ),
       partiallyCompliantSpsPercentage:
         this._getProviderComplianceWeekPercentage(
           weekProvidersCompliance,
           validProviders,
-          ProviderComplianceScoreRange.PartiallyCompliant,
+          StorageProviderComplianceScoreRange.PartiallyCompliant,
         ),
       nonCompliantSpsPercentage: this._getProviderComplianceWeekPercentage(
         weekProvidersCompliance,
         validProviders,
-        ProviderComplianceScoreRange.NonCompliant,
+        StorageProviderComplianceScoreRange.NonCompliant,
       ),
     };
   }
@@ -401,18 +431,18 @@ export class StorageProviderService {
       provider: string;
     }[],
     validProviders: string[],
-    validComplianceScore: ProviderComplianceScoreRange,
+    validComplianceScore: StorageProviderComplianceScoreRange,
   ): string[] {
     const validComplianceScores: number[] = [];
 
     switch (validComplianceScore) {
-      case ProviderComplianceScoreRange.NonCompliant:
+      case StorageProviderComplianceScoreRange.NonCompliant:
         validComplianceScores.push(0);
         break;
-      case ProviderComplianceScoreRange.PartiallyCompliant:
+      case StorageProviderComplianceScoreRange.PartiallyCompliant:
         validComplianceScores.push(1, 2);
         break;
-      case ProviderComplianceScoreRange.Compliant:
+      case StorageProviderComplianceScoreRange.Compliant:
         validComplianceScores.push(3);
         break;
     }
@@ -434,7 +464,7 @@ export class StorageProviderService {
       provider: string;
     }[],
     validProviders: string[],
-    validComplianceScore: ProviderComplianceScoreRange,
+    validComplianceScore: StorageProviderComplianceScoreRange,
   ): number {
     return this.getProviderComplianceWeekProviders(
       weekProvidersCompliance,
@@ -449,7 +479,7 @@ export class StorageProviderService {
       provider: string;
     }[],
     validProviders: string[],
-    validComplianceScore: ProviderComplianceScoreRange,
+    validComplianceScore: StorageProviderComplianceScoreRange,
     weekProvidersTotalDatacap: {
       total_deal_size: bigint | null;
       provider: string;
@@ -475,7 +505,7 @@ export class StorageProviderService {
       provider: string;
     }[],
     validProviders: string[],
-    validComplianceScore: ProviderComplianceScoreRange,
+    validComplianceScore: StorageProviderComplianceScoreRange,
   ): number {
     return validProviders.length
       ? (this._getProviderComplianceWeekCount(

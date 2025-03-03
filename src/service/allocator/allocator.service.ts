@@ -26,6 +26,7 @@ import {
 } from '../histogram-helper/types.histogram-helper';
 import { modelName } from 'src/utils/prisma';
 import { Prisma } from 'prisma/generated/client';
+import { StorageProviderComplianceMetrics } from '../storage-provider/types.storage-provider';
 
 @Injectable()
 export class AllocatorService {
@@ -120,6 +121,7 @@ export class AllocatorService {
 
   public async getAllocatorSpsComplianceWeekly(
     isAccumulative: boolean,
+    metricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
@@ -150,6 +152,7 @@ export class AllocatorService {
         return this.storageProviderService.getWeekProviderComplianceScore(
           provider,
           weekAverageProvidersRetrievability,
+          metricsToCheck,
         );
       });
 
@@ -184,7 +187,7 @@ export class AllocatorService {
               ),
               ...this.storageProviderService.getProviderComplianceWeekPercentage(
                 weekProvidersCompliance,
-                weekProvidersForAllocator.map((p) => p.provider),
+                weekProvidersForAllocator,
               ),
               totalSps: weekProvidersForAllocator.length,
             };

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiExcludeController, ApiOkResponse } from '@nestjs/swagger';
 import { AllocatorSpsComplianceWeekResponse } from 'src/service/allocator/types.allocator';
@@ -7,6 +7,7 @@ import {
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { CacheTTL } from '@nestjs/cache-manager';
+import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -41,9 +42,12 @@ export class AllocatorsAccController {
 
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
-  public async getAllocatorSpsCompliance(): Promise<AllocatorSpsComplianceWeekResponse> {
+  public async getAllocatorSpsCompliance(
+    @Query() query: StorageProviderComplianceMetrics,
+  ): Promise<AllocatorSpsComplianceWeekResponse> {
     return await this.allocatorService.getAllocatorSpsComplianceWeekly(
       this.isAccumulative,
+      query,
     );
   }
 }
