@@ -2,16 +2,25 @@ import { ApiProperty } from '@nestjs/swagger';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 
 export class AggregatedProvidersIPNIReportingStatus {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Number of storage providers misreporting the IPNI data',
+  })
   misreporting: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Number of storage providers reporting no IPNI data',
+  })
   notReporting: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      'Number of storage providers reporting the IPNI data correctly',
+  })
   ok: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Total number of storage providers',
+  })
   total: number;
 }
 

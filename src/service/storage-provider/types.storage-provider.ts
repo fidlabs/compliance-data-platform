@@ -1,10 +1,33 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IntersectionType } from '@nestjs/swagger';
 
-export enum ProviderComplianceScoreRange {
-  NonCompliant, // compliance score: 0 - 0
-  PartiallyCompliant, // compliance score: 1 - 2
-  Compliant, // compliance score: 3 - 3
+export enum StorageProviderComplianceScoreRange {
+  NonCompliant, // complianceScore: 0 - 0
+  PartiallyCompliant, // complianceScore: 1 - 2
+  Compliant, // complianceScore: 3 - 3
+}
+
+export class StorageProviderComplianceMetrics {
+  @ApiPropertyOptional({
+    description:
+      'Set to false to disable retrievability compliance metric check; default is true',
+    type: Boolean,
+  })
+  retrievability?: 'true' | 'false';
+
+  @ApiPropertyOptional({
+    description:
+      'Set to false to disable numberOfClients compliance metric check; default is true',
+    type: Boolean,
+  })
+  numberOfClients?: 'true' | 'false';
+
+  @ApiPropertyOptional({
+    description:
+      'Set to false to disable totalDealSize compliance metric check; default is true',
+    type: Boolean,
+  })
+  totalDealSize?: 'true' | 'false';
 }
 
 export class StorageProviderComplianceWeekPercentage {

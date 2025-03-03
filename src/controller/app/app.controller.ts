@@ -38,14 +38,23 @@ export class AppController {
 
   @Get()
   @ApiExcludeEndpoint()
-  getRoot(): string {
+  public getRoot(): string {
     return 'Compliance Data Platform API';
+  }
+
+  @Get('/debug')
+  @CacheTTL(1) // disable cache
+  @ApiExcludeEndpoint()
+  async getDebug() {
+    return 'debug';
   }
 
   @Get('health')
   @HealthCheck()
   @CacheTTL(1000 * 10) // 10 seconds
-  getHealth() {
+  public async getHealth() {
+    this.logger.debug('Running healthcheck');
+
     return this.healthCheckService.check([
       () => this.locationService.getHealth(),
       () =>
