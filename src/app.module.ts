@@ -27,8 +27,8 @@ import {
   ClientReportControllerRedirect,
 } from './controller/client-report/client-report.controller';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
-import { AllocatorsAccController } from './controller/stats/accumulative/allocators/allocators.controller';
-import { StorageProvidersAccController } from './controller/stats/accumulative/storage-providers/storage-providers.controller';
+import { AllocatorsAccController } from './controller/stats/allocators/allocators.controller';
+import { StorageProvidersAccController } from './controller/stats/storage-providers/storage-providers.controller';
 import { AllocatorsController } from './controller/stats/allocators/allocators.controller';
 import { StorageProvidersController } from './controller/stats/storage-providers/storage-providers.controller';
 import { PostgresService } from './db/postgres.service';
