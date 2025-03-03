@@ -20,13 +20,13 @@ export class Histogram {
     description:
       'Total datacap of allocators / storage providers in the bucket',
   })
-  totalDatacap: number;
+  totalDatacap: bigint;
 
   constructor(
     valueFromExclusive: number,
     valueToInclusive: number,
     count: number,
-    totalDatacap: number,
+    totalDatacap: bigint,
   ) {
     this.valueFromExclusive = valueFromExclusive;
     this.valueToInclusive = valueToInclusive;
@@ -65,7 +65,7 @@ export class HistogramWeekFlat extends Histogram {
     valueFromExclusive: number,
     valueToInclusive: number,
     count: number,
-    totalDatacap: number,
+    totalDatacap: bigint,
     week: Date,
   ) {
     super(valueFromExclusive, valueToInclusive, count, totalDatacap);

@@ -94,7 +94,7 @@ export class HistogramHelperService {
 
       if (missingBuckets.length > 0) {
         histogramWeek.results.push(
-          ...missingBuckets.map((v) => new Histogram(v - maxMinSpan, v, 0, 0)),
+          ...missingBuckets.map((v) => new Histogram(v - maxMinSpan, v, 0, 0n)),
         );
 
         histogramWeek.results.sort(
