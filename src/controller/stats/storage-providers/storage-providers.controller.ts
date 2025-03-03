@@ -1,6 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiExcludeController,
+  ApiOkResponse,
+  ApiOperation,
+} from '@nestjs/swagger';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
@@ -10,10 +14,10 @@ import { CacheTTL } from '@nestjs/cache-manager';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { AggregatedProvidersIPNIReportingStatus } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
 
-@Controller('stats/providers')
+@Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersController {
-  protected isAccumulative: boolean = false;
+export class StorageProvidersAccController {
+  protected isAccumulative: boolean = true;
 
   constructor(
     private readonly storageProviderService: StorageProviderService,
@@ -65,14 +69,15 @@ export class StorageProvidersController {
   }
 }
 
-@Controller('stats/acc/providers')
+@Controller('stats/providers')
+@ApiExcludeController()
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersAccController extends StorageProvidersController {
+export class StorageProvidersController extends StorageProvidersAccController {
   constructor(
     storageProviderService: StorageProviderService,
     ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {
     super(storageProviderService, ipniMisreportingCheckerService);
-    this.isAccumulative = true;
+    this.isAccumulative = false;
   }
 }
