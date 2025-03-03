@@ -1,10 +1,10 @@
-with "provider_retrievability_weekly" as (select date_trunc('week', "date")                                         as "week",
-                                                 "provider"                                                         as "provider",
-                                                 sum("total")                                                       as "total",
-                                                 sum("successful")                                                  as "successful",
-                                                 sum("successful"::float8) / sum("total"::float8)                   as "success_rate",
-                                                 sum(coalesce("successful_http", 0))                                as "successful_http",
-                                                 sum(coalesce("successful_http", 0)::float8) / sum("total"::float8) as "success_rate_http"
+with "provider_retrievability_weekly" as (select date_trunc('week', "date")                                       as "week",
+                                                 "provider"                                                       as "provider",
+                                                 sum("total")                                                     as "total",
+                                                 sum("successful")                                                as "successful",
+                                                 sum("successful"::float) / sum("total"::float)                   as "success_rate",
+                                                 sum(coalesce("successful_http", 0))                              as "successful_http",
+                                                 sum(coalesce("successful_http", 0)::float) / sum("total"::float) as "success_rate_http"
                                           from "provider_retrievability_daily"
                                           group by "week", "provider")
 select "week"                                as "week",

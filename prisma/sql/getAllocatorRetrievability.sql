@@ -4,7 +4,7 @@ select "week"                                                        as "week",
        ceil("avg_weighted_retrievability_success_rate" * 20) * 5 - 5 as "valueFromExclusive",
        ceil("avg_weighted_retrievability_success_rate" * 20) * 5     as "valueToInclusive",
        count(*)::int                                                 as "count",
-       sum("total_sum_of_allocations")::float                        as "totalDatacap"
+       sum("total_sum_of_allocations")::bigint                       as "totalDatacap"
 from "allocators_weekly"
 group by "valueFromExclusive", "valueToInclusive", "week"
 order by "week", "valueFromExclusive";
