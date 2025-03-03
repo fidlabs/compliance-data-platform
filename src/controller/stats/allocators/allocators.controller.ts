@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { ApiExcludeController, ApiOkResponse } from '@nestjs/swagger';
 import { AllocatorSpsComplianceWeekResponse } from 'src/service/allocator/types.allocator';
 import {
   HistogramWeekResponse,
@@ -8,10 +8,10 @@ import {
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { CacheTTL } from '@nestjs/cache-manager';
 
-@Controller('stats/allocators')
+@Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class AllocatorsController {
-  protected isAccumulative: boolean = false;
+export class AllocatorsAccController {
+  protected isAccumulative: boolean = true;
 
   constructor(private readonly allocatorService: AllocatorService) {}
 
@@ -48,11 +48,12 @@ export class AllocatorsController {
   }
 }
 
-@Controller('stats/acc/allocators')
+@Controller('stats/allocators')
+@ApiExcludeController()
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class AllocatorsAccController extends AllocatorsController {
+export class AllocatorsController extends AllocatorsAccController {
   constructor(allocatorService: AllocatorService) {
     super(allocatorService);
-    this.isAccumulative = true;
+    this.isAccumulative = false;
   }
 }
