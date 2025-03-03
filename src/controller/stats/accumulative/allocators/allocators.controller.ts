@@ -13,6 +13,12 @@ import { CacheTTL } from '@nestjs/cache-manager';
 export class AllocatorsAccController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
+  @Get('clients')
+  @ApiOkResponse({ type: HistogramWeekResponse })
+  public async getAllocatorClients(): Promise<HistogramWeekResponse> {
+    return await this.allocatorService.getAllocatorClientsWeekly(true);
+  }
+
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
