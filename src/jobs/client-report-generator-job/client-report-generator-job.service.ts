@@ -67,14 +67,14 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     for (const [i, application] of applications.entries()) {
       try {
         this.logger.debug(
-          `Starting generation of client report for application #${application.ID}`,
+          `Starting generation of client report for application ${application.ID}`,
         );
 
         await this.generateClientReport(application);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of client report for application #${application.ID}: ${err}`,
+          `Error during generation of client report for application ${application.ID}: ${err}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
