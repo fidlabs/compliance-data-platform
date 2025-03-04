@@ -204,6 +204,11 @@ export class AllocatorService {
     }
 
     return new AllocatorSpsComplianceWeekResponse(
+      {
+        retrievability: metricsToCheck?.retrievability !== 'false',
+        numberOfClients: metricsToCheck?.numberOfClients !== 'false',
+        totalDealSize: metricsToCheck?.totalDealSize !== 'false',
+      },
       lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),

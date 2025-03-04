@@ -180,6 +180,11 @@ export class StorageProviderService {
     );
 
     return new StorageProviderComplianceWeekResponse(
+      {
+        retrievability: metricsToCheck?.retrievability !== 'false',
+        numberOfClients: metricsToCheck?.numberOfClients !== 'false',
+        totalDealSize: metricsToCheck?.totalDealSize !== 'false',
+      },
       lastWeekAverageRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(result),

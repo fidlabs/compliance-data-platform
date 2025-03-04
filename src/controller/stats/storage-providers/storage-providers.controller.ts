@@ -54,11 +54,11 @@ export class StorageProvidersAccController {
   @Get('compliance-data')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
   public async getProviderCompliance(
-    @Query() query: StorageProviderComplianceMetrics,
+    @Query() metricsToCheck: StorageProviderComplianceMetrics,
   ): Promise<StorageProviderComplianceWeekResponse> {
     return await this.storageProviderService.getProviderComplianceWeekly(
       this.isAccumulative,
-      query,
+      metricsToCheck,
     );
   }
 

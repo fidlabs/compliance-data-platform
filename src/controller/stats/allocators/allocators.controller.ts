@@ -43,11 +43,11 @@ export class AllocatorsAccController {
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
   public async getAllocatorSpsCompliance(
-    @Query() query: StorageProviderComplianceMetrics,
+    @Query() metricsToCheck: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     return await this.allocatorService.getAllocatorSpsComplianceWeekly(
       this.isAccumulative,
-      query,
+      metricsToCheck,
     );
   }
 }

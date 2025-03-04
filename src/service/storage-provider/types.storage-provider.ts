@@ -104,7 +104,23 @@ export class StorageProviderComplianceWeek extends IntersectionType(
   averageSuccessRate: number;
 }
 
+export class StorageProviderComplianceMetricsResponse {
+  @ApiProperty()
+  retrievability: boolean;
+
+  @ApiProperty()
+  numberOfClients: boolean;
+
+  @ApiProperty()
+  totalDealSize: boolean;
+}
+
 export class StorageProviderComplianceWeekResponse {
+  @ApiProperty({
+    description: 'Storage providers compliance metrics checked',
+  })
+  metricsChecked: StorageProviderComplianceMetricsResponse;
+
   @ApiProperty({
     description:
       'Last full week average storage providers retrievability success rate',
@@ -115,9 +131,11 @@ export class StorageProviderComplianceWeekResponse {
   results: StorageProviderComplianceWeek[];
 
   constructor(
+    metricsChecked: StorageProviderComplianceMetricsResponse,
     averageSuccessRate: number,
     results: StorageProviderComplianceWeek[],
   ) {
+    this.metricsChecked = metricsChecked;
     this.averageSuccessRate = averageSuccessRate;
     this.results = results;
   }
