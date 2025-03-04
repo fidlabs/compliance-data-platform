@@ -1,5 +1,8 @@
 import { Cache } from '@nestjs/cache-manager';
 import { createHash } from 'crypto';
+import { Mutex } from 'async-mutex';
+
+const functionCallMutexes = new Map();
 
 // wraps the manual usage of cache-manager
 // generates globally unique cache key based on class name, method name and arguments
@@ -8,6 +11,13 @@ export function Cacheable(options?: { key?: string; ttl?: number }) {
 
   function hash(data: any): string {
     return createHash('md5').update(JSON.stringify(data)).digest('hex');
+  }
+
+  function getFunctionCallMutex(cacheKey: string): Mutex {
+    if (!functionCallMutexes.has(cacheKey))
+      functionCallMutexes.set(cacheKey, new Mutex());
+
+    return functionCallMutexes.get(cacheKey);
   }
 
   return function (
@@ -23,7 +33,7 @@ export function Cacheable(options?: { key?: string; ttl?: number }) {
 
       if (!cacheManager)
         throw new Error(
-          'Cannot use Cacheable() decorator without injecting the cache manager',
+          'Cannot use @Cacheable() decorator without injecting the cache manager',
         );
 
       const cacheKey =
@@ -34,23 +44,38 @@ export function Cacheable(options?: { key?: string; ttl?: number }) {
           args: args,
         });
 
-      const cachedResult = await cacheManager.get(cacheKey);
+      // lock concurrent @Cacheable() calls
+      const mutex = getFunctionCallMutex(cacheKey);
+      const mutexRelease = await mutex.acquire();
 
-      if (cachedResult !== undefined && cachedResult !== null) {
-        if (log) logger.debug(`Cache hit: ${cacheKey}`);
-        return cachedResult;
+      try {
+        const cachedResult = await cacheManager.get(cacheKey);
+
+        if (cachedResult !== undefined && cachedResult !== null) {
+          if (log) logger.debug(`Cache hit: ${cacheKey}`);
+          return cachedResult;
+        } else {
+          if (log) logger.debug(`Cache miss: ${cacheKey}`);
+        }
+
+        const result = originalMethod.apply(this, args);
+
+        // because nest js cache managed is async
+        if (!(result instanceof Promise))
+          throw new Error('@Cacheable() method must return a Promise');
+
+        await cacheManager.set(
+          cacheKey,
+          await result,
+          options?.ttl ?? undefined,
+        );
+
+        if (log) logger.debug(`Cache set: ${cacheKey}`);
+        return await result;
+      } finally {
+        mutexRelease();
+        functionCallMutexes.delete(cacheKey);
       }
-
-      const result = originalMethod.apply(this, args);
-
-      // because nest js cache managed is async
-      if (!(result instanceof Promise))
-        throw new Error('Cacheable() method must return a Promise');
-
-      await cacheManager.set(cacheKey, await result, options?.ttl ?? undefined);
-      if (log) logger.debug(`Cache miss & set: ${cacheKey}`);
-
-      return await result;
     };
 
     return descriptor;
