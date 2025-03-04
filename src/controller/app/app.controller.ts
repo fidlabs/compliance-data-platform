@@ -1,12 +1,12 @@
 import { Controller, Get, Inject, Logger } from '@nestjs/common';
 import {
-  HealthCheckService,
-  HttpHealthIndicator,
   HealthCheck,
-  TypeOrmHealthIndicator,
+  HealthCheckResult,
+  HealthCheckService,
   HealthIndicator,
   HealthIndicatorResult,
-  HealthCheckResult,
+  HttpHealthIndicator,
+  TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { PostgresService } from 'src/db/postgres.service';
@@ -24,6 +24,7 @@ import { Cacheable } from 'src/utils/cacheable';
 export class AppController extends HealthIndicator {
   private readonly logger = new Logger(AppController.name);
   private readonly appStartTime = new Date();
+  private lastHealthcheckFailedTime: Date | null = null;
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
@@ -59,12 +60,18 @@ export class AppController extends HealthIndicator {
   @HealthCheck()
   @CacheTTL(1) // disable cache
   public async getHealth(): Promise<HealthCheckResult> {
-    return this._getHealth();
+    try {
+      return await this._getHealth();
+    } catch (err) {
+      this.lastHealthcheckFailedTime = new Date();
+      throw err;
+    }
   }
 
   private async _getHealthMetadata(): Promise<HealthIndicatorResult> {
     return this.getStatus('app', true, {
       appStartTime: this.appStartTime,
+      lastHealthcheckFailedTime: this.lastHealthcheckFailedTime,
     });
   }
 
