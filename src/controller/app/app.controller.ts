@@ -4,6 +4,8 @@ import {
   HttpHealthIndicator,
   HealthCheck,
   TypeOrmHealthIndicator,
+  HealthIndicator,
+  HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { PostgresService } from 'src/db/postgres.service';
@@ -18,8 +20,9 @@ import { CacheTTL } from '@nestjs/cache-manager';
 import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller()
-export class AppController {
+export class AppController extends HealthIndicator {
   private readonly logger = new Logger(AppController.name);
+  private readonly appStartTime = new Date();
 
   constructor(
     private readonly healthCheckService: HealthCheckService,
@@ -34,7 +37,9 @@ export class AppController {
     private readonly ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
     private readonly locationService: LocationService,
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
-  ) {}
+  ) {
+    super();
+  }
 
   @Get()
   @ApiExcludeEndpoint()
@@ -49,6 +54,12 @@ export class AppController {
     return 'debug';
   }
 
+  private async _getHealth(): Promise<HealthIndicatorResult> {
+    return this.getStatus('app', true, {
+      appStartTime: this.appStartTime,
+    });
+  }
+
   @Get('health')
   @HealthCheck()
   @CacheTTL(1000 * 10) // 10 seconds
@@ -56,6 +67,7 @@ export class AppController {
     this.logger.debug('Running healthcheck');
 
     return this.healthCheckService.check([
+      () => this._getHealth(),
       () => this.locationService.getHealth(),
       () =>
         this.httpHealthIndicator.pingCheck(
