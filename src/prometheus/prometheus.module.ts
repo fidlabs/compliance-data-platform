@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PrometheusModule as PrometheusModuleSource } from '@willsoto/nestjs-prometheus';
-import { PostgresService } from 'src/db/postgres.service';
 import { PrismaService } from 'src/db/prisma.service';
 import { AggregateMetrics } from './aggregate-metrics';
 import { aggregatePrometheusMetrics } from './aggregate-metrics/metrics';
@@ -33,12 +31,10 @@ import { PrometheusMetricService } from './prometheus.service';
     ...pgPoolPrometheusMetrics,
     PrometheusMetricService,
     PrismaService,
-    ConfigService,
     ClientReportGeneratorMetrics,
     AllocatorReportGeneratorMetrics,
     PgPoolMetrics,
     AggregateMetrics,
-    PostgresService,
   ],
   exports: [PrometheusMetricService],
 })
