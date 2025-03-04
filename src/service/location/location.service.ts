@@ -6,7 +6,6 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Address, IPResponse } from './types.location';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { HealthIndicatorResult, HttpHealthIndicator } from '@nestjs/terminus';
 import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()
@@ -16,18 +15,8 @@ export class LocationService {
   constructor(
     private configService: ConfigService,
     private readonly httpService: HttpService,
-    private httpHealthIndicator: HttpHealthIndicator,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
-
-  // dedicated, heavily cached healthcheck needed because of ipinfo.io token limits
-  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
-  public async getHealth(): Promise<HealthIndicatorResult> {
-    return await this.httpHealthIndicator.pingCheck(
-      'ipinfo.io',
-      `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
-    );
-  }
 
   public async getLocation(multiAddrs?: string[]): Promise<IPResponse | null> {
     if (!multiAddrs) return null;
