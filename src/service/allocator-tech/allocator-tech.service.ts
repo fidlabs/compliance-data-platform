@@ -25,7 +25,10 @@ export class AllocatorTechService {
       this.httpService.get<AllocatorTechApplicationResponse[]>(endpoint),
     );
 
-    return data;
+    return data.filter(
+      (application) =>
+        application.ID?.startsWith('f') && application.ID?.length > 3,
+    );
   }
 
   @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
@@ -36,7 +39,7 @@ export class AllocatorTechService {
       this.httpService.get<AllocatorTechAllocatorResponse[]>(endpoint),
     );
 
-    return data.filter((allocator) => allocator.address);
+    return data.filter((allocator) => allocator.address?.startsWith('f'));
   }
 
   public async getAllocatorInfo(

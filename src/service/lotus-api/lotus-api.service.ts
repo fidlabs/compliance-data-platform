@@ -21,7 +21,9 @@ export class LotusApiService {
     private readonly configService: ConfigService,
   ) {}
 
-  public async getFilecoinClientId(clientAddress: string): Promise<string> {
+  public async getFilecoinClientId(
+    clientAddress: string,
+  ): Promise<string | null> {
     // try to retrieve mapping from DB
     const clientAddressMapping =
       await this.prismaService.client_address_mapping.findFirst({
@@ -33,8 +35,6 @@ export class LotusApiService {
     if (clientAddressMapping) return clientAddressMapping.client;
 
     // if address not found in DB -> look up the glif API
-    this.logger.log(`Getting Filecoin Id for client address ${clientAddress}`);
-
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateLookupIdResponse>(endpoint, {

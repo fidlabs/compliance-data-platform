@@ -187,11 +187,7 @@ export class ClientReportChecksService {
     const providersWithUnknownLocation = [];
 
     for (const provider of providerDistributionWithLocation) {
-      if (
-        provider.location === undefined ||
-        provider.location.country === null ||
-        provider.location.country === ''
-      ) {
+      if (!provider.location?.country) {
         providersWithUnknownLocation.push(provider.provider);
       }
     }
