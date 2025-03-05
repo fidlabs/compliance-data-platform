@@ -39,7 +39,10 @@ export class AllocatorTechService {
       this.httpService.get<AllocatorTechAllocatorResponse[]>(endpoint),
     );
 
-    return data.filter((allocator) => allocator.address?.startsWith('f'));
+    return data.filter(
+      (allocator) =>
+        allocator.address?.startsWith('f') && allocator.address?.length > 3,
+    );
   }
 
   public async getAllocatorInfo(
