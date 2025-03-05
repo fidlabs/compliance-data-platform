@@ -14,6 +14,7 @@ export type AggregationRunnerRunServices = {
   postgresDmobService?: PostgresDmobService;
   prometheusMetricService?: PrometheusMetricService;
 };
+
 export interface AggregationRunner {
   run(services: AggregationRunnerRunServices): Promise<void>;
 
