@@ -13,6 +13,7 @@ import { Prisma } from 'prisma/generated/client';
 import { modelName } from 'src/utils/prisma';
 import {
   StorageProviderComplianceMetrics,
+  StorageProviderComplianceScore,
   StorageProviderComplianceScoreRange,
   StorageProviderComplianceWeek,
   StorageProviderComplianceWeekCount,
@@ -297,7 +298,6 @@ export class StorageProviderService {
     )._avg.avg_retrievability_success_rate;
   }
 
-  // returns compliance score 0 - 3 per provider
   public getWeekProviderComplianceScore(
     providerWeekly: {
       avg_retrievability_success_rate: number;
@@ -308,10 +308,7 @@ export class StorageProviderService {
     },
     weekAverageRetrievability: number,
     metricsToCheck?: StorageProviderComplianceMetrics,
-  ): {
-    complianceScore: number;
-    provider: string;
-  } {
+  ): StorageProviderComplianceScore {
     let complianceScore = 0;
 
     // TODO when business is ready let's switch to using http success rate.
@@ -343,10 +340,7 @@ export class StorageProviderService {
   }
 
   public getProviderComplianceWeekCount(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
   ): StorageProviderComplianceWeekCount {
     return {
@@ -369,10 +363,7 @@ export class StorageProviderService {
   }
 
   public getProviderComplianceWeekTotalDatacap(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
     weekProvidersTotalDatacap: {
       total_deal_size: bigint | null;
@@ -403,10 +394,7 @@ export class StorageProviderService {
   }
 
   public getProviderComplianceWeekPercentage(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
   ): StorageProviderComplianceWeekPercentage {
     return {
@@ -431,10 +419,7 @@ export class StorageProviderService {
 
   // returns list of storage providers in validProviders with validComplianceScore compliance score
   private getProviderComplianceWeekProviders(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): string[] {
@@ -464,10 +449,7 @@ export class StorageProviderService {
   }
 
   private _getProviderComplianceWeekCount(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): number {
@@ -479,10 +461,7 @@ export class StorageProviderService {
   }
 
   private _getProviderComplianceWeekTotalDatacap(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
     weekProvidersTotalDatacap: {
@@ -505,10 +484,7 @@ export class StorageProviderService {
   }
 
   private _getProviderComplianceWeekPercentage(
-    weekProvidersCompliance: {
-      complianceScore: number;
-      provider: string;
-    }[],
+    weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): number {

@@ -26,7 +26,10 @@ import {
 } from '../histogram-helper/types.histogram-helper';
 import { modelName } from 'src/utils/prisma';
 import { Prisma } from 'prisma/generated/client';
-import { StorageProviderComplianceMetrics } from '../storage-provider/types.storage-provider';
+import {
+  StorageProviderComplianceMetrics,
+  StorageProviderComplianceScore,
+} from '../storage-provider/types.storage-provider';
 
 @Injectable()
 export class AllocatorService {
@@ -144,17 +147,14 @@ export class AllocatorService {
         isAccumulative,
       );
 
-      const weekProvidersCompliance: {
-        // TODO refactor to a type
-        complianceScore: number;
-        provider: string;
-      }[] = weekProviders.map((provider) => {
-        return this.storageProviderService.getWeekProviderComplianceScore(
-          provider,
-          weekAverageProvidersRetrievability,
-          metricsToCheck,
-        );
-      });
+      const weekProvidersCompliance: StorageProviderComplianceScore[] =
+        weekProviders.map((provider) => {
+          return this.storageProviderService.getWeekProviderComplianceScore(
+            provider,
+            weekAverageProvidersRetrievability,
+            metricsToCheck,
+          );
+        });
 
       const weekAllocatorsWithClients = await this.getWeekAllocatorsWithClients(
         week,
