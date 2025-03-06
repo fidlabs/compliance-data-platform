@@ -167,11 +167,7 @@ export class StorageProviderService {
           week: week,
           averageSuccessRate: weekAverageRetrievability * 100,
           totalSps: weekProviders.length,
-          ...this.getProviderComplianceWeekCount(
-            weekProvidersCompliance,
-            weekProvidersIds,
-          ),
-          ...this.getProviderComplianceWeekTotalDatacap(
+          ...this.getProviderComplianceWeekCountAndDatacap(
             weekProvidersCompliance,
             weekProvidersIds,
             await this.getWeekProvidersTotalDatacap(week, isAccumulative),
@@ -251,7 +247,18 @@ export class StorageProviderService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getWeekProviders(week: Date, isAccumulative: boolean) {
+  public async getWeekProviders(
+    week: Date,
+    isAccumulative: boolean,
+  ): Promise<
+    {
+      avg_retrievability_success_rate: number;
+      num_of_clients: number;
+      biggest_client_total_deal_size: bigint | null;
+      total_deal_size: bigint | null;
+      provider: string;
+    }[]
+  > {
     return (
       (isAccumulative
         ? this.prismaService.providers_weekly_acc
@@ -339,88 +346,80 @@ export class StorageProviderService {
     };
   }
 
-  public getProviderComplianceWeekCount(
-    weekProvidersCompliance: StorageProviderComplianceScore[],
-    validProviders: string[],
-  ): StorageProviderComplianceWeekCount {
-    return {
-      compliantSps: this._getProviderComplianceWeekCount(
-        weekProvidersCompliance,
-        validProviders,
-        StorageProviderComplianceScoreRange.Compliant,
-      ),
-      partiallyCompliantSps: this._getProviderComplianceWeekCount(
-        weekProvidersCompliance,
-        validProviders,
-        StorageProviderComplianceScoreRange.PartiallyCompliant,
-      ),
-      nonCompliantSps: this._getProviderComplianceWeekCount(
-        weekProvidersCompliance,
-        validProviders,
-        StorageProviderComplianceScoreRange.NonCompliant,
-      ),
-    };
-  }
-
-  public getProviderComplianceWeekTotalDatacap(
+  public getProviderComplianceWeekCountAndDatacap(
     weekProvidersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
     weekProvidersTotalDatacap: {
       total_deal_size: bigint | null;
       provider: string;
     }[],
-  ): StorageProviderComplianceWeekTotalDatacap {
+  ): StorageProviderComplianceWeekCount &
+    StorageProviderComplianceWeekTotalDatacap {
+    //
+    const compliantSps = this._getComplianceProviders(
+      weekProvidersCompliance,
+      validProviders,
+      StorageProviderComplianceScoreRange.Compliant,
+    );
+
+    const partiallyCompliantSps = this._getComplianceProviders(
+      weekProvidersCompliance,
+      validProviders,
+      StorageProviderComplianceScoreRange.PartiallyCompliant,
+    );
+
+    const nonCompliantSps = this._getComplianceProviders(
+      weekProvidersCompliance,
+      validProviders,
+      StorageProviderComplianceScoreRange.NonCompliant,
+    );
+
     return {
-      compliantSpsTotalDatacap: this._getProviderComplianceWeekTotalDatacap(
-        weekProvidersCompliance,
-        validProviders,
-        StorageProviderComplianceScoreRange.Compliant,
+      compliantSps: compliantSps.length,
+      partiallyCompliantSps: partiallyCompliantSps.length,
+      nonCompliantSps: nonCompliantSps.length,
+      compliantSpsTotalDatacap: this._getProvidersTotalDatacap(
+        compliantSps,
         weekProvidersTotalDatacap,
       ),
-      partiallyCompliantSpsTotalDatacap:
-        this._getProviderComplianceWeekTotalDatacap(
-          weekProvidersCompliance,
-          validProviders,
-          StorageProviderComplianceScoreRange.PartiallyCompliant,
-          weekProvidersTotalDatacap,
-        ),
-      nonCompliantSpsTotalDatacap: this._getProviderComplianceWeekTotalDatacap(
-        weekProvidersCompliance,
-        validProviders,
-        StorageProviderComplianceScoreRange.NonCompliant,
+      partiallyCompliantSpsTotalDatacap: this._getProvidersTotalDatacap(
+        partiallyCompliantSps,
+        weekProvidersTotalDatacap,
+      ),
+      nonCompliantSpsTotalDatacap: this._getProvidersTotalDatacap(
+        nonCompliantSps,
         weekProvidersTotalDatacap,
       ),
     };
   }
 
-  public getProviderComplianceWeekPercentage(
-    weekProvidersCompliance: StorageProviderComplianceScore[],
+  public getProvidersCompliancePercentage(
+    providersCompliance: StorageProviderComplianceScore[],
     validProviders: string[],
   ): StorageProviderComplianceWeekPercentage {
     return {
-      compliantSpsPercentage: this._getProviderComplianceWeekPercentage(
-        weekProvidersCompliance,
+      compliantSpsPercentage: this._getProvidersCompliancePercentage(
+        providersCompliance,
         validProviders,
         StorageProviderComplianceScoreRange.Compliant,
       ),
-      partiallyCompliantSpsPercentage:
-        this._getProviderComplianceWeekPercentage(
-          weekProvidersCompliance,
-          validProviders,
-          StorageProviderComplianceScoreRange.PartiallyCompliant,
-        ),
-      nonCompliantSpsPercentage: this._getProviderComplianceWeekPercentage(
-        weekProvidersCompliance,
+      partiallyCompliantSpsPercentage: this._getProvidersCompliancePercentage(
+        providersCompliance,
+        validProviders,
+        StorageProviderComplianceScoreRange.PartiallyCompliant,
+      ),
+      nonCompliantSpsPercentage: this._getProvidersCompliancePercentage(
+        providersCompliance,
         validProviders,
         StorageProviderComplianceScoreRange.NonCompliant,
       ),
     };
   }
 
-  // returns list of storage providers in validProviders with validComplianceScore compliance score
-  private getProviderComplianceWeekProviders(
-    weekProvidersCompliance: StorageProviderComplianceScore[],
-    validProviders: string[],
+  // returns providers with validComplianceScore compliance score
+  private _getComplianceProviders(
+    providersCompliance: StorageProviderComplianceScore[],
+    providers: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): string[] {
     const validComplianceScores: number[] = [];
@@ -438,63 +437,57 @@ export class StorageProviderService {
     }
 
     return (
-      weekProvidersCompliance
+      providersCompliance
         .filter(
           (p) =>
-            validProviders.includes(p.provider) &&
+            providers.includes(p.provider) &&
             validComplianceScores.includes(p.complianceScore),
         )
         .map((p) => p.provider) ?? []
     );
   }
 
-  private _getProviderComplianceWeekCount(
-    weekProvidersCompliance: StorageProviderComplianceScore[],
-    validProviders: string[],
+  // returns number of providers with validComplianceScore compliance score
+  private _getProviderComplianceCount(
+    providersCompliance: StorageProviderComplianceScore[],
+    providers: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): number {
-    return this.getProviderComplianceWeekProviders(
-      weekProvidersCompliance,
-      validProviders,
+    return this._getComplianceProviders(
+      providersCompliance,
+      providers,
       validComplianceScore,
     ).length;
   }
 
-  private _getProviderComplianceWeekTotalDatacap(
-    weekProvidersCompliance: StorageProviderComplianceScore[],
-    validProviders: string[],
-    validComplianceScore: StorageProviderComplianceScoreRange,
-    weekProvidersTotalDatacap: {
+  // returns total datacap of providers
+  private _getProvidersTotalDatacap(
+    providers: string[],
+    providersTotalDatacap: {
       total_deal_size: bigint | null;
       provider: string;
     }[],
   ): number {
-    // TODO calling this 2 times
-    const validWeekProviders = this.getProviderComplianceWeekProviders(
-      weekProvidersCompliance,
-      validProviders,
-      validComplianceScore,
-    );
-
     return Number(
-      weekProvidersTotalDatacap
-        .filter((p) => validWeekProviders.includes(p.provider))
+      providersTotalDatacap
+        .filter((p) => providers.includes(p.provider))
         .reduce((acc, p) => acc + p.total_deal_size, 0n) ?? 0,
     );
   }
 
-  private _getProviderComplianceWeekPercentage(
-    weekProvidersCompliance: StorageProviderComplianceScore[],
-    validProviders: string[],
+  // returns percentage 0 - 100 of providers with validComplianceScore compliance score
+  private _getProvidersCompliancePercentage(
+    providersCompliance: StorageProviderComplianceScore[],
+    providers: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): number {
-    return validProviders.length
-      ? (this._getProviderComplianceWeekCount(
-          weekProvidersCompliance,
-          validProviders,
+    return providers.length
+      ? (this._getProviderComplianceCount(
+          providersCompliance,
+          providers,
           validComplianceScore,
         ) /
-          validProviders.length) *
+          providers.length) *
           100
       : 0;
   }
