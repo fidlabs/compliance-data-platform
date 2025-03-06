@@ -140,3 +140,8 @@ export class StorageProviderComplianceWeekResponse {
     this.results = results;
   }
 }
+
+export class StorageProviderComplianceScore {
+  complianceScore: number; // 0 - 3
+  provider: string;
+}
