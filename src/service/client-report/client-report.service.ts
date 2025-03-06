@@ -15,25 +15,31 @@ export class ClientReportService {
     private readonly clientService: ClientService,
   ) {}
 
-  public async generateReport(clientId: string, returnFull = false) {
+  public async generateReport(clientIdOrAddress: string, returnFull = false) {
     const verifiedClientData =
-      await this.dataCapStatsService.fetchPrimaryClientDetails(clientId);
+      await this.dataCapStatsService.fetchPrimaryClientDetails(
+        clientIdOrAddress,
+      );
 
     if (!verifiedClientData) return null;
 
     const storageProviderDistribution =
       await this.storageProviderService.getStorageProviderDistribution(
-        clientId,
+        verifiedClientData.addressId,
       );
 
     const replicaDistribution =
-      await this.clientService.getReplicationDistribution(clientId);
+      await this.clientService.getReplicationDistribution(
+        verifiedClientData.addressId,
+      );
 
-    const cidSharing = await this.clientService.getCidSharing(clientId);
+    const cidSharing = await this.clientService.getCidSharing(
+      verifiedClientData.addressId,
+    );
 
     const report = await this.prismaService.client_report.create({
       data: {
-        client: clientId,
+        client: verifiedClientData.addressId,
         client_address: verifiedClientData.address,
         organization_name: (
           (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? '')
@@ -77,10 +83,17 @@ export class ClientReportService {
     return this.getReport(report.client, report.id, returnFull);
   }
 
-  public async getReports(clientId: string) {
+  public async getReports(clientIdOrAddress: string) {
     return await this.prismaService.client_report.findMany({
       where: {
-        client: clientId,
+        OR: [
+          {
+            client: clientIdOrAddress,
+          },
+          {
+            client_address: clientIdOrAddress,
+          },
+        ],
       },
       orderBy: {
         create_date: 'desc',
@@ -88,15 +101,23 @@ export class ClientReportService {
     });
   }
 
-  public async getLatestReport(clientId: string, full = false) {
-    return this.getReport(clientId, undefined, full);
+  public async getLatestReport(clientIdOrAddress: string, full = false) {
+    return this.getReport(clientIdOrAddress, undefined, full);
   }
 
-  public async getReport(clientId: string, id?: any, full = false) {
+  public async getReport(clientIdOrAddress: string, id?: any, full = false) {
     return this.prismaService.client_report.findFirst({
       where: {
-        client: clientId,
-        id: id ?? undefined,
+        OR: [
+          {
+            client: clientIdOrAddress,
+            id: id ?? undefined,
+          },
+          {
+            client_address: clientIdOrAddress,
+            id: id ?? undefined,
+          },
+        ],
       },
       include: {
         storage_provider_distribution: {

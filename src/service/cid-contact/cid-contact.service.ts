@@ -43,7 +43,9 @@ export class CidContactService {
         advertisementId,
       );
     } catch (err) {
-      throw new Error(`Error fetching IPNI advertisement: ${err.message}`);
+      throw new Error(`Error fetching IPNI advertisement: ${err.message}`, {
+        cause: err,
+      });
     }
   }
 
@@ -61,6 +63,23 @@ export class CidContactService {
   }
 
   public async getIPNIPublisherAdvertisementEntriesNumber(
+    baseUrl: string,
+    advertisement: IPNIAdvertisement,
+  ): Promise<number> {
+    try {
+      return await this._getIPNIPublisherAdvertisementEntriesNumber(
+        baseUrl,
+        advertisement,
+      );
+    } catch (err) {
+      throw new Error(
+        `Error fetching IPNI advertisement entries: ${err.message}`,
+        { cause: err },
+      );
+    }
+  }
+
+  private async _getIPNIPublisherAdvertisementEntriesNumber(
     baseUrl: string,
     advertisement: IPNIAdvertisement,
   ): Promise<number> {

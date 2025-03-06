@@ -57,7 +57,7 @@ export class AppController extends HealthIndicator {
   }
 
   @Get('health')
-  @HealthCheck()
+  @HealthCheck({ noCache: true })
   @CacheTTL(1) // disable cache
   public async getHealth(): Promise<HealthCheckResult> {
     try {

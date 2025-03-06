@@ -51,7 +51,10 @@ export class AggregationTasksService extends HealthIndicator {
         this.logger.log('Finished aggregations');
       } catch (err) {
         this.healthy = false;
-        this.logger.error(`Error during aggregations job: ${err}`, err.stack);
+        this.logger.error(
+          `Error during aggregations job: ${err.message}`,
+          err.cause || err.stack,
+        );
       } finally {
         endAllAggregationsTimer();
         this.jobInProgress = false;

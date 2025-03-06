@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GitHubIssueParserService } from '../github-issue-parser/github-issue-parser.service';
-import { ClientService } from '../client/client.service';
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import { ClientReportService } from '../client-report/client-report.service';
@@ -25,7 +24,6 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
 
   constructor(
     private readonly gitHubIssueParserService: GitHubIssueParserService,
-    private readonly clientService: ClientService,
     private readonly clientReportsService: ClientReportService,
     private readonly configService: ConfigService,
   ) {
@@ -59,8 +57,8 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
     } catch (err) {
       this.healthy = false;
       this.logger.error(
-        `Error handling GitHub issue comment created trigger: ${err}`,
-        err.stack,
+        `Error handling GitHub issue comment created trigger: ${err.message}`,
+        err.cause || err.stack,
       );
 
       responseBody = `Error: internal server error`;
@@ -121,17 +119,8 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
       );
     }
 
-    const clientId =
-      await this.clientService.getClientIdByAddress(clientAddress);
-
-    if (!clientId) {
-      throw new GitHubTriggerError(
-        `Client ID not found for address: ${clientAddress}`,
-      );
-    }
-
     let clientReport = await this.clientReportsService.getLatestReport(
-      clientId,
+      clientAddress,
       true,
     );
 
@@ -141,15 +130,13 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
         1000 * 60 * 60 * 30 // report older than 30 hours (24 hours + some buffer)
     ) {
       clientReport = await this.clientReportsService.generateReport(
-        clientId,
+        clientAddress,
         true,
       );
     }
 
     if (!clientReport) {
-      throw new GitHubTriggerError(
-        `Client not found: address: ${clientAddress}, ID: ${clientId}`,
-      );
+      throw new GitHubTriggerError(`Client not found: ${clientAddress}`);
     }
 
     const responseLines: string[] = [];
@@ -173,7 +160,7 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
       responseLines.push('');
       responseLines.push('### Full report');
       const reportUrl = `https://datacapstats.io/clients/${clientReport.client}/reports/${clientReport.id}`;
-      responseLines.push(`Click [here](${reportUrl}) to view full report`);
+      responseLines.push(`Click [here](${reportUrl}) to view the full report`);
 
       responseLines.push('[^1]: To manually trigger this report, add a comment with text \`checker:manualTrigger\`');
       responseLines.push('[^2]: New report will be generated only if the latest one is older than 30 hours');

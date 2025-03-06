@@ -9,6 +9,7 @@ import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { PrismaService } from 'src/db/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { Cacheable } from 'src/utils/cacheable';
+import { Retryable } from 'src/utils/retryable';
 
 @Injectable()
 export class LotusApiService {
@@ -62,29 +63,24 @@ export class LotusApiService {
     return data.result;
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   public async getMinerInfo(
     providerId: string,
-    retries: number = 2,
   ): Promise<LotusStateMinerInfoResponse> {
-    do {
-      try {
-        return await this._getMinerInfo(providerId);
-      } catch (err) {
-        if (retries > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds
-        } else {
-          throw err;
-        }
-      }
-    } while (retries-- > 0);
+    try {
+      return await this._getMinerInfo(providerId);
+    } catch (err) {
+      throw new Error(
+        `Error fetching miner info for ${providerId}: ${err.message}`,
+        { cause: err },
+      );
+    }
   }
 
-  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  @Retryable({ retries: 2, delay: 5000 }) // 5 seconds
   private async _getMinerInfo(
     providerId: string,
   ): Promise<LotusStateMinerInfoResponse> {
-    this.logger.debug(`Getting miner info for ${providerId}`);
-
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateMinerInfoResponse>(endpoint, {
