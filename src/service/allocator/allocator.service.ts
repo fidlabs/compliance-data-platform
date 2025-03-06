@@ -185,7 +185,7 @@ export class AllocatorService {
                 isAccumulative,
                 allocator,
               ),
-              ...this.storageProviderService.getProviderComplianceWeekPercentage(
+              ...this.storageProviderService.getProvidersCompliancePercentage(
                 weekProvidersCompliance,
                 weekProvidersForAllocator,
               ),

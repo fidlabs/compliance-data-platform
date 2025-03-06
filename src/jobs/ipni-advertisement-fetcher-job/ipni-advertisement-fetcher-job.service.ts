@@ -65,7 +65,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
   }
 
   private async _runIPNIAdvertisementFetcherJob() {
-    // TODO ll error handling, count fails, success, prometheus metrics
+    // TODO error handling, count fails, success, prometheus metrics
 
     const providers = await this.cidContactService.getIPNIProviders();
 
