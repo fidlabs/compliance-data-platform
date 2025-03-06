@@ -33,7 +33,7 @@ export class AggregationTasksService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_2_HOURS)
   public async runAggregationJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
