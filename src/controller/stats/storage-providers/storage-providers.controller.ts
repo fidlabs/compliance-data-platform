@@ -63,6 +63,7 @@ export class StorageProvidersAccController {
   }
 
   @Get('/aggregated-ipni-status')
+  @CacheTTL(1000 * 60 * 60) // 1 hour
   @ApiOperation({
     summary: 'Get aggregated storage providers IPNI reporting status',
   })

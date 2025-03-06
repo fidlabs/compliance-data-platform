@@ -128,10 +128,17 @@ export class AllocatorReportService {
     });
   }
 
-  public async getReports(allocatorId: string) {
+  public async getReports(allocatorIdOrAddress: string) {
     return await this.prismaService.allocator_report.findMany({
       where: {
-        allocator: allocatorId,
+        OR: [
+          {
+            allocator: allocatorIdOrAddress,
+          },
+          {
+            address: allocatorIdOrAddress,
+          },
+        ],
       },
       orderBy: {
         create_date: 'desc',
@@ -139,15 +146,23 @@ export class AllocatorReportService {
     });
   }
 
-  public async getLatestReport(allocatorId: string) {
-    return this.getReport(allocatorId);
+  public async getLatestReport(allocatorIdOrAddress: string) {
+    return this.getReport(allocatorIdOrAddress);
   }
 
-  public async getReport(allocatorId: string, id?: string) {
+  public async getReport(allocatorIdOrAddress: string, id?: string) {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
-        allocator: allocatorId,
-        id: id ?? undefined,
+        OR: [
+          {
+            allocator: allocatorIdOrAddress,
+            id: id ?? undefined,
+          },
+          {
+            address: allocatorIdOrAddress,
+            id: id ?? undefined,
+          },
+        ],
       },
       include: {
         clients: {

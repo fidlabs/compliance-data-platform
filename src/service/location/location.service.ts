@@ -24,11 +24,10 @@ export class LocationService {
     try {
       return await this._getLocation(multiAddrs);
     } catch (err) {
-      this.logger.error(
+      throw new Error(
         `Error getting location for ${multiAddrs}: ${err.message}`,
-        err.stack,
+        { cause: err },
       );
-      throw err;
     }
   }
 
@@ -40,7 +39,7 @@ export class LocationService {
     return this.extractAddress(new Multiaddr(Buffer.from(multiAddr, 'base64')));
   }
 
-  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   public async resolveAddress(address: Address): Promise<string> {
     let result: string[];
 
@@ -76,7 +75,7 @@ export class LocationService {
     return await this.getLocationDetails(ips);
   }
 
-  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   private async _getLocationDetails(ip: string): Promise<IPResponse | null> {
     const ipInfoToken = this.configService.get<string>('IP_INFO_TOKEN');
 

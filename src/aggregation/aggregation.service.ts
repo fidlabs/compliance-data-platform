@@ -23,7 +23,11 @@ export class AggregationService {
     private readonly prometheusMetricService: PrometheusMetricService,
   ) {}
 
-  public async executeWithRetries(maxTries: number, fn: () => Promise<void>) {
+  public async executeWithRetries(
+    maxTries: number,
+    fn: () => Promise<void>,
+    aggregationRunnerName: string,
+  ) {
     let success = false;
     let executionNumber = 0;
     let lastErr;
@@ -37,7 +41,7 @@ export class AggregationService {
         executionNumber++;
 
         this.logger.warn(
-          `Error during Aggregations job, execution ${executionNumber}/${maxTries}: ${err}`,
+          `Error during aggregation job: ${aggregationRunnerName}, execution ${executionNumber}/${maxTries}: ${err.message || err.code || err}`,
         );
 
         if (executionNumber != maxTries) {
@@ -81,18 +85,24 @@ export class AggregationService {
             );
 
           try {
-            await this.executeWithRetries(3, () =>
-              aggregationRunner.run({
-                prismaService: this.prismaService,
-                prismaDmobService: this.prismaDmobService,
-                filSparkService: this.filSparkService,
-                postgresService: this.postgresService,
-                postgresDmobService: this.postgresDmobService,
-                prometheusMetricService: this.prometheusMetricService,
-              }),
+            await this.executeWithRetries(
+              3,
+              () =>
+                aggregationRunner.run({
+                  prismaService: this.prismaService,
+                  prismaDmobService: this.prismaDmobService,
+                  filSparkService: this.filSparkService,
+                  postgresService: this.postgresService,
+                  postgresDmobService: this.postgresDmobService,
+                  prometheusMetricService: this.prometheusMetricService,
+                }),
+              aggregationRunnerName,
             );
           } catch (err) {
-            throw err;
+            throw new Error(
+              `Error running ${aggregationRunnerName}: ${err.message || err.code || err}`,
+              { cause: err },
+            );
           } finally {
             // stop transaction timer
             endSingleAggregationTransactionTimer();

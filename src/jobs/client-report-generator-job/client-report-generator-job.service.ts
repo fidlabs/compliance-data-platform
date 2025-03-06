@@ -74,7 +74,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of client report for application ${application.ID}: ${err}`,
+          `Error during generation of client report for application ${application.ID}: ${err.message}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
@@ -113,8 +113,8 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     } catch (err) {
       this.healthy = false;
       this.logger.error(
-        `Error during client reports generation job: ${err}`,
-        err.stack,
+        `Error during client reports generation job: ${err.message}`,
+        err.cause || err.stack,
       );
     }
   }

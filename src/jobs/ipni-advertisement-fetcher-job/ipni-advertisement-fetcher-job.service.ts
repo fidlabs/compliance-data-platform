@@ -51,8 +51,8 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
       } catch (err) {
         this.healthy = false;
         this.logger.error(
-          `Error while running IPNI Advertisement Fetcher job: ${err}`,
-          err.stack,
+          `Error while running IPNI Advertisement Fetcher job: ${err.message}`,
+          err.cause || err.stack,
         );
       } finally {
         this.jobInProgress = false;
@@ -72,13 +72,13 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
     for (const [i, provider] of providers.entries()) {
       try {
         this.logger.debug(
-          `Starting IPNI Advertisement Fetcher for ${provider.AddrInfo.ID}: ${i + 1}/${providers.length}`,
+          `Starting IPNI Advertisement Fetcher job for ${provider.AddrInfo.ID}: ${i + 1}/${providers.length}`,
         );
 
         await this.fetchAndStoreAdvertisementsByProvider(provider);
       } catch (err) {
         this.logger.error(
-          `Error during IPNI Advertisement Fetcher for ${provider.AddrInfo.ID}: ${err}`,
+          `Error during IPNI Advertisement Fetcher job for ${provider.AddrInfo.ID}: ${err.message}`,
         );
       }
     }

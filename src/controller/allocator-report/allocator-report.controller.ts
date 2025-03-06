@@ -81,6 +81,7 @@ export class AllocatorReportController {
   })
   public async generateAllocatorReport(@Param('allocator') allocator: string) {
     const report = await this.allocatorReportService.generateReport(allocator);
+
     if (!report) throw new NotFoundException();
 
     // invalidate the cache for the latest report

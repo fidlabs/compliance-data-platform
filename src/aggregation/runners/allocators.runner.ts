@@ -42,9 +42,7 @@ export class AllocatorsRunner implements AggregationRunner {
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
     await prismaService.$executeRaw`truncate allocators_weekly;`;
-    this.logger.log('Truncated allocators_weekly');
     await prismaService.allocators_weekly.createMany({ data });
-    this.logger.log('Inserted allocators_weekly');
 
     storeDataEndTimerMetric();
   }

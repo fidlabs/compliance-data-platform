@@ -41,9 +41,7 @@ export class ProvidersRunner implements AggregationRunner {
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
     await prismaService.$executeRaw`truncate providers_weekly;`;
-    this.logger.log('Truncated providers_weekly');
     await prismaService.providers_weekly.createMany({ data });
-    this.logger.log('Inserted providers_weekly');
     storeDataEndTimerMetric();
   }
 

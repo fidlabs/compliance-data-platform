@@ -26,11 +26,11 @@ export class DataCapStatsService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   public async fetchPrimaryClientDetails(
-    clientId: string,
+    clientIdOrAddress: string,
   ): Promise<DataCapStatsVerifiedClientData> {
-    const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?filter=${clientId}`;
+    const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?filter=${clientIdOrAddress}`;
 
     const { data } = (
       await firstValueFrom(
@@ -48,10 +48,10 @@ export class DataCapStatsService {
   }
 
   public async getVerifiedClients(
-    allocatorAddress: string,
+    allocatorIdOrAddress: string,
   ): Promise<DataCapStatsPublicVerifiedClientsResponse> {
     const apiKey = await this.fetchApiKey();
-    const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorAddress}`;
+    const endpoint = `https://api.datacapstats.io/public/api/getVerifiedClients/${allocatorIdOrAddress}`;
 
     const { data } = await firstValueFrom(
       this.httpService.get<DataCapStatsPublicVerifiedClientsResponse>(
