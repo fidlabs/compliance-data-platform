@@ -43,8 +43,6 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
                                           client,
                                           provider;`);
 
-        getDataEndTimerMetric();
-
         const data: {
           hour: Date | null;
           client: string | null;
@@ -55,8 +53,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
 
         let isFirstInsert = true;
 
-        const storeDataEndTimerMetric =
-          startStoreDataTimerByRunnerNameMetric(runnerName);
+        let storeDataEndTimerMetric;
 
         for await (const rowResult of i) {
           data.push({
@@ -69,6 +66,9 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
 
           if (data.length === 5000) {
             if (isFirstInsert) {
+              getDataEndTimerMetric();
+              storeDataEndTimerMetric =
+                startStoreDataTimerByRunnerNameMetric(runnerName);
               await tx.$executeRaw`truncate unified_verified_deal_hourly`;
               isFirstInsert = false;
             }
@@ -83,6 +83,9 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
 
         if (data.length > 0) {
           if (isFirstInsert) {
+            getDataEndTimerMetric();
+            storeDataEndTimerMetric =
+              startStoreDataTimerByRunnerNameMetric(runnerName);
             await tx.$executeRaw`truncate unified_verified_deal_hourly`;
           }
           await tx.unified_verified_deal_hourly.createMany({

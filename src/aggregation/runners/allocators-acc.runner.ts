@@ -65,8 +65,6 @@ export class AllocatorsAccRunner implements AggregationRunner {
                              week,
                              allocator;`);
 
-        getDataEndTimerMetric();
-
         const data: {
           week: Date;
           allocator: string;
@@ -79,8 +77,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
 
         let isFirstInsert = true;
 
-        const storeDataEndTimerMetric =
-          startStoreDataTimerByRunnerNameMetric(runnerName);
+        let storeDataEndTimerMetric;
 
         for await (const rowResult of i) {
           data.push({
@@ -98,8 +95,11 @@ export class AllocatorsAccRunner implements AggregationRunner {
 
           if (data.length === 5000) {
             if (isFirstInsert) {
-              await tx.$executeRaw`truncate allocators_weekly_acc`;
               isFirstInsert = false;
+              getDataEndTimerMetric();
+              storeDataEndTimerMetric =
+                startStoreDataTimerByRunnerNameMetric(runnerName);
+              await tx.$executeRaw`truncate allocators_weekly_acc`;
             }
 
             await tx.allocators_weekly_acc.createMany({
@@ -112,6 +112,9 @@ export class AllocatorsAccRunner implements AggregationRunner {
 
         if (data.length > 0) {
           if (isFirstInsert) {
+            getDataEndTimerMetric();
+            storeDataEndTimerMetric =
+              startStoreDataTimerByRunnerNameMetric(runnerName);
             await tx.$executeRaw`truncate allocators_weekly_acc`;
           }
 
