@@ -39,7 +39,7 @@ export class ClientProviderDistributionWeeklyRunner
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate client_provider_distribution_weekly;`;
+    await prismaService.$executeRaw`delete from client_provider_distribution_weekly;`;
     await prismaService.client_provider_distribution_weekly.createMany({
       data,
     });

@@ -37,7 +37,7 @@ export class ClientAllocatorDistributionRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate client_allocator_distribution_weekly;`;
+    await prismaService.$executeRaw`delete from client_allocator_distribution_weekly;`;
     await prismaService.client_allocator_distribution_weekly.createMany({
       data,
     });

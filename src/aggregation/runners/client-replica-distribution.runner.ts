@@ -36,7 +36,7 @@ export class ClientReplicaDistributionRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate client_replica_distribution;`;
+    await prismaService.$executeRaw`delete from client_replica_distribution;`;
     await prismaService.client_replica_distribution.createMany({ data });
 
     storeDataEndTimerMetric();

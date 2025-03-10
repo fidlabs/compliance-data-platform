@@ -99,7 +99,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
               getDataEndTimerMetric();
               storeDataEndTimerMetric =
                 startStoreDataTimerByRunnerNameMetric(runnerName);
-              await tx.$executeRaw`truncate allocators_weekly_acc`;
+              await tx.$executeRaw`delete from allocators_weekly_acc`;
             }
 
             await tx.allocators_weekly_acc.createMany({
@@ -115,7 +115,7 @@ export class AllocatorsAccRunner implements AggregationRunner {
             getDataEndTimerMetric();
             storeDataEndTimerMetric =
               startStoreDataTimerByRunnerNameMetric(runnerName);
-            await tx.$executeRaw`truncate allocators_weekly_acc`;
+            await tx.$executeRaw`delete from allocators_weekly_acc`;
           }
 
           await tx.allocators_weekly_acc.createMany({

@@ -37,7 +37,7 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate client_provider_distribution;`;
+    await prismaService.$executeRaw`delete from client_provider_distribution;`;
     await prismaService.client_provider_distribution.createMany({
       data,
     });

@@ -35,7 +35,7 @@ export class CidSharingRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate cid_sharing;`;
+    await prismaService.$executeRaw`delete from cid_sharing;`;
     await prismaService.cid_sharing.createMany({ data });
 
     storeDataEndTimerMetric();
