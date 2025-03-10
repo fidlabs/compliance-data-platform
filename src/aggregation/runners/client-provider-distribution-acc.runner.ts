@@ -62,8 +62,6 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
                                                   client,
                                                   provider;`);
 
-        getDataEndTimerMetric();
-
         const data: {
           week: Date | null;
           client: string | null;
@@ -74,8 +72,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
         let isFirstInsert = true;
 
-        const storeDataEndTimerMetric =
-          startStoreDataTimerByRunnerNameMetric(runnerName);
+        let storeDataEndTimerMetric;
 
         for await (const rowResult of i) {
           data.push({
@@ -88,6 +85,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
           if (data.length === 5000) {
             if (isFirstInsert) {
+              getDataEndTimerMetric();
+              storeDataEndTimerMetric =
+                startStoreDataTimerByRunnerNameMetric(runnerName);
               await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
               isFirstInsert = false;
             }
@@ -102,6 +102,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
         if (data.length > 0) {
           if (isFirstInsert) {
+            getDataEndTimerMetric();
+            storeDataEndTimerMetric =
+              startStoreDataTimerByRunnerNameMetric(runnerName);
             await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
           }
           await tx.client_provider_distribution_weekly_acc.createMany({

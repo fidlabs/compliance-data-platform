@@ -35,16 +35,13 @@ export class ClientClaimsRunner implements AggregationRunner {
                                          group by client,
                                                   hour;`);
 
-        getDataEndTimerMetric();
-
         const data: {
           client: string;
           hour: Date;
           total_deal_size: bigint | null;
         }[] = [];
 
-        const storeDataEndTimerMetric =
-          startStoreDataTimerByRunnerNameMetric(runnerName);
+        let storeDataEndTimerMetric;
 
         let isFirstInsert = true;
         for await (const rowResult of i) {
@@ -56,8 +53,11 @@ export class ClientClaimsRunner implements AggregationRunner {
 
           if (data.length === 5000) {
             if (isFirstInsert) {
-              await tx.$executeRaw`truncate client_claims_hourly`;
               isFirstInsert = false;
+              getDataEndTimerMetric();
+              storeDataEndTimerMetric =
+                startStoreDataTimerByRunnerNameMetric(runnerName);
+              await tx.$executeRaw`truncate client_claims_hourly`;
             }
 
             await tx.client_claims_hourly.createMany({
@@ -70,6 +70,9 @@ export class ClientClaimsRunner implements AggregationRunner {
 
         if (data.length > 0) {
           if (isFirstInsert) {
+            getDataEndTimerMetric();
+            storeDataEndTimerMetric =
+              startStoreDataTimerByRunnerNameMetric(runnerName);
             await tx.$executeRaw`truncate client_claims_hourly`;
           }
           await tx.client_claims_hourly.createMany({
