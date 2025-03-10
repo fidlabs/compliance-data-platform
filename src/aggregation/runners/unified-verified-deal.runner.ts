@@ -69,7 +69,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
               getDataEndTimerMetric();
               storeDataEndTimerMetric =
                 startStoreDataTimerByRunnerNameMetric(runnerName);
-              await tx.$executeRaw`truncate unified_verified_deal_hourly`;
+              await tx.$executeRaw`delete from unified_verified_deal_hourly`;
               isFirstInsert = false;
             }
 
@@ -86,7 +86,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
             getDataEndTimerMetric();
             storeDataEndTimerMetric =
               startStoreDataTimerByRunnerNameMetric(runnerName);
-            await tx.$executeRaw`truncate unified_verified_deal_hourly`;
+            await tx.$executeRaw`delete from unified_verified_deal_hourly`;
           }
           await tx.unified_verified_deal_hourly.createMany({
             data,

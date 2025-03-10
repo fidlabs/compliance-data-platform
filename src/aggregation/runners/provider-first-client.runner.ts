@@ -31,7 +31,7 @@ export class ProviderFirstClientRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate provider_first_client;`;
+    await prismaService.$executeRaw`delete from provider_first_client;`;
     await prismaService.provider_first_client.createMany({ data });
 
     storeDataEndTimerMetric();

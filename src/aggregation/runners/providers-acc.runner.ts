@@ -40,7 +40,7 @@ export class ProvidersAccRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`truncate providers_weekly_acc;`;
+    await prismaService.$executeRaw`delete from providers_weekly_acc;`;
     await prismaService.providers_weekly_acc.createMany({ data });
     storeDataEndTimerMetric();
   }

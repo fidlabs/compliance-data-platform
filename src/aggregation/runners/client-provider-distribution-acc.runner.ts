@@ -88,7 +88,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
               getDataEndTimerMetric();
               storeDataEndTimerMetric =
                 startStoreDataTimerByRunnerNameMetric(runnerName);
-              await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
+              await tx.$executeRaw`delete from client_provider_distribution_weekly_acc`;
               isFirstInsert = false;
             }
 
@@ -105,7 +105,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
             getDataEndTimerMetric();
             storeDataEndTimerMetric =
               startStoreDataTimerByRunnerNameMetric(runnerName);
-            await tx.$executeRaw`truncate client_provider_distribution_weekly_acc`;
+            await tx.$executeRaw`delete from client_provider_distribution_weekly_acc`;
           }
           await tx.client_provider_distribution_weekly_acc.createMany({
             data,

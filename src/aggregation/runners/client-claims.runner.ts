@@ -57,7 +57,7 @@ export class ClientClaimsRunner implements AggregationRunner {
               getDataEndTimerMetric();
               storeDataEndTimerMetric =
                 startStoreDataTimerByRunnerNameMetric(runnerName);
-              await tx.$executeRaw`truncate client_claims_hourly`;
+              await tx.$executeRaw`delete from client_claims_hourly`;
             }
 
             await tx.client_claims_hourly.createMany({
@@ -73,7 +73,7 @@ export class ClientClaimsRunner implements AggregationRunner {
             getDataEndTimerMetric();
             storeDataEndTimerMetric =
               startStoreDataTimerByRunnerNameMetric(runnerName);
-            await tx.$executeRaw`truncate client_claims_hourly`;
+            await tx.$executeRaw`delete from client_claims_hourly`;
           }
           await tx.client_claims_hourly.createMany({
             data,
