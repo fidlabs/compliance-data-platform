@@ -1,10 +1,18 @@
 export interface DataCapStatsVerifiedClientsResponse {
   count: string;
-  data: DataCapStatsVerifiedClientData[];
+  data: DataCapStatsVerifiedClientData[]; // two entries for client using metaallocators
+  virtualAllocators?: DataCapStatsVerifiedClientVirtualAllocators[]; // for metaallocators only
   totalRemainingDatacap: string;
   clientsWithActiveDeals: string;
   countOfClientsWhoHaveDcAndDeals: string;
   numberOfClients: string;
+}
+
+export interface DataCapStatsVerifiedClientVirtualAllocators {
+  addressId: string;
+  address: string;
+  addressEth: string;
+  name: string;
 }
 
 export interface DataCapStatsVerifiedClientData {
