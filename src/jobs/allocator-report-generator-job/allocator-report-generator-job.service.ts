@@ -53,14 +53,14 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     for (const [, allocator] of allocators.entries()) {
       try {
         this.logger.debug(
-          `Starting generation of allocator report for ${allocator.address}`,
+          `Starting generation of allocator report for ${allocator.multisig_address}`,
         );
 
-        await this.generateAllocatorReport(allocator.address);
+        await this.generateAllocatorReport(allocator.multisig_address);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of allocator report for ${allocator.address}: ${err.message}`,
+          `Error during generation of allocator report for ${allocator.multisig_address}: ${err.message}`,
           err.cause || err.stack,
         );
 

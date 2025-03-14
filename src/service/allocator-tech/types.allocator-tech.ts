@@ -16,11 +16,11 @@ export interface AllocatorTechAllocatorResponse {
   owner: string;
   repo: string;
   installation_id: number;
-  multisig_address: string | null;
+  multisig_address: string | null; // equals address for standard allocators
   verifiers_gh_handles: string | null;
   multisig_threshold: number | null;
   allocation_amount_type: any | null;
-  address: string | null;
+  address: string | null; // metaallocator address if different from multisig_address
   tooling: string | null;
   data_types: string[] | null;
   required_sps: string | null;
