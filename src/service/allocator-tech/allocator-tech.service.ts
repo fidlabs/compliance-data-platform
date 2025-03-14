@@ -41,7 +41,9 @@ export class AllocatorTechService {
 
     return data.filter(
       (allocator) =>
-        allocator.address?.startsWith('f') && allocator.address?.length > 3,
+        // assume multisig_address === address for standard allocators
+        allocator.multisig_address?.startsWith('f') &&
+        allocator.multisig_address?.length > 3,
     );
   }
 
@@ -51,7 +53,9 @@ export class AllocatorTechService {
     const allocators = await this.getAllocators();
 
     return allocators.find(
-      (allocator) => allocator.address === allocatorAddress,
+      (allocator) =>
+        allocator.multisig_address === allocatorAddress || // standard allocator
+        allocator.address === allocatorAddress, // metaallocator
     );
   }
 }
