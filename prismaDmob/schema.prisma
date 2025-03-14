@@ -795,6 +795,7 @@ model verified_client_allowance {
   retrievalFrequency     String?  @default("") @db.VarChar
   isDataPublic           String?  @default("") @db.VarChar
   providerList           Json     @default("[]")
+  dcSource               String?  @db.VarChar
 }
 
 model verified_client_allowance_signer {
