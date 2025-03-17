@@ -6,8 +6,8 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class AllocatorsAccRunner implements AggregationRunner {
-  private readonly logger = new Logger(AllocatorsAccRunner.name);
+export class AllocatorsWeeklyAccRunner implements AggregationRunner {
+  private readonly logger = new Logger(AllocatorsWeeklyAccRunner.name);
 
   public async run({
     prismaService,
@@ -144,6 +144,6 @@ export class AllocatorsAccRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Allocators Acc Runner';
+    return 'Allocators Weekly Acc Runner';
   }
 }

@@ -5,7 +5,7 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ProviderRetrievabilityRunner implements AggregationRunner {
+export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
   public async run({
     prismaService,
     filSparkService,
@@ -76,6 +76,6 @@ export class ProviderRetrievabilityRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Provider Retrievability Runner';
+    return 'Provider Retrievability Daily Runner';
   }
 }

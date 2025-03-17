@@ -5,7 +5,9 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
+export class ProviderRetrievabilityDailyBackfillRunner
+  implements AggregationRunner
+{
   // will fetch 1 day worth of data each run until everything is backfilled
   public async run({
     prismaService,
@@ -85,6 +87,6 @@ export class ProviderRetrievabilityBackfillRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Provider Retrievability Backfill Runner';
+    return 'Provider Retrievability Daily Backfill Runner';
   }
 }

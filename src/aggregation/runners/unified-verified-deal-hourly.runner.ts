@@ -5,7 +5,7 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class UnifiedVerifiedDealRunner implements AggregationRunner {
+export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
   public async run({
     prismaService,
     postgresDmobService,
@@ -69,6 +69,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
               getDataEndTimerMetric();
               storeDataEndTimerMetric =
                 startStoreDataTimerByRunnerNameMetric(runnerName);
+
               await tx.$executeRaw`delete from unified_verified_deal_hourly`;
               isFirstInsert = false;
             }
@@ -86,6 +87,7 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
             getDataEndTimerMetric();
             storeDataEndTimerMetric =
               startStoreDataTimerByRunnerNameMetric(runnerName);
+
             await tx.$executeRaw`delete from unified_verified_deal_hourly`;
           }
           await tx.unified_verified_deal_hourly.createMany({
@@ -110,6 +112,6 @@ export class UnifiedVerifiedDealRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Unified Verified Deal Runner';
+    return 'Unified Verified Deal Hourly Runner';
   }
 }

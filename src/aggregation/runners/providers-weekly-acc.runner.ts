@@ -1,20 +1,19 @@
 import { Logger } from '@nestjs/common';
-import { getProvidersWeekly } from 'prisma/generated/client/sql';
+import { getProvidersWeeklyAcc } from 'prisma/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ProvidersRunner implements AggregationRunner {
-  private readonly logger = new Logger(ProvidersRunner.name);
+export class ProvidersWeeklyAccRunner implements AggregationRunner {
+  private readonly logger = new Logger(ProvidersWeeklyAccRunner.name);
 
   public async run({
     prismaService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
-
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
@@ -23,9 +22,10 @@ export class ProvidersRunner implements AggregationRunner {
     const getDataEndTimerMetric =
       startGetDataTimerByRunnerNameMetric(runnerName);
 
-    const result = await prismaService.$queryRawTyped(getProvidersWeekly());
+    const result = await prismaService.$queryRawTyped(getProvidersWeeklyAcc());
 
     getDataEndTimerMetric();
+
     const data = result.map((row) => ({
       week: row.week,
       provider: row.provider,
@@ -40,23 +40,23 @@ export class ProvidersRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.$executeRaw`delete from providers_weekly;`;
-    await prismaService.providers_weekly.createMany({ data });
+    await prismaService.$executeRaw`delete from providers_weekly_acc;`;
+    await prismaService.providers_weekly_acc.createMany({ data });
     storeDataEndTimerMetric();
   }
 
   getFilledTables(): AggregationTable[] {
-    return [AggregationTable.ProvidersWeekly];
+    return [AggregationTable.ProvidersWeeklyAcc];
   }
 
   getDependingTables(): AggregationTable[] {
     return [
-      AggregationTable.ClientProviderDistributionWeekly,
+      AggregationTable.ClientProviderDistributionWeeklyAcc,
       AggregationTable.ProviderRetrievabilityDaily,
     ];
   }
 
   getName(): string {
-    return 'Providers Runner';
+    return 'Providers Weekly Acc Runner';
   }
 }
