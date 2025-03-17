@@ -7,23 +7,23 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
 import { AggregationService } from './aggregation/aggregation.service';
-import { AllocatorsAccRunner } from './aggregation/runners/allocators-acc.runner';
-import { AllocatorsRunner } from './aggregation/runners/allocators.runner';
+import { AllocatorsWeeklyAccRunner } from './aggregation/runners/allocators-weekly-acc.runner';
+import { AllocatorsWeeklyRunner } from './aggregation/runners/allocators-weekly.runner';
 import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
-import { ClientAllocatorDistributionAccRunner } from './aggregation/runners/client-allocator-distribution-acc.runner';
-import { ClientAllocatorDistributionRunner } from './aggregation/runners/client-allocator-distribution.runner';
-import { ClientClaimsRunner } from './aggregation/runners/client-claims.runner';
+import { ClientAllocatorDistributionWeeklyAccRunner } from './aggregation/runners/client-allocator-distribution-weekly-acc.runner';
+import { ClientAllocatorDistributionWeeklyRunner } from './aggregation/runners/client-allocator-distribution-weekly.runner';
+import { ClientClaimsHourlyRunner } from './aggregation/runners/client-claims-hourly.runner';
 import { ClientProviderDistributionAccRunner } from './aggregation/runners/client-provider-distribution-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
 import { OldDatacapBalanceNv22Runner } from './aggregation/runners/old-datacap-balance-nv22.runner';
 import { OldDatacapBalanceWeeklyRunner } from './aggregation/runners/old-datacap-balance-weekly.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
-import { ProviderRetrievabilityBackfillRunner } from './aggregation/runners/provider-retrievability-backfill.runner';
-import { ProviderRetrievabilityRunner } from './aggregation/runners/provider-retrievability.runner';
-import { ProvidersAccRunner } from './aggregation/runners/providers-acc.runner';
-import { ProvidersRunner } from './aggregation/runners/providers.runner';
-import { UnifiedVerifiedDealRunner } from './aggregation/runners/unified-verified-deal.runner';
+import { ProviderRetrievabilityDailyBackfillRunner } from './aggregation/runners/provider-retrievability-daily-backfill.runner';
+import { ProviderRetrievabilityDailyRunner } from './aggregation/runners/provider-retrievability-daily.runner';
+import { ProvidersWeeklyAccRunner } from './aggregation/runners/providers-weekly-acc.runner';
+import { ProvidersWeeklyRunner } from './aggregation/runners/providers-weekly.runner';
+import { UnifiedVerifiedDealHourlyRunner } from './aggregation/runners/unified-verified-deal-hourly.runner';
 import {
   ClientReportController,
   ClientReportControllerRedirect,
@@ -107,12 +107,12 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
     PrismaDmobService,
     FilSparkService,
     DataCapStatsService,
-    AllocatorsRunner,
-    AllocatorsAccRunner,
+    AllocatorsWeeklyRunner,
+    AllocatorsWeeklyAccRunner,
     CidSharingRunner,
-    ClientAllocatorDistributionRunner,
-    ClientAllocatorDistributionAccRunner,
-    ClientClaimsRunner,
+    ClientAllocatorDistributionWeeklyRunner,
+    ClientAllocatorDistributionWeeklyAccRunner,
+    ClientClaimsHourlyRunner,
     ClientProviderDistributionRunner,
     ClientProviderDistributionWeeklyRunner,
     ClientProviderDistributionAccRunner,
@@ -120,11 +120,11 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
     OldDatacapBalanceNv22Runner,
     OldDatacapBalanceWeeklyRunner,
     ProviderFirstClientRunner,
-    ProviderRetrievabilityRunner,
-    ProviderRetrievabilityBackfillRunner,
-    ProvidersRunner,
-    ProvidersAccRunner,
-    UnifiedVerifiedDealRunner,
+    ProviderRetrievabilityDailyRunner,
+    ProviderRetrievabilityDailyBackfillRunner,
+    ProvidersWeeklyRunner,
+    ProvidersWeeklyAccRunner,
+    UnifiedVerifiedDealHourlyRunner,
     StorageProviderService,
     AllocatorService,
     PostgresService,
@@ -195,12 +195,12 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
         unifiedVerifiedDealRunner,
       ],
       inject: [
-        AllocatorsRunner,
-        AllocatorsAccRunner,
+        AllocatorsWeeklyRunner,
+        AllocatorsWeeklyAccRunner,
         CidSharingRunner,
-        ClientAllocatorDistributionRunner,
-        ClientAllocatorDistributionAccRunner,
-        ClientClaimsRunner,
+        ClientAllocatorDistributionWeeklyRunner,
+        ClientAllocatorDistributionWeeklyAccRunner,
+        ClientClaimsHourlyRunner,
         ClientProviderDistributionRunner,
         ClientProviderDistributionWeeklyRunner,
         ClientProviderDistributionAccRunner,
@@ -208,11 +208,11 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
         OldDatacapBalanceNv22Runner,
         OldDatacapBalanceWeeklyRunner,
         ProviderFirstClientRunner,
-        ProviderRetrievabilityRunner,
-        ProviderRetrievabilityBackfillRunner,
-        ProvidersRunner,
-        ProvidersAccRunner,
-        UnifiedVerifiedDealRunner,
+        ProviderRetrievabilityDailyRunner,
+        ProviderRetrievabilityDailyBackfillRunner,
+        ProvidersWeeklyRunner,
+        ProvidersWeeklyAccRunner,
+        UnifiedVerifiedDealHourlyRunner,
       ],
     },
   ],

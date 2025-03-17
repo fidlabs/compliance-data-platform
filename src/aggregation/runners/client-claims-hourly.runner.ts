@@ -5,7 +5,7 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ClientClaimsRunner implements AggregationRunner {
+export class ClientClaimsHourlyRunner implements AggregationRunner {
   public async run({
     prismaService,
     postgresService,
@@ -96,6 +96,6 @@ export class ClientClaimsRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Client Claims Runner';
+    return 'Client Claims Hourly Runner';
   }
 }
