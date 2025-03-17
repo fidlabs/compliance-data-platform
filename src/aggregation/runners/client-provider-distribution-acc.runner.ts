@@ -23,21 +23,18 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    //const latestStored =
-    //  await prismaService.client_provider_distribution_weekly_acc.findFirst({
-    //    select: {
-    //      week: true,
-    //    },
-    //    orderBy: {
-    //      week: 'desc',
-    //    },
-    //  });
-    //let nextWeek = latestStored
-    //  ? DateTime.fromJSDate(latestStored.date, { zone: 'UTC' }) // we want to reprocess the last stored week, as it might've been incomplete
-    //  : DateTime.fromSeconds(3847920 * 30 + 1598306400).startOf('week'); // nv22 start week - a.k.a. reprocess everything
-    let nextWeek = DateTime.fromSeconds(3847920 * 30 + 1598306400).startOf(
-      'week',
-    ); // nv22 start week
+    const latestStored =
+      await prismaService.client_provider_distribution_weekly_acc.findFirst({
+        select: {
+          week: true,
+        },
+        orderBy: {
+          week: 'desc',
+        },
+      });
+    let nextWeek = latestStored
+      ? DateTime.fromJSDate(latestStored.week, { zone: 'UTC' }) // we want to reprocess the last stored week, as it might've been incomplete
+      : DateTime.fromSeconds(3847920 * 30 + 1598306400).startOf('week'); // nv22 start week - a.k.a. reprocess everything
 
     const now = DateTime.now().setZone('UTC');
     while (nextWeek <= now) {
