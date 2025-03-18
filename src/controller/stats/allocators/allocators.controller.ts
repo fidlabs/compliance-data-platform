@@ -19,7 +19,7 @@ export class AllocatorsAccController {
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getAllocatorClients(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getAllocatorClientsWeekly(
+    return await this.allocatorService.getStandardAllocatorClientsWeekly(
       this.isAccumulative,
     );
   }
@@ -27,7 +27,7 @@ export class AllocatorsAccController {
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
-    return await this.allocatorService.getAllocatorRetrievabilityWeekly(
+    return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       this.isAccumulative,
     );
   }
@@ -35,7 +35,7 @@ export class AllocatorsAccController {
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getAllocatorBiggestClientDistributionWeekly(
+    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
       this.isAccumulative,
     );
   }
@@ -45,7 +45,7 @@ export class AllocatorsAccController {
   public async getAllocatorSpsCompliance(
     @Query() metricsToCheck: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
-    return await this.allocatorService.getAllocatorSpsComplianceWeekly(
+    return await this.allocatorService.getStandardAllocatorSpsComplianceWeekly(
       this.isAccumulative,
       metricsToCheck,
     );

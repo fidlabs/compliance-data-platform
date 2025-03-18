@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
-  getAllocatorBiggestClientDistribution,
-  getAllocatorBiggestClientDistributionAcc,
-  getAllocatorRetrievability,
-  getAllocatorRetrievabilityAcc,
-  getAllocatorClientsWeekly,
-  getAllocatorClientsWeeklyAcc,
+  getStandardAllocatorBiggestClientDistribution,
+  getStandardAllocatorBiggestClientDistributionAcc,
+  getStandardAllocatorRetrievability,
+  getStandardAllocatorRetrievabilityAcc,
+  getStandardAllocatorClientsWeekly,
+  getStandardAllocatorClientsWeeklyAcc,
+  getStandardAllocatorCount,
 } from 'prisma/generated/client/sql';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
@@ -24,8 +25,6 @@ import {
   RetrievabilityHistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
-import { modelName } from 'src/utils/prisma';
-import { Prisma } from 'prisma/generated/client';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
@@ -41,22 +40,22 @@ export class AllocatorService {
     private readonly storageProviderService: StorageProviderService,
   ) {}
 
-  public async getAllocatorClientsWeekly(
+  public async getStandardAllocatorClientsWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
     const query = isAccumulative
-      ? getAllocatorClientsWeeklyAcc
-      : getAllocatorClientsWeekly;
+      ? getStandardAllocatorClientsWeeklyAcc
+      : getStandardAllocatorClientsWeekly;
 
     return new HistogramWeekResponse(
-      await this.getAllocatorCount(),
+      await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
       ),
     );
   }
 
-  public async getAllocatorRetrievabilityWeekly(
+  public async getStandardAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeek = DateTime.now()
@@ -72,8 +71,8 @@ export class AllocatorService {
       );
 
     const query = isAccumulative
-      ? getAllocatorRetrievabilityAcc
-      : getAllocatorRetrievability;
+      ? getStandardAllocatorRetrievabilityAcc
+      : getStandardAllocatorRetrievability;
 
     const queryResult: HistogramWeekFlat[] =
       await this.prismaService.$queryRawTyped(query());
@@ -90,7 +89,7 @@ export class AllocatorService {
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
       new RetrievabilityHistogramWeekResponse(
-        await this.getAllocatorCount(),
+        await this.getStandardAllocatorCount(),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
@@ -106,15 +105,15 @@ export class AllocatorService {
     );
   }
 
-  public async getAllocatorBiggestClientDistributionWeekly(
+  public async getStandardAllocatorBiggestClientDistributionWeekly(
     isAccumulative: boolean,
   ): Promise<HistogramWeekResponse> {
     const query = isAccumulative
-      ? getAllocatorBiggestClientDistributionAcc
-      : getAllocatorBiggestClientDistribution;
+      ? getStandardAllocatorBiggestClientDistributionAcc
+      : getStandardAllocatorBiggestClientDistribution;
 
     return new HistogramWeekResponse(
-      await this.getAllocatorCount(),
+      await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(query()),
         100,
@@ -122,7 +121,8 @@ export class AllocatorService {
     );
   }
 
-  public async getAllocatorSpsComplianceWeekly(
+  // TODO measure and optimize this function
+  public async getStandardAllocatorSpsComplianceWeekly(
     isAccumulative: boolean,
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
@@ -156,10 +156,8 @@ export class AllocatorService {
           );
         });
 
-      const weekAllocatorsWithClients = await this.getWeekAllocatorsWithClients(
-        week,
-        isAccumulative,
-      );
+      const weekAllocatorsWithClients =
+        await this.getWeekStandardAllocatorsWithClients(week, isAccumulative);
 
       const clientsByAllocator = groupBy(
         weekAllocatorsWithClients,
@@ -171,27 +169,27 @@ export class AllocatorService {
           Object.entries(clientsByAllocator).map(
             // prettier-ignore
             async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
-            const weekProvidersForAllocator =
-              await this.storageProviderService.getWeekProvidersForClients(
-                week,
-                isAccumulative,
-                clients.map((p) => p.client),
-              );
+              const weekProvidersForAllocator =
+                await this.storageProviderService.getWeekProvidersForClients(
+                  week,
+                  isAccumulative,
+                  clients.map((p) => p.client),
+                );
 
-            return {
-              id: allocator,
-              totalDatacap: await this.getWeekAllocatorTotalDatacap(
-                week,
-                isAccumulative,
-                allocator,
-              ),
-              ...this.storageProviderService.getProvidersCompliancePercentage(
-                weekProvidersCompliance,
-                weekProvidersForAllocator,
-              ),
-              totalSps: weekProvidersForAllocator.length,
-            };
-          },
+              return {
+                id: allocator,
+                totalDatacap: await this.getWeekAllocatorTotalDatacap(
+                  week,
+                  isAccumulative,
+                  allocator,
+                ),
+                ...this.storageProviderService.getProvidersCompliancePercentage(
+                  weekProvidersCompliance,
+                  weekProvidersForAllocator,
+                ),
+                totalSps: weekProvidersForAllocator.length,
+              };
+            },
           ),
         );
 
@@ -240,20 +238,15 @@ export class AllocatorService {
     );
   }
 
-  public async getAllocatorCount(): Promise<number> {
+  // returns the number of standard allocators (not metaallocators)
+  public async getStandardAllocatorCount(): Promise<number> {
     return (
-      await this.prismaService.$queryRaw<
-        [
-          {
-            count: number;
-          },
-        ]
-      >`select count(distinct allocator)::int
-      from ${modelName(Prisma.ModelName.allocators_weekly_acc)}`
+      await this.prismaService.$queryRawTyped(getStandardAllocatorCount())
     )[0].count;
   }
 
   // returns 0 - 1
+  // TODO filspark returns non-zero retrievability for metaallocators - should we filter them out here?
   public async getWeekAverageAllocatorRetrievability(
     week: Date,
     isAccumulative: boolean,
@@ -274,7 +267,9 @@ export class AllocatorService {
     )._avg.avg_weighted_retrievability_success_rate;
   }
 
-  public async getWeekAllocatorsWithClients(
+  // assuming client_allocator_distribution_weekly table doesn't contain metaallocators
+  // this function returns (client, standard allocator) pairs
+  public async getWeekStandardAllocatorsWithClients(
     week: Date,
     isAccumulative: boolean,
   ): Promise<{ client: string; allocator: string }[]> {
