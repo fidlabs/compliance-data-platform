@@ -73,6 +73,7 @@ import axios from 'axios';
 import { HistogramHelperService } from './service/histogram-helper/histogram-helper.service';
 import { GitHubIssueParserService } from './service/github-issue-parser/github-issue-parser.service';
 import { GitHubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
+import { AllocatorRunner } from './aggregation/runners/allocator.runner';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
     FilSparkService,
     DataCapStatsService,
     AllocatorsWeeklyRunner,
+    AllocatorRunner,
     AllocatorsWeeklyAccRunner,
     CidSharingRunner,
     ClientAllocatorDistributionWeeklyRunner,
@@ -195,6 +197,7 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
         unifiedVerifiedDealRunner,
       ],
       inject: [
+        AllocatorRunner,
         AllocatorsWeeklyRunner,
         AllocatorsWeeklyAccRunner,
         CidSharingRunner,

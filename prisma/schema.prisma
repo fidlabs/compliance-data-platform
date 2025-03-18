@@ -9,6 +9,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model allocator {
+  id               String  @unique
+  address          String  @unique
+  is_virtual       Boolean
+  is_metaallocator Boolean
+
+  @@id([id])
+}
+
 model client_allocator_distribution_weekly {
   week               DateTime
   client             String
