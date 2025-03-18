@@ -30,6 +30,7 @@ export class OldDatacapBalanceWeeklyRunner implements AggregationRunner {
       week: result.week,
       allocator: result.allocator,
       old_dc_balance: result.old_dc_balance,
+      allocations: result.allocations,
     }));
 
     const storeDataEndTimerMetric =

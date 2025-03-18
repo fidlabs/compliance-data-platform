@@ -1,6 +1,6 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { OldDatacapService } from 'src/service/old-datacap/old-datacap.service';
-import { ApiExcludeController, ApiOkResponse } from '@nestjs/swagger';
+import { ApiOkResponse } from '@nestjs/swagger';
 import { OldDatacapAllocatorBalanceWeekResponse } from 'src/service/old-datacap/types.allocator';
 import { CacheTTL } from '@nestjs/cache-manager';
 

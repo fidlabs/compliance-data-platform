@@ -1,13 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
-import { getOldDatacapBalanceWeekly } from 'prisma/generated/client/sql';
-import { DateTime } from 'luxon';
 import {
   OldDatacapAllocatorBalanceWeek,
   OldDatacapAllocatorBalanceWeekResponse,
 } from './types.allocator';
-import { modelName } from 'src/utils/prisma';
-import { Prisma } from 'prisma/generated/client';
 
 @Injectable()
 export class OldDatacapService {
@@ -24,15 +20,18 @@ export class OldDatacapService {
         },
         _sum: {
           old_dc_balance: true,
+          allocations: true,
         },
+        skip: 1, // first week is a week before nv22, we don't care about it
         orderBy: {
           week: 'asc',
         },
       });
     const results: OldDatacapAllocatorBalanceWeek[] = dbResults.map((r) => ({
       week: r.week,
-      totalAllocators: r._count.allocator,
-      totalOldDatacap: r._sum.old_dc_balance,
+      allocators: r._count.allocator,
+      oldDatacap: r._sum.old_dc_balance,
+      allocations: r._sum.allocations,
     }));
     return { results };
   }

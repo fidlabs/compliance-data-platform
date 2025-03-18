@@ -339,6 +339,7 @@ model old_datacap_balance_weekly {
   week           DateTime
   allocator      String
   old_dc_balance BigInt
+  allocations    BigInt
 
   @@id([week, allocator])
 }

@@ -9,15 +9,19 @@ export class OldDatacapAllocatorBalanceWeek {
   week: Date;
 
   @ApiProperty({
-    description: 'Total old datacap owned by allocators that week',
+    description: 'Old datacap owned by allocators that week',
   })
-  totalOldDatacap: bigint;
+  oldDatacap: bigint;
 
   @ApiProperty({
-    description:
-      'Total number of allocators that had some old balance that week',
+    description: 'Old datacap allocated to clients that week',
   })
-  totalAllocators: number;
+  allocations: bigint;
+
+  @ApiProperty({
+    description: 'Number of allocators holding old datacap',
+  })
+  allocators: number;
 }
 
 export class OldDatacapAllocatorBalanceWeekResponse {
