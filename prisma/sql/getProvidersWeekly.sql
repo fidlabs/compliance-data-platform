@@ -15,6 +15,5 @@ select "week"                                as "week",
        max(coalesce("success_rate", 0))      as "avg_retrievability_success_rate",
        max(coalesce("success_rate_http", 0)) as "avg_retrievability_success_rate_http"
 from "client_provider_distribution_weekly"
-         left join "provider_retrievability_weekly"
-                   using ("week", "provider")
+         left join "provider_retrievability_weekly" using ("week", "provider")
 group by "week", "provider";
