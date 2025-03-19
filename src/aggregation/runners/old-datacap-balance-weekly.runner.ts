@@ -54,6 +54,6 @@ export class OldDatacapBalanceWeeklyRunner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Old Datacap Balance Runner';
+    return 'Old Datacap Balance Weekly Runner';
   }
 }
