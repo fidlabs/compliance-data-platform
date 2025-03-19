@@ -50,6 +50,6 @@ export class OldDatacapBalanceNv22Runner implements AggregationRunner {
   }
 
   getName(): string {
-    return 'Old Datacap Balance Runner';
+    return 'Old Datacap Balance Nv22 Runner';
   }
 }
