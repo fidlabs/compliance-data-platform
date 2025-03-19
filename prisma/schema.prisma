@@ -173,7 +173,7 @@ model allocators_weekly_acc {
 }
 
 model client_report {
-  id                            BigInt                                        @id @default(autoincrement()) @db.BigInt
+  id                            BigInt                                        @id @default(autoincrement())
   create_date                   DateTime                                      @default(now())
   client                        String
   client_address                String?
@@ -192,9 +192,9 @@ enum StorageProviderIpniReportingStatus {
 }
 
 model client_report_storage_provider_distribution {
-  id                               BigInt                                                @id @default(autoincrement()) @db.BigInt
+  id                               BigInt                                                @id @default(autoincrement())
   client_report                    client_report                                         @relation(fields: [client_report_id], references: [id])
-  client_report_id                 BigInt                                                @db.BigInt
+  client_report_id                 BigInt
   provider                         String
   total_deal_size                  BigInt
   unique_data_size                 BigInt
@@ -207,7 +207,7 @@ model client_report_storage_provider_distribution {
 }
 
 model client_report_storage_provider_distribution_location {
-  id                       BigInt                                      @id @default(autoincrement()) @db.BigInt
+  id                       BigInt                                      @id @default(autoincrement())
   ip                       String
   city                     String
   region                   String
@@ -218,26 +218,26 @@ model client_report_storage_provider_distribution_location {
   timezone                 String
   hostname                 String?
   provider_distribution    client_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
-  provider_distribution_id BigInt                                      @unique @db.BigInt
+  provider_distribution_id BigInt                                      @unique
 }
 
 model client_report_replica_distribution {
-  id               BigInt        @id @default(autoincrement()) @db.BigInt
+  id               BigInt        @id @default(autoincrement())
   client_report    client_report @relation(fields: [client_report_id], references: [id])
-  client_report_id BigInt        @db.BigInt
-  num_of_replicas  BigInt        @db.BigInt
-  total_deal_size  BigInt        @db.BigInt
-  unique_data_size BigInt        @db.BigInt
+  client_report_id BigInt
+  num_of_replicas  BigInt
+  total_deal_size  BigInt
+  unique_data_size BigInt
   percentage       Float
 }
 
 model client_report_cid_sharing {
-  id                           BigInt        @id @default(autoincrement()) @db.BigInt
+  id                           BigInt        @id @default(autoincrement())
   client_report                client_report @relation(fields: [client_report_id], references: [id])
-  client_report_id             BigInt        @db.BigInt
+  client_report_id             BigInt
   other_client                 String
   other_client_application_url String?
-  total_deal_size              BigInt        @db.BigInt
+  total_deal_size              BigInt
   unique_cid_count             Int
 }
 
@@ -255,7 +255,7 @@ model client_report_check_result {
   result           Boolean?
   check            ClientReportCheck
   client_report    client_report     @relation(fields: [client_report_id], references: [id])
-  client_report_id BigInt            @db.BigInt
+  client_report_id BigInt
   metadata         Json?
 
   @@unique([check, client_report_id])
@@ -285,7 +285,7 @@ model allocator_report_client {
   client_id             String
   name                  String?
   allocations_number    Int
-  total_allocations     BigInt           @db.BigInt
+  total_allocations     BigInt
   application_url       String?
   application_timestamp DateTime?
 }
@@ -295,7 +295,7 @@ model allocator_report_client_allocation {
   allocator_report    allocator_report @relation(fields: [allocator_report_id], references: [id])
   allocator_report_id String           @db.Uuid
   client_id           String
-  allocation          BigInt           @db.BigInt
+  allocation          BigInt
   timestamp           DateTime
 }
 
@@ -331,7 +331,7 @@ model ipni_publisher_advertisement {
   previous_id    String? @unique
   publisher_id   String
   context_id     String
-  entries_number BigInt  @db.BigInt
+  entries_number BigInt
   is_rm          Boolean
 
   @@index([publisher_id])
