@@ -16,6 +16,8 @@ import { ClientClaimsRunner } from './aggregation/runners/client-claims.runner';
 import { ClientProviderDistributionAccRunner } from './aggregation/runners/client-provider-distribution-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
+import { OldDatacapBalanceNv22Runner } from './aggregation/runners/old-datacap-balance-nv22.runner';
+import { OldDatacapBalanceWeeklyRunner } from './aggregation/runners/old-datacap-balance-weekly.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
 import { ProviderRetrievabilityBackfillRunner } from './aggregation/runners/provider-retrievability-backfill.runner';
 import { ProviderRetrievabilityRunner } from './aggregation/runners/provider-retrievability.runner';
@@ -31,6 +33,7 @@ import { AllocatorsAccController } from './controller/stats/allocators/allocator
 import { StorageProvidersAccController } from './controller/stats/storage-providers/storage-providers.controller';
 import { AllocatorsController } from './controller/stats/allocators/allocators.controller';
 import { StorageProvidersController } from './controller/stats/storage-providers/storage-providers.controller';
+import { OldDatacapController } from './controller/stats/old-datacap/old-datacap.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
 import { PrismaService } from './db/prisma.service';
@@ -43,6 +46,7 @@ import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { LotusApiService } from './service/lotus-api/lotus-api.service';
 import { LocationService } from './service/location/location.service';
 import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
+import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
@@ -89,6 +93,7 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
     ClientReportControllerRedirect,
     AllocatorReportController,
     AllocatorReportControllerRedirect,
+    OldDatacapController,
     AppController,
   ],
   providers: [
@@ -112,6 +117,8 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
     ClientProviderDistributionWeeklyRunner,
     ClientProviderDistributionAccRunner,
     ClientReplicaDistributionRunner,
+    OldDatacapBalanceNv22Runner,
+    OldDatacapBalanceWeeklyRunner,
     ProviderFirstClientRunner,
     ProviderRetrievabilityRunner,
     ProviderRetrievabilityBackfillRunner,
@@ -135,6 +142,7 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
     ClientReportChecksService,
     AllocatorReportService,
     StorageProviderReportService,
+    OldDatacapService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {
@@ -158,6 +166,8 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
         clientProviderDistributionWeeklyRunner,
         clientProviderDistributionAccRunner,
         clientReplicaDistributionRunner,
+        oldDatacapBalanceNv22Runner,
+        oldDatacapBalanceWeeklyRunner,
         providerFirstClientRunner,
         providerRetrievabilityRunner,
         providerRetrievabilityBackfillRunner,
@@ -175,6 +185,8 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
         clientProviderDistributionWeeklyRunner,
         clientProviderDistributionAccRunner,
         clientReplicaDistributionRunner,
+        oldDatacapBalanceNv22Runner,
+        oldDatacapBalanceWeeklyRunner,
         providerFirstClientRunner,
         providerRetrievabilityRunner,
         providerRetrievabilityBackfillRunner,
@@ -193,6 +205,8 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
         ClientProviderDistributionWeeklyRunner,
         ClientProviderDistributionAccRunner,
         ClientReplicaDistributionRunner,
+        OldDatacapBalanceNv22Runner,
+        OldDatacapBalanceWeeklyRunner,
         ProviderFirstClientRunner,
         ProviderRetrievabilityRunner,
         ProviderRetrievabilityBackfillRunner,

@@ -328,6 +328,22 @@ model ipni_publisher_advertisement {
   @@index([publisher_id])
 }
 
+model old_datacap_balance_nv22 {
+  allocator      String
+  old_dc_balance BigInt
+
+  @@id(allocator)
+}
+
+model old_datacap_balance_weekly {
+  week           DateTime
+  allocator      String
+  old_dc_balance BigInt
+  allocations    BigInt
+
+  @@id([week, allocator])
+}
+
 enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL
