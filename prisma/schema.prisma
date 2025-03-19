@@ -354,6 +354,22 @@ model old_datacap_balance_weekly {
   @@id([week, allocator])
 }
 
+model old_datacap_client_balance_nv22 {
+  client         String
+  old_dc_balance BigInt
+
+  @@id(client)
+}
+
+model old_datacap_client_balance_weekly {
+  week           DateTime
+  client         String
+  old_dc_balance BigInt
+  claims         BigInt
+
+  @@id([week, client])
+}
+
 enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL

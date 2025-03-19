@@ -18,6 +18,8 @@ import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/cl
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
 import { OldDatacapBalanceNv22Runner } from './aggregation/runners/old-datacap-balance-nv22.runner';
 import { OldDatacapBalanceWeeklyRunner } from './aggregation/runners/old-datacap-balance-weekly.runner';
+import { OldDatacapClientBalanceNv22Runner } from './aggregation/runners/old-datacap-client-balance-nv22.runner';
+import { OldDatacapClientBalanceWeeklyRunner } from './aggregation/runners/old-datacap-client-balance-weekly.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
 import { ProviderRetrievabilityDailyBackfillRunner } from './aggregation/runners/provider-retrievability-daily-backfill.runner';
 import { ProviderRetrievabilityDailyRunner } from './aggregation/runners/provider-retrievability-daily.runner';
@@ -121,6 +123,8 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
     ClientReplicaDistributionRunner,
     OldDatacapBalanceNv22Runner,
     OldDatacapBalanceWeeklyRunner,
+    OldDatacapClientBalanceNv22Runner,
+    OldDatacapClientBalanceWeeklyRunner,
     ProviderFirstClientRunner,
     ProviderRetrievabilityDailyRunner,
     ProviderRetrievabilityDailyBackfillRunner,
@@ -170,6 +174,8 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
         clientReplicaDistributionRunner,
         oldDatacapBalanceNv22Runner,
         oldDatacapBalanceWeeklyRunner,
+        oldDatacapClientBalanceNv22Runner,
+        oldDatacapClientBalanceWeeklyRunner,
         providerFirstClientRunner,
         providerRetrievabilityRunner,
         providerRetrievabilityBackfillRunner,
@@ -189,6 +195,8 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
         clientReplicaDistributionRunner,
         oldDatacapBalanceNv22Runner,
         oldDatacapBalanceWeeklyRunner,
+        oldDatacapClientBalanceNv22Runner,
+        oldDatacapClientBalanceWeeklyRunner,
         providerFirstClientRunner,
         providerRetrievabilityRunner,
         providerRetrievabilityBackfillRunner,
@@ -210,6 +218,8 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
         ClientReplicaDistributionRunner,
         OldDatacapBalanceNv22Runner,
         OldDatacapBalanceWeeklyRunner,
+        OldDatacapClientBalanceNv22Runner,
+        OldDatacapClientBalanceWeeklyRunner,
         ProviderFirstClientRunner,
         ProviderRetrievabilityDailyRunner,
         ProviderRetrievabilityDailyBackfillRunner,
