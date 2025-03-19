@@ -11,7 +11,6 @@ export class OldDatacapBalanceWeeklyRunner implements AggregationRunner {
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
-
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,

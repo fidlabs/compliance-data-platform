@@ -27,12 +27,14 @@ export class OldDatacapService {
           week: 'asc',
         },
       });
+
     const results: OldDatacapAllocatorBalanceWeek[] = dbResults.map((r) => ({
       week: r.week,
       allocators: r._count.allocator,
       oldDatacap: r._sum.old_dc_balance,
       allocations: r._sum.allocations,
     }));
+
     return { results };
   }
 }

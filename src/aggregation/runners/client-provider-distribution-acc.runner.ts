@@ -32,22 +32,27 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
           week: 'desc',
         },
       });
+
     let nextWeek = latestStored
       ? DateTime.fromJSDate(latestStored.week, { zone: 'UTC' }) // we want to reprocess the last stored week, as it might've been incomplete
       : DateTime.fromSeconds(3847920 * 30 + 1598306400).startOf('week'); // nv22 start week - a.k.a. reprocess everything
 
     const now = DateTime.now().setZone('UTC');
+
     while (nextWeek <= now) {
       this.logger.debug(`Processing week ${nextWeek}`);
       const getDataEndTimerMetric =
         startGetDataTimerByRunnerNameMetric(runnerName);
+
       const result = await prismaDmobService.$queryRawTyped(
         getClientProviderDistributionAccSingleWeek(nextWeek.toJSDate()),
       );
+
       getDataEndTimerMetric();
 
       const storeDataEndTimerMetric =
         startStoreDataTimerByRunnerNameMetric(runnerName);
+
       const data = result.map((dmobResult) => ({
         week: nextWeek.toJSDate(),
         client: dmobResult.client,
@@ -55,6 +60,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
         total_deal_size: dmobResult.total_deal_size,
         unique_data_size: dmobResult.unique_data_size,
       }));
+
       await prismaService.$transaction(async (tx) => {
         await tx.client_provider_distribution_weekly_acc.deleteMany({
           where: {
@@ -63,12 +69,13 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
             },
           },
         });
+
         await tx.client_provider_distribution_weekly_acc.createMany({
           data,
         });
       });
-      storeDataEndTimerMetric();
 
+      storeDataEndTimerMetric();
       nextWeek = nextWeek.plus({ weeks: 1 });
     }
   }

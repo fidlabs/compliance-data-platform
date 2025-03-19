@@ -12,7 +12,6 @@ export class OldDatacapBalanceNv22Runner implements AggregationRunner {
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
     const runnerName = this.getName();
-
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
