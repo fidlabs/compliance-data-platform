@@ -3,7 +3,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import {
   OldDatacapAllocatorBalanceWeek,
   OldDatacapAllocatorBalanceWeekResponse,
-} from './types.allocator';
+} from './types.old-datacap';
 
 @Injectable()
 export class OldDatacapService {

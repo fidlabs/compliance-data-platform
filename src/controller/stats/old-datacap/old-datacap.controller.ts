@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { OldDatacapService } from 'src/service/old-datacap/old-datacap.service';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { OldDatacapAllocatorBalanceWeekResponse } from 'src/service/old-datacap/types.allocator';
+import { OldDatacapAllocatorBalanceWeekResponse } from 'src/service/old-datacap/types.old-datacap';
 import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('stats/old-datacap')
