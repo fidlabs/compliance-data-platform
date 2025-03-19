@@ -11,6 +11,8 @@ export enum AggregationTable {
   ClientReplicaDistribution,
   OldDatacapBalanceNv22,
   OldDatacapBalanceWeekly,
+  OldDatacapClientBalanceNv22,
+  OldDatacapClientBalanceWeekly,
   ProviderFirstClient,
   ProviderRetrievabilityDaily,
   ProvidersWeekly,
