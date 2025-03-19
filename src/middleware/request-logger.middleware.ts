@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 export class RequestLoggerMiddleware implements NestMiddleware {
   private logger = new Logger('HTTP');
 
-  use(request: Request, response: Response, next: NextFunction): void {
+  use(request: Request, response: Response, next: NextFunction) {
     // const userAgent = request.get('user-agent') || '';
     // this.logger.verbose(
     //   `${request.method} ${request.originalUrl} from ${userAgent}`,
