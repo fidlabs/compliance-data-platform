@@ -8,6 +8,8 @@ import {
   getStandardAllocatorClientsWeekly,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
+  getWeekAverageStandardAllocatorRetrievability,
+  getWeekAverageStandardAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
@@ -65,7 +67,7 @@ export class AllocatorService {
       .toJSDate();
 
     const lastWeekAverageRetrievability =
-      await this.getWeekAverageAllocatorRetrievability(
+      await this.getWeekAverageStandardAllocatorRetrievability(
         lastWeek,
         isAccumulative,
       );
@@ -94,7 +96,7 @@ export class AllocatorService {
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
               histogramWeek,
-              (await this.getWeekAverageAllocatorRetrievability(
+              (await this.getWeekAverageStandardAllocatorRetrievability(
                 histogramWeek.week,
                 isAccumulative,
               )) * 100,
@@ -246,25 +248,17 @@ export class AllocatorService {
   }
 
   // returns 0 - 1
-  // TODO filspark returns non-zero retrievability for metaallocators - should we filter them out here?
-  public async getWeekAverageAllocatorRetrievability(
+  public async getWeekAverageStandardAllocatorRetrievability(
     week: Date,
     isAccumulative: boolean,
   ): Promise<number> {
     return (
-      await (
-        (isAccumulative
-          ? this.prismaService.allocators_weekly_acc
-          : this.prismaService.allocators_weekly) as any
-      ).aggregate({
-        _avg: {
-          avg_weighted_retrievability_success_rate: true,
-        },
-        where: {
-          week: week,
-        },
-      })
-    )._avg.avg_weighted_retrievability_success_rate;
+      await this.prismaService.$queryRawTyped(
+        isAccumulative
+          ? getWeekAverageStandardAllocatorRetrievabilityAcc(week)
+          : getWeekAverageStandardAllocatorRetrievability(week),
+      )
+    )[0].average;
   }
 
   // assuming client_allocator_distribution_weekly table doesn't contain metaallocators

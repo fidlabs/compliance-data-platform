@@ -225,7 +225,7 @@ export class AppModule implements NestModule {
     axiosBetterStacktrace(this.httpService.axiosRef);
   }
 
-  configure(consumer: MiddlewareConsumer): void {
+  configure(consumer: MiddlewareConsumer) {
     consumer.apply(RequestLoggerMiddleware).forRoutes('*');
   }
 }
