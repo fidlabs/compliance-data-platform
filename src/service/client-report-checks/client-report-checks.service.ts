@@ -11,6 +11,7 @@ export class ClientReportChecksService {
   public _maxDuplicationPercentage: number;
   public _maxPercentageForLowReplica: number;
   public _lowReplicaThreshold: number;
+  private readonly GlifAutoVerifiedAllocatorId = 'f0121877';
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -33,13 +34,14 @@ export class ClientReportChecksService {
   }
 
   public async storeReportChecks(reportId: bigint) {
+    await this.storeMultipleAllocators(reportId);
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
     await this.storeDealDataSharedWithOtherClientsChecks(reportId);
   }
 
   private async storeStorageProviderDistributionChecks(reportId: bigint) {
-    await this.storeProvidersExceedingProviderDealResults(reportId);
+    await this.storeProvidersExceedingProviderDeal(reportId);
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
     await this.storeProvidersInSameLocation(reportId);
@@ -56,7 +58,7 @@ export class ClientReportChecksService {
     await this.storeDealDataSharedWithOtherClientsCidSharing(reportId);
   }
 
-  private async storeProvidersExceedingProviderDealResults(reportId: bigint) {
+  private async storeProvidersExceedingProviderDeal(reportId: bigint) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -457,6 +459,36 @@ export class ClientReportChecksService {
         },
       });
     }
+  }
+
+  private async storeMultipleAllocators(reportId: bigint) {
+    const report = await this.prismaService.client_report.findUnique({
+      where: {
+        id: reportId,
+      },
+    });
+
+    // ignore Glif Auto Verified allocator for this check
+    const allocators = report.allocators.filter(
+      (allocator) => allocator !== this.GlifAutoVerifiedAllocatorId,
+    );
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.MULTIPLE_ALLOCATORS,
+        result: allocators.length <= 1,
+        metadata: {
+          allocators: allocators.length,
+          all_allocators: report.allocators.length,
+          max_allocators: 1,
+          msg:
+            allocators.length <= 1
+              ? 'Client receiving datacap from one allocator'
+              : 'Client receiving datacap from more than one allocator',
+        },
+      },
+    });
   }
 
   private async storeDealDataLowReplica(reportId: bigint) {

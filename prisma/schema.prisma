@@ -183,6 +183,7 @@ model client_report {
   replica_distribution          client_report_replica_distribution[]
   cid_sharing                   client_report_cid_sharing[]
   check_results                 client_report_check_result[]
+  allocators                    String[]                                      @default([])
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -364,4 +365,5 @@ enum ClientReportCheck {
   DEAL_DATA_REPLICATION_CID_SHARING
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING
+  MULTIPLE_ALLOCATORS
 }
