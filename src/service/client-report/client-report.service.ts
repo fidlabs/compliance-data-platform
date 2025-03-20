@@ -25,27 +25,28 @@ export class ClientReportService {
 
     const storageProviderDistribution =
       await this.storageProviderService.getStorageProviderDistribution(
-        verifiedClientData.addressId,
+        verifiedClientData[0].addressId,
       );
 
     const replicaDistribution =
       await this.clientService.getReplicationDistribution(
-        verifiedClientData.addressId,
+        verifiedClientData[0].addressId,
       );
 
     const cidSharing = await this.clientService.getCidSharing(
-      verifiedClientData.addressId,
+      verifiedClientData[0].addressId,
     );
 
     const report = await this.prismaService.client_report.create({
       data: {
-        client: verifiedClientData.addressId,
-        client_address: verifiedClientData.address,
-        organization_name: (
-          (verifiedClientData.name ?? '') + (verifiedClientData.orgName ?? '')
-        ).trim(),
-        application_url:
-          this.clientService.getClientApplicationUrl(verifiedClientData),
+        client: verifiedClientData[0].addressId,
+        client_address: verifiedClientData[0].address,
+        allocators: verifiedClientData.map((c) => c.verifierAddressId),
+        organization_name:
+          `${verifiedClientData[0].name ?? ''} ${verifiedClientData[0].orgName ?? ''}`.trim(),
+        application_url: this.clientService.getClientApplicationUrl(
+          verifiedClientData[0],
+        ),
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {
@@ -68,9 +69,11 @@ export class ClientReportService {
               ...c,
               other_client_application_url:
                 this.clientService.getClientApplicationUrl(
-                  await this.dataCapStatsService.fetchPrimaryClientDetails(
-                    c.other_client,
-                  ),
+                  (
+                    await this.dataCapStatsService.fetchPrimaryClientDetails(
+                      c.other_client,
+                    )
+                  )[0],
                 ),
             })),
           ),

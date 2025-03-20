@@ -29,7 +29,7 @@ export class DataCapStatsService {
   @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   public async fetchPrimaryClientDetails(
     clientIdOrAddress: string,
-  ): Promise<DataCapStatsVerifiedClientData> {
+  ): Promise<DataCapStatsVerifiedClientData[]> {
     const endpoint = `https://api.datacapstats.io/api/getVerifiedClients?filter=${clientIdOrAddress}`;
 
     const { data } = (
@@ -39,12 +39,7 @@ export class DataCapStatsService {
     )?.data;
 
     if (!data || data.length === 0) return null;
-
-    return data.reduce((prev, curr) =>
-      parseInt(prev.initialAllowance) > parseInt(curr.initialAllowance)
-        ? prev
-        : curr,
-    );
+    return data;
   }
 
   public async getVerifiedClients(
