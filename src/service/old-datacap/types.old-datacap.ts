@@ -1,5 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export class OldDatacapAllocatorBalance {
+  @ApiProperty({
+    description: 'Allocator ID',
+  })
+  allocator: string;
+
+  @ApiProperty({
+    description: 'Old datacap owned by the allocator',
+  })
+  oldDatacap: bigint;
+
+  @ApiProperty({
+    description: 'Old datacap allocated by the allocator',
+  })
+  allocations: bigint;
+}
+
 export class OldDatacapAllocatorBalanceWeek {
   @ApiProperty({
     type: String,
@@ -22,6 +39,13 @@ export class OldDatacapAllocatorBalanceWeek {
     description: 'Number of allocators holding old datacap',
   })
   allocators: number;
+
+  @ApiProperty({
+    isArray: true,
+    type: OldDatacapAllocatorBalance,
+    description: 'Data on specific allocators',
+  })
+  drilldown: OldDatacapAllocatorBalance[];
 }
 
 export class OldDatacapAllocatorBalanceWeekResponse {
@@ -31,6 +55,23 @@ export class OldDatacapAllocatorBalanceWeekResponse {
     isArray: true,
   })
   results: OldDatacapAllocatorBalanceWeek[];
+}
+
+export class OldDatacapClientBalance {
+  @ApiProperty({
+    description: 'Client ID',
+  })
+  client: string;
+
+  @ApiProperty({
+    description: 'Old datacap owned by the client',
+  })
+  oldDatacap: bigint;
+
+  @ApiProperty({
+    description: 'Old datacap spent by the client',
+  })
+  claims: bigint;
 }
 
 export class OldDatacapClientBalanceWeek {
@@ -55,6 +96,13 @@ export class OldDatacapClientBalanceWeek {
     description: 'Number of clients holding old datacap',
   })
   clients: number;
+
+  @ApiProperty({
+    isArray: true,
+    type: OldDatacapClientBalance,
+    description: 'Data on specific client',
+  })
+  drilldown: OldDatacapClientBalance[];
 }
 
 export class OldDatacapClientBalanceWeekResponse {
