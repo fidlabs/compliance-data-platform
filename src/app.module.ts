@@ -162,6 +162,7 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
     {
       provide: 'AggregationRunner',
       useFactory: (
+        allocatorRunner,
         allocatorsRunner,
         allocatorsAccRunner,
         cidSharingRunner,
@@ -183,6 +184,7 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
         providersAccRunner,
         unifiedVerifiedDealRunner,
       ) => [
+        allocatorRunner,
         allocatorsRunner,
         allocatorsAccRunner,
         cidSharingRunner,
