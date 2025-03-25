@@ -285,6 +285,7 @@ model allocator_report_client {
   allocator_report_id   String           @db.Uuid
   client_id             String
   name                  String?
+  allocators            String[]         @default([])
   allocations_number    Int
   total_allocations     BigInt
   application_url       String?
