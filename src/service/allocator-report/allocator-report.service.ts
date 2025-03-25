@@ -1,58 +1,58 @@
 import { Injectable } from '@nestjs/common';
-import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
 import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
-import { DataCapStatsPublicVerifiedClientsResponse } from '../datacapstats/types.datacapstats';
+import { AllocatorService } from '../allocator/allocator.service';
+import { ClientWithAllowance } from '../client/types.client';
 
 @Injectable()
 export class AllocatorReportService {
   constructor(
-    private readonly dataCapStatsService: DataCapStatsService,
     private readonly prismaService: PrismaService,
     private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
     private readonly allocatorTechService: AllocatorTechService,
+    private readonly allocatorService: AllocatorService,
   ) {}
 
   public async generateReport(allocatorIdOrAddress: string) {
-    const verifierData =
-      await this.dataCapStatsService.getVerifierData(allocatorIdOrAddress);
+    const allocatorData =
+      await this.allocatorService.getAllocatorData(allocatorIdOrAddress);
 
-    if (!verifierData) return null;
+    if (!allocatorData) return null;
 
     const [verifiedClients, allocatorInfo] = await Promise.all([
-      this.dataCapStatsService.getVerifiedClients(verifierData.addressId),
-      this.allocatorTechService.getAllocatorInfo(verifierData.address),
+      this.clientService.getClientsByAllocator(allocatorData.addressId),
+      this.allocatorTechService.getAllocatorInfo(allocatorData.address),
     ]);
 
     const clientsData = this.getGrantedDatacapInClients(verifiedClients);
 
     const storageProviderDistribution =
       await this.getStorageProviderDistribution(
-        verifiedClients.data.map((client) => {
+        verifiedClients.map((client) => {
           return client.addressId;
         }),
       );
 
     const report = await this.prismaService.allocator_report.create({
       data: {
-        allocator: verifierData.addressId,
-        address: verifierData.address,
-        name: verifierData.name || null,
-        multisig: verifierData.isMultisig,
+        allocator: allocatorData.addressId,
+        address: allocatorData.address,
+        name: allocatorData.name || null,
+        multisig: allocatorData.isMultisig,
         avg_retrievability_success_rate:
           storageProviderDistribution.reduce(
             (acc, curr) => acc + curr.retrievability_success_rate,
             0,
           ) / storageProviderDistribution.length,
-        clients_number: verifiedClients.data.length,
+        clients_number: verifiedClients.length,
         data_types: allocatorInfo?.data_types ?? [],
         required_copies: allocatorInfo?.required_replicas,
         required_sps: allocatorInfo?.required_sps,
         clients: {
-          create: verifiedClients.data.map((client) => {
+          create: verifiedClients.map((client) => {
             return {
               client_id: client.addressId,
               name: client.name || null,
@@ -64,7 +64,7 @@ export class AllocatorReportService {
                 ? new Date(client.allowanceArray[0].issueCreateTimestamp * 1000)
                 : null,
               total_allocations: client.allowanceArray.reduce(
-                (acc: number, curr: any) => acc + Number(curr.allowance),
+                (acc, curr) => acc + curr.allowance,
                 0,
               ),
             };
@@ -218,24 +218,23 @@ export class AllocatorReportService {
     );
   }
 
-  private getGrantedDatacapInClients(
-    data: DataCapStatsPublicVerifiedClientsResponse,
-  ) {
-    const ClientsData = data.data.map((e) => ({
+  private getGrantedDatacapInClients(clientsData: ClientWithAllowance[]) {
+    const _clientsData = clientsData.map((e) => ({
       addressId: e.addressId,
       allowanceArray: e.allowanceArray,
       clientName: e.name,
     }));
 
-    return ClientsData.map((item) => {
-      return item.allowanceArray.map((allowanceItem) => ({
-        allocation: allowanceItem.allowance,
-        addressId: item.addressId,
-        allocationTimestamp: allowanceItem.createMessageTimestamp,
-        applicationTimestamp: allowanceItem.issueCreateTimestamp,
-        clientName: item.clientName,
-      }));
-    })
+    return _clientsData
+      .map((data) => {
+        return data.allowanceArray.map((allowanceItem) => ({
+          allocation: allowanceItem.allowance,
+          addressId: data.addressId,
+          allocationTimestamp: allowanceItem.createMessageTimestamp,
+          applicationTimestamp: allowanceItem.issueCreateTimestamp,
+          clientName: data.clientName,
+        }));
+      })
       .flat()
       .sort((a, b) => a.allocationTimestamp - b.allocationTimestamp);
   }

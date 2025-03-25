@@ -43,7 +43,6 @@ import { PrismaDmobService } from './db/prismaDmob.service';
 import { FilSparkService } from './service/filspark/filspark.service';
 import { AllocatorService } from './service/allocator/allocator.service';
 import { ClientReportService } from './service/client-report/client-report.service';
-import { DataCapStatsService } from './service/datacapstats/datacapstats.service';
 import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { LotusApiService } from './service/lotus-api/lotus-api.service';
 import { LocationService } from './service/location/location.service';
@@ -109,7 +108,6 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
     PrismaService,
     PrismaDmobService,
     FilSparkService,
-    DataCapStatsService,
     AllocatorsWeeklyRunner,
     AllocatorRunner,
     AllocatorsWeeklyAccRunner,
@@ -161,51 +159,7 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
     },
     {
       provide: 'AggregationRunner',
-      useFactory: (
-        allocatorRunner,
-        allocatorsRunner,
-        allocatorsAccRunner,
-        cidSharingRunner,
-        clientAllocatorDistributionRunner,
-        clientAllocatorDistributionAccRunner,
-        clientClaimsRunner,
-        clientProviderDistributionRunner,
-        clientProviderDistributionWeeklyRunner,
-        clientProviderDistributionAccRunner,
-        clientReplicaDistributionRunner,
-        oldDatacapBalanceNv22Runner,
-        oldDatacapBalanceWeeklyRunner,
-        oldDatacapClientBalanceNv22Runner,
-        oldDatacapClientBalanceWeeklyRunner,
-        providerFirstClientRunner,
-        providerRetrievabilityRunner,
-        providerRetrievabilityBackfillRunner,
-        providersRunner,
-        providersAccRunner,
-        unifiedVerifiedDealRunner,
-      ) => [
-        allocatorRunner,
-        allocatorsRunner,
-        allocatorsAccRunner,
-        cidSharingRunner,
-        clientAllocatorDistributionRunner,
-        clientAllocatorDistributionAccRunner,
-        clientClaimsRunner,
-        clientProviderDistributionRunner,
-        clientProviderDistributionWeeklyRunner,
-        clientProviderDistributionAccRunner,
-        clientReplicaDistributionRunner,
-        oldDatacapBalanceNv22Runner,
-        oldDatacapBalanceWeeklyRunner,
-        oldDatacapClientBalanceNv22Runner,
-        oldDatacapClientBalanceWeeklyRunner,
-        providerFirstClientRunner,
-        providerRetrievabilityRunner,
-        providerRetrievabilityBackfillRunner,
-        providersRunner,
-        providersAccRunner,
-        unifiedVerifiedDealRunner,
-      ],
+      useFactory: (...runners) => runners,
       inject: [
         AllocatorRunner,
         AllocatorsWeeklyRunner,

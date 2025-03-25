@@ -102,7 +102,6 @@ export class AppController extends HealthIndicator {
       () => this._httpPingCheck('cid.contact', 'https://cid.contact/health'),
       () => this._httpPingCheck('glif-api', `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`),
       () => this._httpPingCheck('allocator-tech-api', `${this.configService.get<string>('ALLOCATOR_TECH_BASE_URL')}/health`),
-      () => this._httpPingCheck('api.datacapstats.io', 'https://api.datacapstats.io/api/health'),
       () => this._httpPingCheck('stats.filspark.com', 'https://stats.filspark.com'),
       () => this.typeOrmHealthIndicator.pingCheck('database', {
           connection: this.postgresService.pool,

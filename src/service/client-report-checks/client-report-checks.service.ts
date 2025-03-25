@@ -462,7 +462,7 @@ export class ClientReportChecksService {
   }
 
   private async storeMultipleAllocators(reportId: bigint) {
-    const report = await this.prismaService.client_report.findUnique({
+    const report = await this.prismaService.client_report.findFirst({
       where: {
         id: reportId,
       },
@@ -479,9 +479,8 @@ export class ClientReportChecksService {
         check: ClientReportCheck.MULTIPLE_ALLOCATORS,
         result: allocators.length <= 1,
         metadata: {
-          allocators: allocators.length,
-          all_allocators: report.allocators.length,
-          max_allocators: 1,
+          allocators_count: allocators.length,
+          max_allocators_count: 1,
           msg:
             allocators.length <= 1
               ? 'Client receiving datacap from one allocator'

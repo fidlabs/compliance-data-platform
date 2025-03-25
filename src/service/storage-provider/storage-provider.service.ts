@@ -29,7 +29,7 @@ import {
   RetrievabilityHistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
-import { Cacheable } from '../../utils/cacheable';
+import { Cacheable } from 'src/utils/cacheable';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
