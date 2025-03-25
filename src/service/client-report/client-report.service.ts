@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
-import { DataCapStatsService } from '../datacapstats/datacapstats.service';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
@@ -9,43 +8,40 @@ import { ClientService } from '../client/client.service';
 export class ClientReportService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly dataCapStatsService: DataCapStatsService,
     private readonly clientReportChecksService: ClientReportChecksService,
     private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
   ) {}
 
   public async generateReport(clientIdOrAddress: string, returnFull = false) {
-    const verifiedClientData =
-      await this.dataCapStatsService.fetchPrimaryClientDetails(
-        clientIdOrAddress,
-      );
+    const clientData =
+      await this.clientService.getClientData(clientIdOrAddress);
 
-    if (!verifiedClientData) return null;
+    if (!clientData) return null;
 
     const storageProviderDistribution =
       await this.storageProviderService.getStorageProviderDistribution(
-        verifiedClientData[0].addressId,
+        clientData[0].addressId,
       );
 
     const replicaDistribution =
       await this.clientService.getReplicationDistribution(
-        verifiedClientData[0].addressId,
+        clientData[0].addressId,
       );
 
     const cidSharing = await this.clientService.getCidSharing(
-      verifiedClientData[0].addressId,
+      clientData[0].addressId,
     );
 
     const report = await this.prismaService.client_report.create({
       data: {
-        client: verifiedClientData[0].addressId,
-        client_address: verifiedClientData[0].address,
-        allocators: verifiedClientData.map((c) => c.verifierAddressId),
+        client: clientData[0].addressId,
+        client_address: clientData[0].address,
+        allocators: clientData.map((c) => c.verifierAddressId),
         organization_name:
-          `${verifiedClientData[0].name ?? ''} ${verifiedClientData[0].orgName ?? ''}`.trim(),
+          `${clientData[0].name ?? ''} ${clientData[0].orgName ?? ''}`.trim(),
         application_url: this.clientService.getClientApplicationUrl(
-          verifiedClientData[0],
+          clientData[0],
         ),
         storage_provider_distribution: {
           create:
@@ -69,11 +65,7 @@ export class ClientReportService {
               ...c,
               other_client_application_url:
                 this.clientService.getClientApplicationUrl(
-                  (
-                    await this.dataCapStatsService.fetchPrimaryClientDetails(
-                      c.other_client,
-                    )
-                  )[0],
+                  (await this.clientService.getClientData(c.other_client))[0],
                 ),
             })),
           ),

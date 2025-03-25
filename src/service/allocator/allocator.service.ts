@@ -31,6 +31,7 @@ import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
 } from '../storage-provider/types.storage-provider';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 
 @Injectable()
 export class AllocatorService {
@@ -38,6 +39,7 @@ export class AllocatorService {
 
   constructor(
     private readonly prismaService: PrismaService,
+    private readonly prismaDmobService: PrismaDmobService,
     private readonly histogramHelper: HistogramHelperService,
     private readonly storageProviderService: StorageProviderService,
   ) {}
@@ -278,6 +280,21 @@ export class AllocatorService {
       select: {
         client: true,
         allocator: true,
+      },
+    });
+  }
+
+  public async getAllocatorData(allocatorIdOrAddress: string) {
+    return this.prismaDmobService.verifier.findFirst({
+      where: {
+        OR: [
+          {
+            address: allocatorIdOrAddress,
+          },
+          {
+            addressId: allocatorIdOrAddress,
+          },
+        ],
       },
     });
   }

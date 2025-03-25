@@ -3,6 +3,11 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
+import { ClientWithAllowance } from './types.client';
+import {
+  getClientData,
+  getClientsByAllocator,
+} from 'prismaDmob/generated/client/sql';
 
 @Injectable()
 export class ClientService {
@@ -71,5 +76,31 @@ export class ClientService {
         client: true,
       },
     });
+  }
+
+  public async getClientsByAllocator(
+    allocatorId: string,
+  ): Promise<ClientWithAllowance[]> {
+    return (
+      await this.prismaDmobService.$queryRawTyped(
+        getClientsByAllocator(allocatorId),
+      )
+    ).map((r) => ({
+      allowanceArray: r._allowanceArray as [],
+      ...r,
+    }));
+  }
+
+  public async getClientData(
+    clientIdOrAddress: string,
+  ): Promise<ClientWithAllowance[]> {
+    return (
+      await this.prismaDmobService.$queryRawTyped(
+        getClientData(clientIdOrAddress),
+      )
+    ).map((r) => ({
+      allowanceArray: r._allowanceArray as [],
+      ...r,
+    }));
   }
 }
