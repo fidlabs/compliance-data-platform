@@ -52,29 +52,36 @@ export class AllocatorReportService {
         required_copies: allocatorInfo?.required_replicas,
         required_sps: allocatorInfo?.required_sps,
         clients: {
-          create: verifiedClients.map((client) => {
-            return {
-              client_id: client.addressId,
-              name: client.name || null,
-              allocations_number: client.allowanceArray.length,
-              application_url:
-                this.clientService.getClientApplicationUrl(client),
-              application_timestamp: client.allowanceArray?.[0]
-                ?.issueCreateTimestamp
-                ? new Date(client.allowanceArray[0].issueCreateTimestamp * 1000)
-                : null,
-              total_allocations: client.allowanceArray.reduce(
-                (acc, curr) => acc + curr.allowance,
-                0,
-              ),
-            };
-          }),
+          create: await Promise.all(
+            verifiedClients.map(async (client) => {
+              return {
+                client_id: client.addressId,
+                name: client.name || null,
+                allocators: (
+                  await this.clientService.getClientData(client.addressId)
+                ).map((c) => c.verifierAddressId),
+                allocations_number: client.allowanceArray.length,
+                application_url:
+                  this.clientService.getClientApplicationUrl(client),
+                application_timestamp: client.allowanceArray?.[0]
+                  ?.issueCreateTimestamp
+                  ? new Date(
+                      client.allowanceArray[0].issueCreateTimestamp * 1000,
+                    )
+                  : null,
+                total_allocations: client.allowanceArray.reduce(
+                  (acc, curr) => acc + curr.allowance,
+                  0,
+                ),
+              };
+            }),
+          ),
         },
         client_allocations: {
           create: clientsData.map((clientData) => {
             return {
               client_id: clientData.addressId,
-              allocation: Number(clientData.allocation),
+              allocation: clientData.allocation,
               timestamp: new Date(clientData.allocationTimestamp * 1000),
             };
           }),
