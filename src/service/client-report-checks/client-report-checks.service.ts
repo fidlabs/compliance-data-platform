@@ -4,6 +4,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
 import { round } from 'lodash';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
+import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 
 @Injectable()
 export class ClientReportChecksService {
@@ -11,7 +12,6 @@ export class ClientReportChecksService {
   public _maxDuplicationPercentage: number;
   public _maxPercentageForLowReplica: number;
   public _lowReplicaThreshold: number;
-  private readonly GlifAutoVerifiedAllocatorId = 'f0121877';
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -470,7 +470,7 @@ export class ClientReportChecksService {
 
     // ignore Glif Auto Verified allocator for this check
     const allocators = report.allocators.filter(
-      (allocator) => allocator !== this.GlifAutoVerifiedAllocatorId,
+      (allocator) => allocator !== GlifAutoVerifiedAllocatorId,
     );
 
     await this.prismaService.client_report_check_result.create({

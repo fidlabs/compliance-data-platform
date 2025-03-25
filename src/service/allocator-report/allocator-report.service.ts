@@ -5,6 +5,7 @@ import { ClientService } from '../client/client.service';
 import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 import { AllocatorService } from '../allocator/allocator.service';
 import { ClientWithAllowance } from '../client/types.client';
+import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
 
 @Injectable()
 export class AllocatorReportService {
@@ -14,6 +15,7 @@ export class AllocatorReportService {
     private readonly clientService: ClientService,
     private readonly allocatorTechService: AllocatorTechService,
     private readonly allocatorService: AllocatorService,
+    private readonly allocatorReportChecksService: AllocatorReportChecksService,
   ) {}
 
   public async generateReport(allocatorIdOrAddress: string) {
@@ -105,6 +107,8 @@ export class AllocatorReportService {
       },
     });
 
+    await this.allocatorReportChecksService.storeReportChecks(report.id);
+
     return this.getReport(report.allocator, report.id);
   }
 
@@ -172,6 +176,13 @@ export class AllocatorReportService {
         ],
       },
       include: {
+        check_results: {
+          select: {
+            check: true,
+            result: true,
+            metadata: true,
+          },
+        },
         clients: {
           omit: {
             id: true,

@@ -75,6 +75,7 @@ import { HistogramHelperService } from './service/histogram-helper/histogram-hel
 import { GitHubIssueParserService } from './service/github-issue-parser/github-issue-parser.service';
 import { GitHubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
 import { AllocatorRunner } from './aggregation/runners/allocator.runner';
+import { AllocatorReportChecksService } from './service/allocator-report-checks/allocator-report-checks.service';
 
 @Module({
   imports: [
@@ -145,6 +146,7 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
     AllocatorTechService,
     ClientReportChecksService,
     AllocatorReportService,
+    AllocatorReportChecksService,
     StorageProviderReportService,
     OldDatacapService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
