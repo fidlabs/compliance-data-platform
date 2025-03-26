@@ -48,19 +48,23 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
 
   private async _runAllocatorReportGeneration() {
     const allocators = await this.allocatorTechService.getAllocators();
+    const allocatorsAddresses = [
+      ...new Set(allocators.map((allocator) => allocator.multisig_address)),
+    ];
+
     let fails = 0;
 
-    for (const [, allocator] of allocators.entries()) {
+    for (const allocatorAddress of allocatorsAddresses) {
       try {
         this.logger.debug(
-          `Starting generation of allocator report for ${allocator.multisig_address}`,
+          `Starting generation of allocator report for ${allocatorAddress}`,
         );
 
-        await this.generateAllocatorReport(allocator.multisig_address);
+        await this.generateAllocatorReport(allocatorAddress);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of allocator report for ${allocator.multisig_address}: ${err.message}`,
+          `Error during generation of allocator report for ${allocatorAddress}: ${err.message}`,
           err.cause || err.stack,
         );
 
@@ -68,7 +72,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
       }
     }
 
-    return { reports: allocators.length, fails: fails };
+    return { reports: allocatorsAddresses.length, fails: fails };
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
