@@ -9,10 +9,12 @@ const allocatorPrometheusGauges = [
   makeGaugeProvider({
     name: AllocatorGaugeMetricsType.SUCCESS_ALLOCATOR_REPORTS_COUNT,
     help: 'Number of successfully generated allocator reports',
+    labelNames: ['env'],
   }),
   makeGaugeProvider({
     name: AllocatorGaugeMetricsType.FAIL_ALLOCATOR_REPORTS_COUNT,
     help: 'Number of fails during allocator reports generation',
+    labelNames: ['env'],
   }),
 ];
 

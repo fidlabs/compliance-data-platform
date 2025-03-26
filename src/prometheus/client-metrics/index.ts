@@ -1,21 +1,32 @@
+import { Injectable } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge } from 'prom-client';
+import { MetricsBase } from '../metrics-base';
 import { ClientGaugeMetricsType } from './metrics';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class ClientReportGeneratorMetrics {
+export class ClientReportGeneratorMetrics extends MetricsBase {
   constructor(
     @InjectMetric(ClientGaugeMetricsType.SUCCESS_CLIENT_REPORTS_COUNT)
     private readonly successReports: Gauge<string>,
 
     @InjectMetric(ClientGaugeMetricsType.FAIL_CLIENT_REPORTS_COUNT)
     private readonly failReports: Gauge<string>,
-  ) {}
+  ) {
+    super();
+  }
 
   public setSuccessReportsCountMetric = (value: number) =>
-    this.successReports.set(value);
+    this.successReports
+      .labels({
+        env: this.env,
+      })
+      .set(value);
 
   public setFailReportsCountMetric = (value: number) =>
-    this.failReports.set(value);
+    this.failReports
+      .labels({
+        env: this.env,
+      })
+      .set(value);
 }
