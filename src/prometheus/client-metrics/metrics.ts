@@ -9,10 +9,12 @@ const clientPrometheusGauges = [
   makeGaugeProvider({
     name: ClientGaugeMetricsType.SUCCESS_CLIENT_REPORTS_COUNT,
     help: 'Number of successfully generated client reports',
+    labelNames: ['env'],
   }),
   makeGaugeProvider({
     name: ClientGaugeMetricsType.FAIL_CLIENT_REPORTS_COUNT,
     help: 'Number of fails during client reports generation',
+    labelNames: ['env'],
   }),
 ];
 

@@ -12,6 +12,7 @@ import { pgPoolPrometheusMetrics } from './db-metrics/metrics';
 import { PrometheusCustomMetricController } from './prometheus-custom.controller';
 import { PrometheusMetricController } from './prometheus.controller';
 import { PrometheusMetricService } from './prometheus.service';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PrometheusMetricService } from './prometheus.service';
     AllocatorReportGeneratorMetrics,
     PgPoolMetrics,
     AggregateMetrics,
+    ConfigService,
   ],
   exports: [PrometheusMetricService],
 })
