@@ -25,7 +25,7 @@ export class AggregateMetrics extends MetricsBase {
   }
 
   public startAggregateTimer = (): (() => void) => {
-    return this.aggregateTime.startTimer();
+    return this.aggregateTime.labels({ env: this.env }).startTimer();
   };
 
   public startTimerByRunnerNameMetric = (runnerName: string): (() => void) => {
