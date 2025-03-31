@@ -35,7 +35,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
     let nextWeek = latestStored
       ? DateTime.fromJSDate(latestStored.week, { zone: 'UTC' }) // we want to reprocess the last stored week, as it might've been incomplete
-      : DateTime.fromSeconds(3847920 * 30 + 1598306400).startOf('week'); // nv22 start week - a.k.a. reprocess everything
+      : DateTime.fromSeconds(3698160 * 30 + 1598306400).startOf('week'); // current fil+ edition start week - a.k.a. reprocess everything
 
     const now = DateTime.now().setZone('UTC');
 

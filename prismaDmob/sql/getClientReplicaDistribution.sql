@@ -4,7 +4,7 @@ with "replicas" as (select 'f0' || "clientId"                   as "client",
                            sum("pieceSize")                     as "total_deal_size",
                            max("pieceSize")                     as "piece_size"
                     from "unified_verified_deal"
-                    where "termStart" >= 3847920                                           -- nv22 start
+                    where "termStart" >= 3698160                                           -- current fil+ edition start
                       and to_timestamp("termStart" * 30 + 1598306400) <= current_timestamp -- deals that didn't start yet
                     group by "client", "piece_cid")
 select "client"                       as "client",

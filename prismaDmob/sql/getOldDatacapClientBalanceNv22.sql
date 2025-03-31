@@ -4,7 +4,7 @@ old_dc_allowance as (
         "addressId" as client,
         sum(allowance) as total_allowance
     from verified_client_allowance
-    where height < 3847920 -- nv22 start
+    where height < 3698160 -- current fil+ edition start
     group by "addressId"
 ),
 
@@ -13,7 +13,7 @@ old_dc_claims as (
         'f0' || "clientId" as client,
         sum("pieceSize") as total_claims
     from unified_verified_deal
-    where "termStart" < 3847920 -- nv22 start
+    where "termStart" < 3698160 -- current fil+ edition start
     group by "clientId"
 )
 

@@ -7,7 +7,7 @@ with miner_pieces as (
         min("pieceSize") as piece_size
     from unified_verified_deal
     where
-        "termStart" >= 3847920 -- nv22 start
+        "termStart" >= 3698160 -- current fil+ edition start
         and date_trunc('week', to_timestamp("termStart" * 30 + 1598306400)) <= $1 -- deals up to provided week
     group by
       "pieceCid",

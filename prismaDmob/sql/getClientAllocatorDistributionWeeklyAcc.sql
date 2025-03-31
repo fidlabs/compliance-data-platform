@@ -4,11 +4,11 @@ with "distributions" as (select date_trunc('week', to_timestamp("height" * 30 + 
                                 count(*)                                                     as "num_of_allocations",
                                 sum("allowance")                                             as "sum_of_allocations"
                          from "verified_client_allowance"
-                         where "height" >= 3847920 -- nv22 start
+                         where "height" >= 3698160 -- current fil+ edition start
                          group by "week", "client", "allocator"),
      "weeks" as (select date_trunc('week', "dates") "week"
                  from generate_series(
-                              to_timestamp(3847920 * 30 + 1598306400),
+                              to_timestamp(3698160 * 30 + 1598306400),
                               current_timestamp,
                               '1 week'::interval) "dates")
 select "weeks"."week"                    as "week",
