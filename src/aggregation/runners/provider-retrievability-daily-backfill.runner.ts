@@ -39,7 +39,7 @@ export class ProviderRetrievabilityDailyBackfillRunner
     const retrievedUtc = retrieved.map((v) =>
       DateTime.fromJSDate(v.date, { zone: 'UTC' }),
     );
-    const cutoff = DateTime.fromISO('2024-04-22T00:00:00', { zone: 'UTC' });
+    const cutoff = DateTime.fromISO('2024-03-01T00:00:00', { zone: 'UTC' });
 
     let latestStored = retrievedUtc[0];
     let backfillDate = null;

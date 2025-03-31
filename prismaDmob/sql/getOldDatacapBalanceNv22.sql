@@ -1,13 +1,13 @@
 with "old_dc_allowance" as (select "addressId"      as "allocator",
                                    sum("allowance") as "total_allowance"
                             from "verifier_allowance"
-                            where "height" < 3847920 -- nv22 start
+                            where "height" < 3698160 -- current fil+ edition start
                             group by "addressId"),
 
      "old_dc_allocations" as (select "verifierAddressId" as "allocator",
                                      sum("allowance")    as "total_allowance"
                               from "verified_client_allowance"
-                              where "height" < 3847920 -- nv22 start
+                              where "height" < 3698160 -- current fil+ edition start
                               group by "verifierAddressId")
 
 select "dc_in"."allocator",

@@ -5,7 +5,7 @@ with "miner_pieces" as (select 'f0' || "clientId"       as "client",
                                min("pieceSize")         as "piece_size",
                                count(*)                 as "claims_count"
                         from "unified_verified_deal"
-                        where "termStart" >= 3847920                                           -- nv22 start
+                        where "termStart" >= 3698160                                           -- current fil+ edition start
                           and to_timestamp("termStart" * 30 + 1598306400) <= current_timestamp -- deals that didn't start yet
                         group by "client", "provider", "pieceCid")
 select "client"                       as "client",

@@ -3,7 +3,7 @@ weeks as (
     select date_trunc('week', "dates") as "week"
     from
         generate_series(
-            to_timestamp(3847920 * 30 + 1598306400) - interval '1 week', -- 1 week before start of nv22
+            to_timestamp(3698160 * 30 + 1598306400) - interval '1 week', -- 1 week before start of nv22
             current_timestamp,
             '1 week'::interval
         ) as dates
@@ -73,7 +73,7 @@ old_dc_balance as (
         sum(coalesce(old_dc_allocations.old_dc_allocated,0)) over (partition by client, week) as allocations,
         greatest(
             0,
-            coalesce(base_balance.old_dc_balance, 0)                                -- what client had at nv22 start
+            coalesce(base_balance.old_dc_balance, 0)                                -- what client had at current fil+ edition start
             + sum(coalesce(old_dc_allocations.old_dc_allocated, 0)) over w          -- old dc client got up to this week
             - sum(coalesce(weekly_claims.total_claims, 0)) over w                   -- all client spent up to this week
         ) as old_dc_balance
