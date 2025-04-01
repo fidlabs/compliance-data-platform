@@ -145,3 +145,12 @@ export class StorageProviderComplianceScore {
   complianceScore: number; // 0 - 3
   provider: string;
 }
+
+export class StorageProviderWithIpInfo {
+  provider: string;
+  lat: string;
+  long: string;
+  country: string;
+  region: string;
+  city: string;
+}
