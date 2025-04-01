@@ -26,7 +26,7 @@ export interface Result {
   Multiaddrs: string[];
   NewWorker: string;
   Owner: string;
-  PeerId: string;
+  PeerId: string | null;
   PendingBeneficiaryTerm: null;
   PendingOwnerAddress: null;
   SectorSize: number;

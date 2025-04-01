@@ -106,8 +106,10 @@ export class IpniMisreportingCheckerService {
   }
 
   private async getProviderIPNIReportedClaimsCountByPeerId(
-    peerId: string,
+    peerId?: string | null,
   ): Promise<number | null> {
+    if (!peerId) return null;
+
     const dbEmpty =
       !(await this.prismaService.ipni_publisher_advertisement.findFirst({
         where: {
