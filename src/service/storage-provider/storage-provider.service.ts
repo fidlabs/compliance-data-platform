@@ -7,6 +7,7 @@ import {
   getProviderClientsWeeklyAcc,
   getProviderRetrievability,
   getProviderRetrievabilityAcc,
+  getProvidersWithIpInfo,
 } from 'prisma/generated/client/sql';
 import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
@@ -20,6 +21,7 @@ import {
   StorageProviderComplianceWeekPercentage,
   StorageProviderComplianceWeekResponse,
   StorageProviderComplianceWeekTotalDatacap,
+  StorageProviderWithIpInfo,
 } from './types.storage-provider';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -41,6 +43,12 @@ export class StorageProviderService {
     private readonly histogramHelper: HistogramHelperService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
+
+  public async getStorageProvidersWithIpInfo(): Promise<
+    StorageProviderWithIpInfo[]
+  > {
+    return await this.prismaService.$queryRawTyped(getProvidersWithIpInfo());
+  }
 
   public async getProviderClientsWeekly(
     isAccumulative: boolean,

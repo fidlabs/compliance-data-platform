@@ -22,7 +22,7 @@ import {
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersAccController {
+export class StorageProvidersStatsAccController {
   protected isAccumulative: boolean = true;
 
   constructor(
@@ -95,7 +95,7 @@ export class StorageProvidersAccController {
 @Controller('stats/providers')
 @ApiExcludeController()
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersController extends StorageProvidersAccController {
+export class StorageProvidersStatsController extends StorageProvidersStatsAccController {
   constructor(
     storageProviderService: StorageProviderService,
     ipniMisreportingCheckerService: IpniMisreportingCheckerService,
