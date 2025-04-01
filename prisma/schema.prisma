@@ -384,6 +384,19 @@ model old_datacap_client_balance_weekly {
   @@id([week, client])
 }
 
+model provider_ip_info {
+  id       Int      @id @default(autoincrement())
+  date     DateTime @default(now())
+  provider String
+  lat      String?
+  long     String?
+  country  String?
+  region   String?
+  city     String?
+
+  @@index([provider, date])
+}
+
 enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL

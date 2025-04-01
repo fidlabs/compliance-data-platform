@@ -7,6 +7,8 @@ import { PrometheusMetricService } from 'src/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
+import { LocationService } from 'src/service/location/location.service';
+import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
 
 @Injectable()
 export class AggregationService {
@@ -21,6 +23,8 @@ export class AggregationService {
     @Inject('AggregationRunner')
     private readonly aggregationRunners: AggregationRunner[],
     private readonly prometheusMetricService: PrometheusMetricService,
+    private readonly locationService: LocationService,
+    private readonly lotusApiService: LotusApiService,
   ) {}
 
   public async executeWithRetries(
@@ -95,6 +99,8 @@ export class AggregationService {
                   postgresService: this.postgresService,
                   postgresDmobService: this.postgresDmobService,
                   prometheusMetricService: this.prometheusMetricService,
+                  locationService: this.locationService,
+                  lotusApiService: this.lotusApiService,
                 }),
               aggregationRunnerName,
             );
