@@ -36,7 +36,7 @@ export class AggregatedProvidersIPNIReportingStatusWeekly {
   @ApiProperty({
     description: 'IPNI Reporting data week over week',
     isArray: true,
-    type: AggregatedProvidersIPNIReportingStatusWeek
+    type: AggregatedProvidersIPNIReportingStatusWeek,
   })
   results: AggregatedProvidersIPNIReportingStatusWeek[];
 }

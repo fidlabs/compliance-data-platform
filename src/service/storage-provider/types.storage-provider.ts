@@ -145,3 +145,24 @@ export class StorageProviderComplianceScore {
   complianceScore: number; // 0 - 3
   provider: string;
 }
+
+export class StorageProviderWithIpInfo {
+  @ApiProperty({ type: String, description: 'ID of the storage provider' })
+  provider: string;
+  @ApiProperty({
+    type: String,
+    description: 'Latitude of the storage provider',
+  })
+  lat: string;
+  @ApiProperty({
+    type: String,
+    description: 'Longitude of the storage provider',
+  })
+  long: string;
+  @ApiProperty({ type: String, description: 'Country of the storage provider' })
+  country: string;
+  @ApiProperty({ type: String, description: 'Region of the storage provider' })
+  region: string;
+  @ApiProperty({ type: String, description: 'City of the storage provider' })
+  city: string;
+}

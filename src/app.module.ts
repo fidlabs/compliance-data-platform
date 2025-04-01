@@ -22,6 +22,7 @@ import { OldDatacapBalanceWeeklyRunner } from './aggregation/runners/old-datacap
 import { OldDatacapClientBalanceNv22Runner } from './aggregation/runners/old-datacap-client-balance-nv22.runner';
 import { OldDatacapClientBalanceWeeklyRunner } from './aggregation/runners/old-datacap-client-balance-weekly.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
+import { ProviderIpInfoRunner } from './aggregation/runners/provider-ip-info.runner';
 import { ProviderRetrievabilityDailyBackfillRunner } from './aggregation/runners/provider-retrievability-daily-backfill.runner';
 import { ProviderRetrievabilityDailyRunner } from './aggregation/runners/provider-retrievability-daily.runner';
 import { ProvidersWeeklyAccRunner } from './aggregation/runners/providers-weekly-acc.runner';
@@ -33,10 +34,11 @@ import {
 } from './controller/client-report/client-report.controller';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { AllocatorsAccController } from './controller/stats/allocators/allocators.controller';
-import { StorageProvidersAccController } from './controller/stats/storage-providers/storage-providers.controller';
+import { StorageProvidersStatsAccController } from './controller/stats/storage-providers/storage-providers.controller';
 import { AllocatorsController } from './controller/stats/allocators/allocators.controller';
-import { StorageProvidersController } from './controller/stats/storage-providers/storage-providers.controller';
+import { StorageProvidersStatsController } from './controller/stats/storage-providers/storage-providers.controller';
 import { OldDatacapController } from './controller/stats/old-datacap/old-datacap.controller';
+import { StorageProvidersController } from './controller/storage-providers/storage-providers.controller';
 import { PostgresService } from './db/postgres.service';
 import { PostgresDmobService } from './db/postgresDmob.service';
 import { PrismaService } from './db/prisma.service';
@@ -88,9 +90,9 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
     PrometheusMetricModule,
   ],
   controllers: [
-    StorageProvidersController,
+    StorageProvidersStatsController,
     AllocatorsController,
-    StorageProvidersAccController,
+    StorageProvidersStatsAccController,
     AllocatorsAccController,
     GoogleApisController,
     ClientReportController,
@@ -98,6 +100,7 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
     AllocatorReportController,
     AllocatorReportControllerRedirect,
     OldDatacapController,
+    StorageProvidersController,
     AppController,
   ],
   providers: [
@@ -127,6 +130,7 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
     OldDatacapClientBalanceNv22Runner,
     OldDatacapClientBalanceWeeklyRunner,
     ProviderFirstClientRunner,
+    ProviderIpInfoRunner,
     ProviderRetrievabilityDailyRunner,
     ProviderRetrievabilityDailyBackfillRunner,
     ProvidersWeeklyRunner,
@@ -182,6 +186,7 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
         OldDatacapClientBalanceNv22Runner,
         OldDatacapClientBalanceWeeklyRunner,
         ProviderFirstClientRunner,
+        ProviderIpInfoRunner,
         ProviderRetrievabilityDailyRunner,
         ProviderRetrievabilityDailyBackfillRunner,
         ProvidersWeeklyRunner,
