@@ -4,6 +4,8 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { PrometheusMetricService } from 'src/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
+import { LocationService } from 'src/service/location/location.service';
+import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
 import { AggregationTable } from './aggregation-table';
 
 export type AggregationRunnerRunServices = {
@@ -13,6 +15,8 @@ export type AggregationRunnerRunServices = {
   postgresService?: PostgresService;
   postgresDmobService?: PostgresDmobService;
   prometheusMetricService?: PrometheusMetricService;
+  locationService?: LocationService;
+  lotusApiService?: LotusApiService;
 };
 
 export interface AggregationRunner {
