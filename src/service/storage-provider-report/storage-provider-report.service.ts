@@ -50,10 +50,16 @@ export class StorageProviderReportService {
           clientProviderDistribution.provider,
         );
 
+        const retrievability_success_rate_url_finder =
+          await this.getStorageProviderUrlFinderRetrievability(
+            clientProviderDistribution.provider,
+          );
+
         return {
           ...clientProviderDistribution,
-          retrievability_success_rate,
           retrievability_success_rate_http,
+          retrievability_success_rate,
+          retrievability_success_rate_url_finder,
           ipni_reporting_status: ipniReportingStatus.status,
           ipni_reported_claims_count:
             ipniReportingStatus.ipniReportedClaimsCount,
@@ -75,7 +81,29 @@ export class StorageProviderReportService {
     );
   }
 
-  private async getStorageProviderRetrievability(providerId: string): Promise<{
+  // returns 0 - 1
+  public async getStorageProviderUrlFinderRetrievability(
+    storageProviderId: string,
+  ): Promise<number | null> {
+    const data =
+      await this.prismaService.provider_url_finder_retrievability_daily.findFirst(
+        {
+          where: {
+            provider: storageProviderId,
+          },
+          orderBy: {
+            date: 'desc',
+          },
+        },
+      );
+
+    return data?.success_rate ?? null;
+  }
+
+  // returns 0 - 1 success_rate, success_rate_http
+  private async getStorageProviderRetrievability(
+    storageProviderId: string,
+  ): Promise<{
     retrievability_success_rate: number;
     retrievability_success_rate_http: number;
   } | null> {
@@ -88,7 +116,7 @@ export class StorageProviderReportService {
           successful_http: true,
         },
         where: {
-          provider: providerId,
+          provider: storageProviderId,
           date: {
             gte: new Date( // a week ago at 00:00
               new Date(new Date().setDate(new Date().getDate() - 7)).setHours(

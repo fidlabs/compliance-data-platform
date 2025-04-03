@@ -18,8 +18,8 @@ export function lastWeek(): Date {
   return DateTime.now().toUTC().minus({ week: 1 }).startOf('week').toJSDate();
 }
 
-export function yesterday(): Date {
-  return DateTime.now().toUTC().minus({ day: 1 }).startOf('day').toJSDate();
+export function yesterday(): DateTime {
+  return DateTime.now().toUTC().minus({ day: 1 }).startOf('day');
 }
 
 export function envNotSet(value?: any): boolean {
@@ -32,4 +32,8 @@ export function envNotSet(value?: any): boolean {
 
 export function envSet(value?: any): boolean {
   return !envNotSet(value);
+}
+
+export async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

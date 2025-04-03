@@ -8,6 +8,7 @@ import {
 import { PrometheusMetricService } from 'src/prometheus';
 import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
 import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
+import { sleep } from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorReportGeneratorJobService extends HealthIndicator {
@@ -69,7 +70,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
           err.cause?.stack || err.stack,
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
+        await sleep(1000 * 60); // 1 minute
       }
     }
 

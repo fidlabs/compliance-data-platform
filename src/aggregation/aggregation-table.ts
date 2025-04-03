@@ -23,4 +23,5 @@ export enum AggregationTable {
   UnifiedVerifiedDealHourly,
   Allocator,
   Provider,
+  ProviderUrlFinderRetrievabilityDaily,
 }

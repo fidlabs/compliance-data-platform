@@ -9,6 +9,7 @@ import {
 } from './types.ipni-misreporting-checker';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 import { getIpniReportingWeekly } from 'prisma/generated/client/sql';
+import { StorageProviderService } from '../storage-provider/storage-provider.service';
 
 @Injectable()
 export class IpniMisreportingCheckerService {
@@ -17,23 +18,20 @@ export class IpniMisreportingCheckerService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly lotusApiService: LotusApiService,
+    private readonly storageProviderService: StorageProviderService,
   ) {}
 
   // because of lotus api rate limiting, this function first tries to get all providers status in parallel
   // and then retries sequentially for failed requests
   // throws error if sequential retry fails for any provider
   public async getAggregatedProvidersReportingStatus(): Promise<AggregatedProvidersIPNIReportingStatus> {
-    const storageProviders =
-      await this.prismaService.client_provider_distribution.findMany({
-        distinct: ['provider'],
-      });
-
+    const storageProviders = await this.storageProviderService.getProviders();
     const result: ProviderIPNIReportingStatus[] = [];
 
     // try to execute all in parallel
     const promiseResults = await Promise.allSettled(
       storageProviders.map((storageProvider) =>
-        this.getProviderReportingStatus(storageProvider.provider),
+        this.getProviderReportingStatus(storageProvider.id),
       ),
     );
 
@@ -44,7 +42,7 @@ export class IpniMisreportingCheckerService {
       } else {
         // retry sequentially for failed requests
         result.push(
-          await this.getProviderReportingStatus(storageProviders[i].provider),
+          await this.getProviderReportingStatus(storageProviders[i].id),
         );
       }
     }
@@ -67,6 +65,7 @@ export class IpniMisreportingCheckerService {
     const result = await this.prismaService.$queryRawTyped(
       getIpniReportingWeekly(),
     );
+
     return {
       results: result.map((r) => ({
         week: r.week,
