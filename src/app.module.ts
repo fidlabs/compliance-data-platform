@@ -77,8 +77,11 @@ import { AllocatorsController } from './controller/allocators/allocators.control
 import { ProviderRunner } from './aggregation/runners/provider.runner';
 import { ReportChecksController } from './controller/report-checks/report-checks.controller';
 import { ClientsController } from './controller/clients/clients.controller';
+import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
+import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
 
 const AGGREGATION_RUNNERS = [
+  ProviderUrlFinderRetrievabilityDailyRunner,
   AllocatorClientBookkeepingRunner,
   AllocatorRegistryRunner,
   AllocatorRunner,
@@ -146,6 +149,7 @@ const AGGREGATION_RUNNERS = [
     GoogleApisService,
     IpniMisreportingCheckerService,
     ClientReportService,
+    StorageProviderUrlFinderService,
     ClientService,
     GitHubIssueParserService,
     GitHubTriggersHandlerService,

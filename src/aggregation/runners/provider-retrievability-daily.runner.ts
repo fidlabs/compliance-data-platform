@@ -4,6 +4,7 @@ import {
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
+import { yesterday } from 'src/utils/utils';
 
 export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
   public async run({
@@ -15,10 +16,6 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
-
-    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
-      ProviderRetrievabilityDailyRunner.name,
-    );
 
     const latestStored =
       await prismaService.provider_retrievability_daily.findFirst({
@@ -34,23 +31,24 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
       ? DateTime.fromJSDate(latestStored.date, { zone: 'UTC' })
       : null;
 
-    const yesterday = DateTime.now()
-      .setZone('UTC')
-      .minus({ days: 1 })
-      .startOf('day');
+    const _yesterday = yesterday();
 
-    if (latestStoredDate >= yesterday) {
-      // already downloaded yesterday's retrievability, wait for next day
+    if (latestStoredDate >= _yesterday) {
+      // already downloaded yesterday's data, wait for next day
       return;
     }
 
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      ProviderRetrievabilityDailyRunner.name,
+    );
+
     const retrievabilityData =
-      await filSparkService.fetchRetrievability(yesterday);
+      await filSparkService.fetchRetrievability(_yesterday);
 
     getDataEndTimerMetric();
 
     const data = retrievabilityData.map((row) => ({
-      date: yesterday.toJSDate(),
+      date: _yesterday.toJSDate(),
       provider: row.miner_id,
       total: parseInt(row.total),
       successful: parseInt(row.successful),

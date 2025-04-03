@@ -9,6 +9,7 @@ import { PrometheusMetricService } from 'src/prometheus';
 import { ClientReportService } from 'src/service/client-report/client-report.service';
 import { ClientService } from 'src/service/client/client.service';
 import { ClientWithBookkeeping } from 'src/service/client/types.client';
+import { sleep } from 'src/utils/utils';
 
 @Injectable()
 export class ClientReportGeneratorJobService extends HealthIndicator {
@@ -70,12 +71,10 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
           `Error during generation of client report for application ${application.clientAddress}: ${err.message}`,
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
+        await sleep(1000 * 60); // 1 minute
       }
 
-      if (i > 0 && i % 50 === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
-      }
+      if (i > 0 && i % 50 === 0) await sleep(1000 * 60); // 1 minute
     }
 
     return { reports: applications.length, fails: fails };
