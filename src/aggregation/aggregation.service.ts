@@ -5,6 +5,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { PrometheusMetricService } from 'src/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
+import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
 
@@ -21,6 +22,7 @@ export class AggregationService {
     @Inject('AggregationRunner')
     private readonly aggregationRunners: AggregationRunner[],
     private readonly prometheusMetricService: PrometheusMetricService,
+    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
 
   public async executeWithRetries(
@@ -95,6 +97,8 @@ export class AggregationService {
                   postgresService: this.postgresService,
                   postgresDmobService: this.postgresDmobService,
                   prometheusMetricService: this.prometheusMetricService,
+                  ipniMisreportingCheckerService:
+                    this.ipniMisreportingCheckerService,
                 }),
               aggregationRunnerName,
             );

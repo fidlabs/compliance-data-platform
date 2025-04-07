@@ -9,6 +9,7 @@ export enum AggregationTable {
   ClientProviderDistributionWeekly,
   ClientProviderDistributionWeeklyAcc,
   ClientReplicaDistribution,
+  IpniReportingDaily,
   OldDatacapBalanceNv22,
   OldDatacapBalanceWeekly,
   OldDatacapClientBalanceNv22,

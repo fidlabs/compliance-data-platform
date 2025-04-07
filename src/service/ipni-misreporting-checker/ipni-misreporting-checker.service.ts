@@ -4,9 +4,11 @@ import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
 import {
   AggregatedProvidersIPNIReportingStatus,
+  AggregatedProvidersIPNIReportingStatusWeekly,
   ProviderIPNIReportingStatus,
 } from './types.ipni-misreporting-checker';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
+import { getIpniReportingWeekly } from 'prisma/generated/client/sql';
 
 @Injectable()
 export class IpniMisreportingCheckerService {
@@ -58,6 +60,21 @@ export class IpniMisreportingCheckerService {
         (x) => x.status === StorageProviderIpniReportingStatus.OK,
       ).length,
       total: result.length,
+    };
+  }
+
+  public async getAggregatedProvidersReportingStatusWeekly(): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
+    const result = await this.prismaService.$queryRawTyped(
+      getIpniReportingWeekly(),
+    );
+    return {
+      results: result.map((r) => ({
+        week: r.week,
+        total: r.total,
+        misreporting: r.misreporting,
+        notReporting: r.not_reporting,
+        ok: r.ok,
+      })),
     };
   }
 
