@@ -14,7 +14,6 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
     postgresService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
@@ -32,8 +31,9 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
           avg_weighted_retrievability_success_rate_http: number | null;
         }>(postgresService.pool);
 
-        const getDataEndTimerMetric =
-          startGetDataTimerByRunnerNameMetric(runnerName);
+        const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+          AllocatorsWeeklyAccRunner.name,
+        );
 
         const i = queryIterablePool.query(`with
                              allocator_retrievability as (
@@ -76,7 +76,6 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
         }[] = [];
 
         let isFirstInsert = true;
-
         let storeDataEndTimerMetric;
 
         for await (const rowResult of i) {
@@ -97,8 +96,9 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
             if (isFirstInsert) {
               isFirstInsert = false;
               getDataEndTimerMetric();
-              storeDataEndTimerMetric =
-                startStoreDataTimerByRunnerNameMetric(runnerName);
+              storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+                AllocatorsWeeklyAccRunner.name,
+              );
               await tx.$executeRaw`delete from allocators_weekly_acc`;
             }
 
@@ -113,8 +113,10 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
         if (data.length > 0) {
           if (isFirstInsert) {
             getDataEndTimerMetric();
-            storeDataEndTimerMetric =
-              startStoreDataTimerByRunnerNameMetric(runnerName);
+            storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+              AllocatorsWeeklyAccRunner.name,
+            );
+
             await tx.$executeRaw`delete from allocators_weekly_acc`;
           }
 
@@ -141,9 +143,5 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
       AggregationTable.ProvidersWeekly,
       AggregationTable.ClientAllocatorDistributionWeeklyAcc,
     ];
-  }
-
-  getName(): string {
-    return 'Allocators Weekly Acc Runner';
   }
 }

@@ -11,14 +11,14 @@ export class ClientReplicaDistributionRunner implements AggregationRunner {
     prismaDmobService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      ClientReplicaDistributionRunner.name,
+    );
 
     const result = await prismaDmobService.$queryRawTyped(
       getClientReplicaDistribution(),
@@ -33,8 +33,9 @@ export class ClientReplicaDistributionRunner implements AggregationRunner {
       unique_data_size: dmobResult.unique_data_size,
     }));
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      ClientReplicaDistributionRunner.name,
+    );
 
     await prismaService.$executeRaw`delete from client_replica_distribution;`;
     await prismaService.client_replica_distribution.createMany({ data });
@@ -48,9 +49,5 @@ export class ClientReplicaDistributionRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Client Replica Distribution Runner';
   }
 }

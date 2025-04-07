@@ -17,7 +17,6 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
     prismaDmobService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
@@ -41,8 +40,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
     while (nextWeek <= now) {
       this.logger.debug(`Processing week ${nextWeek}`);
-      const getDataEndTimerMetric =
-        startGetDataTimerByRunnerNameMetric(runnerName);
+      const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+        ClientProviderDistributionAccRunner.name,
+      );
 
       const result = await prismaDmobService.$queryRawTyped(
         getClientProviderDistributionAccSingleWeek(nextWeek.toJSDate()),
@@ -50,8 +50,9 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
       getDataEndTimerMetric();
 
-      const storeDataEndTimerMetric =
-        startStoreDataTimerByRunnerNameMetric(runnerName);
+      const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+        ClientProviderDistributionAccRunner.name,
+      );
 
       const data = result.map((dmobResult) => ({
         week: nextWeek.toJSDate(),
@@ -86,9 +87,5 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Client/Provider Distribution Acc Runner';
   }
 }

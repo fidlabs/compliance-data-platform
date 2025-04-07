@@ -11,14 +11,14 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
     prismaDmobService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      ClientProviderDistributionRunner.name,
+    );
 
     const result = await prismaDmobService.$queryRawTyped(
       getClientProviderDistribution(),
@@ -34,8 +34,9 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
       claims_count: dmobResult.claims_count,
     }));
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      ClientProviderDistributionRunner.name,
+    );
 
     await prismaService.$executeRaw`delete from client_provider_distribution;`;
     await prismaService.client_provider_distribution.createMany({
@@ -51,9 +52,5 @@ export class ClientProviderDistributionRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Client/Provider Distribution Runner';
   }
 }

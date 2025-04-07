@@ -13,15 +13,14 @@ export class ProvidersWeeklyRunner implements AggregationRunner {
     prismaService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
-
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      ProvidersWeeklyRunner.name,
+    );
 
     const result = await prismaService.$queryRawTyped(getProvidersWeekly());
 
@@ -37,8 +36,9 @@ export class ProvidersWeeklyRunner implements AggregationRunner {
         row.avg_retrievability_success_rate_http,
     }));
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      ProvidersWeeklyRunner.name,
+    );
 
     await prismaService.$executeRaw`delete from providers_weekly;`;
     await prismaService.providers_weekly.createMany({ data });
@@ -54,9 +54,5 @@ export class ProvidersWeeklyRunner implements AggregationRunner {
       AggregationTable.ClientProviderDistributionWeekly,
       AggregationTable.ProviderRetrievabilityDaily,
     ];
-  }
-
-  getName(): string {
-    return 'Providers Weekly Runner';
   }
 }

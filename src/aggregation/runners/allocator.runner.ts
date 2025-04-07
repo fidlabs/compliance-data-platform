@@ -11,22 +11,22 @@ export class AllocatorRunner implements AggregationRunner {
     prismaDmobService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
-
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      AllocatorRunner.name,
+    );
 
     const result = await prismaDmobService.$queryRawTyped(getAllocators());
 
     getDataEndTimerMetric();
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      AllocatorRunner.name,
+    );
 
     await prismaService.$executeRaw`delete from allocator;`;
     await prismaService.allocator.createMany({ data: result });
@@ -40,9 +40,5 @@ export class AllocatorRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Verifier -> Allocator Runner';
   }
 }

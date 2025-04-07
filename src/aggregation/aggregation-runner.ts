@@ -27,6 +27,4 @@ export interface AggregationRunner {
   getFilledTables(): AggregationTable[];
 
   getDependingTables(): AggregationTable[];
-
-  getName(): string;
 }
