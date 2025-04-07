@@ -4,6 +4,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { PrometheusMetricService } from 'src/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
+import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { AggregationTable } from './aggregation-table';
 
 export type AggregationRunnerRunServices = {
@@ -13,6 +14,7 @@ export type AggregationRunnerRunServices = {
   postgresService?: PostgresService;
   postgresDmobService?: PostgresDmobService;
   prometheusMetricService?: PrometheusMetricService;
+  ipniMisreportingCheckerService?: IpniMisreportingCheckerService;
 };
 
 export interface AggregationRunner {

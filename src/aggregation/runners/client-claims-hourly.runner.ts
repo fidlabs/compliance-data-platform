@@ -79,7 +79,7 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
             data,
           });
         }
-        storeDataEndTimerMetric();
+        if (storeDataEndTimerMetric) storeDataEndTimerMetric();
       },
       {
         timeout: Number.MAX_SAFE_INTEGER,

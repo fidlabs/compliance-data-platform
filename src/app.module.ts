@@ -16,6 +16,7 @@ import { ClientClaimsHourlyRunner } from './aggregation/runners/client-claims-ho
 import { ClientProviderDistributionAccRunner } from './aggregation/runners/client-provider-distribution-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
+import { IpniReportingDailyRunner } from './aggregation/runners/ipni-reporting-daily.runner';
 import { OldDatacapBalanceNv22Runner } from './aggregation/runners/old-datacap-balance-nv22.runner';
 import { OldDatacapBalanceWeeklyRunner } from './aggregation/runners/old-datacap-balance-weekly.runner';
 import { OldDatacapClientBalanceNv22Runner } from './aggregation/runners/old-datacap-client-balance-nv22.runner';
@@ -120,6 +121,7 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
     ClientProviderDistributionWeeklyRunner,
     ClientProviderDistributionAccRunner,
     ClientReplicaDistributionRunner,
+    IpniReportingDailyRunner,
     OldDatacapBalanceNv22Runner,
     OldDatacapBalanceWeeklyRunner,
     OldDatacapClientBalanceNv22Runner,
@@ -174,6 +176,7 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
         ClientProviderDistributionWeeklyRunner,
         ClientProviderDistributionAccRunner,
         ClientReplicaDistributionRunner,
+        IpniReportingDailyRunner,
         OldDatacapBalanceNv22Runner,
         OldDatacapBalanceWeeklyRunner,
         OldDatacapClientBalanceNv22Runner,

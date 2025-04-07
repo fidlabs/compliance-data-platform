@@ -384,6 +384,16 @@ model old_datacap_client_balance_weekly {
   @@id([week, client])
 }
 
+model ipni_reporting_daily {
+  date          DateTime @default(now())
+  ok            Int
+  not_reporting Int
+  misreporting  Int
+  total         Int
+
+  @@id(date)
+}
+
 enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL
