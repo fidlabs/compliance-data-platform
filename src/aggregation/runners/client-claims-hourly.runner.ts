@@ -11,7 +11,6 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
     postgresService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
@@ -19,8 +18,9 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
 
     await prismaService.$transaction(
       async (tx) => {
-        const getDataEndTimerMetric =
-          startGetDataTimerByRunnerNameMetric(runnerName);
+        const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+          ClientClaimsHourlyRunner.name,
+        );
 
         const queryIterablePool = new QueryIterablePool<{
           client: string;
@@ -55,8 +55,10 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
             if (isFirstInsert) {
               isFirstInsert = false;
               getDataEndTimerMetric();
-              storeDataEndTimerMetric =
-                startStoreDataTimerByRunnerNameMetric(runnerName);
+              storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+                ClientClaimsHourlyRunner.name,
+              );
+
               await tx.$executeRaw`delete from client_claims_hourly`;
             }
 
@@ -71,10 +73,13 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
         if (data.length > 0) {
           if (isFirstInsert) {
             getDataEndTimerMetric();
-            storeDataEndTimerMetric =
-              startStoreDataTimerByRunnerNameMetric(runnerName);
+            storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+              ClientClaimsHourlyRunner.name,
+            );
+
             await tx.$executeRaw`delete from client_claims_hourly`;
           }
+
           await tx.client_claims_hourly.createMany({
             data,
           });
@@ -93,9 +98,5 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [AggregationTable.UnifiedVerifiedDealHourly];
-  }
-
-  getName(): string {
-    return 'Client Claims Hourly Runner';
   }
 }

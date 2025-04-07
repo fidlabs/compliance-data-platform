@@ -80,8 +80,7 @@ export class AggregationService {
             .every((p) => filledTables.includes(p))
         ) {
           // execute runner
-          const aggregationRunnerName = aggregationRunner.getName();
-
+          const aggregationRunnerName = aggregationRunner.constructor.name;
           this.logger.debug(`Starting aggregation: ${aggregationRunnerName}`);
 
           // start transaction timer

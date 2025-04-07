@@ -10,14 +10,14 @@ export class OldDatacapBalanceWeeklyRunner implements AggregationRunner {
     prismaService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      OldDatacapBalanceWeeklyRunner.name,
+    );
 
     const result = await prismaService.$queryRawTyped(
       getOldDatacapBalanceWeekly(),
@@ -32,8 +32,9 @@ export class OldDatacapBalanceWeeklyRunner implements AggregationRunner {
       allocations: result.allocations,
     }));
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      OldDatacapBalanceWeeklyRunner.name,
+    );
 
     await prismaService.$executeRaw`delete from old_datacap_balance_weekly;`;
     await prismaService.old_datacap_balance_weekly.createMany({ data });
@@ -50,9 +51,5 @@ export class OldDatacapBalanceWeeklyRunner implements AggregationRunner {
       AggregationTable.AllocatorsWeeklyAcc,
       AggregationTable.OldDatacapBalanceNv22,
     ];
-  }
-
-  getName(): string {
-    return 'Old Datacap Balance Weekly Runner';
   }
 }

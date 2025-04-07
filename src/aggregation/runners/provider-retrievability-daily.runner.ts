@@ -11,14 +11,14 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
     filSparkService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      ProviderRetrievabilityDailyRunner.name,
+    );
 
     const latestStored =
       await prismaService.provider_retrievability_daily.findFirst({
@@ -59,8 +59,9 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
       success_rate_http: row.success_rate_http,
     }));
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      ProviderRetrievabilityDailyRunner.name,
+    );
 
     await prismaService.provider_retrievability_daily.createMany({ data });
 
@@ -73,9 +74,5 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Provider Retrievability Daily Runner';
   }
 }

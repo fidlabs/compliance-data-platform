@@ -11,8 +11,6 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
     postgresDmobService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
-
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
@@ -20,8 +18,9 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
 
     await prismaService.$transaction(
       async (tx) => {
-        const getDataEndTimerMetric =
-          startGetDataTimerByRunnerNameMetric(runnerName);
+        const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+          UnifiedVerifiedDealHourlyRunner.name,
+        );
 
         const queryIterablePool = new QueryIterablePool<{
           hour: Date | null;
@@ -30,6 +29,7 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
           num_of_claims: number | null;
           total_deal_size: bigint | null;
         }>(postgresDmobService.pool);
+
         const i =
           queryIterablePool.query(`select date_trunc('hour', to_timestamp("termStart" * 30 + 1598306400)) as hour,
                                         'f0' || "clientId"                                              as client,
@@ -52,7 +52,6 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
         }[] = [];
 
         let isFirstInsert = true;
-
         let storeDataEndTimerMetric;
 
         for await (const rowResult of i) {
@@ -67,8 +66,9 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
           if (data.length === 5000) {
             if (isFirstInsert) {
               getDataEndTimerMetric();
-              storeDataEndTimerMetric =
-                startStoreDataTimerByRunnerNameMetric(runnerName);
+              storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+                UnifiedVerifiedDealHourlyRunner.name,
+              );
 
               await tx.$executeRaw`delete from unified_verified_deal_hourly`;
               isFirstInsert = false;
@@ -85,8 +85,9 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
         if (data.length > 0) {
           if (isFirstInsert) {
             getDataEndTimerMetric();
-            storeDataEndTimerMetric =
-              startStoreDataTimerByRunnerNameMetric(runnerName);
+            storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+              UnifiedVerifiedDealHourlyRunner.name,
+            );
 
             await tx.$executeRaw`delete from unified_verified_deal_hourly`;
           }
@@ -109,9 +110,5 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Unified Verified Deal Hourly Runner';
   }
 }

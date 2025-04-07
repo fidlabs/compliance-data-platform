@@ -13,14 +13,14 @@ export class ClientAllocatorDistributionWeeklyAccRunner
     prismaDmobService,
     prometheusMetricService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      ClientAllocatorDistributionWeeklyAccRunner.name,
+    );
 
     const result = await prismaDmobService.$queryRawTyped(
       getClientAllocatorDistributionWeeklyAcc(),
@@ -36,8 +36,9 @@ export class ClientAllocatorDistributionWeeklyAccRunner
       sum_of_allocations: dmobResult.sum_of_allocations,
     }));
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      ClientAllocatorDistributionWeeklyAccRunner.name,
+    );
 
     await prismaService.$executeRaw`delete from client_allocator_distribution_weekly_acc;`;
     await prismaService.client_allocator_distribution_weekly_acc.createMany({
@@ -53,9 +54,5 @@ export class ClientAllocatorDistributionWeeklyAccRunner
 
   getDependingTables(): AggregationTable[] {
     return [];
-  }
-
-  getName(): string {
-    return 'Client/Allocator Distribution Weekly Acc Runner';
   }
 }

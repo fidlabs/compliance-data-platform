@@ -11,14 +11,14 @@ export class IpniReportingDailyRunner implements AggregationRunner {
     prometheusMetricService,
     ipniMisreportingCheckerService,
   }: AggregationRunnerRunServices): Promise<void> {
-    const runnerName = this.getName();
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
 
-    const getDataEndTimerMetric =
-      startGetDataTimerByRunnerNameMetric(runnerName);
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      IpniReportingDailyRunner.name,
+    );
 
     const latestStored = await prismaService.ipni_reporting_daily.findFirst({
       select: {
@@ -54,8 +54,9 @@ export class IpniReportingDailyRunner implements AggregationRunner {
 
     getDataEndTimerMetric();
 
-    const storeDataEndTimerMetric =
-      startStoreDataTimerByRunnerNameMetric(runnerName);
+    const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
+      IpniReportingDailyRunner.name,
+    );
 
     await prismaService.ipni_reporting_daily.create({ data });
 
@@ -68,9 +69,5 @@ export class IpniReportingDailyRunner implements AggregationRunner {
 
   getDependingTables(): AggregationTable[] {
     return [AggregationTable.ClientProviderDistribution];
-  }
-
-  getName(): string {
-    return 'IPNI Reporting Daily Runner';
   }
 }
