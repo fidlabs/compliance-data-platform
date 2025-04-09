@@ -42,6 +42,7 @@ export class StorageProviderReportService {
 
         const location =
           await this.getClientProviderDistributionLocation(minerInfo);
+
         const {
           retrievability_success_rate,
           retrievability_success_rate_http,

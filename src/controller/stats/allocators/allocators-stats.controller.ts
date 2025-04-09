@@ -11,14 +11,14 @@ import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/t
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class AllocatorsAccController {
+export class AllocatorsAccStatsController {
   protected isAccumulative: boolean = true;
 
   constructor(private readonly allocatorService: AllocatorService) {}
 
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorClients(): Promise<HistogramWeekResponse> {
+  public async getAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getStandardAllocatorClientsWeekly(
       this.isAccumulative,
     );
@@ -26,7 +26,7 @@ export class AllocatorsAccController {
 
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  public async getAllocatorRetrievability(): Promise<RetrievabilityWeekResponse> {
+  public async getAllocatorRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       this.isAccumulative,
     );
@@ -34,7 +34,7 @@ export class AllocatorsAccController {
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorBiggestClientDistribution(): Promise<HistogramWeekResponse> {
+  public async getAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
       this.isAccumulative,
     );
@@ -42,7 +42,7 @@ export class AllocatorsAccController {
 
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
-  public async getAllocatorSpsCompliance(
+  public async getAllocatorSpsComplianceWeekly(
     @Query() metricsToCheck: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     return await this.allocatorService.getStandardAllocatorSpsComplianceWeekly(
@@ -55,7 +55,7 @@ export class AllocatorsAccController {
 @Controller('stats/allocators')
 @ApiExcludeController()
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class AllocatorsController extends AllocatorsAccController {
+export class AllocatorsStatsController extends AllocatorsAccStatsController {
   constructor(allocatorService: AllocatorService) {
     super(allocatorService);
     this.isAccumulative = false;

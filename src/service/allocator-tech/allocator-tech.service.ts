@@ -7,6 +7,7 @@ import { AllocatorTechAllocatorResponse } from './types.allocator-tech';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 
+// TODO soon to be deprecated
 @Injectable()
 export class AllocatorTechService {
   private readonly logger = new Logger(AllocatorTechService.name);

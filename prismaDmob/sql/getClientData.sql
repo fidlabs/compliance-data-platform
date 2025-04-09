@@ -4,8 +4,8 @@ select "verified_client"."addressId"         as "addressId",
        "verified_client"."orgName"           as "orgName",
        "verified_client"."verifierAddressId" as "verifierAddressId",
        coalesce(
-                       json_agg(
-                       json_build_object(
+                       jsonb_agg(
+                       jsonb_build_object(
                                'addressId', "verified_client_allowance"."addressId",
                                'verifierAddressId', "verified_client_allowance"."verifierAddressId",
                                'allowance', "verified_client_allowance"."allowance",
@@ -13,7 +13,7 @@ select "verified_client"."addressId"         as "addressId",
                                'issueCreateTimestamp', "verified_client_allowance"."issueCreateTimestamp",
                                'createMessageTimestamp', "verified_client_allowance"."createMessageTimestamp"
                        )
-                               ) filter (where "verified_client_allowance"."id" is not null), '[]'::json
+                               ), '[]'::jsonb
        ) as "_allowanceArray"
 from "verified_client"
          left join "verified_client_allowance"

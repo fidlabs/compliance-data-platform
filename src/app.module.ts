@@ -28,15 +28,16 @@ import { ProviderRetrievabilityDailyRunner } from './aggregation/runners/provide
 import { ProvidersWeeklyAccRunner } from './aggregation/runners/providers-weekly-acc.runner';
 import { ProvidersWeeklyRunner } from './aggregation/runners/providers-weekly.runner';
 import { UnifiedVerifiedDealHourlyRunner } from './aggregation/runners/unified-verified-deal-hourly.runner';
-import {
-  ClientReportController,
-  ClientReportControllerRedirect,
-} from './controller/client-report/client-report.controller';
+import { ClientReportController } from './controller/client-report/client-report.controller';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
-import { AllocatorsAccController } from './controller/stats/allocators/allocators.controller';
-import { StorageProvidersStatsAccController } from './controller/stats/storage-providers/storage-providers.controller';
-import { AllocatorsController } from './controller/stats/allocators/allocators.controller';
-import { StorageProvidersStatsController } from './controller/stats/storage-providers/storage-providers.controller';
+import {
+  AllocatorsAccStatsController,
+  AllocatorsStatsController,
+} from './controller/stats/allocators/allocators-stats.controller';
+import {
+  StorageProvidersAccStatsController,
+  StorageProvidersStatsController,
+} from './controller/stats/storage-providers/storage-providers-stats.controller';
 import { OldDatacapController } from './controller/stats/old-datacap/old-datacap.controller';
 import { StorageProvidersController } from './controller/storage-providers/storage-providers.controller';
 import { PostgresService } from './db/postgres.service';
@@ -59,10 +60,7 @@ import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { AppController } from './controller/app/app.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { AllocatorReportService } from './service/allocator-report/allocator-report.service';
-import {
-  AllocatorReportController,
-  AllocatorReportControllerRedirect,
-} from './controller/allocator-report/allocator-report.controller';
+import { AllocatorReportController } from './controller/allocator-report/allocator-report.controller';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { PrometheusMetricModule } from './prometheus';
@@ -79,6 +77,7 @@ import { GitHubIssueParserService } from './service/github-issue-parser/github-i
 import { GitHubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
 import { AllocatorRunner } from './aggregation/runners/allocator.runner';
 import { AllocatorReportChecksService } from './service/allocator-report-checks/allocator-report-checks.service';
+import { AllocatorsController } from './controller/allocators/allocators.controller';
 
 @Module({
   imports: [
@@ -91,14 +90,13 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
   ],
   controllers: [
     StorageProvidersStatsController,
+    AllocatorsStatsController,
     AllocatorsController,
-    StorageProvidersStatsAccController,
-    AllocatorsAccController,
+    StorageProvidersAccStatsController,
+    AllocatorsAccStatsController,
     GoogleApisController,
     ClientReportController,
-    ClientReportControllerRedirect,
     AllocatorReportController,
-    AllocatorReportControllerRedirect,
     OldDatacapController,
     StorageProvidersController,
     AppController,
