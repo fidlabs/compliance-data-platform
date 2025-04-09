@@ -2,12 +2,27 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IntersectionType } from '@nestjs/swagger';
 
 export enum StorageProviderComplianceScoreRange {
-  NonCompliant, // complianceScore: 0 - 0
-  PartiallyCompliant, // complianceScore: 1 - 2
-  Compliant, // complianceScore: 3 - 3
+  NonCompliant = 'nonCompliant',
+  PartiallyCompliant = 'partiallyCompliant',
+  Compliant = 'compliant',
+}
+
+export class StorageProviderComplianceScore {
+  complianceScore: StorageProviderComplianceScoreRange;
+  provider: string;
 }
 
 export class StorageProviderComplianceMetrics {
+  constructor(
+    retrievability: 'true' | 'false' = 'true',
+    numberOfClients: 'true' | 'false' = 'true',
+    totalDealSize: 'true' | 'false' = 'true',
+  ) {
+    this.retrievability = retrievability;
+    this.numberOfClients = numberOfClients;
+    this.totalDealSize = totalDealSize;
+  }
+
   @ApiPropertyOptional({
     description:
       'Set to false to disable retrievability compliance metric check; default is true',
@@ -105,6 +120,16 @@ export class StorageProviderComplianceWeek extends IntersectionType(
 }
 
 export class StorageProviderComplianceMetricsResponse {
+  constructor(
+    retrievability: boolean,
+    numberOfClients: boolean,
+    totalDealSize: boolean,
+  ) {
+    this.retrievability = retrievability;
+    this.numberOfClients = numberOfClients;
+    this.totalDealSize = totalDealSize;
+  }
+
   @ApiProperty()
   retrievability: boolean;
 
@@ -139,11 +164,6 @@ export class StorageProviderComplianceWeekResponse {
     this.averageSuccessRate = averageSuccessRate;
     this.results = results;
   }
-}
-
-export class StorageProviderComplianceScore {
-  complianceScore: number; // 0 - 3
-  provider: string;
 }
 
 export class StorageProviderWithIpInfo {

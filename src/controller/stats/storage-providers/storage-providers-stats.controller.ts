@@ -22,7 +22,7 @@ import {
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersStatsAccController {
+export class StorageProvidersAccStatsController {
   protected isAccumulative: boolean = true;
 
   constructor(
@@ -32,7 +32,7 @@ export class StorageProvidersStatsAccController {
 
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderClients(): Promise<HistogramWeekResponse> {
+  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderClientsWeekly(
       this.isAccumulative,
     );
@@ -40,7 +40,7 @@ export class StorageProvidersStatsAccController {
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderBiggestClientDistribution(): Promise<HistogramWeekResponse> {
+  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
       this.isAccumulative,
     );
@@ -48,7 +48,7 @@ export class StorageProvidersStatsAccController {
 
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  public async getProviderRetrievability(): Promise<RetrievabilityWeekResponse> {
+  public async getProviderRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.isAccumulative,
     );
@@ -56,7 +56,7 @@ export class StorageProvidersStatsAccController {
 
   @Get('compliance-data')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
-  public async getProviderCompliance(
+  public async getProviderComplianceWeekly(
     @Query() metricsToCheck: StorageProviderComplianceMetrics,
   ): Promise<StorageProviderComplianceWeekResponse> {
     return await this.storageProviderService.getProviderComplianceWeekly(
@@ -95,7 +95,7 @@ export class StorageProvidersStatsAccController {
 @Controller('stats/providers')
 @ApiExcludeController()
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersStatsController extends StorageProvidersStatsAccController {
+export class StorageProvidersStatsController extends StorageProvidersAccStatsController {
   constructor(
     storageProviderService: StorageProviderService,
     ipniMisreportingCheckerService: IpniMisreportingCheckerService,

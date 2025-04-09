@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
-  ApiExcludeController,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
@@ -90,8 +89,3 @@ export class AllocatorReportController {
     return report;
   }
 }
-
-// TODO remove me
-@Controller('allocatorReport')
-@ApiExcludeController()
-export class AllocatorReportControllerRedirect extends AllocatorReportController {}

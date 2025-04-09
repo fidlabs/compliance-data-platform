@@ -11,7 +11,6 @@ import {
 import { ClientReportService } from 'src/service/client-report/client-report.service';
 import {
   ApiCreatedResponse,
-  ApiExcludeController,
   ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
@@ -99,8 +98,3 @@ export class ClientReportController {
     return report;
   }
 }
-
-// TODO remove me
-@Controller('clientReport')
-@ApiExcludeController()
-export class ClientReportControllerRedirect extends ClientReportController {}

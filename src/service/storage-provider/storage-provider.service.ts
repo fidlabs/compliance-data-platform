@@ -160,7 +160,7 @@ export class StorageProviderService {
         const weekProviders = await this.getWeekProviders(week, isAccumulative);
 
         const weekProvidersCompliance = weekProviders.map((provider) =>
-          this.getWeekProviderComplianceScore(
+          this.calculateProviderComplianceScore(
             provider,
             weekAverageRetrievability,
             metricsToCheck,
@@ -313,7 +313,7 @@ export class StorageProviderService {
     )._avg.avg_retrievability_success_rate;
   }
 
-  public getWeekProviderComplianceScore(
+  public calculateProviderComplianceScore(
     providerWeekly: {
       avg_retrievability_success_rate: number;
       num_of_clients: number;
@@ -350,7 +350,12 @@ export class StorageProviderService {
 
     return {
       provider: providerWeekly.provider,
-      complianceScore: complianceScore,
+      complianceScore:
+        complianceScore === 3
+          ? StorageProviderComplianceScoreRange.Compliant
+          : complianceScore === 0
+            ? StorageProviderComplianceScoreRange.NonCompliant
+            : StorageProviderComplianceScoreRange.PartiallyCompliant,
     };
   }
 
@@ -430,26 +435,12 @@ export class StorageProviderService {
     providers: string[],
     validComplianceScore: StorageProviderComplianceScoreRange,
   ): string[] {
-    const validComplianceScores: number[] = [];
-
-    switch (validComplianceScore) {
-      case StorageProviderComplianceScoreRange.NonCompliant:
-        validComplianceScores.push(0);
-        break;
-      case StorageProviderComplianceScoreRange.PartiallyCompliant:
-        validComplianceScores.push(1, 2);
-        break;
-      case StorageProviderComplianceScoreRange.Compliant:
-        validComplianceScores.push(3);
-        break;
-    }
-
     return (
       providersCompliance
         .filter(
           (p) =>
             providers.includes(p.provider) &&
-            validComplianceScores.includes(p.complianceScore),
+            p.complianceScore === validComplianceScore,
         )
         .map((p) => p.provider) ?? []
     );

@@ -4,6 +4,17 @@ import {
   StorageProviderComplianceWeekPercentage,
 } from '../storage-provider/types.storage-provider';
 
+export enum AllocatorComplianceScoreRange {
+  NonCompliant = 'nonCompliant',
+  PartiallyCompliant = 'partiallyCompliant',
+  Compliant = 'compliant',
+}
+
+export class AllocatorComplianceScore {
+  complianceScore: AllocatorComplianceScoreRange;
+  allocator: string;
+}
+
 export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceWeekPercentage {
   @ApiProperty({ type: String, description: 'Allocator ID' })
   id: string;

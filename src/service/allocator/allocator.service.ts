@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getStandardAllocatorBiggestClientDistribution,
@@ -11,10 +11,13 @@ import {
   getWeekAverageStandardAllocatorRetrievability,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
+import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
+  AllocatorComplianceScore,
+  AllocatorComplianceScoreRange,
   AllocatorSpsComplianceWeek,
   AllocatorSpsComplianceWeekResponse,
   AllocatorSpsComplianceWeekSingle,
@@ -32,6 +35,8 @@ import {
   StorageProviderComplianceScore,
 } from '../storage-provider/types.storage-provider';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cacheable } from 'src/utils/cacheable';
 
 @Injectable()
 export class AllocatorService {
@@ -42,7 +47,13 @@ export class AllocatorService {
     private readonly prismaDmobService: PrismaDmobService,
     private readonly histogramHelper: HistogramHelperService,
     private readonly storageProviderService: StorageProviderService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getAllocators() {
+    return this.prismaDmobService.$queryRawTyped(getAllocatorsFull());
+  }
 
   public async getStandardAllocatorClientsWeekly(
     isAccumulative: boolean,
@@ -125,54 +136,66 @@ export class AllocatorService {
     );
   }
 
-  // TODO measure and optimize this function
-  public async getStandardAllocatorSpsComplianceWeekly(
+  public calculateAllocatorComplianceScore(
+    allocatorWeekly: AllocatorSpsComplianceWeekSingle,
+    complianceThresholdPercentage: number,
+  ): AllocatorComplianceScore {
+    let complianceScore = AllocatorComplianceScoreRange.NonCompliant;
+
+    if (allocatorWeekly.compliantSpsPercentage >= complianceThresholdPercentage)
+      complianceScore = AllocatorComplianceScoreRange.Compliant;
+
+    if (
+      allocatorWeekly.compliantSpsPercentage +
+        allocatorWeekly.partiallyCompliantSpsPercentage >=
+      complianceThresholdPercentage
+    )
+      complianceScore = AllocatorComplianceScoreRange.PartiallyCompliant;
+
+    return {
+      complianceScore: complianceScore,
+      allocator: allocatorWeekly.id,
+    };
+  }
+
+  public async getWeekStandardAllocatorSpsCompliance(
+    week: Date,
     isAccumulative: boolean,
-    metricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeekResponse> {
-    const weeks = await this.storageProviderService.getWeeksTracked();
-
-    const lastWeekAverageProviderRetrievability =
-      await this.storageProviderService.getLastWeekAverageProviderRetrievability(
-        isAccumulative,
-      );
-
-    const results: AllocatorSpsComplianceWeek[] = [];
-
-    for (const week of weeks) {
-      const weekAverageProvidersRetrievability =
-        await this.storageProviderService.getWeekAverageProviderRetrievability(
-          week,
-          isAccumulative,
-        );
-
-      const weekProviders = await this.storageProviderService.getWeekProviders(
+    spMetricsToCheck?: StorageProviderComplianceMetrics,
+  ): Promise<AllocatorSpsComplianceWeek> {
+    const weekAverageProvidersRetrievability =
+      await this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
         isAccumulative,
       );
 
-      const weekProvidersCompliance: StorageProviderComplianceScore[] =
-        weekProviders.map((provider) => {
-          return this.storageProviderService.getWeekProviderComplianceScore(
-            provider,
-            weekAverageProvidersRetrievability,
-            metricsToCheck,
-          );
-        });
+    const weekProviders = await this.storageProviderService.getWeekProviders(
+      week,
+      isAccumulative,
+    );
 
-      const weekAllocatorsWithClients =
-        await this.getWeekStandardAllocatorsWithClients(week, isAccumulative);
+    const weekProvidersCompliance: StorageProviderComplianceScore[] =
+      weekProviders.map((provider) => {
+        return this.storageProviderService.calculateProviderComplianceScore(
+          provider,
+          weekAverageProvidersRetrievability,
+          spMetricsToCheck,
+        );
+      });
 
-      const clientsByAllocator = groupBy(
-        weekAllocatorsWithClients,
-        (a) => a.allocator,
-      );
+    const weekAllocatorsWithClients =
+      await this.getWeekStandardAllocatorsWithClients(week, isAccumulative);
 
-      const weekAllocators: AllocatorSpsComplianceWeekSingle[] =
-        await Promise.all(
-          Object.entries(clientsByAllocator).map(
-            // prettier-ignore
-            async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
+    const clientsByAllocator = groupBy(
+      weekAllocatorsWithClients,
+      (a) => a.allocator,
+    );
+
+    const weekAllocators: AllocatorSpsComplianceWeekSingle[] =
+      await Promise.all(
+        Object.entries(clientsByAllocator).map(
+          // prettier-ignore
+          async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
               const weekProvidersForAllocator =
                 await this.storageProviderService.getWeekProvidersForClients(
                   week,
@@ -194,22 +217,45 @@ export class AllocatorService {
                 totalSps: weekProvidersForAllocator.length,
               };
             },
-          ),
-        );
+        ),
+      );
 
-      results.push({
-        week: week,
-        averageSuccessRate: weekAverageProvidersRetrievability * 100,
-        total: weekAllocators.length,
-        allocators: weekAllocators,
-      });
-    }
+    return {
+      week: week,
+      averageSuccessRate: weekAverageProvidersRetrievability * 100,
+      total: weekAllocators.length,
+      allocators: weekAllocators,
+    };
+  }
+
+  // TODO measure and optimize this function
+  public async getStandardAllocatorSpsComplianceWeekly(
+    isAccumulative: boolean,
+    spMetricsToCheck?: StorageProviderComplianceMetrics,
+  ): Promise<AllocatorSpsComplianceWeekResponse> {
+    const weeks = await this.storageProviderService.getWeeksTracked();
+
+    const lastWeekAverageProviderRetrievability =
+      await this.storageProviderService.getLastWeekAverageProviderRetrievability(
+        isAccumulative,
+      );
+
+    const results = await Promise.all(
+      weeks.map(
+        async (week) =>
+          await this.getWeekStandardAllocatorSpsCompliance(
+            week,
+            isAccumulative,
+            spMetricsToCheck,
+          ),
+      ),
+    );
 
     return new AllocatorSpsComplianceWeekResponse(
       {
-        retrievability: metricsToCheck?.retrievability !== 'false',
-        numberOfClients: metricsToCheck?.numberOfClients !== 'false',
-        totalDealSize: metricsToCheck?.totalDealSize !== 'false',
+        retrievability: spMetricsToCheck?.retrievability !== 'false',
+        numberOfClients: spMetricsToCheck?.numberOfClients !== 'false',
+        totalDealSize: spMetricsToCheck?.totalDealSize !== 'false',
       },
       lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
