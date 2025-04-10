@@ -9,11 +9,11 @@ with with_week as (
     from ipni_reporting_daily
 )
 
-select
+select distinct on (week)
     week,
-    last_value(ok) over w as ok,
-    last_value(not_reporting) over w as not_reporting,
-    last_value(misreporting) over w as misreporting,
-    last_value(total) over w as total
+    ok,
+    not_reporting,
+    misreporting,
+    total
 from with_week
-window w as (partition by week order by date asc);
+order by week, date desc;
