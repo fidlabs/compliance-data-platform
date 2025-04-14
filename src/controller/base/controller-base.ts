@@ -10,9 +10,10 @@ export class ControllerBase {
     pagination?: {
       limit: number;
       page: number;
-      pages: number;
+      pages?: number;
     };
   } & T {
+    paginationInfo = this.validatePaginationInfo(paginationInfo);
     if (!paginationInfo) return data;
 
     return {
