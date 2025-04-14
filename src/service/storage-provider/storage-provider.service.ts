@@ -44,9 +44,11 @@ export class StorageProviderService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  public async getStorageProvidersWithIpInfo(): Promise<
-    StorageProviderWithIpInfo[]
-  > {
+  public async getProviders() {
+    return this.prismaService.provider.findMany({});
+  }
+
+  public async getProvidersWithIpInfo(): Promise<StorageProviderWithIpInfo[]> {
     return await this.prismaService.$queryRawTyped(getProvidersWithIpInfo());
   }
 

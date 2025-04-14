@@ -2,19 +2,33 @@ import { BadRequestException } from '@nestjs/common';
 import { PaginationInfo, SortingInfo } from './types.controller-base';
 
 export class ControllerBase {
-  public withPaginationInfo(data: any, paginationInfo?: PaginationInfo): any {
+  public withPaginationInfo<T>(
+    data: T,
+    paginationInfo?: PaginationInfo,
+    allDataLength?: number, // length of the data before pagination
+  ): {
+    pagination?: {
+      limit: number;
+      page: number;
+      pages: number;
+    };
+  } & T {
     if (!paginationInfo) return data;
 
     return {
       pagination: {
         limit: paginationInfo.limit,
         page: paginationInfo.page,
+        pages:
+          allDataLength === undefined
+            ? undefined
+            : Math.ceil(allDataLength / paginationInfo.limit),
       },
       ...data,
     };
   }
 
-  public paginated(values: any[], paginationInfo?: PaginationInfo): any[] {
+  public paginated<T>(values: T[], paginationInfo?: PaginationInfo): T[] {
     paginationInfo = this.validatePaginationInfo(paginationInfo);
     if (!paginationInfo) return values;
 
@@ -25,7 +39,7 @@ export class ControllerBase {
     return values.slice(startIndex, endIndex);
   }
 
-  public sorted(values: any[], sortingInfo?: SortingInfo): any[] {
+  public sorted<T>(values: T[], sortingInfo?: SortingInfo): T[] {
     if (!sortingInfo?.sort) return values;
     sortingInfo.order ??= 'asc';
 

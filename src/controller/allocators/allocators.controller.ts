@@ -32,16 +32,13 @@ export class AllocatorsController extends ControllerBase {
   public async getAllocators(@Query() query: PaginationSortingInfo) {
     const allocators = await this.allocatorService.getAllocators();
 
-    for (const a of allocators) {
-      a.allowanceArray = undefined;
-    }
-
     return this.withPaginationInfo(
       {
-        count: allocators.length.toString(),
+        count: allocators.length,
         data: this.paginated(this.sorted(allocators, query), query),
       },
       query,
+      allocators.length,
     );
   }
 
@@ -92,7 +89,7 @@ export class AllocatorsController extends ControllerBase {
       ),
       complianceThresholdPercentage: query.complianceThresholdPercentage,
       averageSuccessRate: weekAllocatorsSpsCompliance.averageSuccessRate,
-      count: result.length.toString(),
+      count: result.length,
       data: result,
     };
   }
@@ -116,6 +113,7 @@ export class AllocatorsController extends ControllerBase {
         data: this.paginated(this.sorted(result.data, query), query),
       },
       query,
+      result.data.length,
     );
   }
 }

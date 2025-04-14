@@ -10,12 +10,18 @@ datasource db {
 }
 
 model allocator {
-  id               String  @unique
+  id               String  @id
   address          String  @unique
   is_virtual       Boolean
   is_metaallocator Boolean
+}
 
-  @@id([id])
+model provider {
+  id               String @id
+  num_of_deals     Int
+  total_deal_size  BigInt
+  num_of_clients   Int
+  last_deal_height Int
 }
 
 model client_allocator_distribution_weekly {
@@ -77,10 +83,8 @@ model client_claims_hourly {
 }
 
 model provider_first_client {
-  provider     String
+  provider     String @id
   first_client String
-
-  @@id(provider)
 }
 
 model client_replica_distribution {
@@ -243,11 +247,9 @@ model client_report_cid_sharing {
 }
 
 model client_address_mapping {
-  client      String
+  client      String   @id
   address     String   @unique
   create_date DateTime @default(now())
-
-  @@id([client])
 }
 
 model client_report_check_result {
@@ -353,10 +355,8 @@ model ipni_publisher_advertisement {
 }
 
 model old_datacap_balance_nv22 {
-  allocator      String
+  allocator      String @id
   old_dc_balance BigInt
-
-  @@id(allocator)
 }
 
 model old_datacap_balance_weekly {
@@ -369,10 +369,8 @@ model old_datacap_balance_weekly {
 }
 
 model old_datacap_client_balance_nv22 {
-  client         String
+  client         String @id
   old_dc_balance BigInt
-
-  @@id(client)
 }
 
 model old_datacap_client_balance_weekly {
@@ -385,13 +383,11 @@ model old_datacap_client_balance_weekly {
 }
 
 model ipni_reporting_daily {
-  date          DateTime @default(now())
+  date          DateTime @id @default(now())
   ok            Int
   not_reporting Int
   misreporting  Int
   total         Int
-
-  @@id(date)
 }
 
 model provider_ip_info {

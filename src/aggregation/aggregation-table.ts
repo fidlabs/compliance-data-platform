@@ -21,4 +21,5 @@ export enum AggregationTable {
   ProvidersWeeklyAcc,
   UnifiedVerifiedDealHourly,
   Allocator,
+  Provider,
 }

@@ -1,31 +1,68 @@
-import { Controller, Get, Inject, Logger } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import { StorageProviderWithIpInfo } from 'src/service/storage-provider/types.storage-provider';
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
+import { PaginationSortingInfo } from '../base/types.controller-base';
+import { ControllerBase } from '../base/controller-base';
+import { Cacheable } from 'src/utils/cacheable';
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersController {
+export class StorageProvidersController extends ControllerBase {
   private readonly logger = new Logger(StorageProvidersController.name);
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly storageProviderService: StorageProviderService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @Get()
+  @Get('/ip-info')
   @ApiOperation({
     summary: 'Get list of storage providers with ip info',
   })
   @ApiOkResponse({
-    description: 'List of storage providers',
+    description: 'List of storage providers with ip info',
     type: StorageProviderWithIpInfo,
     isArray: true,
   })
   public async getStorageProvidersWithIpInfo(): Promise<
     StorageProviderWithIpInfo[]
   > {
-    return await this.storageProviderService.getStorageProvidersWithIpInfo();
+    return await this.storageProviderService.getProvidersWithIpInfo();
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  private async _getStorageProviders() {
+    return (await this.storageProviderService.getProviders()).map((p) => ({
+      provider: p.id,
+      noOfVerifiedDeals: p.num_of_deals,
+      verifiedDealsTotalSize: p.total_deal_size,
+      noOfClients: p.num_of_clients,
+      lastDealHeight: p.last_deal_height,
+    }));
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get list of all storage providers',
+  })
+  @ApiOkResponse({
+    description: 'List of storage providers',
+    type: null,
+  })
+  public async getStorageProviders(@Query() query: PaginationSortingInfo) {
+    const providers = await this._getStorageProviders();
+
+    return this.withPaginationInfo(
+      {
+        count: providers.length,
+        data: this.paginated(this.sorted(providers, query), query),
+      },
+      query,
+      providers.length,
+    );
   }
 }
