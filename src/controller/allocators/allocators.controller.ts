@@ -4,7 +4,10 @@ import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderComplianceMetricsResponse } from 'src/service/storage-provider/types.storage-provider';
 import { DateTime } from 'luxon';
-import { GetWeekAllocatorsWithSpsComplianceRequest } from './types.allocators';
+import {
+  GetWeekAllocatorsWithSpsComplianceRequest,
+  GetWeekAllocatorsWithSpsComplianceRequestData,
+} from './types.allocators';
 import { Cacheable } from 'src/utils/cacheable';
 import { PaginationSortingInfo } from '../base/types.controller-base';
 import { ControllerBase } from '../base/controller-base';
@@ -44,7 +47,7 @@ export class AllocatorsController extends ControllerBase {
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   private async _getWeekAllocatorsWithSpsCompliance(
-    @Query() query: GetWeekAllocatorsWithSpsComplianceRequest,
+    query: GetWeekAllocatorsWithSpsComplianceRequestData,
   ) {
     query.week ??= DateTime.now()
       .toUTC()
@@ -88,7 +91,7 @@ export class AllocatorsController extends ControllerBase {
         query.spMetricsToCheck?.totalDealSize !== 'false',
       ),
       complianceThresholdPercentage: query.complianceThresholdPercentage,
-      averageSuccessRate: weekAllocatorsSpsCompliance.averageSuccessRate,
+      averageSuccessRate: weekAllocatorsSpsCompliance.averageSuccessRate * 100,
       count: result.length,
       data: result,
     };
@@ -96,10 +99,10 @@ export class AllocatorsController extends ControllerBase {
 
   @Get('/compliance-data')
   @ApiOperation({
-    summary: 'Get list of allocators with compliance',
+    summary: 'Get list of allocators with compliance score',
   })
   @ApiOkResponse({
-    description: 'List of allocators with compliance',
+    description: 'List of allocators with compliance score',
     type: null,
   })
   public async getWeekAllocatorsWithSpsCompliance(
