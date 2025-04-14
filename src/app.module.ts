@@ -78,6 +78,7 @@ import { GitHubTriggersHandlerService } from './service/github-triggers-handler-
 import { AllocatorRunner } from './aggregation/runners/allocator.runner';
 import { AllocatorReportChecksService } from './service/allocator-report-checks/allocator-report-checks.service';
 import { AllocatorsController } from './controller/allocators/allocators.controller';
+import { ProviderRunner } from './aggregation/runners/provider.runner';
 
 @Module({
   imports: [
@@ -113,6 +114,7 @@ import { AllocatorsController } from './controller/allocators/allocators.control
     FilSparkService,
     AllocatorsWeeklyRunner,
     AllocatorRunner,
+    ProviderRunner,
     AllocatorsWeeklyAccRunner,
     CidSharingRunner,
     ClientAllocatorDistributionWeeklyRunner,
@@ -168,6 +170,7 @@ import { AllocatorsController } from './controller/allocators/allocators.control
       useFactory: (...runners) => runners,
       inject: [
         AllocatorRunner,
+        ProviderRunner,
         AllocatorsWeeklyRunner,
         AllocatorsWeeklyAccRunner,
         CidSharingRunner,

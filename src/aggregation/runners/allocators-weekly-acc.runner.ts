@@ -96,9 +96,11 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
             if (isFirstInsert) {
               isFirstInsert = false;
               getDataEndTimerMetric();
+
               storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
                 AllocatorsWeeklyAccRunner.name,
               );
+
               await tx.$executeRaw`delete from allocators_weekly_acc`;
             }
 

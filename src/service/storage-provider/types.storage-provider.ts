@@ -13,16 +13,6 @@ export class StorageProviderComplianceScore {
 }
 
 export class StorageProviderComplianceMetrics {
-  constructor(
-    retrievability: 'true' | 'false' = 'true',
-    numberOfClients: 'true' | 'false' = 'true',
-    totalDealSize: 'true' | 'false' = 'true',
-  ) {
-    this.retrievability = retrievability;
-    this.numberOfClients = numberOfClients;
-    this.totalDealSize = totalDealSize;
-  }
-
   @ApiPropertyOptional({
     description:
       'Set to false to disable retrievability compliance metric check; default is true',
@@ -43,6 +33,16 @@ export class StorageProviderComplianceMetrics {
     type: Boolean,
   })
   totalDealSize?: 'true' | 'false';
+
+  constructor(
+    retrievability: 'true' | 'false' = 'true',
+    numberOfClients: 'true' | 'false' = 'true',
+    totalDealSize: 'true' | 'false' = 'true',
+  ) {
+    this.retrievability = retrievability;
+    this.numberOfClients = numberOfClients;
+    this.totalDealSize = totalDealSize;
+  }
 }
 
 export class StorageProviderComplianceWeekPercentage {
@@ -120,6 +120,15 @@ export class StorageProviderComplianceWeek extends IntersectionType(
 }
 
 export class StorageProviderComplianceMetricsResponse {
+  @ApiProperty()
+  retrievability: boolean;
+
+  @ApiProperty()
+  numberOfClients: boolean;
+
+  @ApiProperty()
+  totalDealSize: boolean;
+
   constructor(
     retrievability: boolean,
     numberOfClients: boolean,
@@ -129,15 +138,6 @@ export class StorageProviderComplianceMetricsResponse {
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
   }
-
-  @ApiProperty()
-  retrievability: boolean;
-
-  @ApiProperty()
-  numberOfClients: boolean;
-
-  @ApiProperty()
-  totalDealSize: boolean;
 }
 
 export class StorageProviderComplianceWeekResponse {
@@ -169,20 +169,25 @@ export class StorageProviderComplianceWeekResponse {
 export class StorageProviderWithIpInfo {
   @ApiProperty({ type: String, description: 'ID of the storage provider' })
   provider: string;
+
   @ApiProperty({
     type: String,
     description: 'Latitude of the storage provider',
   })
   lat: string;
+
   @ApiProperty({
     type: String,
     description: 'Longitude of the storage provider',
   })
   long: string;
+
   @ApiProperty({ type: String, description: 'Country of the storage provider' })
   country: string;
+
   @ApiProperty({ type: String, description: 'Region of the storage provider' })
   region: string;
+
   @ApiProperty({ type: String, description: 'City of the storage provider' })
   city: string;
 }
