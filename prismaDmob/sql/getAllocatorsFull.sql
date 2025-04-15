@@ -15,7 +15,7 @@ select "verifier"."addressId"                                                   
        coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
-                       'error', "verifier_allowance"."error",
+                       'error', case when "verifier_allowance"."error" = '' then null else "verifier_allowance"."error" end,
                        'height', "verifier_allowance"."height",
                        'msgCID', "verifier_allowance"."msgCID",
                        'retries', "verifier_allowance"."retries",

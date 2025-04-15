@@ -1,6 +1,11 @@
-import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  IntersectionType,
+} from '@nestjs/swagger';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { PaginationSortingInfo } from '../base/types.controller-base';
+import { AllocatorComplianceScoreRange } from '../../service/allocator/types.allocator';
 
 export class GetWeekAllocatorsWithSpsComplianceRequestData {
   @ApiPropertyOptional({
@@ -9,7 +14,7 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData {
   })
   week?: Date;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 50,
     description: 'Requested compliance threshold percentage',
     default: 50,
@@ -20,14 +25,21 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData {
 
   @ApiPropertyOptional({
     example: new StorageProviderComplianceMetrics(),
-    description: 'Requested storage provider compliance metrics to check',
+    description:
+      'Requested storage provider compliance metrics to check; default is all enabled',
     default: new StorageProviderComplianceMetrics(),
     type: StorageProviderComplianceMetrics,
   })
-  spMetricsToCheck: StorageProviderComplianceMetrics;
+  spMetricsToCheck?: StorageProviderComplianceMetrics;
 }
 
 export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(
   GetWeekAllocatorsWithSpsComplianceRequestData,
   PaginationSortingInfo,
-) {}
+) {
+  @ApiPropertyOptional({
+    description: 'Requested compliance score filter; default is no filter',
+    enum: AllocatorComplianceScoreRange,
+  })
+  complianceScore?: AllocatorComplianceScoreRange;
+}
