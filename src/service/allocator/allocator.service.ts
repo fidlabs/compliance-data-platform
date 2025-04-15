@@ -137,24 +137,24 @@ export class AllocatorService {
   }
 
   public calculateAllocatorComplianceScore(
-    allocatorWeekly: AllocatorSpsComplianceWeekSingle,
+    weekAllocator: AllocatorSpsComplianceWeekSingle,
     complianceThresholdPercentage: number,
   ): AllocatorComplianceScore {
     let complianceScore = AllocatorComplianceScoreRange.NonCompliant;
 
-    if (allocatorWeekly.compliantSpsPercentage >= complianceThresholdPercentage)
+    if (weekAllocator.compliantSpsPercentage >= complianceThresholdPercentage)
       complianceScore = AllocatorComplianceScoreRange.Compliant;
 
     if (
-      allocatorWeekly.compliantSpsPercentage +
-        allocatorWeekly.partiallyCompliantSpsPercentage >=
+      weekAllocator.compliantSpsPercentage +
+        weekAllocator.partiallyCompliantSpsPercentage >=
       complianceThresholdPercentage
     )
       complianceScore = AllocatorComplianceScoreRange.PartiallyCompliant;
 
     return {
       complianceScore: complianceScore,
-      allocator: allocatorWeekly.id,
+      allocator: weekAllocator.id,
     };
   }
 

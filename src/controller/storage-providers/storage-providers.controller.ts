@@ -78,12 +78,6 @@ export class StorageProvidersController extends ControllerBase {
   private async _getWeekStorageProvidersWithSpsCompliance(
     query: GetWeekStorageProvidersWithSpsComplianceRequestData,
   ) {
-    query.week ??= DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate(); // last week default
-
     const providers = await this._getStorageProviders();
 
     const weekAverageRetrievability =
@@ -97,33 +91,21 @@ export class StorageProvidersController extends ControllerBase {
       true,
     );
 
-    const result = weekProviders.map((provider) => {
+    return weekProviders.map((provider) => {
       const providerData = providers.find(
         (p) => p.provider === provider.provider,
       );
 
       return {
-        ...providerData,
         complianceScore:
           this.storageProviderService.calculateProviderComplianceScore(
             provider,
             weekAverageRetrievability,
             query.spMetricsToCheck,
           ).complianceScore,
+        ...providerData,
       };
     });
-
-    return {
-      week: query.week,
-      metricsChecked: new StorageProviderComplianceMetricsResponse(
-        query.spMetricsToCheck?.retrievability !== 'false',
-        query.spMetricsToCheck?.numberOfClients !== 'false',
-        query.spMetricsToCheck?.totalDealSize !== 'false',
-      ),
-      averageSuccessRate: weekAverageRetrievability * 100,
-      count: result.length,
-      data: result,
-    };
   }
 
   @Get('/compliance-data')
@@ -137,15 +119,35 @@ export class StorageProvidersController extends ControllerBase {
   public async getWeekStorageProvidersWithSpsCompliance(
     @Query() query: GetWeekStorageProvidersWithSpsComplianceRequest,
   ) {
-    const result = await this._getWeekStorageProvidersWithSpsCompliance(query);
+    query.week ??= DateTime.now()
+      .toUTC()
+      .minus({ week: 1 })
+      .startOf('week')
+      .toJSDate(); // last week default
+
+    let result = await this._getWeekStorageProvidersWithSpsCompliance(query);
+
+    if (query.complianceScore) {
+      result = result.filter(
+        (storageProvider) =>
+          storageProvider.complianceScore === query.complianceScore,
+      );
+    }
 
     return this.withPaginationInfo(
       {
-        ...result,
-        data: this.paginated(this.sorted(result.data, query), query),
+        week: query.week,
+        metricsChecked: new StorageProviderComplianceMetricsResponse(
+          query.spMetricsToCheck?.retrievability !== 'false',
+          query.spMetricsToCheck?.numberOfClients !== 'false',
+          query.spMetricsToCheck?.totalDealSize !== 'false',
+        ),
+        complianceScore: query.complianceScore,
+        count: result.length,
+        data: this.paginated(this.sorted(result, query), query),
       },
       query,
-      result.data.length,
+      result.length,
     );
   }
 }

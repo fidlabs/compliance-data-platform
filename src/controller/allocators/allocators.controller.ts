@@ -49,16 +49,10 @@ export class AllocatorsController extends ControllerBase {
   private async _getWeekAllocatorsWithSpsCompliance(
     query: GetWeekAllocatorsWithSpsComplianceRequestData,
   ) {
-    query.week ??= DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate(); // last week default
-
     const allocators = await this.allocatorService.getAllocators();
     const weekAllocatorsSpsCompliance =
       await this.allocatorService.getWeekStandardAllocatorSpsCompliance(
-        query.week,
+        query.week!,
         true,
         query.spMetricsToCheck,
       );
@@ -72,7 +66,7 @@ export class AllocatorsController extends ControllerBase {
     );
 
     // this effectively filters out metaallocators and allocators from previous fil+ edition
-    const result = weekAllocatorsCompliance.map((allocator) => {
+    return weekAllocatorsCompliance.map((allocator) => {
       const allocatorData = allocators.find(
         (a) => a.addressId === allocator.allocator,
       );
@@ -82,19 +76,6 @@ export class AllocatorsController extends ControllerBase {
         ...allocatorData,
       };
     });
-
-    return {
-      week: query.week,
-      metricsChecked: new StorageProviderComplianceMetricsResponse(
-        query.spMetricsToCheck?.retrievability !== 'false',
-        query.spMetricsToCheck?.numberOfClients !== 'false',
-        query.spMetricsToCheck?.totalDealSize !== 'false',
-      ),
-      complianceThresholdPercentage: query.complianceThresholdPercentage,
-      averageSuccessRate: weekAllocatorsSpsCompliance.averageSuccessRate * 100,
-      count: result.length,
-      data: result,
-    };
   }
 
   @Get('/compliance-data')
@@ -108,15 +89,35 @@ export class AllocatorsController extends ControllerBase {
   public async getWeekAllocatorsWithSpsCompliance(
     @Query() query: GetWeekAllocatorsWithSpsComplianceRequest,
   ) {
-    const result = await this._getWeekAllocatorsWithSpsCompliance(query);
+    query.week ??= DateTime.now()
+      .toUTC()
+      .minus({ week: 1 })
+      .startOf('week')
+      .toJSDate(); // last week default
+
+    let result = await this._getWeekAllocatorsWithSpsCompliance(query);
+
+    if (query.complianceScore) {
+      result = result.filter(
+        (allocator) => allocator.complianceScore === query.complianceScore,
+      );
+    }
 
     return this.withPaginationInfo(
       {
-        ...result,
-        data: this.paginated(this.sorted(result.data, query), query),
+        week: query.week,
+        metricsChecked: new StorageProviderComplianceMetricsResponse(
+          query.spMetricsToCheck?.retrievability !== 'false',
+          query.spMetricsToCheck?.numberOfClients !== 'false',
+          query.spMetricsToCheck?.totalDealSize !== 'false',
+        ),
+        complianceThresholdPercentage: query.complianceThresholdPercentage,
+        complianceScore: query.complianceScore,
+        count: result.length,
+        data: this.paginated(this.sorted(result, query), query),
       },
       query,
-      result.data.length,
+      result.length,
     );
   }
 }
