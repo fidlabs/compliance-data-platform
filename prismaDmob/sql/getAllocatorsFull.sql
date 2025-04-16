@@ -42,15 +42,15 @@ select "verifier"."addressId"                                                   
                 where "verifierId" = "verifier"."id"
                 order by "height" desc
                 limit 1)
-       )                                                                                    as "auditStatus",
-       "verifier"."initialAllowance" - "verifier"."allowance"                               as "remainingDatacap",
-       count(distinct "verified_client"."id")::int                                          as "verifiedClientsCount",
-       -- receivedDatacapChange90Days
-       -- receivedDatacapChange
-       "verifier"."addressEth"                                                              as "addressEth",
-       "verifier"."dcSource"                                                                as "dcSource",
-       "verifier"."isVirtual"                                                               as "isVirtual",
-       "verifier"."isMetaAllocator"                                                         as "isMetaAllocator"
+       )                                                                                                                                                                  as "auditStatus",
+       "verifier"."initialAllowance" - "verifier"."allowance"                                                                                                             as "remainingDatacap",
+       count(distinct "verified_client"."id")::int                                                                                                                        as "verifiedClientsCount",
+       coalesce(sum("verifier_allowance"."allowance") filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '14 days'))), 0) as "receivedDatacapChange",
+       coalesce(sum("verifier_allowance"."allowance") filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '90 days'))), 0) as "receivedDatacapChange90Days",
+       "verifier"."addressEth"                                                                                                                                            as "addressEth",
+       "verifier"."dcSource"                                                                                                                                              as "dcSource",
+       "verifier"."isVirtual"                                                                                                                                             as "isVirtual",
+       "verifier"."isMetaAllocator"                                                                                                                                       as "isMetaAllocator"
 from "verifier"
          left join "verifier_allowance"
                    on "verifier"."id" = "verifier_allowance"."verifierId"
