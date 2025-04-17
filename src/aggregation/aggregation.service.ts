@@ -10,6 +10,7 @@ import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
 import { LocationService } from 'src/service/location/location.service';
 import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
+import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
 
 @Injectable()
 export class AggregationService {
@@ -27,6 +28,7 @@ export class AggregationService {
     private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
     private readonly locationService: LocationService,
     private readonly lotusApiService: LotusApiService,
+    private readonly allocatorRegistryService: GitHubAllocatorRegistryService,
   ) {}
 
   public async executeWithRetries(
@@ -104,6 +106,7 @@ export class AggregationService {
                     this.ipniMisreportingCheckerService,
                   locationService: this.locationService,
                   lotusApiService: this.lotusApiService,
+                  allocatorRegistryService: this.allocatorRegistryService,
                 }),
               aggregationRunnerName,
             );
