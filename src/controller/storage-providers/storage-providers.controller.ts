@@ -6,10 +6,10 @@ import {
   StorageProviderWithIpInfo,
 } from 'src/service/storage-provider/types.storage-provider';
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { PaginationSortingInfo } from '../base/types.controller-base';
 import { ControllerBase } from '../base/controller-base';
 import { Cacheable } from 'src/utils/cacheable';
 import {
+  GetStorageProvidersRequest,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
 } from './types.storage-providers';
@@ -61,8 +61,14 @@ export class StorageProvidersController extends ControllerBase {
     description: 'List of storage providers',
     type: null,
   })
-  public async getStorageProviders(@Query() query: PaginationSortingInfo) {
-    const providers = await this._getStorageProviders();
+  public async getStorageProviders(@Query() query: GetStorageProvidersRequest) {
+    let providers = await this._getStorageProviders();
+
+    if (query.provider) {
+      providers = providers.filter(
+        (provider) => provider.provider === query.provider,
+      );
+    }
 
     return this.withPaginationInfo(
       {
@@ -91,21 +97,25 @@ export class StorageProvidersController extends ControllerBase {
       true,
     );
 
-    return weekProviders.map((provider) => {
-      const providerData = providers.find(
-        (p) => p.provider === provider.provider,
-      );
+    return weekProviders
+      .map((provider) => {
+        const providerData = providers.find(
+          (p) => p.provider === provider.provider,
+        );
 
-      return {
-        complianceScore:
-          this.storageProviderService.calculateProviderComplianceScore(
-            provider,
-            weekAverageRetrievability,
-            query.spMetricsToCheck,
-          ).complianceScore,
-        ...providerData,
-      };
-    });
+        return (
+          providerData && {
+            complianceScore:
+              this.storageProviderService.calculateProviderComplianceScore(
+                provider,
+                weekAverageRetrievability,
+                query.spMetricsToCheck,
+              ).complianceScore,
+            ...providerData,
+          }
+        );
+      })
+      .filter((provider) => provider?.provider);
   }
 
   @Get('/compliance-data')
@@ -125,12 +135,18 @@ export class StorageProvidersController extends ControllerBase {
       .startOf('week')
       .toJSDate(); // last week default
 
-    let result = await this._getWeekStorageProvidersWithSpsCompliance(query);
+    let providers = await this._getWeekStorageProvidersWithSpsCompliance(query);
 
     if (query.complianceScore) {
-      result = result.filter(
+      providers = providers.filter(
         (storageProvider) =>
           storageProvider.complianceScore === query.complianceScore,
+      );
+    }
+
+    if (query.provider) {
+      providers = providers.filter(
+        (provider) => provider.provider === query.provider,
       );
     }
 
@@ -143,11 +159,11 @@ export class StorageProvidersController extends ControllerBase {
           query.spMetricsToCheck?.totalDealSize !== 'false',
         ),
         complianceScore: query.complianceScore,
-        count: result.length,
-        data: this.paginated(this.sorted(result, query), query),
+        count: providers.length,
+        data: this.paginated(this.sorted(providers, query), query),
       },
       query,
-      result.length,
+      providers.length,
     );
   }
 }

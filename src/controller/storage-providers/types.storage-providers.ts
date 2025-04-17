@@ -27,8 +27,20 @@ export class GetWeekStorageProvidersWithSpsComplianceRequest extends Intersectio
   PaginationSortingInfo,
 ) {
   @ApiPropertyOptional({
-    description: 'Requested compliance score filter; default is no filter',
+    description: 'Compliance score to filter by',
     enum: StorageProviderComplianceScoreRange,
   })
   complianceScore?: StorageProviderComplianceScoreRange;
+
+  @ApiPropertyOptional({
+    description: 'Storage provider ID to filter by',
+  })
+  provider?: string;
+}
+
+export class GetStorageProvidersRequest extends PaginationSortingInfo {
+  @ApiPropertyOptional({
+    description: 'Storage provider ID to filter by',
+  })
+  provider?: string;
 }

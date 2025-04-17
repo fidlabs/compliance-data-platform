@@ -5,11 +5,11 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderComplianceMetricsResponse } from 'src/service/storage-provider/types.storage-provider';
 import { DateTime } from 'luxon';
 import {
+  GetAllocatorsRequest,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
 } from './types.allocators';
 import { Cacheable } from 'src/utils/cacheable';
-import { PaginationSortingInfo } from '../base/types.controller-base';
 import { ControllerBase } from '../base/controller-base';
 
 @Controller('allocators')
@@ -32,8 +32,14 @@ export class AllocatorsController extends ControllerBase {
     description: 'List of allocators',
     type: null,
   })
-  public async getAllocators(@Query() query: PaginationSortingInfo) {
-    const allocators = await this.allocatorService.getAllocators();
+  public async getAllocators(@Query() query: GetAllocatorsRequest) {
+    let allocators = await this.allocatorService.getAllocators();
+
+    if (query.addressId) {
+      allocators = allocators.filter(
+        (allocator) => allocator.addressId === query.addressId,
+      );
+    }
 
     return this.withPaginationInfo(
       {
@@ -66,16 +72,20 @@ export class AllocatorsController extends ControllerBase {
     );
 
     // this effectively filters out metaallocators and allocators from previous fil+ edition
-    return weekAllocatorsCompliance.map((allocator) => {
-      const allocatorData = allocators.find(
-        (a) => a.addressId === allocator.allocator,
-      );
+    return weekAllocatorsCompliance
+      .map((allocator) => {
+        const allocatorData = allocators.find(
+          (a) => a.addressId === allocator.allocator,
+        );
 
-      return {
-        complianceScore: allocator.complianceScore,
-        ...allocatorData,
-      };
-    });
+        return (
+          allocatorData && {
+            complianceScore: allocator.complianceScore,
+            ...allocatorData,
+          }
+        );
+      })
+      .filter((allocator) => allocator?.addressId);
   }
 
   @Get('/compliance-data')
@@ -95,11 +105,17 @@ export class AllocatorsController extends ControllerBase {
       .startOf('week')
       .toJSDate(); // last week default
 
-    let result = await this._getWeekAllocatorsWithSpsCompliance(query);
+    let allocators = await this._getWeekAllocatorsWithSpsCompliance(query);
 
     if (query.complianceScore) {
-      result = result.filter(
+      allocators = allocators.filter(
         (allocator) => allocator.complianceScore === query.complianceScore,
+      );
+    }
+
+    if (query.addressId) {
+      allocators = allocators.filter(
+        (allocator) => allocator.addressId === query.addressId,
       );
     }
 
@@ -113,11 +129,11 @@ export class AllocatorsController extends ControllerBase {
         ),
         complianceThresholdPercentage: query.complianceThresholdPercentage,
         complianceScore: query.complianceScore,
-        count: result.length,
-        data: this.paginated(this.sorted(result, query), query),
+        count: allocators.length,
+        data: this.paginated(this.sorted(allocators, query), query),
       },
       query,
-      result.length,
+      allocators.length,
     );
   }
 }
