@@ -35,13 +35,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   }
 
   private async getInstallationId(): Promise<number> {
-    const appOctokit = new Octokit({
-      authStrategy: createAppAuth,
-      auth: {
-        appId: this.configService.get<string>('GITHUB_APP_ID'),
-        privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
-      },
-    });
+    const appOctokit = await this._getOctokit();
 
     const response = await appOctokit.request(
       'GET /repos/{owner}/{repo}/installation',
@@ -57,17 +51,22 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     return response.data.id;
   }
 
+  private async _getOctokit(installationId?: number): Promise<Octokit> {
+    return new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId: this.configService.get<string>('GITHUB_APP_ID'),
+        privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
+        installationId: installationId ?? undefined,
+      },
+    });
+  }
+
   private async getOctokit(): Promise<Octokit> {
     if (!this.octokit) {
-      this.octokit = new Octokit({
-        authStrategy: createAppAuth,
-        auth: {
-          appId: this.configService.get<string>('GITHUB_APP_ID'),
-          privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
-          installationId: await this.getInstallationId(),
-        },
-      });
+      this.octokit = await this._getOctokit(await this.getInstallationId());
     }
+
     return this.octokit;
   }
 
@@ -92,6 +91,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       .map((v) => v.path);
 
     const registry = [];
+
     for (const path of paths) {
       try {
         const info = await this.getAllocatorInfo(path);
@@ -103,6 +103,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
         );
       }
     }
+
     return registry;
   }
 
@@ -125,18 +126,21 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     const data = JSON.parse(atob(file.data.content));
     if (!data?.pathway_addresses?.msig) {
       this.logger.warn(`No msig address for ${path}`);
-      return;
+      return null;
     }
 
     const id = await this.lotusApiService.getFilecoinClientId(
       data.pathway_addresses.msig,
     );
+
     if (!id) {
       this.logger.warn(
         `No ID for address ${data.pathway_addresses.msig} (${path})`,
       );
-      return;
+
+      return null;
     }
+
     return {
       id,
       address: data.pathway_addresses.msig,
