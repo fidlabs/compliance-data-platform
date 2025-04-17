@@ -24,6 +24,15 @@ model provider {
   last_deal_height Int
 }
 
+model allocator_registry {
+  id            String
+  address       String @unique
+  json_path     String
+  registry_info Json
+
+  @@id([id])
+}
+
 model client_allocator_distribution_weekly {
   week               DateTime
   client             String
