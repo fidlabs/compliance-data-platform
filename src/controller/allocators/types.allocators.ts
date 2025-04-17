@@ -38,8 +38,20 @@ export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(
   PaginationSortingInfo,
 ) {
   @ApiPropertyOptional({
-    description: 'Requested compliance score filter; default is no filter',
+    description: 'Compliance score to filter by',
     enum: AllocatorComplianceScoreRange,
   })
   complianceScore?: AllocatorComplianceScoreRange;
+
+  @ApiPropertyOptional({
+    description: 'Allocator ID to filter by',
+  })
+  addressId?: string;
+}
+
+export class GetAllocatorsRequest extends PaginationSortingInfo {
+  @ApiPropertyOptional({
+    description: 'Allocator ID to filter by',
+  })
+  addressId?: string;
 }
