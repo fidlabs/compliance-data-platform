@@ -1,4 +1,5 @@
 export enum AggregationTable {
+  AllocatorRegistry,
   AllocatorsWeekly,
   AllocatorsWeeklyAcc,
   CidSharing,
