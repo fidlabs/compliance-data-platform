@@ -52,13 +52,14 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   }
 
   private async _getOctokit(installationId?: number): Promise<Octokit> {
+    const auth: any = {
+      appId: this.configService.get<string>('GITHUB_APP_ID'),
+      privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
+    };
+    if (installationId) auth.installationId = installationId;
     return new Octokit({
       authStrategy: createAppAuth,
-      auth: {
-        appId: this.configService.get<string>('GITHUB_APP_ID'),
-        privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
-        installationId: installationId ?? undefined,
-      },
+      auth,
     });
   }
 
@@ -72,17 +73,26 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
   public async getAllocatorsRegistry(): Promise<AllocatorRegistry[]> {
     const octokit = await this.getOctokit();
-    const response = (await octokit.request(
-      'GET /repos/{owner}/{repo}/contents/{path}',
-      {
-        owner: this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_OWNER'),
-        repo: this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME'),
-        path: 'Allocators',
-        headers: {
-          'X-GitHub-Api-Version': '2022-11-28',
+    let response;
+    try {
+      response = (await octokit.request(
+        'GET /repos/{owner}/{repo}/contents/{path}',
+        {
+          owner: this.configService.get<string>(
+            'ALLOCATOR_REGISTRY_REPO_OWNER',
+          ),
+          repo: this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME'),
+          path: 'Allocators',
+          headers: {
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
         },
-      },
-    )) as any;
+      )) as any;
+    } catch (err) {
+      this.healthy = false;
+      throw err;
+    }
+    this.healthy = true;
 
     const paths = response.data
       .filter(
