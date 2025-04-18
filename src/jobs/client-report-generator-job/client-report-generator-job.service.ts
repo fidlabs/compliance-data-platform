@@ -47,9 +47,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     application: AllocatorTechApplicationResponse,
   ) {
     // find Filecoin Client ID
-    const filecoinId = await this.lotusApiService.getFilecoinClientId(
-      application.ID,
-    );
+    const filecoinId = await this.lotusApiService.getFilecoinId(application.ID);
 
     if (!filecoinId) {
       throw new Error(`Filecoin Id not found`);

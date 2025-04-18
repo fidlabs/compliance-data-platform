@@ -129,7 +129,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       return null;
     }
 
-    const id = await this.lotusApiService.getFilecoinClientId(
+    const id = await this.lotusApiService.getFilecoinId(
       data.pathway_addresses.msig,
     );
 

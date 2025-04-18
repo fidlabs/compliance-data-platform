@@ -255,8 +255,8 @@ model client_report_cid_sharing {
   unique_cid_count             Int
 }
 
-model client_address_mapping {
-  client      String   @id
+model id_address_mapping {
+  id          String   @id
   address     String   @unique
   create_date DateTime @default(now())
 }
