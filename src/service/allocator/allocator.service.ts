@@ -37,6 +37,7 @@ import {
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AllocatorService {
@@ -47,12 +48,34 @@ export class AllocatorService {
     private readonly prismaDmobService: PrismaDmobService,
     private readonly histogramHelper: HistogramHelperService,
     private readonly storageProviderService: StorageProviderService,
+    private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocators() {
-    return this.prismaDmobService.$queryRawTyped(getAllocatorsFull());
+    const allocators = await this.prismaDmobService.$queryRawTyped(getAllocatorsFull());
+    const jsonLinks = await this.prismaService.allocator_registry.findMany({
+      select: {
+        id: true,
+        json_path: true
+      }
+    });
+    const jsonLinksMap = jsonLinks.reduce((acc, v) => {
+      acc[v.id] = v.json_path;
+      return acc;
+    }, {});
+    const owner = this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_OWNER');
+    const name = this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME');
+    const urlBase = `https://github.com/${owner}/${name}/blob/main`;
+    return allocators.map((allocator) => {
+      const path = jsonLinksMap[allocator.addressId];
+      const application_json_url = path ? `${urlBase}/${path}` : null;
+      return {
+        application_json_url,
+        ...allocator
+      };
+    })
   }
 
   public async getStandardAllocatorClientsWeekly(
