@@ -20,7 +20,7 @@ export class AllocatorTechService {
 
   @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
   public async getApplications(): Promise<AllocatorTechApplicationResponse[]> {
-    const endpoint = `${this.configService.get<string>('ALLOCATOR_TECH_BASE_URL')}/applications`;
+    const endpoint = `${this.configService.get<string>('ALLOCATOR_TECH_BASE_URL')}/applications/active`;
 
     const { data } = await firstValueFrom(
       this.httpService.get<AllocatorTechApplicationResponse[]>(endpoint),
