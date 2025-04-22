@@ -54,28 +54,36 @@ export class AllocatorService {
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocators() {
-    const allocators = await this.prismaDmobService.$queryRawTyped(getAllocatorsFull());
+    const allocators =
+      await this.prismaDmobService.$queryRawTyped(getAllocatorsFull());
+
     const jsonLinks = await this.prismaService.allocator_registry.findMany({
       select: {
         id: true,
-        json_path: true
-      }
+        json_path: true,
+      },
     });
+
     const jsonLinksMap = jsonLinks.reduce((acc, v) => {
       acc[v.id] = v.json_path;
       return acc;
     }, {});
-    const owner = this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_OWNER');
+
+    const owner = this.configService.get<string>(
+      'ALLOCATOR_REGISTRY_REPO_OWNER',
+    );
+
     const name = this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME');
     const urlBase = `https://github.com/${owner}/${name}/blob/main`;
+
     return allocators.map((allocator) => {
       const path = jsonLinksMap[allocator.addressId];
       const application_json_url = path ? `${urlBase}/${path}` : null;
       return {
         application_json_url,
-        ...allocator
+        ...allocator,
       };
-    })
+    });
   }
 
   public async getStandardAllocatorClientsWeekly(
@@ -219,27 +227,27 @@ export class AllocatorService {
         Object.entries(clientsByAllocator).map(
           // prettier-ignore
           async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
-              const weekProvidersForAllocator =
-                await this.storageProviderService.getWeekProvidersForClients(
-                  week,
-                  isAccumulative,
-                  clients.map((p) => p.client),
-                );
+            const weekProvidersForAllocator =
+              await this.storageProviderService.getWeekProvidersForClients(
+                week,
+                isAccumulative,
+                clients.map((p) => p.client),
+              );
 
-              return {
-                id: allocator,
-                totalDatacap: await this.getWeekAllocatorTotalDatacap(
-                  week,
-                  isAccumulative,
-                  allocator,
-                ),
-                ...this.storageProviderService.getProvidersCompliancePercentage(
-                  weekProvidersCompliance,
-                  weekProvidersForAllocator,
-                ),
-                totalSps: weekProvidersForAllocator.length,
-              };
-            },
+            return {
+              id: allocator,
+              totalDatacap: await this.getWeekAllocatorTotalDatacap(
+                week,
+                isAccumulative,
+                allocator,
+              ),
+              ...this.storageProviderService.getProvidersCompliancePercentage(
+                weekProvidersCompliance,
+                weekProvidersForAllocator,
+              ),
+              totalSps: weekProvidersForAllocator.length,
+            };
+          },
         ),
       );
 
