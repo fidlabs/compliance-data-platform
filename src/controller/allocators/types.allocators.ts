@@ -7,7 +7,7 @@ import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/t
 import { PaginationSortingInfo } from '../base/types.controller-base';
 import { AllocatorComplianceScoreRange } from '../../service/allocator/types.allocator';
 
-export class GetWeekAllocatorsWithSpsComplianceRequestData {
+export class GetWeekAllocatorsWithSpsComplianceRequestData extends StorageProviderComplianceMetrics {
   @ApiPropertyOptional({
     description: 'Requested week to check compliance for; default is last week',
     format: 'date',
@@ -22,15 +22,6 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData {
     maximum: 100,
   })
   complianceThresholdPercentage: number;
-
-  @ApiPropertyOptional({
-    example: new StorageProviderComplianceMetrics(),
-    description:
-      'Requested storage provider compliance metrics to check; default is all enabled',
-    default: new StorageProviderComplianceMetrics(),
-    type: StorageProviderComplianceMetrics,
-  })
-  spMetricsToCheck?: StorageProviderComplianceMetrics;
 }
 
 export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(

@@ -3,13 +3,24 @@ import {
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
+import { Logger } from '@nestjs/common';
 
 export class AllocatorRegistryRunner implements AggregationRunner {
+  private readonly logger = new Logger(AllocatorRegistryRunner.name);
+
   public async run({
     prismaService,
     prometheusMetricService,
     allocatorRegistryService,
   }: AggregationRunnerRunServices): Promise<void> {
+    if (!allocatorRegistryService.isInitialized()) {
+      this.logger.warn(
+        'Allocator registry service is not initialized; check your environment variables; skipping this run',
+      );
+
+      return;
+    }
+
     const {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,

@@ -34,6 +34,15 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
+  public isInitialized(): boolean {
+    return (
+      !!this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_OWNER') &&
+      !!this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME') &&
+      !!this.configService.get<string>('GITHUB_APP_ID') &&
+      !!this.configService.get<string>('GITHUB_PRIVATE_KEY')
+    );
+  }
+
   private async getInstallationId(): Promise<number> {
     const appOctokit = await this._getOctokit();
 
@@ -56,7 +65,9 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       appId: this.configService.get<string>('GITHUB_APP_ID'),
       privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
     };
+
     if (installationId) auth.installationId = installationId;
+
     return new Octokit({
       authStrategy: createAppAuth,
       auth,
@@ -74,7 +85,10 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   public async getAllocatorsRegistry(): Promise<AllocatorRegistry[]> {
     const octokit = await this.getOctokit();
     let response;
+
     try {
+      this.healthy = true;
+
       response = (await octokit.request(
         'GET /repos/{owner}/{repo}/contents/{path}',
         {
@@ -90,9 +104,10 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       )) as any;
     } catch (err) {
       this.healthy = false;
-      throw err;
+      throw new Error(`Error fetching allocators registry: ${err.message}`, {
+        cause: err,
+      });
     }
-    this.healthy = true;
 
     const paths = response.data
       .filter(
@@ -121,6 +136,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     path: string,
   ): Promise<AllocatorRegistry | null> {
     const octokit = await this.getOctokit();
+
     const file = (await octokit.request(
       'GET /repos/{owner}/{repo}/contents/{path}',
       {
@@ -134,6 +150,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     )) as any;
 
     const data = JSON.parse(atob(file.data.content));
+
     if (!data?.pathway_addresses?.msig) {
       this.logger.warn(`No msig address for ${path}`);
       return null;
@@ -152,7 +169,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     }
 
     return {
-      id,
+      id: id,
       address: data.pathway_addresses.msig,
       json_path: path,
       registry_info: data,

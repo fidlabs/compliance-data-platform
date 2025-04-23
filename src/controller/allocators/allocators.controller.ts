@@ -60,7 +60,7 @@ export class AllocatorsController extends ControllerBase {
       await this.allocatorService.getWeekStandardAllocatorSpsCompliance(
         query.week!,
         true,
-        query.spMetricsToCheck,
+        query,
       );
 
     const weekAllocatorsCompliance = weekAllocatorsSpsCompliance.allocators.map(
@@ -123,9 +123,9 @@ export class AllocatorsController extends ControllerBase {
       {
         week: query.week,
         metricsChecked: new StorageProviderComplianceMetricsResponse(
-          query.spMetricsToCheck?.retrievability !== 'false',
-          query.spMetricsToCheck?.numberOfClients !== 'false',
-          query.spMetricsToCheck?.totalDealSize !== 'false',
+          query.retrievability !== 'false',
+          query.numberOfClients !== 'false',
+          query.totalDealSize !== 'false',
         ),
         complianceThresholdPercentage: query.complianceThresholdPercentage,
         complianceScore: query.complianceScore,
