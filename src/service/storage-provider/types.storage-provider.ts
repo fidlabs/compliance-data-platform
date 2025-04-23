@@ -130,9 +130,9 @@ export class StorageProviderComplianceMetricsResponse {
   totalDealSize: boolean;
 
   constructor(
-    retrievability: boolean,
-    numberOfClients: boolean,
-    totalDealSize: boolean,
+    retrievability = true,
+    numberOfClients = true,
+    totalDealSize = true,
   ) {
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;

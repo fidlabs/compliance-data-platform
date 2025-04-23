@@ -19,6 +19,7 @@ import { IpniAdvertisementFetcherJobService } from 'src/jobs/ipni-advertisement-
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 import { Cacheable } from 'src/utils/cacheable';
+import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
 
 @Controller()
 export class AppController extends HealthIndicator {
@@ -39,6 +40,7 @@ export class AppController extends HealthIndicator {
     private readonly allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
     private readonly ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
+    private readonly gitHubAllocatorRegistryService: GitHubAllocatorRegistryService,
   ) {
     super();
   }
@@ -116,6 +118,7 @@ export class AppController extends HealthIndicator {
       () => this.allocatorReportGeneratorJobService.getHealth(),
       () => this.ipniAdvertisementFetcherJobService.getHealth(),
       () => this.gitHubTriggersHandlerService.getHealth(),
+      () => this.gitHubAllocatorRegistryService.getHealth(),
     ]);
   }
 }

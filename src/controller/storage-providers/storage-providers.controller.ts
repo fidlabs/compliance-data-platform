@@ -109,7 +109,7 @@ export class StorageProvidersController extends ControllerBase {
               this.storageProviderService.calculateProviderComplianceScore(
                 provider,
                 weekAverageRetrievability,
-                query.spMetricsToCheck,
+                query,
               ).complianceScore,
             ...providerData,
           }
@@ -154,9 +154,9 @@ export class StorageProvidersController extends ControllerBase {
       {
         week: query.week,
         metricsChecked: new StorageProviderComplianceMetricsResponse(
-          query.spMetricsToCheck?.retrievability !== 'false',
-          query.spMetricsToCheck?.numberOfClients !== 'false',
-          query.spMetricsToCheck?.totalDealSize !== 'false',
+          query.retrievability !== 'false',
+          query.numberOfClients !== 'false',
+          query.totalDealSize !== 'false',
         ),
         complianceScore: query.complianceScore,
         count: providers.length,
