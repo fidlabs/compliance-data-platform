@@ -7,6 +7,7 @@ import {
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { CacheTTL } from '@nestjs/cache-manager';
+import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 
 @Controller('stats/acc/allocators')
@@ -43,11 +44,11 @@ export class AllocatorsAccStatsController {
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
   public async getAllocatorSpsComplianceWeekly(
-    @Query() metricsToCheck: StorageProviderComplianceMetrics,
+    @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     return await this.allocatorService.getStandardAllocatorSpsComplianceWeekly(
       this.isAccumulative,
-      metricsToCheck,
+      StorageProviderComplianceMetrics.of(spMetricsToCheck),
     );
   }
 }

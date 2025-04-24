@@ -56,4 +56,6 @@ from "verifier"
                    on "verifier"."id" = "verifier_allowance"."verifierId"
          left join "verified_client"
                    on "verifier"."addressId" = "verified_client"."verifierAddressId"
+         -- showInactive parameter $1
+         where $1 or "verifier"."createdAtHeight" > 3698160 -- current fil+ edition start
 group by "verifier"."id";

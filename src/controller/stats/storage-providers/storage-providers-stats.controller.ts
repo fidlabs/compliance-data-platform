@@ -19,6 +19,7 @@ import {
   AggregatedProvidersIPNIReportingStatus,
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
+import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -57,11 +58,11 @@ export class StorageProvidersAccStatsController {
   @Get('compliance-data')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
   public async getProviderComplianceWeekly(
-    @Query() metricsToCheck: StorageProviderComplianceMetrics,
+    @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
   ): Promise<StorageProviderComplianceWeekResponse> {
     return await this.storageProviderService.getProviderComplianceWeekly(
       this.isAccumulative,
-      metricsToCheck,
+      StorageProviderComplianceMetrics.of(spMetricsToCheck),
     );
   }
 
