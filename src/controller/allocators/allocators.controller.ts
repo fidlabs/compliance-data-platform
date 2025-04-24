@@ -35,9 +35,15 @@ export class AllocatorsController extends ControllerBase {
   public async getAllocators(@Query() query: GetAllocatorsRequest) {
     let allocators = await this.allocatorService.getAllocators();
 
-    if (query.addressId) {
+    if (query.filter) {
+      query.filter = query.filter.toLowerCase();
+
       allocators = allocators.filter(
-        (allocator) => allocator.addressId === query.addressId,
+        (allocator) =>
+          allocator.addressId.toLowerCase() === query.filter ||
+          allocator.address?.toLowerCase() === query.filter ||
+          allocator.name?.toLowerCase().includes(query.filter) ||
+          allocator.orgName?.toLowerCase().includes(query.filter),
       );
     }
 
@@ -113,9 +119,15 @@ export class AllocatorsController extends ControllerBase {
       );
     }
 
-    if (query.addressId) {
+    if (query.filter) {
+      query.filter = query.filter.toLowerCase();
+
       allocators = allocators.filter(
-        (allocator) => allocator.addressId === query.addressId,
+        (allocator) =>
+          allocator.addressId.toLowerCase() === query.filter ||
+          allocator.address?.toLowerCase() === query.filter ||
+          allocator.name?.toLowerCase().includes(query.filter) ||
+          allocator.orgName?.toLowerCase().includes(query.filter),
       );
     }
 
