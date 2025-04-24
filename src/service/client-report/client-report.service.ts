@@ -3,6 +3,9 @@ import { PrismaService } from 'src/db/prisma.service';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
+import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
+import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { AllocatorService } from '../allocator/allocator.service';
 
 @Injectable()
 export class ClientReportService {
@@ -11,6 +14,8 @@ export class ClientReportService {
     private readonly clientReportChecksService: ClientReportChecksService,
     private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
+    private readonly allocatorTechService: AllocatorTechService,
+    private readonly allocatorService: AllocatorService,
   ) {}
 
   public async generateReport(clientIdOrAddress: string, returnFull = false) {
@@ -33,11 +38,27 @@ export class ClientReportService {
       clientData[0].addressId,
     );
 
+    const allocators = clientData.map((c) => c.verifierAddressId);
+
+    const mainAllocatorId = // take first non-glif allocator addressId
+      allocators?.[0] === GlifAutoVerifiedAllocatorId && allocators?.length > 1
+        ? allocators[1]
+        : allocators?.[0];
+
+    const mainAllocatorAddress = (
+      await this.allocatorService.getAllocatorData(mainAllocatorId)
+    ).address;
+
+    const mainAllocatorInfo =
+      await this.allocatorTechService.getAllocatorInfo(mainAllocatorAddress);
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
         client_address: clientData[0].address,
-        allocators: clientData.map((c) => c.verifierAddressId),
+        allocators: allocators,
+        allocator_required_copies: mainAllocatorInfo?.required_replicas,
+        allocator_required_sps: mainAllocatorInfo?.required_sps,
         organization_name:
           `${clientData[0].name ?? ''} ${clientData[0].orgName ?? ''}`.trim(),
         application_url: this.clientService.getClientApplicationUrl(

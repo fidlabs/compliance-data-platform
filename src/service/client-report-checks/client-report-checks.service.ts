@@ -8,28 +8,33 @@ import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 
 @Injectable()
 export class ClientReportChecksService {
-  public _maxProviderDealPercentage: number;
-  public _maxDuplicationPercentage: number;
-  public _maxPercentageForLowReplica: number;
-  public _lowReplicaThreshold: number;
+  public CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE: number;
+  public CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE: number;
+  public CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA: number;
+  public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
+  public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
+  // prettier-ignore
   constructor(
     configService: ConfigService,
     private readonly prismaService: PrismaService,
   ) {
-    this._maxProviderDealPercentage = configService.get<number>(
+    this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE = configService.get<number>(
       'CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE',
     );
-    this._maxDuplicationPercentage = configService.get<number>(
+    this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE = configService.get<number>(
       'CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE',
     );
-    this._maxPercentageForLowReplica = configService.get<number>(
+    this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA',
     );
-    this._lowReplicaThreshold = configService.get<number>(
+    this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD = configService.get<number>(
       'CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD',
+    );
+    this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES = configService.get<number>(
+      'CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES',
     );
   }
 
@@ -52,6 +57,7 @@ export class ClientReportChecksService {
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
     await this.storeDealDataLowReplica(reportId);
+    await this.storeDealDataNotEnoughCopies(reportId);
   }
 
   private async storeDealDataSharedWithOtherClientsChecks(reportId: bigint) {
@@ -59,6 +65,14 @@ export class ClientReportChecksService {
   }
 
   private async storeProvidersExceedingProviderDeal(reportId: bigint) {
+    if (this.envNotSet(this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE env is not set; skipping check`,
+      );
+
+      return;
+    }
+
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -79,7 +93,10 @@ export class ClientReportChecksService {
       const providerDistributionPercentage =
         Number((provider.total_deal_size * 10000n) / total) / 100;
 
-      if (providerDistributionPercentage > this._maxProviderDealPercentage) {
+      if (
+        providerDistributionPercentage >
+        this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE
+      ) {
         providersExceedingProviderDeal.push(provider.provider);
       }
     }
@@ -93,11 +110,12 @@ export class ClientReportChecksService {
           result: false,
           metadata: {
             violating_ids: providersExceedingProviderDeal,
-            max_provider_deal_percentage: this._maxProviderDealPercentage,
+            max_provider_deal_percentage:
+              this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE,
             max_providers_exceeding_provider_deal: 0,
             providers_exceeding_provider_deal:
               providersExceedingProviderDeal.length,
-            msg: `${providersExceedingProviderDeal.length} storage providers sealed more than ${this._maxProviderDealPercentage}% of total datacap`,
+            msg: `${providersExceedingProviderDeal.length} storage providers sealed more than ${this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE}% of total datacap`,
           },
         },
       });
@@ -119,6 +137,14 @@ export class ClientReportChecksService {
   private async storeProvidersExceedingMaxDuplicationPercentage(
     reportId: bigint,
   ) {
+    if (this.envNotSet(this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE env is not set; skipping check`,
+      );
+
+      return;
+    }
+
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -135,7 +161,7 @@ export class ClientReportChecksService {
         ((provider.total_deal_size - provider.unique_data_size) * 10000n) /
           provider.total_deal_size /
           100n >
-        this._maxDuplicationPercentage
+        this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE
       ) {
         providersExceedingMaxDuplicationPercentage.push(provider.provider);
       }
@@ -150,7 +176,8 @@ export class ClientReportChecksService {
           result: false,
           metadata: {
             violating_ids: providersExceedingMaxDuplicationPercentage,
-            max_duplication_percentage: this._maxDuplicationPercentage,
+            max_duplication_percentage:
+              this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE,
             max_providers_exceeding_max_duplication: 0,
             providers_exceeding_max_duplication:
               providersExceedingMaxDuplicationPercentage.length,
@@ -490,7 +517,89 @@ export class ClientReportChecksService {
     });
   }
 
+  private async storeDealDataNotEnoughCopies(reportId: bigint) {
+    if (this.envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    const replicaDistribution =
+      await this.prismaService.client_report_replica_distribution.findMany({
+        where: {
+          client_report_id: reportId,
+        },
+      });
+
+    const requiredCopiesCount = (
+      await this.prismaService.client_report.findFirst({
+        where: {
+          id: reportId,
+        },
+        select: {
+          allocator_required_copies: true,
+        },
+      })
+    ).allocator_required_copies;
+
+    if (!requiredCopiesCount) {
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check: ClientReportCheck.NOT_ENOUGH_COPIES,
+          result: true,
+          metadata: {
+            msg: `Allocator did not define required replicas`,
+          },
+        },
+      });
+    } else {
+      // prettier-ignore
+      const notEnoughCopiesPercentage = replicaDistribution.length === 0 ? 0 :
+        (replicaDistribution.filter(
+          (distribution) =>
+            distribution.num_of_replicas < parseInt(requiredCopiesCount),
+        ).length /
+          replicaDistribution.length) *
+        100;
+
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check: ClientReportCheck.NOT_ENOUGH_COPIES,
+          result:
+            notEnoughCopiesPercentage <=
+            this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
+          metadata: {
+            percentage: round(notEnoughCopiesPercentage, 2),
+            max_percentage_for_required_copies:
+              this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
+            msg: `${notEnoughCopiesPercentage.toFixed(2)}% of deals have less than allocator-defined ${requiredCopiesCount} replicas`,
+          },
+        },
+      });
+    }
+  }
+
   private async storeDealDataLowReplica(reportId: bigint) {
+    if (this.envNotSet(this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    if (this.envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA env is not set; skipping check`,
+      );
+
+      return;
+    }
+
     const replicaDistribution =
       await this.prismaService.client_report_replica_distribution.findMany({
         where: {
@@ -501,7 +610,8 @@ export class ClientReportChecksService {
     const lowReplicaPercentage = replicaDistribution
       .filter(
         (distribution) =>
-          distribution.num_of_replicas <= this._lowReplicaThreshold,
+          distribution.num_of_replicas <=
+          this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD,
       )
       .map((distribution) => distribution.percentage)
       .reduce((a, b) => a + b, 0);
@@ -510,10 +620,13 @@ export class ClientReportChecksService {
       data: {
         client_report_id: reportId,
         check: ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA,
-        result: lowReplicaPercentage <= this._maxPercentageForLowReplica,
+        result:
+          lowReplicaPercentage <=
+          this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
         metadata: {
           percentage: round(lowReplicaPercentage, 2),
-          max_percentage_for_low_replica: this._maxPercentageForLowReplica,
+          max_percentage_for_low_replica:
+            this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
           msg: `Low replica percentage is ${lowReplicaPercentage.toFixed(2)}%`,
         },
       },
@@ -544,5 +657,13 @@ export class ClientReportChecksService {
         },
       },
     });
+  }
+
+  private envNotSet(value?: any) {
+    return (
+      value === undefined ||
+      value === null ||
+      (typeof value === 'string' && value.trim() === '')
+    );
   }
 }

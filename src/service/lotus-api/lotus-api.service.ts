@@ -75,7 +75,7 @@ export class LotusApiService {
     }
   }
 
-  @Retryable({ retries: 2, delay: 5000 }) // 5 seconds
+  @Retryable({ retries: 3, delay: 5000 }) // 5 seconds
   private async _getMinerInfo(
     providerId: string,
   ): Promise<LotusStateMinerInfoResponse> {
