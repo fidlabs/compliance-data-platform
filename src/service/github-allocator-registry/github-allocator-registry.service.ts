@@ -165,6 +165,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       return null;
     }
 
+    // TODO use allocatorService.getAllocatorInfo(...).address here, get rid of lotusApiService.getFilecoinId?
     const id = await this.lotusApiService.getFilecoinId(
       data.pathway_addresses.msig,
     );
