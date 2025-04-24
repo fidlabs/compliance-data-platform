@@ -13,25 +13,20 @@ export class GetWeekStorageProvidersWithSpsComplianceRequestData extends Storage
   week?: Date;
 }
 
-export class GetWeekStorageProvidersWithSpsComplianceRequest extends IntersectionType(
-  GetWeekStorageProvidersWithSpsComplianceRequestData,
-  PaginationSortingInfo,
-) {
-  @ApiPropertyOptional({
-    description: 'Compliance score to filter by',
-    enum: StorageProviderComplianceScoreRange,
-  })
-  complianceScore?: StorageProviderComplianceScoreRange;
-
+export class GetStorageProvidersRequest extends PaginationSortingInfo {
   @ApiPropertyOptional({
     description: 'Storage provider ID to filter by',
   })
   provider?: string;
 }
 
-export class GetStorageProvidersRequest extends PaginationSortingInfo {
+export class GetWeekStorageProvidersWithSpsComplianceRequest extends IntersectionType(
+  GetWeekStorageProvidersWithSpsComplianceRequestData,
+  GetStorageProvidersRequest,
+) {
   @ApiPropertyOptional({
-    description: 'Storage provider ID to filter by',
+    description: 'Compliance score to filter by',
+    enum: StorageProviderComplianceScoreRange,
   })
-  provider?: string;
+  complianceScore?: StorageProviderComplianceScoreRange;
 }
