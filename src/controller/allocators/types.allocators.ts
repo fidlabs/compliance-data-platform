@@ -3,11 +3,12 @@ import {
   ApiPropertyOptional,
   IntersectionType,
 } from '@nestjs/swagger';
-import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { PaginationSortingInfo } from '../base/types.controller-base';
-import { AllocatorComplianceScoreRange } from '../../service/allocator/types.allocator';
+import { AllocatorComplianceScoreRange } from 'src/service/allocator/types.allocator';
+import { stringifiedBool } from 'src/utils/utils';
+import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
-export class GetWeekAllocatorsWithSpsComplianceRequestData extends StorageProviderComplianceMetrics {
+export class GetWeekAllocatorsWithSpsComplianceRequestData extends StorageProviderComplianceMetricsRequest {
   @ApiPropertyOptional({
     description: 'Requested week to check compliance for; default is last week',
     format: 'date',
@@ -22,6 +23,12 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData extends StorageProvid
     maximum: 100,
   })
   complianceThresholdPercentage: number;
+
+  @ApiPropertyOptional({
+    description: 'Flag to show inactive allocators; default is true',
+    type: Boolean,
+  })
+  showInactive?: stringifiedBool;
 }
 
 export class GetAllocatorsRequest extends PaginationSortingInfo {
@@ -29,6 +36,12 @@ export class GetAllocatorsRequest extends PaginationSortingInfo {
     description: 'Filter to apply to addressId, address, name or orgName',
   })
   filter?: string;
+
+  @ApiPropertyOptional({
+    description: 'Flag to show inactive allocators; default is true',
+    type: Boolean,
+  })
+  showInactive?: stringifiedBool;
 }
 
 export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(

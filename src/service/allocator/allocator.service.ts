@@ -53,9 +53,10 @@ export class AllocatorService {
   ) {}
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getAllocators() {
-    const allocators =
-      await this.prismaDmobService.$queryRawTyped(getAllocatorsFull());
+  public async getAllocators(returnInactive = true) {
+    const allocators = await this.prismaDmobService.$queryRawTyped(
+      getAllocatorsFull(returnInactive),
+    );
 
     const jsonLinks = await this.prismaService.allocator_registry.findMany({
       select: {
@@ -283,11 +284,7 @@ export class AllocatorService {
     );
 
     return new AllocatorSpsComplianceWeekResponse(
-      {
-        retrievability: spMetricsToCheck?.retrievability !== 'false',
-        numberOfClients: spMetricsToCheck?.numberOfClients !== 'false',
-        totalDealSize: spMetricsToCheck?.totalDealSize !== 'false',
-      },
+      spMetricsToCheck,
       lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),

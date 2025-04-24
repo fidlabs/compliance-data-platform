@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  StorageProviderComplianceMetricsResponse,
+  StorageProviderComplianceMetrics,
   StorageProviderComplianceWeekPercentage,
 } from '../storage-provider/types.storage-provider';
 
@@ -56,7 +56,7 @@ export class AllocatorSpsComplianceWeekResponse {
   @ApiProperty({
     description: 'Storage providers compliance metrics checked',
   })
-  metricsChecked: StorageProviderComplianceMetricsResponse;
+  metricsChecked: StorageProviderComplianceMetrics;
 
   @ApiProperty({
     description:
@@ -68,7 +68,7 @@ export class AllocatorSpsComplianceWeekResponse {
   results: AllocatorSpsComplianceWeek[];
 
   constructor(
-    metricsChecked: StorageProviderComplianceMetricsResponse,
+    metricsChecked: StorageProviderComplianceMetrics,
     averageSuccessRate: number,
     results: AllocatorSpsComplianceWeek[],
   ) {

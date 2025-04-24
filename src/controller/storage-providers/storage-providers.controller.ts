@@ -2,7 +2,7 @@ import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
-  StorageProviderComplianceMetricsResponse,
+  StorageProviderComplianceMetrics,
   StorageProviderWithIpInfo,
 } from 'src/service/storage-provider/types.storage-provider';
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
@@ -109,7 +109,7 @@ export class StorageProvidersController extends ControllerBase {
               this.storageProviderService.calculateProviderComplianceScore(
                 provider,
                 weekAverageRetrievability,
-                query,
+                StorageProviderComplianceMetrics.of(query),
               ).complianceScore,
             ...providerData,
           }
@@ -153,11 +153,7 @@ export class StorageProvidersController extends ControllerBase {
     return this.withPaginationInfo(
       {
         week: query.week,
-        metricsChecked: new StorageProviderComplianceMetricsResponse(
-          query.retrievability !== 'false',
-          query.numberOfClients !== 'false',
-          query.totalDealSize !== 'false',
-        ),
+        metricsChecked: StorageProviderComplianceMetrics.of(query),
         complianceScore: query.complianceScore,
         count: providers.length,
         data: this.paginated(this.sorted(providers, query), query),

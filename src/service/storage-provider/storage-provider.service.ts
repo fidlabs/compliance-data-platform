@@ -187,11 +187,7 @@ export class StorageProviderService {
     );
 
     return new StorageProviderComplianceWeekResponse(
-      {
-        retrievability: metricsToCheck?.retrievability !== 'false',
-        numberOfClients: metricsToCheck?.numberOfClients !== 'false',
-        totalDealSize: metricsToCheck?.totalDealSize !== 'false',
-      },
+      metricsToCheck,
       lastWeekAverageRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(result),
@@ -332,19 +328,16 @@ export class StorageProviderService {
     // Question - do we make a cutoff date for this? (like use normal rate
     // till 25w4 and http rate after that)?
     if (
-      metricsToCheck?.retrievability === 'false' ||
+      !metricsToCheck?.retrievability ||
       providerWeekly.avg_retrievability_success_rate > weekAverageRetrievability
     )
       complianceScore++;
 
-    if (
-      metricsToCheck?.numberOfClients === 'false' ||
-      providerWeekly.num_of_clients > 3
-    )
+    if (!metricsToCheck?.numberOfClients || providerWeekly.num_of_clients > 3)
       complianceScore++;
 
     if (
-      metricsToCheck?.totalDealSize === 'false' ||
+      !metricsToCheck?.totalDealSize ||
       providerWeekly.biggest_client_total_deal_size * 100n <=
         30n * providerWeekly.total_deal_size
     )
