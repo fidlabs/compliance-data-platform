@@ -140,17 +140,19 @@ export class AllocatorService {
     weekAllocator: AllocatorSpsComplianceWeekSingle,
     complianceThresholdPercentage: number,
   ): AllocatorComplianceScore {
-    let complianceScore = AllocatorComplianceScoreRange.NonCompliant;
+    let complianceScore;
 
-    if (weekAllocator.compliantSpsPercentage >= complianceThresholdPercentage)
+    if (weekAllocator.compliantSpsPercentage >= complianceThresholdPercentage) {
       complianceScore = AllocatorComplianceScoreRange.Compliant;
-
-    if (
+    } else if (
       weekAllocator.compliantSpsPercentage +
         weekAllocator.partiallyCompliantSpsPercentage >=
       complianceThresholdPercentage
-    )
+    ) {
       complianceScore = AllocatorComplianceScoreRange.PartiallyCompliant;
+    } else {
+      complianceScore = AllocatorComplianceScoreRange.NonCompliant;
+    }
 
     return {
       complianceScore: complianceScore,
