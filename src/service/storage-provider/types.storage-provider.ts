@@ -1,5 +1,7 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IntersectionType } from '@nestjs/swagger';
+import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
+import { stringToBool } from 'src/utils/utils';
 
 export enum StorageProviderComplianceScoreRange {
   NonCompliant = 'nonCompliant',
@@ -10,39 +12,6 @@ export enum StorageProviderComplianceScoreRange {
 export class StorageProviderComplianceScore {
   complianceScore: StorageProviderComplianceScoreRange;
   provider: string;
-}
-
-export class StorageProviderComplianceMetrics {
-  @ApiPropertyOptional({
-    description:
-      'Set to false to disable retrievability compliance metric check; default is true',
-    type: Boolean,
-  })
-  retrievability?: 'true' | 'false';
-
-  @ApiPropertyOptional({
-    description:
-      'Set to false to disable numberOfClients compliance metric check; default is true',
-    type: Boolean,
-  })
-  numberOfClients?: 'true' | 'false';
-
-  @ApiPropertyOptional({
-    description:
-      'Set to false to disable totalDealSize compliance metric check; default is true',
-    type: Boolean,
-  })
-  totalDealSize?: 'true' | 'false';
-
-  constructor(
-    retrievability: 'true' | 'false' = 'true',
-    numberOfClients: 'true' | 'false' = 'true',
-    totalDealSize: 'true' | 'false' = 'true',
-  ) {
-    this.retrievability = retrievability;
-    this.numberOfClients = numberOfClients;
-    this.totalDealSize = totalDealSize;
-  }
 }
 
 export class StorageProviderComplianceWeekPercentage {
@@ -119,7 +88,7 @@ export class StorageProviderComplianceWeek extends IntersectionType(
   averageSuccessRate: number;
 }
 
-export class StorageProviderComplianceMetricsResponse {
+export class StorageProviderComplianceMetrics {
   @ApiProperty()
   retrievability: boolean;
 
@@ -130,13 +99,21 @@ export class StorageProviderComplianceMetricsResponse {
   totalDealSize: boolean;
 
   constructor(
-    retrievability: boolean,
-    numberOfClients: boolean,
-    totalDealSize: boolean,
+    retrievability = true,
+    numberOfClients = true,
+    totalDealSize = true,
   ) {
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
+  }
+
+  public static of(metrics: StorageProviderComplianceMetricsRequest) {
+    return new StorageProviderComplianceMetrics(
+      stringToBool(metrics.retrievability) ?? true,
+      stringToBool(metrics.numberOfClients) ?? true,
+      stringToBool(metrics.totalDealSize) ?? true,
+    );
   }
 }
 
@@ -144,7 +121,7 @@ export class StorageProviderComplianceWeekResponse {
   @ApiProperty({
     description: 'Storage providers compliance metrics checked',
   })
-  metricsChecked: StorageProviderComplianceMetricsResponse;
+  metricsChecked: StorageProviderComplianceMetrics;
 
   @ApiProperty({
     description:
@@ -156,7 +133,7 @@ export class StorageProviderComplianceWeekResponse {
   results: StorageProviderComplianceWeek[];
 
   constructor(
-    metricsChecked: StorageProviderComplianceMetricsResponse,
+    metricsChecked: StorageProviderComplianceMetrics,
     averageSuccessRate: number,
     results: StorageProviderComplianceWeek[],
   ) {

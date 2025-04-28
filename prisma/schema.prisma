@@ -24,6 +24,15 @@ model provider {
   last_deal_height Int
 }
 
+model allocator_registry {
+  id            String
+  address       String @unique
+  json_path     String
+  registry_info Json
+
+  @@id([id])
+}
+
 model client_allocator_distribution_weekly {
   week               DateTime
   client             String
@@ -246,8 +255,8 @@ model client_report_cid_sharing {
   unique_cid_count             Int
 }
 
-model client_address_mapping {
-  client      String   @id
+model id_address_mapping {
+  id          String   @id
   address     String   @unique
   create_date DateTime @default(now())
 }

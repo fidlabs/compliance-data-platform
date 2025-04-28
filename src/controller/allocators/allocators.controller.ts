@@ -2,7 +2,7 @@ import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { StorageProviderComplianceMetricsResponse } from 'src/service/storage-provider/types.storage-provider';
+import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { DateTime } from 'luxon';
 import {
   GetAllocatorsRequest,
@@ -11,6 +11,7 @@ import {
 } from './types.allocators';
 import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
+import { stringToBool } from 'src/utils/utils';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -33,11 +34,20 @@ export class AllocatorsController extends ControllerBase {
     type: null,
   })
   public async getAllocators(@Query() query: GetAllocatorsRequest) {
-    let allocators = await this.allocatorService.getAllocators();
+    let allocators = await this.allocatorService.getAllocators(
+      stringToBool(query.showInactive) ?? true,
+    );
 
-    if (query.addressId) {
+    // TODO move this to db query?
+    if (query.filter) {
+      query.filter = query.filter.toUpperCase();
+
       allocators = allocators.filter(
-        (allocator) => allocator.addressId === query.addressId,
+        (allocator) =>
+          allocator.addressId.toUpperCase() === query.filter ||
+          allocator.address?.toUpperCase() === query.filter ||
+          allocator.name?.toUpperCase().includes(query.filter) ||
+          allocator.orgName?.toUpperCase().includes(query.filter),
       );
     }
 
@@ -55,12 +65,15 @@ export class AllocatorsController extends ControllerBase {
   private async _getWeekAllocatorsWithSpsCompliance(
     query: GetWeekAllocatorsWithSpsComplianceRequestData,
   ) {
-    const allocators = await this.allocatorService.getAllocators();
+    const allocators = await this.allocatorService.getAllocators(
+      stringToBool(query.showInactive) ?? true,
+    );
+
     const weekAllocatorsSpsCompliance =
       await this.allocatorService.getWeekStandardAllocatorSpsCompliance(
         query.week!,
         true,
-        query.spMetricsToCheck,
+        StorageProviderComplianceMetrics.of(query),
       );
 
     const weekAllocatorsCompliance = weekAllocatorsSpsCompliance.allocators.map(
@@ -113,20 +126,23 @@ export class AllocatorsController extends ControllerBase {
       );
     }
 
-    if (query.addressId) {
+    // TODO move this to db query?
+    if (query.filter) {
+      query.filter = query.filter.toUpperCase();
+
       allocators = allocators.filter(
-        (allocator) => allocator.addressId === query.addressId,
+        (allocator) =>
+          allocator.addressId.toUpperCase() === query.filter ||
+          allocator.address?.toUpperCase() === query.filter ||
+          allocator.name?.toUpperCase().includes(query.filter) ||
+          allocator.orgName?.toUpperCase().includes(query.filter),
       );
     }
 
     return this.withPaginationInfo(
       {
         week: query.week,
-        metricsChecked: new StorageProviderComplianceMetricsResponse(
-          query.spMetricsToCheck?.retrievability !== 'false',
-          query.spMetricsToCheck?.numberOfClients !== 'false',
-          query.spMetricsToCheck?.totalDealSize !== 'false',
-        ),
+        metricsChecked: StorageProviderComplianceMetrics.of(query),
         complianceThresholdPercentage: query.complianceThresholdPercentage,
         complianceScore: query.complianceScore,
         count: allocators.length,

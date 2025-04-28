@@ -1,41 +1,47 @@
 import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
-import {
-  StorageProviderComplianceMetrics,
-  StorageProviderComplianceScoreRange,
-} from 'src/service/storage-provider/types.storage-provider';
+import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { PaginationSortingInfo } from '../base/types.controller-base';
+import { stringifiedBool } from 'src/utils/utils';
 
-export class GetWeekStorageProvidersWithSpsComplianceRequestData {
+export class StorageProviderComplianceMetricsRequest {
+  @ApiPropertyOptional({
+    description:
+      'Set to false to disable retrievability compliance metric check; default is true',
+    type: Boolean,
+  })
+  retrievability?: stringifiedBool;
+
+  @ApiPropertyOptional({
+    description:
+      'Set to false to disable numberOfClients compliance metric check; default is true',
+    type: Boolean,
+  })
+  numberOfClients?: stringifiedBool;
+
+  @ApiPropertyOptional({
+    description:
+      'Set to false to disable totalDealSize compliance metric check; default is true',
+    type: Boolean,
+  })
+  totalDealSize?: stringifiedBool;
+
+  constructor(
+    retrievability: stringifiedBool = 'true',
+    numberOfClients: stringifiedBool = 'true',
+    totalDealSize: stringifiedBool = 'true',
+  ) {
+    this.retrievability = retrievability;
+    this.numberOfClients = numberOfClients;
+    this.totalDealSize = totalDealSize;
+  }
+}
+
+export class GetWeekStorageProvidersWithSpsComplianceRequestData extends StorageProviderComplianceMetricsRequest {
   @ApiPropertyOptional({
     description: 'Requested week to check compliance for; default is last week',
     format: 'date',
   })
   week?: Date;
-
-  @ApiPropertyOptional({
-    example: new StorageProviderComplianceMetrics(),
-    description:
-      'Requested storage provider compliance metrics to check; default is all enabled',
-    default: new StorageProviderComplianceMetrics(),
-    type: StorageProviderComplianceMetrics,
-  })
-  spMetricsToCheck?: StorageProviderComplianceMetrics;
-}
-
-export class GetWeekStorageProvidersWithSpsComplianceRequest extends IntersectionType(
-  GetWeekStorageProvidersWithSpsComplianceRequestData,
-  PaginationSortingInfo,
-) {
-  @ApiPropertyOptional({
-    description: 'Compliance score to filter by',
-    enum: StorageProviderComplianceScoreRange,
-  })
-  complianceScore?: StorageProviderComplianceScoreRange;
-
-  @ApiPropertyOptional({
-    description: 'Storage provider ID to filter by',
-  })
-  provider?: string;
 }
 
 export class GetStorageProvidersRequest extends PaginationSortingInfo {
@@ -43,4 +49,15 @@ export class GetStorageProvidersRequest extends PaginationSortingInfo {
     description: 'Storage provider ID to filter by',
   })
   provider?: string;
+}
+
+export class GetWeekStorageProvidersWithSpsComplianceRequest extends IntersectionType(
+  GetWeekStorageProvidersWithSpsComplianceRequestData,
+  GetStorageProvidersRequest,
+) {
+  @ApiPropertyOptional({
+    description: 'Compliance score to filter by',
+    enum: StorageProviderComplianceScoreRange,
+  })
+  complianceScore?: StorageProviderComplianceScoreRange;
 }
