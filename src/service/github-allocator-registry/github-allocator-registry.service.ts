@@ -44,7 +44,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   }
 
   private async getInstallationId(): Promise<number> {
-    const appOctokit = await this._getOctokit();
+    const appOctokit = await this._getAppOctokit();
 
     const response = await appOctokit.request(
       'GET /repos/{owner}/{repo}/installation',
@@ -60,7 +60,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     return response.data.id;
   }
 
-  private async _getOctokit(installationId?: number): Promise<Octokit> {
+  private async _getAppOctokit(installationId?: number): Promise<Octokit> {
     const auth: any = {
       appId: this.configService.get<string>('GITHUB_APP_ID'),
       privateKey: this.configService.get<string>('GITHUB_PRIVATE_KEY'),
@@ -76,7 +76,16 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
   private async getOctokit(): Promise<Octokit> {
     if (!this.octokit) {
-      this.octokit = await this._getOctokit(await this.getInstallationId());
+      const pat = this.configService.get<string>('GITHUB_PAT');
+      if (pat) {
+        this.octokit = new Octokit({
+          auth: pat,
+        });
+      } else {
+        this.octokit = await this._getAppOctokit(
+          await this.getInstallationId(),
+        );
+      }
     }
 
     return this.octokit;
