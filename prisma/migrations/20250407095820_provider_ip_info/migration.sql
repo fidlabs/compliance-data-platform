@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "provider_ip_info" (
+CREATE TABLE IF NOT EXISTS "provider_ip_info" (
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "provider" TEXT NOT NULL,
     "lat" TEXT,
