@@ -1,3 +1,4 @@
+import { Prisma } from 'prisma/generated/client';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
@@ -373,5 +374,33 @@ export class AllocatorService {
         ],
       },
     });
+  }
+
+  public async getAllocatorRegistryInfo(allocatorIdOrAddress: string) {
+    const result = await this.prismaService.allocator_registry.findFirst({
+      where: {
+        OR: [
+          {
+            address: allocatorIdOrAddress,
+          },
+          {
+            id: allocatorIdOrAddress,
+          },
+        ],
+      },
+    });
+
+    if (!result) return;
+
+    const info = result.registry_info as Prisma.JsonObject;
+    const application = info.application as Prisma.JsonObject;
+
+    // parse it into somewhat coherent type
+    return {
+      application: {
+        required_sps: application.required_sps as string,
+        required_replicas: application.required_replicas as string,
+      },
+    };
   }
 }
