@@ -557,13 +557,11 @@ export class ClientReportChecksService {
       });
     } else {
       // prettier-ignore
-      const notEnoughCopiesPercentage = replicaDistribution.length === 0 ? 0 :
-        (replicaDistribution.filter(
+      const notEnoughCopiesPercentage =
+        replicaDistribution.filter(
           (distribution) =>
             distribution.num_of_replicas < parseInt(requiredCopiesCount),
-        ).length /
-          replicaDistribution.length) *
-        100;
+        ).reduce((totalPercentage, distribution) => totalPercentage + distribution.percentage, 0);
 
       await this.prismaService.client_report_check_result.create({
         data: {
