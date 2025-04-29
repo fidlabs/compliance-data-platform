@@ -1,3 +1,4 @@
+import { Prisma } from 'prismaDmob/generated/client';
 import { BadRequestException } from '@nestjs/common';
 import { PaginationInfo, SortingInfo } from './types.controller-base';
 
@@ -54,8 +55,13 @@ export class ControllerBase {
         b = parseFloat(b);
       }
 
-      if (a < b) return sortingInfo.order === 'asc' ? -1 : 1;
-      if (a > b) return sortingInfo.order === 'asc' ? 1 : -1;
+      if (a instanceof Prisma.Decimal) {
+        if (a.lessThan(b)) return sortingInfo.order === 'asc' ? -1 : 1;
+        if (a.greaterThan(b)) return sortingInfo.order === 'asc' ? 1 : -1;
+      } else {
+        if (a < b) return sortingInfo.order === 'asc' ? -1 : 1;
+        if (a > b) return sortingInfo.order === 'asc' ? 1 : -1;
+      }
       return 0;
     });
   }
