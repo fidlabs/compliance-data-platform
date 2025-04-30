@@ -5,6 +5,7 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { PrometheusMetricService } from 'src/prometheus';
 import { FilSparkService } from 'src/service/filspark/filspark.service';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
+import { GitHubAllocatorClientBookkeepingService } from 'src/service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
 import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
 import { LocationService } from 'src/service/location/location.service';
 import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
@@ -21,6 +22,7 @@ export type AggregationRunnerRunServices = {
   locationService?: LocationService;
   lotusApiService?: LotusApiService;
   allocatorRegistryService?: GitHubAllocatorRegistryService;
+  allocatorClientBookkeepingService?: GitHubAllocatorClientBookkeepingService;
 };
 
 export interface AggregationRunner {

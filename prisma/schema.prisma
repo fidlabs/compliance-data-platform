@@ -33,6 +33,17 @@ model allocator_registry {
   @@id([id])
 }
 
+model allocator_client_bookkeeping {
+  allocatorId      String
+  clientId         String
+  clientAddress    String
+  json_path        String
+  bookkeeping_info Json
+
+  @@id([allocatorId, clientId])
+  @@index([clientId])
+}
+
 model client_allocator_distribution_weekly {
   week               DateTime
   client             String
