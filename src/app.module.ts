@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
 import { AggregationService } from './aggregation/aggregation.service';
+import { AllocatorClientBookkeepingRunner } from './aggregation/runners/allocator-client-bookkeeping.runner';
 import { AllocatorRegistryRunner } from './aggregation/runners/allocator-registry.runner';
 import { AllocatorsWeeklyAccRunner } from './aggregation/runners/allocators-weekly-acc.runner';
 import { AllocatorsWeeklyRunner } from './aggregation/runners/allocators-weekly.runner';
@@ -76,6 +77,7 @@ import axios from 'axios';
 import { HistogramHelperService } from './service/histogram-helper/histogram-helper.service';
 import { GitHubIssueParserService } from './service/github-issue-parser/github-issue-parser.service';
 import { GitHubTriggersHandlerService } from './service/github-triggers-handler-service/github-triggers-handler.service';
+import { GitHubAllocatorClientBookkeepingService } from './service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
 import { GitHubAllocatorRegistryService } from './service/github-allocator-registry/github-allocator-registry.service';
 import { AllocatorRunner } from './aggregation/runners/allocator.runner';
 import { AllocatorReportChecksService } from './service/allocator-report-checks/allocator-report-checks.service';
@@ -114,6 +116,7 @@ import { ProviderRunner } from './aggregation/runners/provider.runner';
     PrismaService,
     PrismaDmobService,
     FilSparkService,
+    AllocatorClientBookkeepingRunner,
     AllocatorRegistryRunner,
     AllocatorsWeeklyRunner,
     AllocatorRunner,
@@ -150,6 +153,7 @@ import { ProviderRunner } from './aggregation/runners/provider.runner';
     ClientService,
     GitHubIssueParserService,
     GitHubTriggersHandlerService,
+    GitHubAllocatorClientBookkeepingService,
     GitHubAllocatorRegistryService,
     LotusApiService,
     LocationService,
@@ -173,6 +177,7 @@ import { ProviderRunner } from './aggregation/runners/provider.runner';
       provide: 'AggregationRunner',
       useFactory: (...runners) => runners,
       inject: [
+        AllocatorClientBookkeepingRunner,
         AllocatorRegistryRunner,
         AllocatorRunner,
         ProviderRunner,

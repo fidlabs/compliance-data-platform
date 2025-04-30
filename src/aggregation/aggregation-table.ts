@@ -1,4 +1,5 @@
 export enum AggregationTable {
+  AllocatorClientBookkeeping,
   AllocatorRegistry,
   AllocatorsWeekly,
   AllocatorsWeeklyAcc,
