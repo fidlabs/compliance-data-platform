@@ -13,6 +13,20 @@ on:
         description: 'Enter the version number'
         required: true
         default: 'latest'
+      deploy:
+        description: 'Deploy the new version?'
+        required: false
+        type: boolean
+        default: false
+      environment:
+        required: false
+        description: 'Select the environment to deploy to'
+        type: choice
+        options:
+          - staging
+          # TODO: uncomment this when we want to deploy to production
+          # - production
+        default: staging
 
 permissions:
   contents: write
@@ -20,20 +34,20 @@ permissions:
 jobs:
   code-check:
     uses: ./.github/workflows/code-check.yml
-  
+
   check-db:
-    needs: 
+    needs:
       - code-check
     uses: ./.github/workflows/check-db.yml
 
   bump-version:
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'main' && inputs.version != '' }}
-    needs: 
+    needs:
       - code-check
       - check-db
     outputs:
-        commit_sha: ${{ steps.commit-version.outputs.commit_sha }}
+      commit_sha: ${{ steps.commit-version.outputs.commit_sha }}
 
     steps:
       - name: Checkout code
@@ -71,7 +85,6 @@ jobs:
           git push origin main
           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-
   build-and-publish:
     needs:
       - code-check
@@ -89,7 +102,7 @@ jobs:
 
   git-tag:
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - bump-version
       - build-and-publish
     if: |
@@ -109,3 +122,19 @@ jobs:
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
+  trigger-deploy:
+    needs:
+      - code-check
+      - bump-version
+      - git-tag
+    uses: ./.github/workflows/put-ssm-version-deploy.yml
+    if: |
+      ${{ inputs.version != '' && inputs.deploy == true && inputs.environment != ''}} &&
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
+    with:
+      version: ${{ inputs.version }}
+      environment: ${{ inputs.environment }}
+      ecr-repository: compliance-data-platform
+    secrets: inherit
