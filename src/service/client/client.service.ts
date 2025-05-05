@@ -1,3 +1,4 @@
+import { Prisma } from 'prisma/generated/client';
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
@@ -102,5 +103,37 @@ export class ClientService {
       allowanceArray: r._allowanceArray as [],
       ...r,
     }));
+  }
+
+  public async getClientBookkeepingInfo(clientIdOrAddress: string) {
+    const result = await this.prismaService.allocator_client_bookkeeping.findFirst({
+        select: {
+          bookkeeping_info: true
+        },
+        where: {
+          OR: [
+            {
+              clientAddress: clientIdOrAddress,
+            },
+            {
+              clientId: clientIdOrAddress,
+            },
+          ],
+        }
+      });
+
+    if (!result) return;
+
+    try {
+      const info = result.bookkeeping_info as Prisma.JsonObject;
+      const project = info.Project as Prisma.JsonObject;
+      const public_dataset_key = "Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)";
+      const public_dataset_raw = project[public_dataset_key] as string;
+      const public_dataset = public_dataset_raw.trim().toLowerCase() === "yes";
+
+      return { public_dataset };
+    } catch(err) {
+      return;
+    }
   }
 }

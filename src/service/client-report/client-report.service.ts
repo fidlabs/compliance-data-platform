@@ -46,6 +46,9 @@ export class ClientReportService {
     const mainAllocatorRegistryInfo =
       await this.allocatorService.getAllocatorRegistryInfo(mainAllocatorId);
 
+    const bookkeepingInfo =
+      await this.clientService.getClientBookkeepingInfo(clientData[0].addressId);
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -60,6 +63,7 @@ export class ClientReportService {
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),
+        public_dataset: bookkeepingInfo?.public_dataset,
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {
