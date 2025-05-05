@@ -5,6 +5,7 @@ import { StorageProviderReportService } from '../storage-provider-report/storage
 import { ClientService } from '../client/client.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { AllocatorService } from '../allocator/allocator.service';
+import { EthApiService } from '../eth-api/eth-api.service';
 
 @Injectable()
 export class ClientReportService {
@@ -14,6 +15,7 @@ export class ClientReportService {
     private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
     private readonly allocatorService: AllocatorService,
+    private readonly ethApiService: EthApiService,
   ) {}
 
   public async generateReport(clientIdOrAddress: string, returnFull = false) {
@@ -46,8 +48,16 @@ export class ClientReportService {
     const mainAllocatorRegistryInfo =
       await this.allocatorService.getAllocatorRegistryInfo(mainAllocatorId);
 
-    const bookkeepingInfo =
-      await this.clientService.getClientBookkeepingInfo(clientData[0].addressId);
+    const bookkeepingInfo = await this.clientService.getClientBookkeepingInfo(
+      clientData[0].addressId,
+    );
+
+    const maxDeviation = bookkeepingInfo?.clientContractAddress
+      ? await this.ethApiService.getClientContractMaxDeviation(
+          bookkeepingInfo.clientContractAddress,
+          clientData[0].addressId,
+        )
+      : null;
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -63,7 +73,9 @@ export class ClientReportService {
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),
-        public_dataset: bookkeepingInfo?.public_dataset,
+        public_dataset: bookkeepingInfo?.publicDataset,
+        client_contract: !!bookkeepingInfo?.clientContractAddress,
+        client_contract_max_deviation: maxDeviation,
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {

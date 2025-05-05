@@ -211,6 +211,8 @@ model client_report {
   allocator_required_copies     String?
   allocator_required_sps        String?
   public_dataset                Boolean?
+  client_contract               Boolean?
+  client_contract_max_deviation String?
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -306,16 +308,18 @@ model allocator_report {
 }
 
 model allocator_report_client {
-  id                    String           @id @default(uuid()) @db.Uuid
-  allocator_report      allocator_report @relation(fields: [allocator_report_id], references: [id])
-  allocator_report_id   String           @db.Uuid
-  client_id             String
-  name                  String?
-  allocators            String[]         @default([])
-  allocations_number    Int
-  total_allocations     BigInt
-  application_url       String?
-  application_timestamp DateTime?
+  id                            String           @id @default(uuid()) @db.Uuid
+  allocator_report              allocator_report @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id           String           @db.Uuid
+  client_id                     String
+  name                          String?
+  allocators                    String[]         @default([])
+  allocations_number            Int
+  total_allocations             BigInt
+  application_url               String?
+  application_timestamp         DateTime?
+  client_contract               Boolean?
+  client_contract_max_deviation String?
 }
 
 model allocator_report_client_allocation {
