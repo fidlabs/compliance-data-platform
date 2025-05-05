@@ -1,5 +1,5 @@
 import { Prisma } from 'prisma/generated/client';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -12,6 +12,8 @@ import {
 
 @Injectable()
 export class ClientService {
+  private readonly logger = new Logger(ClientService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly prismaDmobService: PrismaDmobService,
@@ -106,9 +108,10 @@ export class ClientService {
   }
 
   public async getClientBookkeepingInfo(clientIdOrAddress: string) {
-    const result = await this.prismaService.allocator_client_bookkeeping.findFirst({
+    const result =
+      await this.prismaService.allocator_client_bookkeeping.findFirst({
         select: {
-          bookkeeping_info: true
+          bookkeeping_info: true,
         },
         where: {
           OR: [
@@ -119,21 +122,34 @@ export class ClientService {
               clientId: clientIdOrAddress,
             },
           ],
-        }
+        },
       });
 
     if (!result) return;
 
-    try {
-      const info = result.bookkeeping_info as Prisma.JsonObject;
-      const project = info.Project as Prisma.JsonObject;
-      const public_dataset_key = "Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)";
-      const public_dataset_raw = project[public_dataset_key] as string;
-      const public_dataset = public_dataset_raw.trim().toLowerCase() === "yes";
+    const info = result.bookkeeping_info as Prisma.JsonObject;
 
-      return { public_dataset };
-    } catch(err) {
-      return;
+    let publicDataset;
+    try {
+      const project = info.Project as Prisma.JsonObject;
+      const publicDatasetKey =
+        'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)';
+      const publicDatasetRaw = project[publicDatasetKey] as string;
+      const publicDatasetStr = publicDatasetRaw.trim().toLowerCase();
+      publicDataset =
+        publicDatasetStr.includes('[x]') || publicDatasetStr.includes('yes');
+    } catch (err) {
+      this.logger.warn(
+        `Failed to read public dataset info for client ${clientIdOrAddress}`,
+        err,
+      );
     }
+
+    const clientContractKey = 'Client Contract Address';
+    const clientContractAddress = info[clientContractKey]
+      ? (info[clientContractKey] as string)
+      : null;
+
+    return { publicDataset, clientContractAddress };
   }
 }

@@ -50,6 +50,7 @@ import { FilSparkService } from './service/filspark/filspark.service';
 import { AllocatorService } from './service/allocator/allocator.service';
 import { ClientReportService } from './service/client-report/client-report.service';
 import { GoogleApisService } from './service/googleapis/googleapis.service';
+import { EthApiService } from './service/eth-api/eth-api.service';
 import { LotusApiService } from './service/lotus-api/lotus-api.service';
 import { LocationService } from './service/location/location.service';
 import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
@@ -155,6 +156,7 @@ import { ProviderRunner } from './aggregation/runners/provider.runner';
     GitHubTriggersHandlerService,
     GitHubAllocatorClientBookkeepingService,
     GitHubAllocatorRegistryService,
+    EthApiService,
     LotusApiService,
     LocationService,
     AllocatorTechService,
