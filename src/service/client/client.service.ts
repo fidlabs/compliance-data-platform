@@ -107,7 +107,10 @@ export class ClientService {
     }));
   }
 
-  public async getClientBookkeepingInfo(clientIdOrAddress: string) {
+  public async getClientBookkeepingInfo(clientIdOrAddress: string): Promise<{
+    isPublicDataset: boolean | null;
+    clientContractAddress: string | null;
+  }> {
     const result =
       await this.prismaService.allocator_client_bookkeeping.findFirst({
         select: {
@@ -128,20 +131,21 @@ export class ClientService {
     if (!result) return;
 
     const info = result.bookkeeping_info as Prisma.JsonObject;
+    let isPublicDataset: boolean = null;
 
-    let publicDataset;
     try {
       const project = info.Project as Prisma.JsonObject;
       const publicDatasetKey =
         'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)';
+
       const publicDatasetRaw = project[publicDatasetKey] as string;
       const publicDatasetStr = publicDatasetRaw.trim().toLowerCase();
-      publicDataset =
+      isPublicDataset =
         publicDatasetStr.includes('[x]') || publicDatasetStr.includes('yes');
     } catch (err) {
       this.logger.warn(
-        `Failed to read public dataset info for client ${clientIdOrAddress}`,
-        err,
+        `Failed to read public dataset info for client ${clientIdOrAddress}: ${err.message}`,
+        err.cause || err.stack,
       );
     }
 
@@ -150,6 +154,6 @@ export class ClientService {
       ? (info[clientContractKey] as string)
       : null;
 
-    return { publicDataset, clientContractAddress };
+    return { isPublicDataset, clientContractAddress };
   }
 }

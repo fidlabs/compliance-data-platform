@@ -73,8 +73,8 @@ export class ClientReportService {
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),
-        public_dataset: bookkeepingInfo?.publicDataset,
-        client_contract: !!bookkeepingInfo?.clientContractAddress,
+        is_public_dataset: bookkeepingInfo?.isPublicDataset,
+        using_client_contract: !!bookkeepingInfo?.clientContractAddress,
         client_contract_max_deviation: maxDeviation,
         storage_provider_distribution: {
           create:

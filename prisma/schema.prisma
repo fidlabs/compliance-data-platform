@@ -210,8 +210,8 @@ model client_report {
   allocators                    String[]                                      @default([])
   allocator_required_copies     String?
   allocator_required_sps        String?
-  public_dataset                Boolean?
-  client_contract               Boolean?
+  is_public_dataset             Boolean?
+  using_client_contract         Boolean?
   client_contract_max_deviation String?
 }
 
@@ -319,7 +319,7 @@ model allocator_report_client {
   total_allocations             BigInt
   application_url               String?
   application_timestamp         DateTime?
-  client_contract               Boolean?
+  using_client_contract         Boolean?
   client_contract_max_deviation String?
 }
 
