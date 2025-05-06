@@ -11,6 +11,7 @@ export class GitHubAllocatorClientBookkeepingService {
   private readonly logger = new Logger(
     GitHubAllocatorClientBookkeepingService.name,
   );
+
   private octokit = new Map<string, Octokit>();
 
   constructor(
@@ -58,8 +59,10 @@ export class GitHubAllocatorClientBookkeepingService {
 
   private async getOctokit(owner, repo): Promise<Octokit> {
     const key = `${owner}/${repo}`;
+
     if (!this.octokit[key]) {
       const pat = this.configService.get<string>('GITHUB_PAT');
+
       if (pat) {
         this.octokit[key] = new Octokit({
           auth: pat,
@@ -96,7 +99,9 @@ export class GitHubAllocatorClientBookkeepingService {
     } catch (err) {
       this.logger.error(
         `Error fetching applications for ${owner}/${repo}: ${err.message}`,
+        err.cause || err.stack,
       );
+
       return [];
     }
 
@@ -105,8 +110,8 @@ export class GitHubAllocatorClientBookkeepingService {
       .map((v) => v.path);
 
     const clients = [];
-
     const chunks = _.chunk(paths, 10);
+
     for (const chunk of chunks) {
       await Promise.allSettled(
         chunk.map(async (path: string) => {
