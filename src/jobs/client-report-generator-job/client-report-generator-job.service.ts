@@ -6,10 +6,9 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/prometheus';
-import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
-import { AllocatorTechApplicationResponse } from 'src/service/allocator-tech/types.allocator-tech';
 import { ClientReportService } from 'src/service/client-report/client-report.service';
-import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
+import { ClientService } from 'src/service/client/client.service';
+import { ClientWithBookkeeping } from 'src/service/client/types.client';
 
 @Injectable()
 export class ClientReportGeneratorJobService extends HealthIndicator {
@@ -20,9 +19,8 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
   private healthy = true;
 
   constructor(
-    private readonly allocatorTechService: AllocatorTechService,
+    private readonly clientService: ClientService,
     private readonly clientReportService: ClientReportService,
-    private readonly lotusApiService: LotusApiService,
     private readonly prometheusMetricService: PrometheusMetricService,
   ) {
     super();
@@ -43,36 +41,33 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  private async generateClientReport(
-    application: AllocatorTechApplicationResponse,
-  ) {
-    // find Filecoin Client ID
-    const filecoinId = await this.lotusApiService.getFilecoinId(application.ID);
-
-    if (!filecoinId) {
+  private async generateClientReport(application: ClientWithBookkeeping) {
+    if (!application.clientId) {
       throw new Error(`Filecoin Id not found`);
     }
 
-    if (!(await this.clientReportService.generateReport(filecoinId))) {
+    if (
+      !(await this.clientReportService.generateReport(application.clientId))
+    ) {
       throw new Error(`Client not found`);
     }
   }
 
   private async _runClientReportGeneration() {
-    const applications = await this.allocatorTechService.getApplications();
+    const applications = await this.clientService.getClientsBookkeepingInfo();
     let fails = 0;
 
     for (const [i, application] of applications.entries()) {
       try {
         this.logger.debug(
-          `Starting generation of client report for application ${application.ID}`,
+          `Starting generation of client report for application ${application.clientAddress}`,
         );
 
         await this.generateClientReport(application);
       } catch (err) {
         fails++;
         this.logger.error(
-          `Error during generation of client report for application ${application.ID}: ${err.message}`,
+          `Error during generation of client report for application ${application.clientAddress}: ${err.message}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute

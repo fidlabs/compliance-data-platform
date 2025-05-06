@@ -7,7 +7,7 @@ import {
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/prometheus';
 import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
-import { AllocatorTechService } from 'src/service/allocator-tech/allocator-tech.service';
+import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
 
 @Injectable()
 export class AllocatorReportGeneratorJobService extends HealthIndicator {
@@ -18,7 +18,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
   private healthy = true;
 
   constructor(
-    private readonly allocatorTechService: AllocatorTechService,
+    private readonly allocatorRegistryService: GitHubAllocatorRegistryService,
     private readonly allocatorReportService: AllocatorReportService,
     private readonly prometheusMetricService: PrometheusMetricService,
   ) {
@@ -47,9 +47,10 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
   }
 
   private async _runAllocatorReportGeneration() {
-    const allocators = await this.allocatorTechService.getAllocators();
+    const allocators =
+      await this.allocatorRegistryService.getAllocatorsRegistry();
     const allocatorsAddresses = [
-      ...new Set(allocators.map((allocator) => allocator.multisig_address)),
+      ...new Set(allocators.map((allocator) => allocator.address)),
     ];
 
     let fails = 0;

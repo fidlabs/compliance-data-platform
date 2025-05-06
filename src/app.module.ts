@@ -53,7 +53,6 @@ import { GoogleApisService } from './service/googleapis/googleapis.service';
 import { EthApiService } from './service/eth-api/eth-api.service';
 import { LotusApiService } from './service/lotus-api/lotus-api.service';
 import { LocationService } from './service/location/location.service';
-import { AllocatorTechService } from './service/allocator-tech/allocator-tech.service';
 import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
@@ -159,7 +158,6 @@ import { ProviderRunner } from './aggregation/runners/provider.runner';
     EthApiService,
     LotusApiService,
     LocationService,
-    AllocatorTechService,
     ClientReportChecksService,
     AllocatorReportService,
     AllocatorReportChecksService,

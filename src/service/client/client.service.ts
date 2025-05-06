@@ -4,7 +4,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
-import { ClientWithAllowance } from './types.client';
+import { ClientWithAllowance, ClientWithBookkeeping } from './types.client';
 import {
   getClientData,
   getClientsByAllocator,
@@ -130,9 +130,13 @@ export class ClientService {
 
     if (!result) return;
 
-    const info = result.bookkeeping_info as Prisma.JsonObject;
-    let isPublicDataset: boolean = null;
+    return this._mapClientBookkeeping(
+      result.bookkeeping_info as Prisma.JsonObject,
+    );
+  }
 
+  private _mapClientBookkeeping(info: Prisma.JsonObject) {
+    let isPublicDataset: boolean = null;
     try {
       const project = info.Project as Prisma.JsonObject;
       const publicDatasetKey =
@@ -144,7 +148,7 @@ export class ClientService {
         publicDatasetStr.includes('[x]') || publicDatasetStr.includes('yes');
     } catch (err) {
       this.logger.warn(
-        `Failed to read public dataset info for client ${clientIdOrAddress}: ${err.message}`,
+        `Failed to read public dataset info from bookkeeping info: ${err.message}`,
         err.cause || err.stack,
       );
     }
@@ -155,5 +159,19 @@ export class ClientService {
       : null;
 
     return { isPublicDataset, clientContractAddress };
+  }
+
+  public async getClientsBookkeepingInfo(): Promise<ClientWithBookkeeping[]> {
+    const result =
+      await this.prismaService.allocator_client_bookkeeping.findMany();
+
+    return result.map((row) => ({
+      allocatorId: row.allocatorId,
+      clientId: row.clientId,
+      clientAddress: row.clientAddress,
+      bookkeepingInfo: this._mapClientBookkeeping(
+        row.bookkeeping_info as Prisma.JsonObject,
+      ),
+    }));
   }
 }

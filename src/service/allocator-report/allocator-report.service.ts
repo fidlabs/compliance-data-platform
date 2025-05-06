@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
-import { AllocatorTechService } from '../allocator-tech/allocator-tech.service';
 import { AllocatorService } from '../allocator/allocator.service';
 import { ClientWithAllowance } from '../client/types.client';
 import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
@@ -13,7 +12,6 @@ export class AllocatorReportService {
     private readonly prismaService: PrismaService,
     private readonly storageProviderService: StorageProviderReportService,
     private readonly clientService: ClientService,
-    private readonly allocatorTechService: AllocatorTechService,
     private readonly allocatorService: AllocatorService,
     private readonly allocatorReportChecksService: AllocatorReportChecksService,
   ) {}
@@ -26,7 +24,7 @@ export class AllocatorReportService {
 
     const [verifiedClients, allocatorInfo] = await Promise.all([
       this.clientService.getClientsByAllocator(allocatorData.addressId),
-      this.allocatorTechService.getAllocatorInfo(allocatorData.address),
+      this.allocatorService.getAllocatorRegistryInfo(allocatorData.addressId),
     ]);
 
     const clientsData = this.getGrantedDatacapInClients(verifiedClients);
@@ -55,9 +53,9 @@ export class AllocatorReportService {
             0,
           ) / storageProviderDistribution.length,
         clients_number: verifiedClients.length,
-        data_types: allocatorInfo?.data_types ?? [],
-        required_copies: allocatorInfo?.required_replicas,
-        required_sps: allocatorInfo?.required_sps,
+        data_types: allocatorInfo?.application.data_types ?? [],
+        required_copies: allocatorInfo?.application.required_replicas,
+        required_sps: allocatorInfo?.application.required_sps,
         clients: {
           create: await Promise.all(
             verifiedClients.map(async (client) => {
