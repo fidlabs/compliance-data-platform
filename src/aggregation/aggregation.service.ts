@@ -143,6 +143,7 @@ export class AggregationService {
         this.logger.error(
           'Cannot execute runners - impossible dependencies defined',
         );
+
         break;
       }
     }

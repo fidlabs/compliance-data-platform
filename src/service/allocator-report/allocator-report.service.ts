@@ -49,6 +49,11 @@ export class AllocatorReportService {
             (acc, curr) => acc + curr.retrievability_success_rate,
             0,
           ) / storageProviderDistribution.length,
+        avg_retrievability_success_rate_http:
+          storageProviderDistribution.reduce(
+            (acc, curr) => acc + curr.retrievability_success_rate_http,
+            0,
+          ) / storageProviderDistribution.length,
         clients_number: verifiedClients.length,
         data_types: allocatorInfo?.data_types ?? [],
         required_copies: allocatorInfo?.required_replicas,
@@ -91,11 +96,7 @@ export class AllocatorReportService {
         storage_provider_distribution: {
           create: storageProviderDistribution?.map((provider) => {
             return {
-              provider: provider.provider,
-              unique_data_size: provider.unique_data_size,
-              total_deal_size: provider.total_deal_size,
-              perc_of_total_datacap: provider.perc_of_total_datacap,
-              retrievability_success_rate: provider.retrievability_success_rate,
+              ...provider,
               ...(provider.location && {
                 location: {
                   create: provider.location,
@@ -176,13 +177,6 @@ export class AllocatorReportService {
         ],
       },
       include: {
-        check_results: {
-          select: {
-            check: true,
-            result: true,
-            metadata: true,
-          },
-        },
         clients: {
           omit: {
             id: true,
@@ -211,6 +205,13 @@ export class AllocatorReportService {
           },
           orderBy: {
             perc_of_total_datacap: 'desc',
+          },
+        },
+        check_results: {
+          select: {
+            check: true,
+            result: true,
+            metadata: true,
           },
         },
       },

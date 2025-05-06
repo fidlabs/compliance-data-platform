@@ -20,9 +20,11 @@ export class EthApiService {
   ): Promise<string | null> {
     const address = ethAddressFromDelegated(fAddress);
     const clientAddress = ethAddressFromID(clientId);
+
     const abi = parseAbi([
       'function clientConfigs(address client) view returns (uint256 maxDeviation)',
     ]);
+
     const maxDeviation = await this.client.readContract({
       address,
       abi,

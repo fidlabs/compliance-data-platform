@@ -105,8 +105,10 @@ export class StorageProviderReportService {
     if (result._sum.total > 0) {
       const retrievability_success_rate =
         result._sum.successful / result._sum.total;
+
       const retrievability_success_rate_http =
         result._sum.successful_http / result._sum.total;
+
       return { retrievability_success_rate, retrievability_success_rate_http };
     } else {
       return {
