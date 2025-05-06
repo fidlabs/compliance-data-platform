@@ -13,3 +13,10 @@ export class ClientWithAllowance {
     createMessageTimestamp: number;
   }[];
 }
+
+export class ClientWithBookkeeping {
+  allocatorId: string;
+  clientId: string;
+  clientAddress: string;
+  bookkeepingInfo: object;
+}

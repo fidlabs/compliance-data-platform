@@ -394,10 +394,14 @@ export class AllocatorService {
 
     const info = result.registry_info as Prisma.JsonObject;
     const application = info.application as Prisma.JsonObject;
+    const data_types = (application?.data_types as Prisma.JsonArray)?.map(
+      (v) => v as string,
+    );
 
     // parse it into somewhat coherent type
     return {
       application: {
+        data_types,
         required_sps: application.required_sps as string,
         required_replicas: application.required_replicas as string,
       },
