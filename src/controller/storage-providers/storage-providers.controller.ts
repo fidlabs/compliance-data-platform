@@ -87,7 +87,7 @@ export class StorageProvidersController extends ControllerBase {
     const providers = await this._getStorageProviders();
 
     const weekAverageRetrievability =
-      await this.storageProviderService.getWeekAverageProviderRetrievability(
+      await this.storageProviderService.getWeekAverageOpenDataProviderRetrievability(
         query.week,
         true,
       );
