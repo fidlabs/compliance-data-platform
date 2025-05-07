@@ -105,12 +105,6 @@ export class StorageProviderService {
     const queryResult: HistogramWeekFlat[] =
       await this.prismaService.$queryRawTyped(query());
 
-    if (!queryResult || queryResult.length === 0 || !queryResult[0]) {
-      this.logger.error(
-        `Database getProviderRetrievability${isAccumulative ? 'Acc' : ''} query returned no results, this should not happen: ${queryResult}`,
-      );
-    }
-
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(queryResult, 100);
 
