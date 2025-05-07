@@ -5,6 +5,7 @@ import { ClientService } from '../client/client.service';
 import { AllocatorService } from '../allocator/allocator.service';
 import { ClientWithAllowance } from '../client/types.client';
 import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
+import { EthApiService } from '../eth-api/eth-api.service';
 
 @Injectable()
 export class AllocatorReportService {
@@ -16,6 +17,7 @@ export class AllocatorReportService {
     private readonly clientService: ClientService,
     private readonly allocatorService: AllocatorService,
     private readonly allocatorReportChecksService: AllocatorReportChecksService,
+    private readonly ethApiService: EthApiService,
   ) {}
 
   public async generateReport(allocatorIdOrAddress: string) {
@@ -61,12 +63,23 @@ export class AllocatorReportService {
         clients: {
           create: await Promise.all(
             verifiedClients.map(async (client) => {
+              const clientData = await this.clientService.getClientData(
+                client.addressId,
+              );
+              const bookkeepingInfo =
+                await this.clientService.getClientBookkeepingInfo(
+                  client.addressId,
+                );
+              const maxDeviation = bookkeepingInfo?.clientContractAddress
+                ? await this.ethApiService.getClientContractMaxDeviation(
+                    bookkeepingInfo.clientContractAddress,
+                    client.addressId,
+                  )
+                : null;
               return {
                 client_id: client.addressId,
                 name: client.name || null,
-                allocators: (
-                  await this.clientService.getClientData(client.addressId)
-                ).map((c) => c.verifierAddressId),
+                allocators: clientData.map((c) => c.verifierAddressId),
                 allocations_number: client.allowanceArray.length,
                 application_url:
                   this.clientService.getClientApplicationUrl(client),
@@ -80,6 +93,8 @@ export class AllocatorReportService {
                   (acc, curr) => acc + curr.allowance,
                   0,
                 ),
+                using_client_contract: !!bookkeepingInfo?.clientContractAddress,
+                client_contract_max_deviation: maxDeviation,
               };
             }),
           ),
