@@ -50,7 +50,7 @@ export class StorageProvidersAccStatsController {
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getProviderRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
-    return await this.storageProviderService.getProviderRetrievabilityWeekly(
+    return await this.storageProviderService.getOpenDataProviderRetrievabilityWeekly(
       this.isAccumulative,
     );
   }

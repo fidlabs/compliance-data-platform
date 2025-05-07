@@ -194,7 +194,7 @@ export class AllocatorService {
     spMetricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeek> {
     const weekAverageProvidersRetrievability =
-      await this.storageProviderService.getWeekAverageProviderRetrievability(
+      await this.storageProviderService.getWeekAverageOpenDataProviderRetrievability(
         week,
         isAccumulative,
       );
@@ -266,7 +266,7 @@ export class AllocatorService {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
     const lastWeekAverageProviderRetrievability =
-      await this.storageProviderService.getLastWeekAverageProviderRetrievability(
+      await this.storageProviderService.getLastWeekAverageOpenDataProviderRetrievability(
         isAccumulative,
       );
 
