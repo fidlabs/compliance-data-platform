@@ -28,7 +28,7 @@ export class AllocatorsAccStatsController {
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getAllocatorRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
+    return await this.allocatorService.getStandardOpenDataAllocatorRetrievabilityWeekly(
       this.isAccumulative,
     );
   }

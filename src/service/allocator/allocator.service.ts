@@ -4,13 +4,14 @@ import { PrismaService } from 'src/db/prisma.service';
 import {
   getStandardAllocatorBiggestClientDistribution,
   getStandardAllocatorBiggestClientDistributionAcc,
-  getStandardAllocatorRetrievability,
-  getStandardAllocatorRetrievabilityAcc,
+  getStandardOpenDataAllocatorRetrievability,
+  getStandardOpenDataAllocatorRetrievabilityAcc,
   getStandardAllocatorClientsWeekly,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
-  getWeekAverageStandardAllocatorRetrievability,
-  getWeekAverageStandardAllocatorRetrievabilityAcc,
+  getStandardOpenDataAllocatorCount,
+  getWeekAverageStandardOpenDataAllocatorRetrievability,
+  getWeekAverageStandardOpenDataAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
 import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
 import { groupBy } from 'lodash';
@@ -103,7 +104,7 @@ export class AllocatorService {
     );
   }
 
-  public async getStandardAllocatorRetrievabilityWeekly(
+  public async getStandardOpenDataAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeek = DateTime.now()
@@ -113,23 +114,17 @@ export class AllocatorService {
       .toJSDate();
 
     const lastWeekAverageRetrievability =
-      await this.getWeekAverageStandardAllocatorRetrievability(
+      await this.getWeekAverageStandardOpenDataAllocatorRetrievability(
         lastWeek,
         isAccumulative,
       );
 
     const query = isAccumulative
-      ? getStandardAllocatorRetrievabilityAcc
-      : getStandardAllocatorRetrievability;
+      ? getStandardOpenDataAllocatorRetrievabilityAcc
+      : getStandardOpenDataAllocatorRetrievability;
 
     const queryResult: HistogramWeekFlat[] =
       await this.prismaService.$queryRawTyped(query());
-
-    if (!queryResult || queryResult.length === 0 || !queryResult[0]) {
-      this.logger.error(
-        `Database getAllocatorRetrievability${isAccumulative ? 'Acc' : ''} query returned no results, this should not happen: ${queryResult}`,
-      );
-    }
 
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(queryResult, 100);
@@ -137,12 +132,12 @@ export class AllocatorService {
     return new RetrievabilityWeekResponse(
       lastWeekAverageRetrievability * 100,
       new RetrievabilityHistogramWeekResponse(
-        await this.getStandardAllocatorCount(),
+        await this.getStandardOpenDataAllocatorCount(),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
             RetrievabilityHistogramWeek.of(
               histogramWeek,
-              (await this.getWeekAverageStandardAllocatorRetrievability(
+              (await this.getWeekAverageStandardOpenDataAllocatorRetrievability(
                 histogramWeek.week,
                 isAccumulative,
               )) * 100,
@@ -173,7 +168,7 @@ export class AllocatorService {
     weekAllocator: AllocatorSpsComplianceWeekSingle,
     complianceThresholdPercentage: number,
   ): AllocatorComplianceScore {
-    let complianceScore;
+    let complianceScore: AllocatorComplianceScoreRange;
 
     if (weekAllocator.compliantSpsPercentage >= complianceThresholdPercentage) {
       complianceScore = AllocatorComplianceScoreRange.Compliant;
@@ -326,16 +321,25 @@ export class AllocatorService {
     )[0].count;
   }
 
+  // returns the number of standard allocators (not metaallocators) using open data pathway
+  public async getStandardOpenDataAllocatorCount(): Promise<number> {
+    return (
+      await this.prismaService.$queryRawTyped(
+        getStandardOpenDataAllocatorCount(),
+      )
+    )[0].count;
+  }
+
   // returns 0 - 1
-  public async getWeekAverageStandardAllocatorRetrievability(
+  public async getWeekAverageStandardOpenDataAllocatorRetrievability(
     week: Date,
     isAccumulative: boolean,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
         isAccumulative
-          ? getWeekAverageStandardAllocatorRetrievabilityAcc(week)
-          : getWeekAverageStandardAllocatorRetrievability(week),
+          ? getWeekAverageStandardOpenDataAllocatorRetrievabilityAcc(week)
+          : getWeekAverageStandardOpenDataAllocatorRetrievability(week),
       )
     )[0].average;
   }
