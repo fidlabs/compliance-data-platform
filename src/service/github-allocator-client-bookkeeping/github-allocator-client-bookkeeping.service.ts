@@ -81,10 +81,11 @@ export class GitHubAllocatorClientBookkeepingService {
     owner,
     repo,
   ): Promise<AllocatorClientBookkeeping[]> {
-    const octokit = await this.getOctokit(owner, repo);
+    let octokit;
     let response;
 
     try {
+      octokit = await this.getOctokit(owner, repo);
       response = (await octokit.request(
         'GET /repos/{owner}/{repo}/contents/{path}',
         {

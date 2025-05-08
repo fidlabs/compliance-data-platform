@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 import { ClientService } from '../client/client.service';
@@ -8,6 +8,8 @@ import { AllocatorReportChecksService } from '../allocator-report-checks/allocat
 
 @Injectable()
 export class AllocatorReportService {
+  private readonly logger = new Logger(AllocatorReportService.name);
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly storageProviderService: StorageProviderReportService,
@@ -244,13 +246,23 @@ export class AllocatorReportService {
 
     return _clientsData
       .map((data) => {
-        return data.allowanceArray.map((allowanceItem) => ({
-          allocation: allowanceItem.allowance,
-          addressId: data.addressId,
-          allocationTimestamp: allowanceItem.createMessageTimestamp,
-          applicationTimestamp: allowanceItem.issueCreateTimestamp,
-          clientName: data.clientName,
-        }));
+        return data.allowanceArray
+          .filter((allowanceItem) => {
+            if (allowanceItem.allowance === undefined) {
+              this.logger.error(
+                `Allowance is undefined for client ${allowanceItem.addressId}. Please investigate.`,
+              );
+              return false;
+            }
+            return true;
+          })
+          .map((allowanceItem) => ({
+            allocation: allowanceItem.allowance,
+            addressId: data.addressId,
+            allocationTimestamp: allowanceItem.createMessageTimestamp,
+            applicationTimestamp: allowanceItem.issueCreateTimestamp,
+            clientName: data.clientName,
+          }));
       })
       .flat()
       .sort((a, b) => a.allocationTimestamp - b.allocationTimestamp);
