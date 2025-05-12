@@ -3,7 +3,6 @@ import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
-import { DateTime } from 'luxon';
 import {
   GetAllocatorsRequest,
   GetWeekAllocatorsWithSpsComplianceRequest,
@@ -11,7 +10,7 @@ import {
 } from './types.allocators';
 import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
-import { stringToBool } from 'src/utils/utils';
+import { lastWeek, stringToBool } from 'src/utils/utils';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -112,11 +111,7 @@ export class AllocatorsController extends ControllerBase {
   public async getWeekAllocatorsWithSpsCompliance(
     @Query() query: GetWeekAllocatorsWithSpsComplianceRequest,
   ) {
-    query.week ??= DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate(); // last week default
+    query.week ??= lastWeek(); // last week default
 
     let allocators = await this._getWeekAllocatorsWithSpsCompliance(query);
 

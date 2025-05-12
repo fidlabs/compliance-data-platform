@@ -47,11 +47,21 @@ export class StorageProvidersAccStatsController {
     );
   }
 
+  @Get('open-data-retrievability')
+  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  public async getOpenDataProviderRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
+    return await this.storageProviderService.getProviderRetrievabilityWeekly(
+      this.isAccumulative,
+      true,
+    );
+  }
+
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getProviderRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
-    return await this.storageProviderService.getOpenDataProviderRetrievabilityWeekly(
+    return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.isAccumulative,
+      false,
     );
   }
 
