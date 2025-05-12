@@ -267,8 +267,10 @@ export class AllocatorReportService {
               this.logger.error(
                 `Allowance is undefined for client ${allowanceItem.addressId}. Please investigate.`,
               );
+
               return false;
             }
+
             return true;
           })
           .map((allowanceItem) => ({

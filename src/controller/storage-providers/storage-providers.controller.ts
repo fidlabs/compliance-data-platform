@@ -13,7 +13,7 @@ import {
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
 } from './types.storage-providers';
-import { DateTime } from 'luxon';
+import { lastWeek } from 'src/utils/utils';
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -87,7 +87,7 @@ export class StorageProvidersController extends ControllerBase {
     const providers = await this._getStorageProviders();
 
     const weekAverageRetrievability =
-      await this.storageProviderService.getWeekAverageOpenDataProviderRetrievability(
+      await this.storageProviderService.getWeekAverageProviderRetrievability(
         query.week,
         true,
       );
@@ -129,11 +129,7 @@ export class StorageProvidersController extends ControllerBase {
   public async getWeekStorageProvidersWithSpsCompliance(
     @Query() query: GetWeekStorageProvidersWithSpsComplianceRequest,
   ) {
-    query.week ??= DateTime.now()
-      .toUTC()
-      .minus({ week: 1 })
-      .startOf('week')
-      .toJSDate(); // last week default
+    query.week ??= lastWeek(); // last week default
 
     let providers = await this._getWeekStorageProvidersWithSpsCompliance(query);
 

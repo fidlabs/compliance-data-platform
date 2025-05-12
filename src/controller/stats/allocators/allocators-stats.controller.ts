@@ -25,11 +25,21 @@ export class AllocatorsAccStatsController {
     );
   }
 
+  @Get('open-data-retrievability')
+  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  public async getOpenDataAllocatorRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
+    return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
+      this.isAccumulative,
+      true,
+    );
+  }
+
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getAllocatorRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
-    return await this.allocatorService.getStandardOpenDataAllocatorRetrievabilityWeekly(
+    return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       this.isAccumulative,
+      false,
     );
   }
 
