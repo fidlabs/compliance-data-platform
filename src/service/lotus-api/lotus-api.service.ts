@@ -51,8 +51,14 @@ export class LotusApiService {
     );
 
     // store result in DB
-    await this.prismaService.id_address_mapping.create({
-      data: {
+    await this.prismaService.id_address_mapping.upsert({
+      where: {
+        id: data.result,
+      },
+      update: {
+        address: address,
+      },
+      create: {
         id: data.result,
         address: address,
       },

@@ -118,9 +118,16 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       });
     }
 
+    const isNumericalString = (str?: string) => {
+      return parseInt(str).toString() === str;
+    };
+
     const paths = response.data
+      // filter only old scheme json files
       .filter(
-        (v) => v.name.endsWith('.json') && v.name != 'Allocator JSON SPEC.json',
+        (v) =>
+          v.name.endsWith('.json') &&
+          isNumericalString(v.name.substring(0, v.name.length - 5)),
       )
       .map((v) => v.path);
 
@@ -165,7 +172,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       return null;
     }
 
-    // TODO use allocatorService.getAllocatorInfo(...).address here, get rid of lotusApiService.getFilecoinId?
+    // TODO use allocatorService.getAllocatorData(...).address here, get rid of lotusApiService.getFilecoinId?
     const id = await this.lotusApiService.getFilecoinId(
       data.pathway_addresses.msig,
     );
