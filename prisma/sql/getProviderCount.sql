@@ -1,12 +1,13 @@
-with "open_data_pathway_allocator" as (
-    select distinct "allocatorId" as "allocatorId"
+with "open_data_pathway_provider" as (
+    select distinct "client_provider_distribution"."provider" as "provider"
     from "allocator_client_bookkeeping"
+       join "client_provider_distribution" on "allocator_client_bookkeeping"."clientId" = "client_provider_distribution"."client"
     where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
        or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
 )
-select avg("avg_weighted_retrievability_success_rate") as "average"
-from "allocators_weekly"
-         join "open_data_pathway_allocator" on "allocators_weekly"."allocator" = "open_data_pathway_allocator"."allocatorId"
-         left join "allocator" on "allocators_weekly"."allocator" = "allocator"."id"
-where "allocator"."is_metaallocator" = false or "allocator"."is_metaallocator" is null
-  and "week" = $1;
+select count(distinct "providers_weekly_acc"."provider")::int as "count"
+from "providers_weekly_acc"
+where (
+          $1 = false -- openDataOnly param $1
+              or "provider" in (select "provider" from "open_data_pathway_provider")
+          );

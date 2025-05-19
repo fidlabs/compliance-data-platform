@@ -4,16 +4,11 @@ import { PrismaService } from 'src/db/prisma.service';
 import {
   getStandardAllocatorBiggestClientDistribution,
   getStandardAllocatorBiggestClientDistributionAcc,
-  getStandardOpenDataAllocatorRetrievability,
-  getStandardOpenDataAllocatorRetrievabilityAcc,
   getStandardAllocatorRetrievability,
   getStandardAllocatorRetrievabilityAcc,
   getStandardAllocatorClientsWeekly,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
-  getStandardOpenDataAllocatorCount,
-  getWeekAverageStandardOpenDataAllocatorRetrievability,
-  getWeekAverageStandardOpenDataAllocatorRetrievabilityAcc,
   getWeekAverageStandardAllocatorRetrievability,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
@@ -113,13 +108,9 @@ export class AllocatorService {
     openDataOnly = true,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
-      openDataOnly
-        ? isAccumulative
-          ? getStandardOpenDataAllocatorRetrievabilityAcc()
-          : getStandardOpenDataAllocatorRetrievability()
-        : isAccumulative
-          ? getStandardAllocatorRetrievabilityAcc()
-          : getStandardAllocatorRetrievability(),
+      isAccumulative
+        ? getStandardAllocatorRetrievabilityAcc(openDataOnly)
+        : getStandardAllocatorRetrievability(openDataOnly),
     );
   }
 
@@ -334,9 +325,7 @@ export class AllocatorService {
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
-        openDataOnly
-          ? getStandardOpenDataAllocatorCount()
-          : getStandardAllocatorCount(),
+        getStandardAllocatorCount(openDataOnly),
       )
     )[0].count;
   }
@@ -349,13 +338,9 @@ export class AllocatorService {
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
-        openDataOnly
-          ? isAccumulative
-            ? getWeekAverageStandardOpenDataAllocatorRetrievabilityAcc(week)
-            : getWeekAverageStandardOpenDataAllocatorRetrievability(week)
-          : isAccumulative
-            ? getWeekAverageStandardAllocatorRetrievabilityAcc(week)
-            : getWeekAverageStandardAllocatorRetrievability(week),
+        isAccumulative
+          ? getWeekAverageStandardAllocatorRetrievabilityAcc(openDataOnly, week)
+          : getWeekAverageStandardAllocatorRetrievability(openDataOnly, week),
       )
     )[0].average;
   }
