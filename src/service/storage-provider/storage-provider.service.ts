@@ -5,17 +5,13 @@ import {
   getProviderBiggestClientDistributionAcc,
   getProviderClientsWeekly,
   getProviderClientsWeeklyAcc,
-  getOpenDataProviderRetrievability,
-  getOpenDataProviderRetrievabilityAcc,
   getProviderRetrievability,
   getProviderRetrievabilityAcc,
-  getOpenDataProviderCount,
+  getProviderCount,
   getProvidersWithIpInfo,
-  getWeekAverageOpenDataProviderRetrievabilityAcc,
-  getWeekAverageOpenDataProviderRetrievability,
+  getWeekAverageProviderRetrievabilityAcc,
+  getWeekAverageProviderRetrievability,
 } from 'prisma/generated/client/sql';
-import { Prisma } from 'prisma/generated/client';
-import { modelName } from 'src/utils/prisma';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
@@ -89,18 +85,9 @@ export class StorageProviderService {
   }
 
   public async getProviderCount(openDataOnly = false): Promise<number> {
-    if (openDataOnly) {
-      return (
-        await this.prismaService.$queryRawTyped(getOpenDataProviderCount())
-      )[0].count;
-    } else {
-      return (
-        await this.prismaService.$queryRaw<
-          [{ count: number }]
-        >`select count(distinct "provider")::int
-          from ${modelName(Prisma.ModelName.providers_weekly_acc)}`
-      )[0].count;
-    }
+    return (
+      await this.prismaService.$queryRawTyped(getProviderCount(openDataOnly))
+    )[0].count;
   }
 
   private async _getProviderRetrievability(
@@ -108,13 +95,9 @@ export class StorageProviderService {
     openDataOnly = true,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
-      openDataOnly
-        ? isAccumulative
-          ? getOpenDataProviderRetrievabilityAcc()
-          : getOpenDataProviderRetrievability()
-        : isAccumulative
-          ? getProviderRetrievabilityAcc()
-          : getProviderRetrievability(),
+      isAccumulative
+        ? getProviderRetrievabilityAcc(openDataOnly)
+        : getProviderRetrievability(openDataOnly),
     );
   }
 
@@ -318,30 +301,13 @@ export class StorageProviderService {
     isAccumulative: boolean,
     openDataOnly = true,
   ): Promise<number> {
-    if (openDataOnly) {
-      return (
-        await this.prismaService.$queryRawTyped(
-          isAccumulative
-            ? getWeekAverageOpenDataProviderRetrievabilityAcc(week)
-            : getWeekAverageOpenDataProviderRetrievability(week),
-        )
-      )[0].average;
-    } else {
-      return (
-        await (
-          (isAccumulative
-            ? this.prismaService.providers_weekly_acc
-            : this.prismaService.providers_weekly) as any
-        ).aggregate({
-          _avg: {
-            avg_retrievability_success_rate: true,
-          },
-          where: {
-            week: week,
-          },
-        })
-      )._avg.avg_retrievability_success_rate;
-    }
+    return (
+      await this.prismaService.$queryRawTyped(
+        isAccumulative
+          ? getWeekAverageProviderRetrievabilityAcc(openDataOnly, week)
+          : getWeekAverageProviderRetrievability(openDataOnly, week),
+      )
+    )[0].average;
   }
 
   public calculateProviderComplianceScore(
