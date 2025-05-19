@@ -20,6 +20,8 @@ import {
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
+import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import { stringToBool } from 'src/utils/utils';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -47,21 +49,15 @@ export class StorageProvidersAccStatsController {
     );
   }
 
-  @Get('open-data-retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  public async getOpenDataProviderRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
-    return await this.storageProviderService.getProviderRetrievabilityWeekly(
-      this.isAccumulative,
-      true,
-    );
-  }
-
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  public async getProviderRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
+  public async getProviderRetrievabilityWeekly(
+    @Query() query: GetRetrievabilityWeeklyRequest,
+  ): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.isAccumulative,
-      false,
+      stringToBool(query?.openDataOnly) ?? false,
+      stringToBool(query?.httpRetrievability) ?? false,
     );
   }
 

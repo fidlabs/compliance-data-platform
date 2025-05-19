@@ -9,6 +9,8 @@ import {
 import { CacheTTL } from '@nestjs/cache-manager';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
+import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
+import { stringToBool } from 'src/utils/utils';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -25,21 +27,15 @@ export class AllocatorsAccStatsController {
     );
   }
 
-  @Get('open-data-retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  public async getOpenDataAllocatorRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
-      this.isAccumulative,
-      true,
-    );
-  }
-
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
-  public async getAllocatorRetrievabilityWeekly(): Promise<RetrievabilityWeekResponse> {
+  public async getAllocatorRetrievabilityWeekly(
+    @Query() query: GetRetrievabilityWeeklyRequest,
+  ): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       this.isAccumulative,
-      false,
+      stringToBool(query?.openDataOnly) ?? false,
+      stringToBool(query?.httpRetrievability) ?? false,
     );
   }
 

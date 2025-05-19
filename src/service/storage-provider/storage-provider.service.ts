@@ -93,27 +93,31 @@ export class StorageProviderService {
   private async _getProviderRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
       isAccumulative
-        ? getProviderRetrievabilityAcc(openDataOnly)
-        : getProviderRetrievability(openDataOnly),
+        ? getProviderRetrievabilityAcc(openDataOnly, httpRetrievability)
+        : getProviderRetrievability(openDataOnly, httpRetrievability),
     );
   }
 
   public async getProviderRetrievabilityWeekly(
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability(
         isAccumulative,
         openDataOnly,
+        httpRetrievability,
       );
 
     const result = await this._getProviderRetrievability(
       isAccumulative,
       openDataOnly,
+      httpRetrievability,
     );
 
     const weeklyHistogramResult =
@@ -131,6 +135,7 @@ export class StorageProviderService {
                 histogramWeek.week,
                 isAccumulative,
                 openDataOnly,
+                httpRetrievability,
               )) * 100,
             ),
           ),
@@ -142,11 +147,13 @@ export class StorageProviderService {
   public getLastWeekAverageProviderRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<number> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
       isAccumulative,
       openDataOnly,
+      httpRetrievability,
     );
   }
 
@@ -300,12 +307,21 @@ export class StorageProviderService {
     week: Date,
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
         isAccumulative
-          ? getWeekAverageProviderRetrievabilityAcc(openDataOnly, week)
-          : getWeekAverageProviderRetrievability(openDataOnly, week),
+          ? getWeekAverageProviderRetrievabilityAcc(
+              openDataOnly,
+              httpRetrievability,
+              week,
+            )
+          : getWeekAverageProviderRetrievability(
+              openDataOnly,
+              httpRetrievability,
+              week,
+            ),
       )
     )[0].average;
   }

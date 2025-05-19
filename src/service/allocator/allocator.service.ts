@@ -106,28 +106,33 @@ export class AllocatorService {
   private async _getStandardAllocatorRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<HistogramWeekFlat[]> {
+    // prettier-ignore
     return await this.prismaService.$queryRawTyped(
       isAccumulative
-        ? getStandardAllocatorRetrievabilityAcc(openDataOnly)
-        : getStandardAllocatorRetrievability(openDataOnly),
+        ? getStandardAllocatorRetrievabilityAcc(openDataOnly, httpRetrievability)
+        : getStandardAllocatorRetrievability(openDataOnly, httpRetrievability),
     );
   }
 
   public async getStandardAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
         lastWeek(),
         isAccumulative,
         openDataOnly,
+        httpRetrievability,
       );
 
     const result = await this._getStandardAllocatorRetrievability(
       isAccumulative,
       openDataOnly,
+      httpRetrievability,
     );
 
     const weeklyHistogramResult =
@@ -145,6 +150,7 @@ export class AllocatorService {
                 histogramWeek.week,
                 isAccumulative,
                 openDataOnly,
+                httpRetrievability,
               )) * 100,
             ),
           ),
@@ -335,12 +341,21 @@ export class AllocatorService {
     week: Date,
     isAccumulative: boolean,
     openDataOnly = true,
+    httpRetrievability = false,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
         isAccumulative
-          ? getWeekAverageStandardAllocatorRetrievabilityAcc(openDataOnly, week)
-          : getWeekAverageStandardAllocatorRetrievability(openDataOnly, week),
+          ? getWeekAverageStandardAllocatorRetrievabilityAcc(
+              openDataOnly,
+              httpRetrievability,
+              week,
+            )
+          : getWeekAverageStandardAllocatorRetrievability(
+              openDataOnly,
+              httpRetrievability,
+              week,
+            ),
       )
     )[0].average;
   }
