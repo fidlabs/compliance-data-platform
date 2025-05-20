@@ -33,7 +33,7 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
 
     const allocators = await prismaService.allocator_registry.findMany({
       select: {
-        id: true,
+        allocator_id: true,
         registry_info: true,
       },
       where: {
@@ -43,6 +43,7 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
         },
       },
     });
+
     const bookkeeping_repos = allocators
       .filter((row) =>
         row.registry_info['application']['allocation_bookkeeping'].startsWith(
@@ -50,25 +51,31 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
         ),
       )
       .map((row) => {
-        const allocatorId = row.id;
         const url = row.registry_info['application']['allocation_bookkeeping'];
         const [owner, repo] = url.split('/').slice(3);
-        return { allocatorId, owner, repo };
+        return { allocatorId: row.allocator_id, owner, repo };
       });
 
-    const data = [];
+    const result = [];
+
     for (const bookkeeping of bookkeeping_repos) {
       const bookkeepingData =
         await allocatorClientBookkeepingService.getAllocatorsClientBookkeeping(
           bookkeeping.owner,
           bookkeeping.repo,
         );
+
       const dataWithAllocatorId = bookkeepingData.map((row) => ({
-        allocatorId: bookkeeping.allocatorId,
-        ...row,
+        allocator_id: bookkeeping.allocatorId,
+        client_id: row.clientId,
+        client_address: row.clientAddress,
+        json_path: row.jsonPath,
+        bookkeeping_info: row.bookkeepingInfo,
       }));
-      data.push(...dataWithAllocatorId);
+
+      result.push(...dataWithAllocatorId);
     }
+
     getDataEndTimerMetric();
 
     const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
@@ -76,12 +83,12 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
     );
 
     await prismaService.$transaction(
-      data.map((row) =>
+      result.map((row) =>
         prismaService.allocator_client_bookkeeping.upsert({
           where: {
-            allocatorId_clientId: {
-              allocatorId: row.allocatorId,
-              clientId: row.clientId,
+            allocator_id_client_id: {
+              allocator_id: row.allocator_id,
+              client_id: row.client_id,
             },
           },
           update: row,

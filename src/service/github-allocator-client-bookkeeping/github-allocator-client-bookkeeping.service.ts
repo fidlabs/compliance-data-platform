@@ -100,7 +100,7 @@ export class GitHubAllocatorClientBookkeepingService {
     } catch (err) {
       this.logger.error(
         `Error fetching applications for ${owner}/${repo}: ${err.message}`,
-        err.cause || err.stack,
+        // err.cause || err.stack,
       );
 
       return [];
@@ -167,8 +167,8 @@ export class GitHubAllocatorClientBookkeepingService {
     return {
       clientId: id,
       clientAddress: data.ID,
-      json_path: path,
-      bookkeeping_info: data,
+      jsonPath: path,
+      bookkeepingInfo: data,
     };
   }
 }

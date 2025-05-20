@@ -25,23 +25,23 @@ model provider {
 }
 
 model allocator_registry {
-  id            String
-  address       String @unique
-  json_path     String
-  registry_info Json
+  allocator_id      String
+  allocator_address String @unique
+  json_path         String
+  registry_info     Json
 
-  @@id([id])
+  @@id([allocator_id])
 }
 
 model allocator_client_bookkeeping {
-  allocatorId      String
-  clientId         String
-  clientAddress    String
+  allocator_id     String
+  client_id        String
+  client_address   String
   json_path        String
   bookkeeping_info Json
 
-  @@id([allocatorId, clientId])
-  @@index([clientId])
+  @@id([allocator_id, client_id])
+  @@index([client_id])
 }
 
 model client_allocator_distribution_weekly {

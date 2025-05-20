@@ -119,10 +119,10 @@ export class ClientService {
         where: {
           OR: [
             {
-              clientAddress: clientIdOrAddress,
+              client_address: clientIdOrAddress,
             },
             {
-              clientId: clientIdOrAddress,
+              client_id: clientIdOrAddress,
             },
           ],
         },
@@ -166,9 +166,9 @@ export class ClientService {
       await this.prismaService.allocator_client_bookkeeping.findMany();
 
     return result.map((row) => ({
-      allocatorId: row.allocatorId,
-      clientId: row.clientId,
-      clientAddress: row.clientAddress,
+      allocatorId: row.allocator_id,
+      clientId: row.client_id,
+      clientAddress: row.client_address,
       bookkeepingInfo: this._mapClientBookkeeping(
         row.bookkeeping_info as Prisma.JsonObject,
       ),
