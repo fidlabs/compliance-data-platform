@@ -11,4 +11,4 @@ where (
     $1 = false -- openDataOnly param $1
         or "provider" in (select "provider" from "open_data_pathway_provider")
     )
-  and "week" = $3; -- week param $3
+  and "week" = $3::timestamp; -- week param $3
