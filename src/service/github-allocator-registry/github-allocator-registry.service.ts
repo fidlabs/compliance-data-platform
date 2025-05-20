@@ -140,7 +140,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       } catch (err) {
         this.logger.error(
           `Error while fetching registry info for ${path}: ${err.message}`,
-          err.cause || err.stack,
+          // err.cause || err.stack,
         );
       }
     }
@@ -186,8 +186,8 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     }
 
     return {
-      id: id,
-      address: data.pathway_addresses.msig,
+      allocator_id: id,
+      allocator_address: data.pathway_addresses.msig,
       json_path: path,
       registry_info: data,
     };

@@ -61,13 +61,13 @@ export class AllocatorService {
 
     const jsonLinks = await this.prismaService.allocator_registry.findMany({
       select: {
-        id: true,
+        allocator_id: true,
         json_path: true,
       },
     });
 
     const jsonLinksMap = jsonLinks.reduce((acc, v) => {
-      acc[v.id] = v.json_path;
+      acc[v.allocator_id] = v.json_path;
       return acc;
     }, {});
 
@@ -401,10 +401,10 @@ export class AllocatorService {
       where: {
         OR: [
           {
-            address: allocatorIdOrAddress,
+            allocator_address: allocatorIdOrAddress,
           },
           {
-            id: allocatorIdOrAddress,
+            allocator_id: allocatorIdOrAddress,
           },
         ],
       },

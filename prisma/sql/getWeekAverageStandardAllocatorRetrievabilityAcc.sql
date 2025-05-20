@@ -1,5 +1,5 @@
 with "open_data_pathway_allocator" as (
-    select distinct "allocatorId" as "allocator"
+    select distinct "allocator_id" as "allocator"
     from "allocator_client_bookkeeping"
     where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
        or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
