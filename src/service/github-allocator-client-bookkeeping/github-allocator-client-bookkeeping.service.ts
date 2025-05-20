@@ -122,7 +122,7 @@ export class GitHubAllocatorClientBookkeepingService {
           } catch (err) {
             this.logger.error(
               `Error while fetching client info for ${owner}/${repo}:${path}: ${err.message}`,
-              err.cause || err.stack,
+              // err.cause || err.stack,
             );
           }
         }),
