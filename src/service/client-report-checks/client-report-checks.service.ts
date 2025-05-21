@@ -410,7 +410,7 @@ export class ClientReportChecksService {
       );
 
     const retrievabilitySuccessRates = providerDistribution.map(
-      (provider) => provider.retrievability_success_rate ?? 0,
+      (provider) => provider.retrievability_success_rate_http ?? 0,
     );
 
     const zeroRetrievabilityCount = retrievabilitySuccessRates.filter(
