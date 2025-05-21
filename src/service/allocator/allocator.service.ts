@@ -106,7 +106,7 @@ export class AllocatorService {
   private async _getStandardAllocatorRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<HistogramWeekFlat[]> {
     // prettier-ignore
     return await this.prismaService.$queryRawTyped(
@@ -119,7 +119,7 @@ export class AllocatorService {
   public async getStandardAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
@@ -341,7 +341,7 @@ export class AllocatorService {
     week: Date,
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(

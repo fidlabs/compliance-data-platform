@@ -6,6 +6,16 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
+class AllocatorWeekly {
+  week: Date;
+  allocator: string;
+  num_of_clients: number | null;
+  biggest_client_sum_of_allocations: bigint | null;
+  total_sum_of_allocations: bigint | null;
+  avg_weighted_retrievability_success_rate: number | null;
+  avg_weighted_retrievability_success_rate_http: number | null;
+}
+
 export class AllocatorsWeeklyAccRunner implements AggregationRunner {
   private readonly logger = new Logger(AllocatorsWeeklyAccRunner.name);
 
@@ -21,15 +31,9 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
 
     await prismaService.$transaction(
       async (tx) => {
-        const queryIterablePool = new QueryIterablePool<{
-          week: Date;
-          allocator: string;
-          num_of_clients: number | null;
-          biggest_client_sum_of_allocations: bigint | null;
-          total_sum_of_allocations: bigint | null;
-          avg_weighted_retrievability_success_rate: number | null;
-          avg_weighted_retrievability_success_rate_http: number | null;
-        }>(postgresService.pool);
+        const queryIterablePool = new QueryIterablePool<AllocatorWeekly>(
+          postgresService.pool,
+        );
 
         const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
           AllocatorsWeeklyAccRunner.name,
@@ -65,15 +69,7 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
                              week,
                              allocator;`);
 
-        const data: {
-          week: Date;
-          allocator: string;
-          num_of_clients: number | null;
-          biggest_client_sum_of_allocations: bigint | null;
-          total_sum_of_allocations: bigint | null;
-          avg_weighted_retrievability_success_rate: number | null;
-          avg_weighted_retrievability_success_rate_http: number | null;
-        }[] = [];
+        const data: AllocatorWeekly[] = [];
 
         let isFirstInsert = true;
         let storeDataEndTimerMetric;

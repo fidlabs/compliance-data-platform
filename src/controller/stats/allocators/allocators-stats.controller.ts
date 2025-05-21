@@ -34,8 +34,8 @@ export class AllocatorsAccStatsController {
   ): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       this.isAccumulative,
-      stringToBool(query?.openDataOnly) ?? false,
-      stringToBool(query?.httpRetrievability) ?? false,
+      stringToBool(query?.openDataOnly) ?? true,
+      stringToBool(query?.httpRetrievability) ?? true,
     );
   }
 
