@@ -66,16 +66,19 @@ export class AllocatorReportService {
               const clientData = await this.clientService.getClientData(
                 client.addressId,
               );
+
               const bookkeepingInfo =
                 await this.clientService.getClientBookkeepingInfo(
                   client.addressId,
                 );
+
               const maxDeviation = bookkeepingInfo?.clientContractAddress
                 ? await this.ethApiService.getClientContractMaxDeviation(
                     bookkeepingInfo.clientContractAddress,
                     client.addressId,
                   )
                 : null;
+
               return {
                 client_id: client.addressId,
                 name: client.name || null,
@@ -263,7 +266,10 @@ export class AllocatorReportService {
       .map((data) => {
         return data.allowanceArray
           .filter((allowanceItem) => {
-            if (allowanceItem.allowance === undefined) {
+            if (
+              allowanceItem.allowance === undefined ||
+              allowanceItem.allowance === null
+            ) {
               this.logger.error(
                 `Allowance is undefined for client ${allowanceItem.addressId}. Please investigate.`,
               );

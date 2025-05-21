@@ -21,6 +21,7 @@ import {
   StorageProviderComplianceWeekPercentage,
   StorageProviderComplianceWeekResponse,
   StorageProviderComplianceWeekTotalDatacap,
+  StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
@@ -93,7 +94,7 @@ export class StorageProviderService {
   private async _getProviderRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
       isAccumulative
@@ -105,7 +106,7 @@ export class StorageProviderService {
   public async getProviderRetrievabilityWeekly(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability(
@@ -147,7 +148,7 @@ export class StorageProviderService {
   public getLastWeekAverageProviderRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<number> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
@@ -268,15 +269,7 @@ export class StorageProviderService {
   public async getWeekProviders(
     week: Date,
     isAccumulative: boolean,
-  ): Promise<
-    {
-      avg_retrievability_success_rate: number;
-      num_of_clients: number;
-      biggest_client_total_deal_size: bigint | null;
-      total_deal_size: bigint | null;
-      provider: string;
-    }[]
-  > {
+  ): Promise<StorageProviderWeekly[]> {
     return (
       (isAccumulative
         ? this.prismaService.providers_weekly_acc
@@ -307,7 +300,7 @@ export class StorageProviderService {
     week: Date,
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
@@ -327,24 +320,18 @@ export class StorageProviderService {
   }
 
   public calculateProviderComplianceScore(
-    providerWeekly: {
-      avg_retrievability_success_rate: number;
-      num_of_clients: number;
-      biggest_client_total_deal_size: bigint | null;
-      total_deal_size: bigint | null;
-      provider: string;
-    },
-    weekAverageRetrievability: number,
+    providerWeekly: StorageProviderWeekly,
+    weekAverageHttpRetrievability: number,
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): StorageProviderComplianceScore {
     let complianceScore = 0;
 
-    // TODO when business is ready let's switch to using http success rate.
     // Question - do we make a cutoff date for this? (like use normal rate
     // till 25w4 and http rate after that)?
     if (
       !metricsToCheck?.retrievability ||
-      providerWeekly.avg_retrievability_success_rate > weekAverageRetrievability
+      providerWeekly.avg_retrievability_success_rate_http >
+        weekAverageHttpRetrievability
     )
       complianceScore++;
 
