@@ -1,3 +1,5 @@
+-- @param {Boolean} $1:openDataOnly
+
 with "open_data_pathway_allocator" as (
     select distinct "allocator_id" as "allocator"
     from "allocator_client_bookkeeping"
@@ -8,7 +10,7 @@ select count(distinct "allocators_weekly_acc"."allocator")::int as "count"
 from "allocators_weekly_acc"
          left join "allocator" on "allocators_weekly_acc"."allocator" = "allocator"."id"
 where (
-    $1 = false -- openDataOnly param $1
+    $1 = false
         or "allocator" in (select "allocator" from "open_data_pathway_allocator")
     )
   and ("allocator"."is_metaallocator" = false or "allocator"."is_metaallocator" is null);
