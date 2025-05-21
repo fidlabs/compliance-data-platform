@@ -54,9 +54,12 @@ export class AllocatorService {
   ) {}
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getAllocators(returnInactive = true) {
+  public async getAllocators(
+    returnInactive = true,
+    isMetaallocator: boolean | null = null,
+  ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorsFull(returnInactive),
+      getAllocatorsFull(returnInactive, isMetaallocator),
     );
 
     const jsonLinks = await this.prismaService.allocator_registry.findMany({
