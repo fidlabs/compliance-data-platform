@@ -8,7 +8,25 @@ import { AllocatorComplianceScoreRange } from 'src/service/allocator/types.alloc
 import { stringifiedBool } from 'src/utils/utils';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
-export class GetWeekAllocatorsWithSpsComplianceRequestData extends StorageProviderComplianceMetricsRequest {
+class GetAllocatorsRequestData {
+  @ApiPropertyOptional({
+    description: 'Flag to show inactive allocators; default is true',
+    type: Boolean,
+  })
+  showInactive?: stringifiedBool;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter to apply to isMetaallocator field; default is no filtering',
+    type: Boolean,
+  })
+  isMetaallocator?: stringifiedBool;
+}
+
+export class GetWeekAllocatorsWithSpsComplianceRequestData extends IntersectionType(
+  StorageProviderComplianceMetricsRequest,
+  GetAllocatorsRequestData,
+) {
   @ApiPropertyOptional({
     description: 'Requested week to check compliance for; default is last week',
     format: 'date',
@@ -23,25 +41,16 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData extends StorageProvid
     maximum: 100,
   })
   complianceThresholdPercentage: number;
-
-  @ApiPropertyOptional({
-    description: 'Flag to show inactive allocators; default is true',
-    type: Boolean,
-  })
-  showInactive?: stringifiedBool;
 }
 
-export class GetAllocatorsRequest extends PaginationSortingInfo {
+export class GetAllocatorsRequest extends IntersectionType(
+  PaginationSortingInfo,
+  GetAllocatorsRequestData,
+) {
   @ApiPropertyOptional({
     description: 'Filter to apply to addressId, address, name or orgName',
   })
   filter?: string;
-
-  @ApiPropertyOptional({
-    description: 'Flag to show inactive allocators; default is true',
-    type: Boolean,
-  })
-  showInactive?: stringifiedBool;
 }
 
 export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(

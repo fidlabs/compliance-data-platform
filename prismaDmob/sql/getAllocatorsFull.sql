@@ -1,4 +1,5 @@
 -- @param {Boolean} $1:showInactive
+-- @param {Boolean} $2:isMetaallocator?
 
 select "verifier"."addressId"                                                               as "addressId",
        "verifier"."address"                                                                 as "address",
@@ -59,5 +60,5 @@ from "verifier"
          left join "verified_client"
                    on "verifier"."addressId" = "verified_client"."verifierAddressId"
          where ($1 or "verifier"."createdAtHeight" > 3698160) -- current fil+ edition start
-         where $1 or "verifier"."createdAtHeight" > 3698160 -- current fil+ edition start
+         and ("verifier"."isMetaAllocator" = $2 or $2 is null)
 group by "verifier"."id";
