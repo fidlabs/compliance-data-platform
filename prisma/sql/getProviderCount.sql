@@ -1,3 +1,5 @@
+-- @param {Boolean} $1:openDataOnly
+
 with "open_data_pathway_provider" as (
     select distinct "client_provider_distribution"."provider" as "provider"
     from "allocator_client_bookkeeping"
@@ -8,6 +10,6 @@ with "open_data_pathway_provider" as (
 select count(distinct "providers_weekly_acc"."provider")::int as "count"
 from "providers_weekly_acc"
 where (
-          $1 = false -- openDataOnly param $1
+          $1 = false
               or "provider" in (select "provider" from "open_data_pathway_provider")
           );
