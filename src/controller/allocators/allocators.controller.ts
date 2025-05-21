@@ -35,6 +35,7 @@ export class AllocatorsController extends ControllerBase {
   public async getAllocators(@Query() query: GetAllocatorsRequest) {
     let allocators = await this.allocatorService.getAllocators(
       stringToBool(query.showInactive) ?? true,
+      stringToBool(query.isMetaallocator) ?? null,
     );
 
     // TODO move this to db query?
@@ -66,6 +67,7 @@ export class AllocatorsController extends ControllerBase {
   ) {
     const allocators = await this.allocatorService.getAllocators(
       stringToBool(query.showInactive) ?? true,
+      stringToBool(query.isMetaallocator) ?? null,
     );
 
     const weekAllocatorsSpsCompliance =
