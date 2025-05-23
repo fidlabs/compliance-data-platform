@@ -54,9 +54,12 @@ export class AllocatorService {
   ) {}
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getAllocators(returnInactive = true) {
+  public async getAllocators(
+    returnInactive = true,
+    isMetaallocator: boolean | null = null,
+  ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorsFull(returnInactive),
+      getAllocatorsFull(returnInactive, isMetaallocator),
     );
 
     const jsonLinks = await this.prismaService.allocator_registry.findMany({
@@ -106,7 +109,7 @@ export class AllocatorService {
   private async _getStandardAllocatorRetrievability(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<HistogramWeekFlat[]> {
     // prettier-ignore
     return await this.prismaService.$queryRawTyped(
@@ -119,7 +122,7 @@ export class AllocatorService {
   public async getStandardAllocatorRetrievabilityWeekly(
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
@@ -341,7 +344,7 @@ export class AllocatorService {
     week: Date,
     isAccumulative: boolean,
     openDataOnly = true,
-    httpRetrievability = false,
+    httpRetrievability = true,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(

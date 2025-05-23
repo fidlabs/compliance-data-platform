@@ -168,3 +168,12 @@ export class StorageProviderWithIpInfo {
   @ApiProperty({ type: String, description: 'City of the storage provider' })
   city: string;
 }
+
+export class StorageProviderWeekly {
+  avg_retrievability_success_rate: number;
+  avg_retrievability_success_rate_http: number;
+  num_of_clients: number;
+  biggest_client_total_deal_size: bigint | null;
+  total_deal_size: bigint | null;
+  provider: string;
+}

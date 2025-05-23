@@ -10,7 +10,7 @@ export class GetRetrievabilityWeeklyRequest {
 
   @ApiPropertyOptional({
     description:
-      'Flag to show http retrievability; default is false - standard retrievability',
+      'Flag to show http retrievability; default is false - overall retrievability',
     type: Boolean,
   })
   httpRetrievability?: stringifiedBool;

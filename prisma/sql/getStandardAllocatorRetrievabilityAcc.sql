@@ -1,3 +1,6 @@
+-- @param {Boolean} $1:openDataOnly
+-- @param {Boolean} $2:httpRetrievability
+
 -- question - do we do a cutoff date or just switch for past data as well?
 with "open_data_pathway_allocator" as (
     select distinct "allocator_id" as "allocator"
@@ -9,7 +12,7 @@ with "open_data_pathway_allocator" as (
                             "allocator"                as "allocator",
                             "total_sum_of_allocations" as "total_sum_of_allocations",
                             case
-                                when $2 = true then "avg_weighted_retrievability_success_rate_http" -- httpRetrievability param $2
+                                when $2 = true then "avg_weighted_retrievability_success_rate_http"
                                 else "avg_weighted_retrievability_success_rate"
                                 end                    as "selected_retrievability"
                      from "allocators_weekly_acc")
@@ -21,7 +24,7 @@ select "week"                                       as "week",
 from "base_data"
          left join "allocator" on "base_data"."allocator" = "allocator"."id"
 where (
-    $1 = false -- openDataOnly param $1
+    $1 = false
         or "allocator" in (select "allocator" from "open_data_pathway_allocator")
     )
   and ("allocator"."is_metaallocator" = false or "allocator"."is_metaallocator" is null)

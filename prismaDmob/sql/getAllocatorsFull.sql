@@ -1,3 +1,6 @@
+-- @param {Boolean} $1:showInactive
+-- @param {Boolean} $2:isMetaallocator?
+
 select "verifier"."addressId"                                                               as "addressId",
        "verifier"."address"                                                                 as "address",
        case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end as "auditTrail",
@@ -56,6 +59,6 @@ from "verifier"
                    on "verifier"."id" = "verifier_allowance"."verifierId"
          left join "verified_client"
                    on "verifier"."addressId" = "verified_client"."verifierAddressId"
-         -- showInactive parameter $1
-         where $1 or "verifier"."createdAtHeight" > 3698160 -- current fil+ edition start
+         where ($1 or "verifier"."createdAtHeight" > 3698160) -- current fil+ edition start
+         and ("verifier"."isMetaAllocator" = $2 or $2 is null)
 group by "verifier"."id";

@@ -1,3 +1,6 @@
+-- @param {Boolean} $1:openDataOnly
+-- @param {Boolean} $2:httpRetrievability
+
 with "open_data_pathway_provider" as (
     select distinct "client_provider_distribution"."provider" as "provider"
     from "allocator_client_bookkeeping"
@@ -9,7 +12,7 @@ with "open_data_pathway_provider" as (
                             "provider"        as "provider",
                             "total_deal_size" as "total_deal_size",
                             case
-                                when $2 = true then "avg_retrievability_success_rate_http" -- httpRetrievability param $2
+                                when $2 = true then "avg_retrievability_success_rate_http"
                                 else "avg_retrievability_success_rate"
                                 end           as "selected_retrievability"
                      from "providers_weekly")
@@ -20,7 +23,7 @@ select "week"                                              as "week",
        sum("total_deal_size")::bigint                      as "totalDatacap"
 from "base_data"
 where (
-          $1 = false -- openDataOnly param $1
+          $1 = false
               or "provider" in (select "provider" from "open_data_pathway_provider")
           )
 group by "valueFromExclusive", "valueToInclusive", "week"
