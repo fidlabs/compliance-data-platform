@@ -56,8 +56,8 @@ export class StorageProvidersAccStatsController {
   ): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.isAccumulative,
-      stringToBool(query?.openDataOnly) ?? true,
-      stringToBool(query?.httpRetrievability) ?? true,
+      stringToBool(query?.openDataOnly),
+      stringToBool(query?.httpRetrievability),
     );
   }
 
