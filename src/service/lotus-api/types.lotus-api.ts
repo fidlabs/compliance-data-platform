@@ -2,23 +2,23 @@
 
 export interface LotusStateMinerInfoResponse {
   jsonrpc: string;
-  result: Result;
+  result: LotusStateMinerInfoResult;
   id: number;
 }
 
 export interface LotusStateLookupIdResponse {
   jsonrpc: string;
   result: string;
-  error?: Error;
+  error?: LotusError;
   id: number;
 }
 
-export interface Error {
+export interface LotusError {
   code: number;
   message: string;
 }
 
-export interface Result {
+export interface LotusStateMinerInfoResult {
   Beneficiary: string;
   BeneficiaryTerm: BeneficiaryTerm;
   ConsensusFaultElapsed: number;

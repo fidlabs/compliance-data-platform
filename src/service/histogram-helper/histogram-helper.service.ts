@@ -58,11 +58,11 @@ export class HistogramHelperService {
     const lastHistogramWeek =
       histogramWeeksSorted[histogramWeeksSorted.length - 1].week;
 
-    const lastHistogramWeekStartPlusOneDay = new Date(
-      lastHistogramWeek.getTime() + 24 * 60 * 60 * 1000,
+    const lastHistogramWeekStartPlusTwoDays = new Date(
+      lastHistogramWeek.getTime() + 2 * 24 * 60 * 60 * 1000,
     );
 
-    if (new Date() < lastHistogramWeekStartPlusOneDay)
+    if (new Date() < lastHistogramWeekStartPlusTwoDays)
       histogramWeeksSorted.pop();
 
     return histogramWeeksSorted;

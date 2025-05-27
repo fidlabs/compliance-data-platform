@@ -95,6 +95,8 @@ export class LotusApiService {
       }),
     );
 
+    if (!data?.result) throw new Error(`No data`);
+
     return data;
   }
 }

@@ -256,22 +256,13 @@ export class AllocatorReportService {
   }
 
   private getGrantedDatacapInClients(clientsData: ClientWithAllowance[]) {
-    const _clientsData = clientsData.map((e) => ({
-      addressId: e.addressId,
-      allowanceArray: e.allowanceArray,
-      clientName: e.name,
-    }));
-
-    return _clientsData
+    return clientsData
       .map((data) => {
         return data.allowanceArray
           .filter((allowanceItem) => {
-            if (
-              allowanceItem.allowance === undefined ||
-              allowanceItem.allowance === null
-            ) {
+            if (!allowanceItem.allowance) {
               this.logger.error(
-                `Allowance is undefined for client ${allowanceItem.addressId}. Please investigate.`,
+                `Empty allowance for client ${data.addressId || data.address}, please investigate`,
               );
 
               return false;
@@ -284,7 +275,7 @@ export class AllocatorReportService {
             addressId: data.addressId,
             allocationTimestamp: allowanceItem.createMessageTimestamp,
             applicationTimestamp: allowanceItem.issueCreateTimestamp,
-            clientName: data.clientName,
+            clientName: data.name,
           }));
       })
       .flat()

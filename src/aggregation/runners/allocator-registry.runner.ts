@@ -30,13 +30,28 @@ export class AllocatorRegistryRunner implements AggregationRunner {
       AllocatorRegistryRunner.name,
     );
 
-    const result = await allocatorRegistryService.getAllocatorsRegistry();
+    let result = await allocatorRegistryService.getAllocatorsRegistry();
 
     getDataEndTimerMetric();
 
     const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
       AllocatorRegistryRunner.name,
     );
+
+    // find duplicates and remove them
+    const uniqueResults = new Map<string, (typeof result)[0]>();
+
+    for (const allocator of result) {
+      if (!uniqueResults.has(allocator.allocator_id)) {
+        uniqueResults.set(allocator.allocator_id, allocator);
+      } else {
+        this.logger.error(
+          `Duplicate allocator found: ${allocator.allocator_id} in ${allocator.json_path} and ${uniqueResults.get(allocator.allocator_id).json_path}, please investigate`,
+        );
+      }
+    }
+
+    result = Array.from(uniqueResults.values());
 
     await prismaService.$executeRaw`delete from allocator_registry;`;
     await prismaService.allocator_registry.createMany({ data: result });

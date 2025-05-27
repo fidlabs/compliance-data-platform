@@ -138,7 +138,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
         const info = await this.getAllocatorInfo(path);
         if (info) registry.push(info);
       } catch (err) {
-        this.logger.error(
+        this.logger.warn(
           `Error while fetching registry info for ${path}: ${err.message}`,
           // err.cause || err.stack,
         );

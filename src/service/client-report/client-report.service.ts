@@ -22,7 +22,7 @@ export class ClientReportService {
     const clientData =
       await this.clientService.getClientData(clientIdOrAddress);
 
-    if (!clientData) return null;
+    if (!clientData?.length) return null;
 
     const storageProviderDistribution =
       await this.storageProviderService.getStorageProviderDistribution(
