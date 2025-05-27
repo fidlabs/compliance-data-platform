@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 import { GoogleApisSpreadsheetValues } from './types.googleapis';
+import { Retryable } from 'src/utils/retryable';
 
 @Injectable()
 export class GoogleApisService {
@@ -13,6 +14,7 @@ export class GoogleApisService {
     private readonly httpService: HttpService,
   ) {}
 
+  @Retryable({ retries: 3, delay: 5000 }) // 5 seconds
   public async getAllocatorsOverview(
     tab?: string,
   ): Promise<GoogleApisSpreadsheetValues> {

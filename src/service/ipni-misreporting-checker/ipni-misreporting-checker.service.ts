@@ -89,7 +89,7 @@ export class IpniMisreportingCheckerService {
 
     const ipniReportedClaimsCount =
       await this.getProviderIPNIReportedClaimsCountByPeerId(
-        minerInfo.result?.PeerId,
+        minerInfo.result.PeerId,
       );
 
     const status = !ipniReportedClaimsCount

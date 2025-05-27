@@ -27,11 +27,13 @@ export class ProviderIpInfoRunner implements AggregationRunner {
     const result = await prismaService.$queryRawTyped(
       getProvidersWithOldIpInfo(),
     );
+
     const staleProviders = result.map((r) => r.provider).slice(0, 20); // max 20 at a time, lets be gentle to ipinfo & lotus node
 
     const fullData = await Promise.all(
       staleProviders.map(async (provider) => {
         const minerInfo = await lotusApiService.getMinerInfo(provider);
+
         const empty = {
           provider,
           lat: null,
@@ -40,9 +42,7 @@ export class ProviderIpInfoRunner implements AggregationRunner {
           region: null,
           city: null,
         };
-        if (!minerInfo.result.Multiaddrs) {
-          return empty;
-        }
+
         let result;
         try {
           result = await locationService.getLocation(
@@ -52,9 +52,9 @@ export class ProviderIpInfoRunner implements AggregationRunner {
           this.logger.warn(err);
           return empty;
         }
-        if (!result) {
-          return empty;
-        }
+
+        if (!result) return empty;
+
         const { loc, country, region, city } = result;
         const [lat, long] = loc.split(',');
         return {
@@ -67,6 +67,7 @@ export class ProviderIpInfoRunner implements AggregationRunner {
         };
       }),
     );
+
     const data = fullData.filter((v) => v);
 
     getDataEndTimerMetric();

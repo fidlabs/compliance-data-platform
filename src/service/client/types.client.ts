@@ -7,7 +7,7 @@ export class ClientWithAllowance {
   allowanceArray: {
     addressId: string;
     verifierAddressId: string;
-    allowance: number;
+    allowance: number | null;
     auditTrail: string | null;
     issueCreateTimestamp: number | null;
     createMessageTimestamp: number;
@@ -18,5 +18,5 @@ export class ClientWithBookkeeping {
   allocatorId: string;
   clientId: string;
   clientAddress: string;
-  bookkeepingInfo: object;
+  bookkeepingInfo: any;
 }

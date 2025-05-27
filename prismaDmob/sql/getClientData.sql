@@ -1,3 +1,5 @@
+-- @param {String} $1:clientIdOrAddress
+
 select "verified_client"."addressId"         as "addressId",
        "verified_client"."address"           as "address",
        "verified_client"."name"              as "name",
