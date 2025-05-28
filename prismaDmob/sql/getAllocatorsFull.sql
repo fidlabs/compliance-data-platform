@@ -1,24 +1,35 @@
 -- @param {Boolean} $1:showInactive
 -- @param {Boolean} $2:isMetaallocator?
 -- @param {String} $3:filter?
+-- @param {String} $4:dcSource?
 
 with "allocators_using_metaallocators" as (select *
                                            from "verifier"
                                              where ("verifier"."isVirtual" = true))
-select "verifier"."addressId"                                                               as "addressId",
-       "verifier"."address"                                                                 as "address",
-       case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end as "auditTrail",
-       "verifier"."retries"                                                                 as "retries",
-       case when "verifier"."name" = 'n/a' then null else trim("verifier"."name") end       as "name",
-       case when "verifier"."orgName" = 'n/a' then null else trim("verifier"."orgName") end as "orgName",
-       "verifier"."removed"                                                                 as "removed",
-       "verifier"."initialAllowance"                                                        as "initialAllowance",
-       "verifier"."allowance"::text                                                         as "allowance",
-       "verifier"."inffered"                                                                as "inffered",
-       "verifier"."isMultisig"                                                              as "isMultisig",
-       "verifier"."createdAtHeight"                                                         as "createdAtHeight",
-       "verifier"."issueCreateTimestamp"                                                    as "issueCreateTimestamp",
-       "verifier"."createMessageTimestamp"                                                  as "createMessageTimestamp",
+select "verifier"."addressId"                                                                                                       as "addressId",
+       "verifier"."address"                                                                                                         as "address",
+       case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end                                         as "auditTrail",
+       "verifier"."retries"                                                                                                         as "retries",
+       case when "verifier"."name" = 'n/a' then null else trim("verifier"."name") end                                               as "name",
+       case when "verifier"."orgName" = 'n/a' then null else trim("verifier"."orgName") end                                         as "orgName",
+       "verifier"."removed"                                                                                                         as "removed",
+       "verifier"."initialAllowance"                                                                                                as "initialAllowance",
+       "verifier"."allowance"::text                                                                                                 as "allowance",
+       "verifier"."inffered"                                                                                                        as "inffered",
+       "verifier"."isMultisig"                                                                                                      as "isMultisig",
+       "verifier"."createdAtHeight"                                                                                                 as "createdAtHeight",
+       "verifier"."issueCreateTimestamp"                                                                                            as "issueCreateTimestamp",
+       "verifier"."createMessageTimestamp"                                                                                          as "createMessageTimestamp",
+       "verifier"."initialAllowance" - "verifier"."allowance"                                                                       as "remainingDatacap",
+       count(distinct "verified_client"."id")::int                                                                                  as "verifiedClientsCount",
+       coalesce(sum("verifier_allowance"."allowance")
+                filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '14 days'))), 0) as "receivedDatacapChange",
+       coalesce(sum("verifier_allowance"."allowance")
+                filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '90 days'))), 0) as "receivedDatacapChange90Days",
+       "verifier"."addressEth"                                                                                                      as "addressEth",
+       case when "verifier"."dcSource" = 'f080' then null else "verifier"."dcSource" end                                            as "dcSource",
+       "verifier"."isVirtual"                                                                                                       as "isVirtual",
+       "verifier"."isMetaAllocator"                                                                                                 as "isMetaAllocator",
        coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
@@ -36,15 +47,14 @@ select "verifier"."addressId"                                                   
                        'createMessageTimestamp', "verifier_allowance"."createMessageTimestamp"
                                 )
                ), '[]'::jsonb
-       )                                                                                                                                                                  as "allowanceArray",
+       )                                                                                                                            as "allowanceArray",
        case when "verifier"."isMetaAllocator" = false then null else coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
-                       'addressId', "allocators_using_metaallocators"."addressId",
-                       'allowance', "allocators_using_metaallocators"."allowance"::text
+                       'addressId', "allocators_using_metaallocators"."addressId"
                                 )
                ) filter (where "allocators_using_metaallocators"."addressId" is not null), '[]'::jsonb
-       ) end                                                                                                                                                              as "allocatorsUsingMetaallocator",
+       ) end                                                                                                                        as "allocatorsUsingMetaallocator",
        coalesce(
                (select "auditStatus"
                 from "verifier_allowance"
@@ -57,15 +67,7 @@ select "verifier"."addressId"                                                   
                 where "verifierId" = "verifier"."id"
                 order by "height" desc
                 limit 1)
-       )                                                                                                                                                                  as "auditStatus",
-       "verifier"."initialAllowance" - "verifier"."allowance"                                                                                                             as "remainingDatacap",
-       count(distinct "verified_client"."id")::int                                                                                                                        as "verifiedClientsCount",
-       coalesce(sum("verifier_allowance"."allowance") filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '14 days'))), 0) as "receivedDatacapChange",
-       coalesce(sum("verifier_allowance"."allowance") filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '90 days'))), 0) as "receivedDatacapChange90Days",
-       "verifier"."addressEth"                                                                                                                                            as "addressEth",
-       case when "verifier"."dcSource" = 'f080' then null else "verifier"."dcSource" end                                                                                  as "dcSource",
-       "verifier"."isVirtual"                                                                                                                                             as "isVirtual",
-       "verifier"."isMetaAllocator"                                                                                                                                       as "isMetaAllocator"
+       )                                                                                                                            as "auditStatus"
 from "verifier"
          left join "allocators_using_metaallocators"
                    on "verifier"."addressEth" = "allocators_using_metaallocators"."dcSource"
@@ -81,4 +83,5 @@ from "verifier"
              or "verifier"."addressId" = $3
              or upper("verifier"."name") like upper('%' || $3 || '%')
              or upper("verifier"."orgName") like upper('%' || $3 || '%'))
+         and ("verifier"."dcSource" = $4 or $4 is null)
 group by "verifier"."id";

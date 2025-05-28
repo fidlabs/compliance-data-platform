@@ -13,6 +13,11 @@ class _GetAllocatorsRequest {
     description: 'Filter to apply to addressId, address, name or orgName',
   })
   filter?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter to apply to dcSource field; default is no filtering',
+  })
+  dcSource?: string;
 }
 
 export class GetAllocatorsRequest extends IntersectionType(
