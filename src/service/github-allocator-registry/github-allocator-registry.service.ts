@@ -9,6 +9,7 @@ import {
 } from '@nestjs/terminus';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { AllocatorRegistry } from './types.github-allocator-registry';
+import { envSet } from 'src/utils/utils';
 
 @Injectable()
 export class GitHubAllocatorRegistryService extends HealthIndicator {
@@ -36,10 +37,10 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
   public isInitialized(): boolean {
     return (
-      !!this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_OWNER') &&
-      !!this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME') &&
-      !!this.configService.get<string>('GITHUB_APP_ID') &&
-      !!this.configService.get<string>('GITHUB_PRIVATE_KEY')
+      envSet('ALLOCATOR_REGISTRY_REPO_OWNER') &&
+      envSet('ALLOCATOR_REGISTRY_REPO_NAME') &&
+      envSet('GITHUB_APP_ID') &&
+      envSet('GITHUB_PRIVATE_KEY')
     );
   }
 
