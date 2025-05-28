@@ -33,23 +33,11 @@ export class AllocatorsController extends ControllerBase {
     type: null,
   })
   public async getAllocators(@Query() query: GetAllocatorsRequest) {
-    let allocators = await this.allocatorService.getAllocators(
+    const allocators = await this.allocatorService.getAllocators(
       stringToBool(query.showInactive) ?? true,
-      stringToBool(query.isMetaallocator) ?? null,
+      stringToBool(query.isMetaallocator),
+      query.filter,
     );
-
-    // TODO move this to db query?
-    if (query.filter) {
-      query.filter = query.filter.toUpperCase();
-
-      allocators = allocators.filter(
-        (allocator) =>
-          allocator.addressId.toUpperCase() === query.filter ||
-          allocator.address?.toUpperCase() === query.filter ||
-          allocator.name?.toUpperCase().includes(query.filter) ||
-          allocator.orgName?.toUpperCase().includes(query.filter),
-      );
-    }
 
     return this.withPaginationInfo(
       {
@@ -66,8 +54,9 @@ export class AllocatorsController extends ControllerBase {
     query: GetWeekAllocatorsWithSpsComplianceRequestData,
   ) {
     const allocators = await this.allocatorService.getAllocators(
-      stringToBool(query.showInactive) ?? true,
-      stringToBool(query.isMetaallocator) ?? null,
+      true,
+      null,
+      query.filter,
     );
 
     const weekAllocatorsSpsCompliance =
@@ -120,19 +109,6 @@ export class AllocatorsController extends ControllerBase {
     if (query.complianceScore) {
       allocators = allocators.filter(
         (allocator) => allocator.complianceScore === query.complianceScore,
-      );
-    }
-
-    // TODO move this to db query?
-    if (query.filter) {
-      query.filter = query.filter.toUpperCase();
-
-      allocators = allocators.filter(
-        (allocator) =>
-          allocator.addressId.toUpperCase() === query.filter ||
-          allocator.address?.toUpperCase() === query.filter ||
-          allocator.name?.toUpperCase().includes(query.filter) ||
-          allocator.orgName?.toUpperCase().includes(query.filter),
       );
     }
 

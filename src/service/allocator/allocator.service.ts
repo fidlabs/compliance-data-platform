@@ -57,9 +57,10 @@ export class AllocatorService {
   public async getAllocators(
     returnInactive = true,
     isMetaallocator: boolean | null = null,
+    filter: string | null = null,
   ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorsFull(returnInactive, isMetaallocator),
+      getAllocatorsFull(returnInactive, isMetaallocator, filter),
     );
 
     const jsonLinks = await this.prismaService.allocator_registry.findMany({
