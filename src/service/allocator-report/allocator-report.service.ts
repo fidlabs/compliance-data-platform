@@ -79,6 +79,11 @@ export class AllocatorReportService {
                   )
                 : null;
 
+              const replicaDistribution =
+                await this.clientService.getReplicationDistribution(
+                  client.addressId,
+                );
+
               return {
                 client_id: client.addressId,
                 name: client.name || null,
@@ -98,6 +103,9 @@ export class AllocatorReportService {
                 ),
                 using_client_contract: !!bookkeepingInfo?.clientContractAddress,
                 client_contract_max_deviation: maxDeviation,
+                replica_distribution: {
+                  create: replicaDistribution,
+                },
               };
             }),
           ),
@@ -199,6 +207,14 @@ export class AllocatorReportService {
           omit: {
             id: true,
             allocator_report_id: true,
+          },
+          include: {
+            replica_distribution: {
+              omit: {
+                id: true,
+                allocator_report_clientId: true,
+              },
+            },
           },
         },
         client_allocations: {

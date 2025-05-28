@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { AllocatorClientBookkeeping } from './types.github-allocator-client-bookkeeping';
 import * as _ from 'lodash';
+import { envSet } from 'src/utils/utils';
 
 @Injectable()
 export class GitHubAllocatorClientBookkeepingService {
@@ -20,10 +21,7 @@ export class GitHubAllocatorClientBookkeepingService {
   ) {}
 
   public isInitialized(): boolean {
-    return (
-      !!this.configService.get<string>('GITHUB_APP_ID') &&
-      !!this.configService.get<string>('GITHUB_PRIVATE_KEY')
-    );
+    return envSet('GITHUB_APP_ID') && envSet('GITHUB_PRIVATE_KEY');
   }
 
   private async getInstallationId(owner, repo): Promise<number> {
