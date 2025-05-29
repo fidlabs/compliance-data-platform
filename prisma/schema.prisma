@@ -213,6 +213,7 @@ model client_report {
   is_public_dataset             Boolean?
   using_client_contract         Boolean?
   client_contract_max_deviation String?
+  storage_provider_ids_declared String[]                                      @default([])
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -234,6 +235,7 @@ model client_report_storage_provider_distribution {
   ipni_reporting_status            StorageProviderIpniReportingStatus?
   ipni_reported_claims_count       BigInt?
   claims_count                     BigInt?
+  declared_in_application_file     Boolean?
 }
 
 model client_report_storage_provider_distribution_location {
@@ -452,10 +454,12 @@ enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75
-  DEAL_DATA_REPLICATION_LOW_REPLICA
-  DEAL_DATA_REPLICATION_CID_SHARING
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED
+  DEAL_DATA_REPLICATION_LOW_REPLICA
+  DEAL_DATA_REPLICATION_CID_SHARING
   MULTIPLE_ALLOCATORS
   NOT_ENOUGH_COPIES
 }

@@ -75,12 +75,18 @@ export class ClientReportService {
         ),
         is_public_dataset: bookkeepingInfo?.isPublicDataset,
         using_client_contract: !!bookkeepingInfo?.clientContractAddress,
+        storage_provider_ids_declared:
+          bookkeepingInfo.storageProviderIDsDeclared,
         client_contract_max_deviation: maxDeviation,
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {
               return {
                 ...provider,
+                declared_in_application_file:
+                  bookkeepingInfo.storageProviderIDsDeclared.includes(
+                    provider.provider,
+                  ),
                 ...(provider.location && {
                   location: {
                     create: provider.location,

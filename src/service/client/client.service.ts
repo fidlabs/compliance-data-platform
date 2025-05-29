@@ -4,7 +4,11 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
-import { ClientWithAllowance, ClientWithBookkeeping } from './types.client';
+import {
+  ClientBookkeepingInfo,
+  ClientWithAllowance,
+  ClientWithBookkeeping,
+} from './types.client';
 import {
   getClientData,
   getClientsByAllocator,
@@ -107,10 +111,9 @@ export class ClientService {
     }));
   }
 
-  public async getClientBookkeepingInfo(clientIdOrAddress: string): Promise<{
-    isPublicDataset: boolean | null;
-    clientContractAddress: string | null;
-  }> {
+  public async getClientBookkeepingInfo(
+    clientIdOrAddress: string,
+  ): Promise<ClientBookkeepingInfo> {
     const result =
       await this.prismaService.allocator_client_bookkeeping.findFirst({
         select: {
@@ -135,30 +138,65 @@ export class ClientService {
     );
   }
 
-  private _mapClientBookkeeping(info: Prisma.JsonObject) {
-    let isPublicDataset: boolean = null;
-    try {
-      const project = info.Project as Prisma.JsonObject;
-      const publicDatasetKey =
-        'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)';
+  private _mapClientBookkeeping(
+    info: Prisma.JsonObject,
+  ): ClientBookkeepingInfo {
+    const isPublicDataset = ((): boolean | null => {
+      try {
+        const publicDatasetKey =
+          'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)';
 
-      const publicDatasetRaw = project[publicDatasetKey] as string;
-      const publicDatasetStr = publicDatasetRaw.trim().toLowerCase();
-      isPublicDataset =
-        publicDatasetStr.includes('[x]') || publicDatasetStr.includes('yes');
-    } catch (err) {
-      this.logger.warn(
-        `Failed to read public dataset info from bookkeeping info: ${err.message}`,
-        err.cause || err.stack,
-      );
-    }
+        const publicDatasetStr = (info.Project?.[publicDatasetKey] as string)
+          ?.trim()
+          ?.toLowerCase();
 
-    const clientContractKey = 'Client Contract Address';
-    const clientContractAddress = info[clientContractKey]
-      ? (info[clientContractKey] as string)
-      : null;
+        return (
+          publicDatasetStr.includes('[x]') || publicDatasetStr.includes('yes')
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to read public dataset info from bookkeeping info: ${err.message}`,
+          err.cause || err.stack,
+        );
 
-    return { isPublicDataset, clientContractAddress };
+        return null;
+      }
+    })();
+
+    const storageProviderIDsDeclared = ((): string[] => {
+      try {
+        const spsDeclaredKey =
+          'Please list the provider IDs and location of the storage providers you will be working with. Note that it is a requirement to list a minimum of 5 unique provider IDs, and that your client address will be verified against this list in the future';
+
+        return (
+          (info.Project?.[spsDeclaredKey] as string)
+            ?.trim()
+            ?.toLowerCase()
+            ?.match(/f0\d+/g) ?? []
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to read sps provided info from bookkeeping info: ${err.message}`,
+          err.cause || err.stack,
+        );
+
+        return [];
+      }
+    })();
+
+    const clientContractAddress = ((): string | null => {
+      const clientContractKey = 'Client Contract Address';
+
+      return info[clientContractKey]
+        ? (info[clientContractKey] as string)
+        : null;
+    })();
+
+    return {
+      isPublicDataset,
+      clientContractAddress,
+      storageProviderIDsDeclared,
+    };
   }
 
   public async getClientsBookkeepingInfo(): Promise<ClientWithBookkeeping[]> {
