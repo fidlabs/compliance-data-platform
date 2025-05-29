@@ -15,9 +15,10 @@ class _GetAllocatorsRequest {
   filter?: string;
 
   @ApiPropertyOptional({
-    description: 'Filter to apply to dcSource field; default is no filtering',
+    description:
+      'Filter to find allocators using given metaallocator id or address; default is no filtering',
   })
-  dcSource?: string;
+  usingMetaallocator?: string;
 }
 
 export class GetAllocatorsRequest extends IntersectionType(

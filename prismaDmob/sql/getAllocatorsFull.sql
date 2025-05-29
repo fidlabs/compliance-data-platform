@@ -1,7 +1,7 @@
 -- @param {Boolean} $1:showInactive
 -- @param {Boolean} $2:isMetaallocator?
 -- @param {String} $3:filter?
--- @param {String} $4:dcSource?
+-- @param {String} $4:usingMetaallocatorIdOrAddress?
 
 with "allocators_using_metaallocators" as (select *
                                            from "verifier"
@@ -83,5 +83,5 @@ from "verifier"
              or "verifier"."addressId" = $3
              or upper("verifier"."name") like upper('%' || $3 || '%')
              or upper("verifier"."orgName") like upper('%' || $3 || '%'))
-         and ("verifier"."dcSource" = $4 or $4 is null)
+         and ("verifier"."dcSource" = (select "addressEth" from "verifier" where "addressId" = $4 or "address" = $4) or $4 is null)
 group by "verifier"."id";

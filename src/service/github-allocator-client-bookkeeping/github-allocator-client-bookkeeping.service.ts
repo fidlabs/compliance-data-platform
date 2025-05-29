@@ -24,7 +24,10 @@ export class GitHubAllocatorClientBookkeepingService {
     return envSet('GITHUB_APP_ID') && envSet('GITHUB_PRIVATE_KEY');
   }
 
-  private async getInstallationId(owner, repo): Promise<number> {
+  private async getInstallationId(
+    owner: string,
+    repo: string,
+  ): Promise<number> {
     const appOctokit = await this._getAppOctokit();
 
     const response = await appOctokit.request(
@@ -55,7 +58,7 @@ export class GitHubAllocatorClientBookkeepingService {
     });
   }
 
-  private async getOctokit(owner, repo): Promise<Octokit> {
+  private async getOctokit(owner: string, repo: string): Promise<Octokit> {
     const key = `${owner}/${repo}`;
 
     if (!this.octokit[key]) {
@@ -76,8 +79,8 @@ export class GitHubAllocatorClientBookkeepingService {
   }
 
   public async getAllocatorsClientBookkeeping(
-    owner,
-    repo,
+    owner: string,
+    repo: string,
   ): Promise<AllocatorClientBookkeeping[]> {
     let octokit;
     let response;

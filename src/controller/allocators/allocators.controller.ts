@@ -37,7 +37,7 @@ export class AllocatorsController extends ControllerBase {
       stringToBool(query.showInactive) ?? true,
       stringToBool(query.isMetaallocator),
       query.filter,
-      query.dcSource,
+      query.usingMetaallocator,
     );
 
     return this.withPaginationInfo(
@@ -58,7 +58,7 @@ export class AllocatorsController extends ControllerBase {
       true,
       null,
       query.filter,
-      query.dcSource,
+      query.usingMetaallocator,
     );
 
     const weekAllocatorsSpsCompliance =
