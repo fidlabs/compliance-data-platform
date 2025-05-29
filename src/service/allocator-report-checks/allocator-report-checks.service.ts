@@ -42,13 +42,15 @@ export class AllocatorReportChecksService {
       },
     });
 
-    const clientsUsingMultipleAllocators = report.clients.filter(
-      (client) =>
-        client.allocators.filter(
-          // ignore Glif Auto Verified allocator for this check
-          (allocator) => allocator !== GlifAutoVerifiedAllocatorId,
-        ).length > 1,
-    );
+    const clientsUsingMultipleAllocators = report.clients
+      .filter(
+        (client) =>
+          client.allocators.filter(
+            // ignore Glif Auto Verified allocator for this check
+            (allocator) => allocator !== GlifAutoVerifiedAllocatorId,
+          ).length > 1,
+      )
+      .map((client) => client.client_id);
 
     const checkPassed = clientsUsingMultipleAllocators.length === 0;
 
@@ -58,15 +60,11 @@ export class AllocatorReportChecksService {
         check: AllocatorReportCheck.CLIENT_MULTIPLE_ALLOCATORS,
         result: checkPassed,
         metadata: {
-          clients_using_multiple_allocators_count:
-            clientsUsingMultipleAllocators.length,
           max_clients_using_multiple_allocators_count: 0,
-          violating_ids: clientsUsingMultipleAllocators.map(
-            (client) => client.client_id,
-          ),
+          violating_ids: clientsUsingMultipleAllocators,
           msg: checkPassed
             ? 'All clients receiving datacap from one allocator'
-            : `${clientsUsingMultipleAllocators.length} clients receiving datacap from more than one allocator`,
+            : `${this._clients(clientsUsingMultipleAllocators.length)} receiving datacap from more than one allocator`,
         },
       },
     });
@@ -138,15 +136,18 @@ export class AllocatorReportChecksService {
         result: checkPassed,
         metadata: {
           violating_ids: clientsWithNotEnoughCopies,
-          clients_with_not_enough_copies: clientsWithNotEnoughCopies.length,
           max_clients_with_not_enough_copies: 0,
           max_percentage_for_required_copies:
             this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
           msg: checkPassed
             ? `All clients meet the ${report.required_copies} replicas requirement`
-            : `${clientsWithNotEnoughCopies.length} clients do not meet the ${report.required_copies} replicas requirement`,
+            : `${this._clients(clientsWithNotEnoughCopies.length)} do not meet the ${report.required_copies} replicas requirement`,
         },
       },
     });
+  }
+
+  private _clients(n: number): string {
+    return n === 0 ? 'No clients' : n === 1 ? '1 client' : `${n} clients`;
   }
 }

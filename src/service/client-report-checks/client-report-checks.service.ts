@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
-import { round } from 'lodash';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { envNotSet } from 'src/utils/utils';
@@ -14,6 +13,7 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA: number;
   public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
+  public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -37,6 +37,9 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES',
     );
+    this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
+      'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
+    );
   }
 
   public async storeReportChecks(reportId: bigint) {
@@ -54,6 +57,8 @@ export class ClientReportChecksService {
     await this.storeProvidersRetrievability(reportId);
     await this.storeProvidersIPNIMisreporting(reportId);
     await this.storeProvidersIPNINotReporting(reportId);
+    await this.storeProvidersDeclaredNotUsed(reportId);
+    await this.storeProvidersNotDeclared(reportId);
   }
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
@@ -83,18 +88,19 @@ export class ClientReportChecksService {
         },
       );
 
-    const total = providerDistribution.reduce(
+    const totalDealSize = providerDistribution.reduce(
       (a, c) => a + c.total_deal_size,
       0n,
     );
 
     const providersExceedingProviderDeal =
-      total === 0n
+      totalDealSize === 0n
         ? []
         : providerDistribution
             .filter(
               (provider) =>
-                Number((provider.total_deal_size * 10000n) / total) / 100 >
+                Number((provider.total_deal_size * 10000n) / totalDealSize) /
+                  100 >
                 this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE,
             )
             .map((provider) => provider.provider);
@@ -109,14 +115,10 @@ export class ClientReportChecksService {
         result: checkPassed,
         metadata: {
           violating_ids: providersExceedingProviderDeal,
-          max_provider_deal_percentage:
-            this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE,
           max_providers_exceeding_provider_deal: 0,
-          providers_exceeding_provider_deal:
-            providersExceedingProviderDeal.length,
           msg: checkPassed
             ? `Storage provider distribution looks healthy`
-            : `${providersExceedingProviderDeal.length} storage providers sealed more than ${this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE}% of total datacap`,
+            : `${this._storageProviders(providersExceedingProviderDeal.length)} sealed more than ${this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE}% of total datacap`,
         },
       },
     });
@@ -142,7 +144,7 @@ export class ClientReportChecksService {
         },
       );
 
-    const providersExceedingMaxDuplicationPercentage = providerDistribution
+    const providersExceedingMaxDuplication = providerDistribution
       .filter(
         (provider) =>
           ((provider.total_deal_size - provider.unique_data_size) * 10000n) /
@@ -152,7 +154,7 @@ export class ClientReportChecksService {
       )
       .map((provider) => provider.provider);
 
-    const checkPassed = providersExceedingMaxDuplicationPercentage.length === 0;
+    const checkPassed = providersExceedingMaxDuplication.length === 0;
 
     await this.prismaService.client_report_check_result.create({
       data: {
@@ -161,15 +163,13 @@ export class ClientReportChecksService {
           ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION,
         result: checkPassed,
         metadata: {
-          violating_ids: providersExceedingMaxDuplicationPercentage,
+          violating_ids: providersExceedingMaxDuplication,
           max_duplication_percentage:
             this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE,
           max_providers_exceeding_max_duplication: 0,
-          providers_exceeding_max_duplication:
-            providersExceedingMaxDuplicationPercentage.length,
           msg: checkPassed
             ? `Storage provider duplication looks healthy`
-            : `${providersExceedingMaxDuplicationPercentage.length} storage providers sealed too much duplicate data`,
+            : `${this._storageProviders(providersExceedingMaxDuplication.length)} sealed too much duplicate data`,
         },
       },
     });
@@ -202,11 +202,10 @@ export class ClientReportChecksService {
         result: checkPassed,
         metadata: {
           violating_ids: providersWithUnknownLocation,
-          providers_with_unknown_location: providersWithUnknownLocation.length,
           max_providers_with_unknown_location: 0,
           msg: checkPassed
             ? `Storage provider locations looks healthy`
-            : `${providersWithUnknownLocation.length} storage providers have unknown IP location`,
+            : `${this._storageProviders(providersWithUnknownLocation.length)} have unknown IP location`,
         },
       },
     });
@@ -259,18 +258,15 @@ export class ClientReportChecksService {
         },
       );
 
-    const misreportingProviders = providerDistribution.filter(
-      (p) =>
-        p.ipni_reporting_status ===
-        StorageProviderIpniReportingStatus.MISREPORTING,
-    );
+    const misreportingProviders = providerDistribution
+      .filter(
+        (p) =>
+          p.ipni_reporting_status ===
+          StorageProviderIpniReportingStatus.MISREPORTING,
+      )
+      .map((p) => p.provider);
 
     const checkPassed = misreportingProviders.length === 0;
-
-    const percentage =
-      providerDistribution.length === 0
-        ? 0
-        : (misreportingProviders.length / providerDistribution.length) * 100;
 
     await this.prismaService.client_report_check_result.create({
       data: {
@@ -279,13 +275,11 @@ export class ClientReportChecksService {
           ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING,
         result: checkPassed,
         metadata: {
-          percentage: percentage,
-          violating_ids: misreportingProviders.map((p) => p.provider),
-          misreporting_providers: misreportingProviders.length,
+          violating_ids: misreportingProviders,
           max_misreporting_providers: 0,
           msg: checkPassed
             ? `Storage providers IPNI reporting looks healthy (1/2)`
-            : `${percentage.toFixed(2)}% of storage providers have misreported their data to IPNI`,
+            : `${this._storageProviders(misreportingProviders.length)} have misreported their data to IPNI`,
         },
       },
     });
@@ -301,18 +295,15 @@ export class ClientReportChecksService {
         },
       );
 
-    const notReportingProviders = providerDistribution.filter(
-      (p) =>
-        p.ipni_reporting_status ===
-        StorageProviderIpniReportingStatus.NOT_REPORTING,
-    );
+    const notReportingProviders = providerDistribution
+      .filter(
+        (p) =>
+          p.ipni_reporting_status ===
+          StorageProviderIpniReportingStatus.NOT_REPORTING,
+      )
+      .map((p) => p.provider);
 
     const checkPassed = notReportingProviders.length === 0;
-
-    const percentage =
-      providerDistribution.length === 0
-        ? 0
-        : (notReportingProviders.length / providerDistribution.length) * 100;
 
     await this.prismaService.client_report_check_result.create({
       data: {
@@ -321,13 +312,11 @@ export class ClientReportChecksService {
           ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING,
         result: checkPassed,
         metadata: {
-          percentage: percentage,
-          violating_ids: notReportingProviders.map((p) => p.provider),
-          not_reporting_providers: notReportingProviders.length,
+          violating_ids: notReportingProviders,
           max_not_reporting_providers: 0,
           msg: checkPassed
             ? `Storage providers IPNI reporting looks healthy (2/2)`
-            : `${percentage.toFixed(2)}% of storage providers have not reported their data to IPNI`,
+            : `${this._storageProviders(notReportingProviders.length)} have not reported their data to IPNI`,
         },
       },
     });
@@ -343,21 +332,12 @@ export class ClientReportChecksService {
         },
       );
 
-    const retrievabilitySuccessRates = providerDistribution.map(
-      (provider) => provider.retrievability_success_rate_http ?? 0,
-    );
-
     {
-      const zeroRetrievabilityCount = retrievabilitySuccessRates.filter(
-        (p) => p === 0,
-      ).length;
+      const zeroRetrievabilityProviders = providerDistribution
+        .filter((p) => !p.retrievability_success_rate_http)
+        .map((p) => p.provider);
 
-      const checkPassed = zeroRetrievabilityCount === 0;
-
-      const percentage =
-        retrievabilitySuccessRates.length === 0
-          ? 0
-          : (zeroRetrievabilityCount / retrievabilitySuccessRates.length) * 100;
+      const checkPassed = zeroRetrievabilityProviders.length === 0;
 
       await this.prismaService.client_report_check_result.create({
         data: {
@@ -366,30 +346,22 @@ export class ClientReportChecksService {
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
           result: checkPassed,
           metadata: {
-            percentage: percentage,
-            zero_retrievability_providers: zeroRetrievabilityCount,
+            violating_ids: zeroRetrievabilityProviders,
             max_zero_retrievability_providers: 0,
             msg: checkPassed
-              ? `Storage provider zero retrievability looks healthy`
-              : `${percentage.toFixed(2)}% of storage providers have retrieval success rate equal to zero`,
+              ? `Storage provider retrievability looks healthy (1/2)`
+              : `${this._storageProviders(zeroRetrievabilityProviders.length)} have retrieval success rate equal to zero`,
           },
         },
       });
     }
 
     {
-      const lessThan75RetrievabilityCount = retrievabilitySuccessRates.filter(
-        (p) => p < 0.75,
-      ).length;
+      const lessThan75RetrievabilityProviders = providerDistribution
+        .filter((p) => (p.retrievability_success_rate_http ?? 0) < 0.75)
+        .map((p) => p.provider);
 
-      const checkPassed = lessThan75RetrievabilityCount === 0;
-
-      const percentage =
-        retrievabilitySuccessRates.length === 0
-          ? 0
-          : (lessThan75RetrievabilityCount /
-              retrievabilitySuccessRates.length) *
-            100;
+      const checkPassed = lessThan75RetrievabilityProviders.length === 0;
 
       await this.prismaService.client_report_check_result.create({
         data: {
@@ -398,13 +370,11 @@ export class ClientReportChecksService {
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
           result: checkPassed,
           metadata: {
-            percentage: percentage,
-            less_than_75_retrievability_providers:
-              lessThan75RetrievabilityCount,
+            violating_ids: lessThan75RetrievabilityProviders,
             max_less_than_75_retrievability_providers: 0,
             msg: checkPassed
               ? 'Storage provider retrievability looks healthy'
-              : `${percentage.toFixed(2)}% of storage providers have retrieval success rate less than 75%`,
+              : `${this._storageProviders(lessThan75RetrievabilityProviders.length)} have retrieval success rate less than 75%`,
           },
         },
       });
@@ -436,6 +406,109 @@ export class ClientReportChecksService {
           msg: checkPassed
             ? 'Client receiving datacap from one allocator'
             : 'Client receiving datacap from more than one allocator',
+        },
+      },
+    });
+  }
+
+  private async storeProvidersDeclaredNotUsed(reportId: bigint) {
+    const report = await this.prismaService.client_report.findFirst({
+      where: {
+        id: reportId,
+      },
+      select: {
+        storage_provider_ids_declared: true,
+        storage_provider_distribution: {
+          select: {
+            provider: true,
+          },
+        },
+      },
+    });
+
+    const actualStorageProviders = report.storage_provider_distribution.map(
+      (provider) => provider.provider,
+    );
+
+    const declaredNotUsedProviders =
+      report.storage_provider_ids_declared.filter(
+        (provider) => !actualStorageProviders.includes(provider),
+      );
+
+    const checkPassed = declaredNotUsedProviders.length === 0;
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check:
+          ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED,
+        result: checkPassed,
+        metadata: {
+          max_declared_not_used_providers: 0,
+          violating_ids: declaredNotUsedProviders,
+          msg: checkPassed
+            ? 'All declared storage providers match actual providers'
+            : `${this._storageProvidersAre(declaredNotUsedProviders.length)} declared in application file but not actually used`,
+        },
+      },
+    });
+  }
+
+  private async storeProvidersNotDeclared(reportId: bigint) {
+    if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    const report = await this.prismaService.client_report.findFirst({
+      where: {
+        id: reportId,
+      },
+      select: {
+        storage_provider_ids_declared: true,
+        storage_provider_distribution: {
+          select: {
+            provider: true,
+          },
+        },
+      },
+    });
+
+    const actualStorageProviders = report.storage_provider_distribution.map(
+      (provider) => provider.provider,
+    );
+
+    const notDeclaredProviders = actualStorageProviders.filter(
+      (provider) => !report.storage_provider_ids_declared.includes(provider),
+    );
+
+    const percentageOfNotDeclaredProviders =
+      actualStorageProviders.length === 0
+        ? 0
+        : (notDeclaredProviders.length / actualStorageProviders.length) * 100;
+
+    const checkPassed =
+      percentageOfNotDeclaredProviders <=
+      this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS;
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check:
+          ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED,
+        result: checkPassed,
+        metadata: {
+          max_percentage_of_not_declared_providers:
+            this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS,
+          percentage_of_not_declared_providers: `${percentageOfNotDeclaredProviders.toFixed(2)}`,
+          violating_ids: notDeclaredProviders,
+          msg:
+            notDeclaredProviders.length === 0
+              ? 'All actual storage providers are declared in application file'
+              : `${this._storageProvidersAre(notDeclaredProviders.length)} not declared in application file`,
         },
       },
     });
@@ -480,7 +553,7 @@ export class ClientReportChecksService {
         },
       });
     } else {
-      const notEnoughCopiesPercentage = replicaDistribution
+      const percentageSumOfNotEnoughCopiesDeals = replicaDistribution
         .filter(
           (distribution) =>
             distribution.num_of_replicas < parseInt(requiredCopiesCount),
@@ -491,18 +564,19 @@ export class ClientReportChecksService {
           0,
         );
 
+      const checkPassed =
+        percentageSumOfNotEnoughCopiesDeals <=
+        this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES;
+
       await this.prismaService.client_report_check_result.create({
         data: {
           client_report_id: reportId,
           check: ClientReportCheck.NOT_ENOUGH_COPIES,
-          result:
-            notEnoughCopiesPercentage <=
-            this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
+          result: checkPassed,
           metadata: {
-            percentage: round(notEnoughCopiesPercentage, 2),
             max_percentage_for_required_copies:
               this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
-            msg: `${notEnoughCopiesPercentage.toFixed(2)}% of deals have less than allocator-defined ${requiredCopiesCount} replicas`,
+            msg: `${percentageSumOfNotEnoughCopiesDeals.toFixed(2)}% of data have less than allocator-defined ${requiredCopiesCount} replicas`,
           },
         },
       });
@@ -533,7 +607,7 @@ export class ClientReportChecksService {
         },
       });
 
-    const lowReplicaPercentage = replicaDistribution
+    const percentageSumOfLowReplicaDeals = replicaDistribution
       .filter(
         (distribution) =>
           distribution.num_of_replicas <=
@@ -542,18 +616,19 @@ export class ClientReportChecksService {
       .map((distribution) => distribution.percentage)
       .reduce((a, b) => a + b, 0);
 
+    const checkPassed =
+      percentageSumOfLowReplicaDeals <=
+      this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA;
+
     await this.prismaService.client_report_check_result.create({
       data: {
         client_report_id: reportId,
         check: ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA,
-        result:
-          lowReplicaPercentage <=
-          this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
+        result: checkPassed,
         metadata: {
-          percentage: round(lowReplicaPercentage, 2),
           max_percentage_for_low_replica:
             this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
-          msg: `Low replica percentage is ${lowReplicaPercentage.toFixed(2)}%`,
+          msg: `Low replica percentage is ${percentageSumOfLowReplicaDeals.toFixed(2)}%`,
         },
       },
     });
@@ -584,5 +659,17 @@ export class ClientReportChecksService {
         },
       },
     });
+  }
+
+  private _storageProviders(n: number): string {
+    return n === 0
+      ? 'No storage providers'
+      : n === 1
+        ? '1 storage provider'
+        : `${n} storage providers`;
+  }
+
+  private _storageProvidersAre(n: number): string {
+    return this._storageProviders(n) + ' ' + (n === 1 ? 'is' : 'are');
   }
 }

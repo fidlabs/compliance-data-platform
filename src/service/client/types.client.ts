@@ -18,5 +18,11 @@ export class ClientWithBookkeeping {
   allocatorId: string;
   clientId: string;
   clientAddress: string;
-  bookkeepingInfo: any;
+  bookkeepingInfo: ClientBookkeepingInfo;
+}
+
+export class ClientBookkeepingInfo {
+  isPublicDataset: boolean | null;
+  clientContractAddress: string | null;
+  storageProviderIDsDeclared: string[];
 }
