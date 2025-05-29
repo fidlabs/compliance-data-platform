@@ -12,7 +12,7 @@ export function lastWeek(): Date {
   return DateTime.now().toUTC().minus({ week: 1 }).startOf('week').toJSDate();
 }
 
-export function envNotSet(value?: any) {
+export function envNotSet(value?: any): boolean {
   return (
     value === undefined ||
     value === null ||
@@ -20,6 +20,6 @@ export function envNotSet(value?: any) {
   );
 }
 
-export function envSet(value?: any) {
+export function envSet(value?: any): boolean {
   return !envNotSet(value);
 }

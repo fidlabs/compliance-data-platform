@@ -18,6 +18,41 @@ services:
       timeout: 5s
       retries: 2
 
+  autoheal:
+    restart: always
+    image: willfarrell/autoheal
+    environment:
+      - AUTOHEAL_START_PERIOD=30
+      - AUTOHEAL_INTERVAL=30
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  dmob_database:
+    image: postgres:13
+    restart: unless-stopped
+    environment:
+      - PRIVATE_KEY=${DMOB_DATABASE_PRIVATE_KEY}
+    depends_on:
+      autoheal:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    command: >
+      sh -c '
+        apt update && \
+        apt install -y openssh-client && \
+        echo "$$PRIVATE_KEY" > ./private_key && \
+        chmod 600 ./private_key && \
+        $DMOB_CONNECTION_STRING -i ./private_key
+      '
+    healthcheck:
+      test: "pg_isready -h localhost -p 3001"
+      interval: 30s
+      timeout: 5s
+      retries: 2
+    labels:
+      - "autoheal=true"
+
 volumes:
   postgres_data:
     driver: local
