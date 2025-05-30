@@ -5,7 +5,8 @@
 
 with "allocators_using_metaallocators" as (select *
                                            from "verifier"
-                                             where ("verifier"."isVirtual" = true))
+                                           where ("verifier"."isVirtual" = true)),
+     "requested_metaallocator" as (select "addressEth" from "verifier" where "addressId" = $4 or "address" = $4)
 select "verifier"."addressId"                                                                                                       as "addressId",
        "verifier"."address"                                                                                                         as "address",
        case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end                                         as "auditTrail",
@@ -30,6 +31,8 @@ select "verifier"."addressId"                                                   
        case when "verifier"."dcSource" = 'f080' then null else "verifier"."dcSource" end                                            as "dcSource",
        "verifier"."isVirtual"                                                                                                       as "isVirtual",
        "verifier"."isMetaAllocator"                                                                                                 as "isMetaAllocator",
+       case when $4 is null then null else sum("verifier_allowance"."allowance")
+                filter (where "verifier_allowance"."dcSource" = (select "addressEth" from "requested_metaallocator")) end           as "receivedDatacapFromMetaallocator",
        coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
@@ -83,5 +86,5 @@ from "verifier"
              or "verifier"."addressId" = $3
              or upper("verifier"."name") like upper('%' || $3 || '%')
              or upper("verifier"."orgName") like upper('%' || $3 || '%'))
-         and ("verifier"."dcSource" = (select "addressEth" from "verifier" where "addressId" = $4 or "address" = $4) or $4 is null)
+         and ("verifier"."dcSource" = (select "addressEth" from "requested_metaallocator") or $4 is null)
 group by "verifier"."id";
