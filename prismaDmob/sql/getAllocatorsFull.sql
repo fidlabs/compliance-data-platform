@@ -1,12 +1,10 @@
 -- @param {Boolean} $1:showInactive
 -- @param {Boolean} $2:isMetaallocator?
 -- @param {String} $3:filter?
--- @param {String} $4:usingMetaallocatorIdOrAddress?
+-- @param {String} $4:usingMetaallocatorId?
 
-with "allocators_using_metaallocators" as (select *
-                                           from "verifier"
-                                           where ("verifier"."isVirtual" = true)),
-     "requested_metaallocator" as (select "addressEth" from "verifier" where "addressId" = $4 or "address" = $4)
+with "allocator_using_metaallocator" as (select * from "verifier" where "verifier"."isVirtual" = true),
+     "metaallocator" as (select * from "verifier" where "isMetaAllocator" = true)
 select "verifier"."addressId"                                                                                                       as "addressId",
        "verifier"."address"                                                                                                         as "address",
        case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end                                         as "auditTrail",
@@ -22,6 +20,7 @@ select "verifier"."addressId"                                                   
        "verifier"."issueCreateTimestamp"                                                                                            as "issueCreateTimestamp",
        "verifier"."createMessageTimestamp"                                                                                          as "createMessageTimestamp",
        "verifier"."initialAllowance" - "verifier"."allowance"                                                                       as "remainingDatacap",
+       "metaallocator"."addressId"                                                                                                  as "usingMetaallocator",
        count(distinct "verified_client"."id")::int                                                                                  as "verifiedClientsCount",
        coalesce(sum("verifier_allowance"."allowance")
                 filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '14 days'))), 0) as "receivedDatacapChange",
@@ -31,8 +30,8 @@ select "verifier"."addressId"                                                   
        case when "verifier"."dcSource" = 'f080' then null else "verifier"."dcSource" end                                            as "dcSource",
        "verifier"."isVirtual"                                                                                                       as "isVirtual",
        "verifier"."isMetaAllocator"                                                                                                 as "isMetaAllocator",
-       case when $4 is null then null else sum("verifier_allowance"."allowance")
-                filter (where "verifier_allowance"."dcSource" = (select "addressEth" from "requested_metaallocator")) end           as "receivedDatacapFromMetaallocator",
+       case when ($4 = '' or $4 is null) then null else sum("verifier_allowance"."allowance")
+                filter (where "verifier_allowance"."dcSource" = "metaallocator"."addressId") end                                    as "receivedDatacapFromMetaallocator",
        coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
@@ -54,9 +53,9 @@ select "verifier"."addressId"                                                   
        case when "verifier"."isMetaAllocator" = false then null else coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
-                       'addressId', "allocators_using_metaallocators"."addressId"
+                       'addressId', "allocator_using_metaallocator"."addressId"
                                 )
-               ) filter (where "allocators_using_metaallocators"."addressId" is not null), '[]'::jsonb
+               ) filter (where "allocator_using_metaallocator"."addressId" is not null), '[]'::jsonb
        ) end                                                                                                                        as "allocatorsUsingMetaallocator",
        coalesce(
                (select "auditStatus"
@@ -72,8 +71,10 @@ select "verifier"."addressId"                                                   
                 limit 1)
        )                                                                                                                            as "auditStatus"
 from "verifier"
-         left join "allocators_using_metaallocators"
-                   on "verifier"."addressEth" = "allocators_using_metaallocators"."dcSource"
+         left join "allocator_using_metaallocator"
+                   on upper("verifier"."addressEth") = upper("allocator_using_metaallocator"."dcSource")
+         left join "metaallocator"
+                   on upper("verifier"."dcSource") = upper("metaallocator"."addressEth")
          left join "verifier_allowance"
                    on "verifier"."id" = "verifier_allowance"."verifierId"
          left join "verified_client"
@@ -86,5 +87,5 @@ from "verifier"
              or "verifier"."addressId" = $3
              or upper("verifier"."name") like upper('%' || $3 || '%')
              or upper("verifier"."orgName") like upper('%' || $3 || '%'))
-         and ("verifier"."dcSource" = (select "addressEth" from "requested_metaallocator") or $4 is null)
-group by "verifier"."id";
+         and ("metaallocator"."addressId" = $4 or $4 is null)
+group by "verifier"."id", "metaallocator"."addressId";
