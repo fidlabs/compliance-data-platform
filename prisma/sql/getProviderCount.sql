@@ -1,13 +1,13 @@
 -- @param {Boolean} $1:openDataOnly
 
 with "open_data_pathway_provider" as (
-    select distinct "client_provider_distribution"."provider" as "provider"
+    select distinct "provider" as "provider"
     from "allocator_client_bookkeeping"
        join "client_provider_distribution" on "allocator_client_bookkeeping"."client_id" = "client_provider_distribution"."client"
     where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
        or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
 )
-select count(distinct "providers_weekly_acc"."provider")::int as "count"
+select count(distinct "provider")::int as "count"
 from "providers_weekly_acc"
 where (
           $1 = false
