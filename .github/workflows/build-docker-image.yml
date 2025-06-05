@@ -56,8 +56,8 @@ jobs:
         with:
           driver-opts: network=host
 
-      - name: Install prisma
-        run: npm install prisma@6.8.2
+      - name: Install deps
+        run: npm ci
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
