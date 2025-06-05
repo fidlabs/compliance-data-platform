@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 RUN apk add openssl
 USER node
 WORKDIR /app
@@ -26,4 +26,4 @@ COPY ci/aws-secret-to-db-url.js ./
 COPY ci/runner.sh ./
 ADD --chown=node https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /etc/ssl/certs/aws-global-bundle.pem
 ENTRYPOINT [ "/app/runner.sh" ]
-CMD [ "node", "dist/main.js" ]
+CMD [ "node", "--max-old-space-size=768", "dist/main.js" ]
