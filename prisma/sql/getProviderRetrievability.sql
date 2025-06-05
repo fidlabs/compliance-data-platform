@@ -8,7 +8,7 @@ with "open_data_pathway_provider" as (
     where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
        or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
 ),
-     "base_data" as (select "week"            as "week",
+     "provider_weekly" as (select "week"      as "week",
                             "provider"        as "provider",
                             "total_deal_size" as "total_deal_size",
                             case
@@ -21,7 +21,7 @@ select "week"                                              as "week",
        100 * ceil("selected_retrievability" * 20) / 20     as "valueToInclusive",
        count(*)::int                                       as "count",
        sum("total_deal_size")::bigint                      as "totalDatacap"
-from "base_data"
+from "provider_weekly"
 where (
           $1 = false
               or "provider" in (select "provider" from "open_data_pathway_provider")
