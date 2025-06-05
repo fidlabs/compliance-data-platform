@@ -3,7 +3,7 @@ import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 
 export class AggregatedProvidersIPNIReportingStatusWeek {
   @ApiProperty({
-    description: 'Week',
+    description: 'ISO format',
     type: String,
     format: 'date',
     example: '2024-04-22T00:00:00.000Z',

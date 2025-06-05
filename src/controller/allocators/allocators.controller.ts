@@ -10,7 +10,7 @@ import {
 } from './types.allocators';
 import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
-import { lastWeek, stringToBool } from 'src/utils/utils';
+import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -63,7 +63,7 @@ export class AllocatorsController extends ControllerBase {
 
     const weekAllocatorsSpsCompliance =
       await this.allocatorService.getWeekStandardAllocatorSpsCompliance(
-        query.week!,
+        stringToDate(query.week!)!,
         true,
         StorageProviderComplianceMetrics.of(query),
       );
@@ -104,7 +104,7 @@ export class AllocatorsController extends ControllerBase {
   public async getWeekAllocatorsWithSpsCompliance(
     @Query() query: GetWeekAllocatorsWithSpsComplianceRequest,
   ) {
-    query.week ??= lastWeek(); // last week default
+    query.week ??= lastWeek().toISOString(); // last week default
 
     let allocators = await this._getWeekAllocatorsWithSpsCompliance(query);
 

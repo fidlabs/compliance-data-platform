@@ -8,7 +8,7 @@ with "open_data_pathway_allocator" as (
     where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
        or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
 ),
-     "base_data" as (select "week"                     as "week",
+     "allocator_weekly" as (select "week"              as "week",
                             "allocator"                as "allocator",
                             "total_sum_of_allocations" as "total_sum_of_allocations",
                             case
@@ -21,8 +21,8 @@ select "week"                                       as "week",
        ceil("selected_retrievability" * 20) * 5     as "valueToInclusive",
        count(*)::int                                as "count",
        sum("total_sum_of_allocations")::bigint      as "totalDatacap"
-from "base_data"
-         left join "allocator" on "base_data"."allocator" = "allocator"."id"
+from "allocator_weekly"
+         left join "allocator" on "allocator_weekly"."allocator" = "allocator"."id"
 where (
     $1 = false
         or "allocator" in (select "allocator" from "open_data_pathway_allocator")
