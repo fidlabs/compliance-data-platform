@@ -113,7 +113,7 @@ export class ClientService {
 
   public async getClientBookkeepingInfo(
     clientIdOrAddress: string,
-  ): Promise<ClientBookkeepingInfo> {
+  ): Promise<ClientBookkeepingInfo | null> {
     const result =
       await this.prismaService.allocator_client_bookkeeping.findFirst({
         select: {
@@ -131,7 +131,7 @@ export class ClientService {
         },
       });
 
-    if (!result) return;
+    if (!result) return null;
 
     return this._mapClientBookkeeping(
       result.bookkeeping_info as Prisma.JsonObject,

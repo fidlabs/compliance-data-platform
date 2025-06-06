@@ -11,6 +11,6 @@ select "week"                                                 as "week",
        sum("totalDatacap")::bigint                            as "totalDatacap"
 from "allocators_with_ratio"
          left join "allocator" on "allocators_with_ratio"."allocator" = "allocator"."id"
-where "allocator"."is_metaallocator" = false or "allocator"."is_metaallocator" is null
+where "is_metaallocator" = false or "is_metaallocator" is null
 group by "valueFromExclusive", "valueToInclusive", "week"
 order by "week", "valueFromExclusive";

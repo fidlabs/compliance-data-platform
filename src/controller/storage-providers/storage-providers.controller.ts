@@ -13,7 +13,7 @@ import {
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
 } from './types.storage-providers';
-import { lastWeek } from 'src/utils/utils';
+import { lastWeek, stringToDate } from 'src/utils/utils';
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -88,12 +88,12 @@ export class StorageProvidersController extends ControllerBase {
 
     const weekAverageRetrievability =
       await this.storageProviderService.getWeekAverageProviderRetrievability(
-        query.week,
+        stringToDate(query.week!)!,
         true,
       );
 
     const weekProviders = await this.storageProviderService.getWeekProviders(
-      query.week,
+      stringToDate(query.week!)!,
       true,
     );
 
@@ -129,7 +129,7 @@ export class StorageProvidersController extends ControllerBase {
   public async getWeekStorageProvidersWithSpsCompliance(
     @Query() query: GetWeekStorageProvidersWithSpsComplianceRequest,
   ) {
-    query.week ??= lastWeek(); // last week default
+    query.week ??= lastWeek().toISOString(); // last week default
 
     let providers = await this._getWeekStorageProvidersWithSpsCompliance(query);
 

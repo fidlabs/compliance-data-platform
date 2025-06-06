@@ -58,14 +58,14 @@ export class AllocatorService {
     returnInactive = true,
     isMetaallocator: boolean | null = null,
     filter: string | null = null,
-    usingMetaallocatorIdOrAddress: string | null = null,
+    usingMetaallocatorId: string | null = null,
   ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(
         returnInactive,
         isMetaallocator,
         filter,
-        usingMetaallocatorIdOrAddress,
+        usingMetaallocatorId,
       ),
     );
 
