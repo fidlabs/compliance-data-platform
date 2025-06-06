@@ -40,6 +40,7 @@ export class HistogramWeek {
     type: String,
     format: 'date',
     example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
   })
   week: Date;
 

@@ -15,5 +15,5 @@ where (
     $1 = false
         or "allocator" in (select "allocator" from "open_data_pathway_allocator")
     )
-  and ("allocator"."is_metaallocator" = false or "allocator"."is_metaallocator" is null)
+  and ("is_metaallocator" = false or "is_metaallocator" is null)
   and "week" = $3::timestamp;
