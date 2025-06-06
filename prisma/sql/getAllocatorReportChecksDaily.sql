@@ -11,4 +11,5 @@ select sum("checksPassedCount")::int as "checksPassedCount",
        sum("checksFailedCount")::int as "checksFailedCount",
        "day"                         as "day"
 from "checks_daily"
-group by "day";
+group by "day"
+order by "day" desc;
