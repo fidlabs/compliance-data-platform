@@ -7,8 +7,8 @@ select (count(distinct "check") filter ( where "result" = true))::int  as "check
                        jsonb_agg(
                        distinct jsonb_build_object(
                                'reportId', "allocator_report_id",
-                               'checkMsg', "check",
-                               'msg', "metadata"::jsonb->'msg'
+                               'check', "check",
+                               'checkMsg', "metadata"::jsonb->'msg'
                                 )
                                 ) filter ( where "result" = false ), '[]'::jsonb
        )                                                        as "failedChecks"

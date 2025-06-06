@@ -8,4 +8,5 @@ select sum("checksPassedCount")::int as "checksPassedCount",
        sum("checksFailedCount")::int as "checksFailedCount",
        "week"                        as "week"
 from "checks_weekly"
-group by "week";
+group by "week"
+order by "week" desc;
