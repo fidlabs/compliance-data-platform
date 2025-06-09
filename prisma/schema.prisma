@@ -128,18 +128,6 @@ model providers_weekly {
   @@id([week, provider])
 }
 
-model allocators_weekly {
-  week                                          DateTime
-  allocator                                     String
-  num_of_clients                                Int
-  biggest_client_sum_of_allocations             BigInt
-  total_sum_of_allocations                      BigInt
-  avg_weighted_retrievability_success_rate      Float
-  avg_weighted_retrievability_success_rate_http Float?
-
-  @@id([week, allocator])
-}
-
 model provider_retrievability_daily {
   date              DateTime
   provider          String
