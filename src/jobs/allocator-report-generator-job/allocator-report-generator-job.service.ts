@@ -66,7 +66,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
         fails++;
         this.logger.error(
           `Error during generation of allocator report for ${allocatorAddress}: ${err.message}`,
-          err.cause || err.stack,
+          err.cause?.stack || err.stack,
         );
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * 60)); // 1 minute
@@ -102,7 +102,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
       this.healthy = false;
       this.logger.error(
         `Error during allocator reports generation job: ${err.message}`,
-        err.cause || err.stack,
+        err.cause?.stack || err.stack,
       );
     }
   }

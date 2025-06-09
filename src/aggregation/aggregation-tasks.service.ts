@@ -79,7 +79,7 @@ export class AggregationTasksService extends HealthIndicator {
 
         this.logger.error(
           `Error during aggregation job: ${err.message}`,
-          err.cause || err.stack,
+          // err.cause?.stack || err.stack,
         );
       } finally {
         endAllAggregationsTimer();

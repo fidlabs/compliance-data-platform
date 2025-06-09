@@ -58,7 +58,7 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
       this.healthy = false;
       this.logger.error(
         `Error handling GitHub issue comment created trigger: ${err.message}`,
-        err.cause || err.stack,
+        err.cause?.stack || err.stack,
       );
 
       responseBody = `Error: internal server error`;
