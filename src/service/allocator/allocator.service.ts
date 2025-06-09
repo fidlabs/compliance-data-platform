@@ -2,14 +2,10 @@ import { Prisma } from 'prisma/generated/client';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
-  getStandardAllocatorBiggestClientDistribution,
   getStandardAllocatorBiggestClientDistributionAcc,
-  getStandardAllocatorRetrievability,
   getStandardAllocatorRetrievabilityAcc,
-  getStandardAllocatorClientsWeekly,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
-  getWeekAverageStandardAllocatorRetrievability,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
 import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
@@ -98,49 +94,38 @@ export class AllocatorService {
     });
   }
 
-  public async getStandardAllocatorClientsWeekly(
-    isAccumulative: boolean,
-  ): Promise<HistogramWeekResponse> {
+  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
     return new HistogramWeekResponse(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
-          isAccumulative
-            ? getStandardAllocatorClientsWeeklyAcc()
-            : getStandardAllocatorClientsWeekly(),
+          getStandardAllocatorClientsWeeklyAcc(),
         ),
       ),
     );
   }
 
   private async _getStandardAllocatorRetrievability(
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<HistogramWeekFlat[]> {
-    // prettier-ignore
     return await this.prismaService.$queryRawTyped(
-      isAccumulative
-        ? getStandardAllocatorRetrievabilityAcc(openDataOnly, httpRetrievability)
-        : getStandardAllocatorRetrievability(openDataOnly, httpRetrievability),
+      getStandardAllocatorRetrievabilityAcc(openDataOnly, httpRetrievability),
     );
   }
 
   public async getStandardAllocatorRetrievabilityWeekly(
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
         lastWeek(),
-        isAccumulative,
         openDataOnly,
         httpRetrievability,
       );
 
     const result = await this._getStandardAllocatorRetrievability(
-      isAccumulative,
       openDataOnly,
       httpRetrievability,
     );
@@ -158,7 +143,6 @@ export class AllocatorService {
               histogramWeek,
               (await this.getWeekAverageStandardAllocatorRetrievability(
                 histogramWeek.week,
-                isAccumulative,
                 openDataOnly,
                 httpRetrievability,
               )) * 100,
@@ -169,16 +153,12 @@ export class AllocatorService {
     );
   }
 
-  public async getStandardAllocatorBiggestClientDistributionWeekly(
-    isAccumulative: boolean,
-  ): Promise<HistogramWeekResponse> {
+  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
     return new HistogramWeekResponse(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
-          isAccumulative
-            ? getStandardAllocatorBiggestClientDistributionAcc()
-            : getStandardAllocatorBiggestClientDistribution(),
+          getStandardAllocatorBiggestClientDistributionAcc(),
         ),
         100,
       ),
@@ -211,19 +191,15 @@ export class AllocatorService {
 
   public async getWeekStandardAllocatorSpsCompliance(
     week: Date,
-    isAccumulative: boolean,
     spMetricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeek> {
     const weekAverageProvidersRetrievability =
       await this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
-        isAccumulative,
       );
 
-    const weekProviders = await this.storageProviderService.getWeekProviders(
-      week,
-      isAccumulative,
-    );
+    const weekProviders =
+      await this.storageProviderService.getWeekProviders(week);
 
     const weekProvidersCompliance: StorageProviderComplianceScore[] =
       weekProviders.map((provider) => {
@@ -235,7 +211,7 @@ export class AllocatorService {
       });
 
     const weekAllocatorsWithClients =
-      await this.getWeekStandardAllocatorsWithClients(week, isAccumulative);
+      await this.getWeekStandardAllocatorsWithClients(week);
 
     const clientsByAllocator = groupBy(
       weekAllocatorsWithClients,
@@ -250,7 +226,6 @@ export class AllocatorService {
             const weekProvidersForAllocator =
               await this.storageProviderService.getWeekProvidersForClients(
                 week,
-                isAccumulative,
                 clients.map((p) => p.client),
               );
 
@@ -258,7 +233,6 @@ export class AllocatorService {
               id: allocator,
               totalDatacap: await this.getWeekAllocatorTotalDatacap(
                 week,
-                isAccumulative,
                 allocator,
               ),
               ...this.storageProviderService.getProvidersCompliancePercentage(
@@ -281,22 +255,18 @@ export class AllocatorService {
 
   // TODO measure and optimize this function
   public async getStandardAllocatorSpsComplianceWeekly(
-    isAccumulative: boolean,
     spMetricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
     const lastWeekAverageProviderRetrievability =
-      await this.storageProviderService.getLastWeekAverageProviderRetrievability(
-        isAccumulative,
-      );
+      await this.storageProviderService.getLastWeekAverageProviderRetrievability();
 
     const results = await Promise.all(
       weeks.map(
         async (week) =>
           await this.getWeekStandardAllocatorSpsCompliance(
             week,
-            isAccumulative,
             spMetricsToCheck,
           ),
       ),
@@ -313,16 +283,11 @@ export class AllocatorService {
 
   public async getWeekAllocatorTotalDatacap(
     week: Date,
-    isAccumulative: boolean,
     allocatorId: string,
   ): Promise<number> {
     return Number(
       (
-        await (
-          (isAccumulative
-            ? this.prismaService.allocators_weekly_acc
-            : this.prismaService.allocators_weekly) as any
-        ).aggregate({
+        await this.prismaService.allocators_weekly_acc.aggregate({
           _sum: {
             total_sum_of_allocations: true,
           },
@@ -349,23 +314,16 @@ export class AllocatorService {
   // returns 0 - 1
   public async getWeekAverageStandardAllocatorRetrievability(
     week: Date,
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
-        isAccumulative
-          ? getWeekAverageStandardAllocatorRetrievabilityAcc(
-              openDataOnly,
-              httpRetrievability,
-              week,
-            )
-          : getWeekAverageStandardAllocatorRetrievability(
-              openDataOnly,
-              httpRetrievability,
-              week,
-            ),
+        getWeekAverageStandardAllocatorRetrievabilityAcc(
+          openDataOnly,
+          httpRetrievability,
+          week,
+        ),
       )
     )[0].average;
   }
@@ -374,21 +332,18 @@ export class AllocatorService {
   // this function returns (client, standard allocator) pairs
   public async getWeekStandardAllocatorsWithClients(
     week: Date,
-    isAccumulative: boolean,
   ): Promise<{ client: string; allocator: string }[]> {
-    return (
-      (isAccumulative
-        ? this.prismaService.client_allocator_distribution_weekly_acc
-        : this.prismaService.client_allocator_distribution_weekly) as any
-    ).findMany({
-      where: {
-        week: week,
+    return this.prismaService.client_allocator_distribution_weekly_acc.findMany(
+      {
+        where: {
+          week: week,
+        },
+        select: {
+          client: true,
+          allocator: true,
+        },
       },
-      select: {
-        client: true,
-        allocator: true,
-      },
-    });
+    );
   }
 
   public async getAllocatorData(allocatorIdOrAddress: string) {

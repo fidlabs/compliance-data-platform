@@ -1,10 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
-import {
-  ApiExcludeController,
-  ApiOkResponse,
-  ApiOperation,
-} from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
@@ -26,8 +22,6 @@ import { stringToBool } from 'src/utils/utils';
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
 export class StorageProvidersAccStatsController {
-  protected isAccumulative: boolean = true;
-
   constructor(
     private readonly storageProviderService: StorageProviderService,
     private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
@@ -36,17 +30,13 @@ export class StorageProvidersAccStatsController {
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderClientsWeekly(
-      this.isAccumulative,
-    );
+    return await this.storageProviderService.getProviderClientsWeekly();
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
-      this.isAccumulative,
-    );
+    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly();
   }
 
   @Get('retrievability')
@@ -55,7 +45,6 @@ export class StorageProvidersAccStatsController {
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeekResponse> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
-      this.isAccumulative,
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
     );
@@ -67,7 +56,6 @@ export class StorageProvidersAccStatsController {
     @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
   ): Promise<StorageProviderComplianceWeekResponse> {
     return await this.storageProviderService.getProviderComplianceWeekly(
-      this.isAccumulative,
       StorageProviderComplianceMetrics.of(spMetricsToCheck),
     );
   }
@@ -96,18 +84,5 @@ export class StorageProvidersAccStatsController {
   })
   public async getAggregatedProvidersIPNIReportingStatusWeekly(): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly();
-  }
-}
-
-@Controller('stats/providers')
-@ApiExcludeController()
-@CacheTTL(1000 * 60 * 30) // 30 minutes
-export class StorageProvidersStatsController extends StorageProvidersAccStatsController {
-  constructor(
-    storageProviderService: StorageProviderService,
-    ipniMisreportingCheckerService: IpniMisreportingCheckerService,
-  ) {
-    super(storageProviderService, ipniMisreportingCheckerService);
-    this.isAccumulative = false;
   }
 }

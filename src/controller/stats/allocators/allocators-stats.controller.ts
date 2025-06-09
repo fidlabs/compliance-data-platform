@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
-import { ApiExcludeController, ApiOkResponse } from '@nestjs/swagger';
+import { ApiOkResponse } from '@nestjs/swagger';
 import { AllocatorSpsComplianceWeekResponse } from 'src/service/allocator/types.allocator';
 import {
   HistogramWeekResponse,
@@ -15,16 +15,12 @@ import { stringToBool } from 'src/utils/utils';
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
 export class AllocatorsAccStatsController {
-  protected isAccumulative: boolean = true;
-
   constructor(private readonly allocatorService: AllocatorService) {}
 
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorClientsWeekly(
-      this.isAccumulative,
-    );
+    return await this.allocatorService.getStandardAllocatorClientsWeekly();
   }
 
   @Get('retrievability')
@@ -33,7 +29,6 @@ export class AllocatorsAccStatsController {
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeekResponse> {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
-      this.isAccumulative,
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
     );
@@ -42,9 +37,7 @@ export class AllocatorsAccStatsController {
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
-      this.isAccumulative,
-    );
+    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly();
   }
 
   @Get('sps-compliance')
@@ -53,18 +46,7 @@ export class AllocatorsAccStatsController {
     @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
     return await this.allocatorService.getStandardAllocatorSpsComplianceWeekly(
-      this.isAccumulative,
       StorageProviderComplianceMetrics.of(spMetricsToCheck),
     );
-  }
-}
-
-@Controller('stats/allocators')
-@ApiExcludeController()
-@CacheTTL(1000 * 60 * 30) // 30 minutes
-export class AllocatorsStatsController extends AllocatorsAccStatsController {
-  constructor(allocatorService: AllocatorService) {
-    super(allocatorService);
-    this.isAccumulative = false;
   }
 }
