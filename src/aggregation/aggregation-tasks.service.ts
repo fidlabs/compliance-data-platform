@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   HealthCheckError,
@@ -6,19 +6,42 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/prometheus';
-import { AggregationService } from './aggregation.service';
+import { PrismaDmobService } from '../db/prismaDmob.service';
+import { PrismaService } from '../db/prisma.service';
+import { FilSparkService } from '../service/filspark/filspark.service';
+import { PostgresService } from '../db/postgres.service';
+import { PostgresDmobService } from '../db/postgresDmob.service';
+import { AggregationRunner } from './aggregation-runner';
+import { IpniMisreportingCheckerService } from '../service/ipni-misreporting-checker/ipni-misreporting-checker.service';
+import { LocationService } from '../service/location/location.service';
+import { LotusApiService } from '../service/lotus-api/lotus-api.service';
+import { GitHubAllocatorRegistryService } from '../service/github-allocator-registry/github-allocator-registry.service';
+import { GitHubAllocatorClientBookkeepingService } from '../service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
+import { AggregationTable } from './aggregation-table';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
   private readonly logger = new Logger(AggregationTasksService.name);
   private jobInProgress = false;
   private healthy = true;
+  private unhealthyReason: string = null;
   private lastSuccess: Date = null;
   private lastRun: Date = null;
 
   constructor(
-    private readonly aggregationService: AggregationService,
+    private readonly prismaDmobService: PrismaDmobService,
+    private readonly prismaService: PrismaService,
+    private readonly filSparkService: FilSparkService,
+    private readonly postgresService: PostgresService,
+    private readonly postgresDmobService: PostgresDmobService,
+    @Inject('AggregationRunner')
+    private readonly aggregationRunners: AggregationRunner[],
     private readonly prometheusMetricService: PrometheusMetricService,
+    private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
+    private readonly locationService: LocationService,
+    private readonly lotusApiService: LotusApiService,
+    private readonly allocatorRegistryService: GitHubAllocatorRegistryService,
+    private readonly allocatorClientBookkeepingService: GitHubAllocatorClientBookkeepingService,
   ) {
     super();
   }
@@ -27,6 +50,7 @@ export class AggregationTasksService extends HealthIndicator {
     const result = this.getStatus(AggregationTasksService.name, this.healthy, {
       lastSuccess: this.lastSuccess,
       lastRun: this.lastRun,
+      unhealthyReason: this.healthy ? null : this.unhealthyReason,
     });
 
     if (this.healthy) return result;
@@ -45,14 +69,16 @@ export class AggregationTasksService extends HealthIndicator {
         this.lastRun = new Date();
         this.healthy = true;
 
-        await this.aggregationService.runAggregations();
+        await this.runAggregations();
 
         this.lastSuccess = new Date();
         this.logger.log('Finished aggregations');
       } catch (err) {
         this.healthy = false;
+        this.unhealthyReason = err.message || 'Unknown error';
+
         this.logger.error(
-          `Error during aggregations job: ${err.message}`,
+          `Error during aggregation job: ${err.message}`,
           err.cause || err.stack,
         );
       } finally {
@@ -64,5 +90,115 @@ export class AggregationTasksService extends HealthIndicator {
         'Aggregations job still in progress - skipping next execution',
       );
     }
+  }
+
+  public async runAggregations() {
+    const filledTables: AggregationTable[] = [];
+    const pendingAggregationRunners = Object.assign(
+      [],
+      this.aggregationRunners,
+    );
+
+    while (pendingAggregationRunners.length > 0) {
+      let executedRunners = 0;
+
+      for (const aggregationRunner of this.aggregationRunners) {
+        if (
+          pendingAggregationRunners.indexOf(aggregationRunner) > -1 &&
+          aggregationRunner
+            .getDependingTables()
+            .every((p) => filledTables.includes(p))
+        ) {
+          // execute runner
+          const aggregationRunnerName = aggregationRunner.constructor.name;
+          this.logger.debug(`Starting aggregation: ${aggregationRunnerName}`);
+
+          // start transaction timer
+          const endSingleAggregationTransactionTimer =
+            this.prometheusMetricService.aggregateMetrics.startTimerByRunnerNameMetric(
+              aggregationRunnerName,
+            );
+
+          try {
+            await this.executeWithRetries(
+              3,
+              () =>
+                // prettier-ignore
+                aggregationRunner.run({
+                  prismaService: this.prismaService,
+                  prismaDmobService: this.prismaDmobService,
+                  filSparkService: this.filSparkService,
+                  postgresService: this.postgresService,
+                  postgresDmobService: this.postgresDmobService,
+                  prometheusMetricService: this.prometheusMetricService,
+                  ipniMisreportingCheckerService: this.ipniMisreportingCheckerService,
+                  locationService: this.locationService,
+                  lotusApiService: this.lotusApiService,
+                  allocatorRegistryService: this.allocatorRegistryService,
+                  allocatorClientBookkeepingService: this.allocatorClientBookkeepingService,
+                }),
+              aggregationRunnerName,
+            );
+          } catch (err) {
+            throw new Error(
+              `Error running ${aggregationRunnerName}: ${err.message || err.code || err}`,
+              { cause: err },
+            );
+          } finally {
+            endSingleAggregationTransactionTimer();
+          }
+
+          this.logger.debug(`Finished aggregation: ${aggregationRunnerName}`);
+
+          executedRunners++;
+
+          // store filled tables
+          filledTables.push(...aggregationRunner.getFilledTables());
+
+          // remove from pending runners
+          pendingAggregationRunners.splice(
+            pendingAggregationRunners.indexOf(aggregationRunner),
+            1,
+          );
+        }
+      }
+
+      if (executedRunners === 0) {
+        this.logger.error(
+          'Cannot execute runners - impossible dependencies defined',
+        );
+
+        break;
+      }
+    }
+  }
+
+  private async executeWithRetries(
+    maxTries: number,
+    fn: () => Promise<void>,
+    aggregationRunnerName: string,
+  ) {
+    let success = false;
+    let executionNumber = 0;
+    let lastErr: Error = null;
+
+    while (!success && executionNumber < maxTries) {
+      try {
+        await fn();
+        success = true;
+      } catch (err) {
+        lastErr = err;
+        executionNumber++;
+
+        this.logger.warn(
+          `Error during aggregation job: ${aggregationRunnerName}, execution ${executionNumber}/${maxTries}: ${err.message || err.code || err}`,
+        );
+
+        if (executionNumber != maxTries)
+          await new Promise((resolve) => setTimeout(resolve, 90000));
+      }
+    }
+
+    if (!success) throw lastErr;
   }
 }
