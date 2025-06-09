@@ -64,7 +64,6 @@ export class AllocatorsController extends ControllerBase {
     const weekAllocatorsSpsCompliance =
       await this.allocatorService.getWeekStandardAllocatorSpsCompliance(
         stringToDate(query.week!)!,
-        true,
         StorageProviderComplianceMetrics.of(query),
       );
 
