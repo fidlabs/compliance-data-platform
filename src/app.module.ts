@@ -84,6 +84,7 @@ import { AllocatorReportChecksService } from './service/allocator-report-checks/
 import { AllocatorsController } from './controller/allocators/allocators.controller';
 import { ProviderRunner } from './aggregation/runners/provider.runner';
 import { ReportChecksController } from './controller/report-checks/report-checks.controller';
+import { ClientsController } from './controller/clients/clients.controller';
 
 const AGGREGATION_RUNNERS = [
   AllocatorClientBookkeepingRunner,
@@ -131,6 +132,7 @@ const AGGREGATION_RUNNERS = [
     AllocatorsAccStatsController,
     GoogleApisController,
     ClientReportController,
+    ClientsController,
     AllocatorReportController,
     OldDatacapController,
     StorageProvidersController,
