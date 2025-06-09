@@ -63,7 +63,10 @@ export class AppController extends HealthIndicator {
   @CacheTTL(1) // disable cache
   public async getHealth(): Promise<HealthCheckResult> {
     try {
-      return await this._getHealth();
+      return {
+        ...(await this._getHealth()),
+        details: undefined,
+      };
     } catch (err) {
       this.lastHealthcheckFailedTime = new Date();
       throw err;
