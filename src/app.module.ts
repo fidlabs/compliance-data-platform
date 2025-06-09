@@ -6,7 +6,6 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
-import { AggregationService } from './aggregation/aggregation.service';
 import { AllocatorClientBookkeepingRunner } from './aggregation/runners/allocator-client-bookkeeping.runner';
 import { AllocatorRegistryRunner } from './aggregation/runners/allocator-registry.runner';
 import { AllocatorsWeeklyAccRunner } from './aggregation/runners/allocators-weekly-acc.runner';
@@ -131,7 +130,6 @@ const AGGREGATION_RUNNERS = [
   ],
   providers: [
     ...AGGREGATION_RUNNERS,
-    AggregationService,
     AggregationTasksService,
     ClientReportGeneratorJobService,
     IpniAdvertisementFetcherJobService,
