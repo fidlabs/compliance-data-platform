@@ -107,7 +107,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
       this.healthy = false;
       this.logger.error(
         `Error during client reports generation job: ${err.message}`,
-        err.cause || err.stack,
+        err.cause?.stack || err.stack,
       );
     }
   }
