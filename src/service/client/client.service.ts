@@ -156,7 +156,7 @@ export class ClientService {
       } catch (err) {
         this.logger.warn(
           `Failed to read public dataset info from bookkeeping info: ${err.message}`,
-          err.cause || err.stack,
+          err.cause?.stack || err.stack,
         );
 
         return null;
@@ -177,7 +177,7 @@ export class ClientService {
       } catch (err) {
         this.logger.warn(
           `Failed to read sps provided info from bookkeeping info: ${err.message}`,
-          err.cause || err.stack,
+          err.cause?.stack || err.stack,
         );
 
         return [];

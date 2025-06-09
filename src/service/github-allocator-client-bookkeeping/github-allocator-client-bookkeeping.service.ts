@@ -101,7 +101,7 @@ export class GitHubAllocatorClientBookkeepingService {
     } catch (err) {
       this.logger.warn(
         `Error fetching applications for ${owner}/${repo}: ${err.message}`,
-        // err.cause || err.stack,
+        // err.cause?.stack || err.stack,
       );
 
       return [];
@@ -123,7 +123,7 @@ export class GitHubAllocatorClientBookkeepingService {
           } catch (err) {
             this.logger.warn(
               `Error while fetching client info for ${owner}/${repo}:${path}: ${err.message}`,
-              // err.cause || err.stack,
+              // err.cause?.stack || err.stack,
             );
           }
         }),
