@@ -22,4 +22,5 @@ from "verified_client"
                    on "verified_client"."addressId" = "verified_client_allowance"."addressId"
                        and "verified_client"."verifierAddressId" = "verified_client_allowance"."verifierAddressId"
 where "verified_client"."verifierAddressId" = $1
+and "verified_client"."addressId" is not null and "verified_client"."addressId" != ''
 group by "verified_client"."id";
