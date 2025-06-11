@@ -3,6 +3,7 @@
 select (count(distinct "check") filter ( where "result" = true))::int  as "checksPassedCount",
        (count(distinct "check") filter ( where "result" = false))::int as "checksFailedCount",
        "allocator"                                                     as "allocatorId",
+       "name"                                                          as "allocatorName",
        coalesce(
                        jsonb_agg(
                        distinct jsonb_build_object(
@@ -15,4 +16,4 @@ select (count(distinct "check") filter ( where "result" = true))::int  as "check
 from "allocator_report_check_result"
          join "allocator_report" on "allocator_report_check_result"."allocator_report_id" = "allocator_report"."id"
 where date_trunc('day', "allocator_report_check_result"."create_date") = $1
-group by "allocatorId";
+group by "allocatorId", "allocatorName";
