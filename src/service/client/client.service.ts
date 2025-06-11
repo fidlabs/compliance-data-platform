@@ -113,7 +113,7 @@ export class ClientService {
 
   public async getClientBookkeepingInfo(
     clientIdOrAddress: string,
-  ): Promise<ClientBookkeepingInfo> {
+  ): Promise<ClientBookkeepingInfo | null> {
     const result =
       await this.prismaService.allocator_client_bookkeeping.findFirst({
         select: {
@@ -131,7 +131,7 @@ export class ClientService {
         },
       });
 
-    if (!result) return;
+    if (!result) return null;
 
     return this._mapClientBookkeeping(
       result.bookkeeping_info as Prisma.JsonObject,
@@ -156,7 +156,7 @@ export class ClientService {
       } catch (err) {
         this.logger.warn(
           `Failed to read public dataset info from bookkeeping info: ${err.message}`,
-          err.cause || err.stack,
+          err.cause?.stack || err.stack,
         );
 
         return null;
@@ -177,7 +177,7 @@ export class ClientService {
       } catch (err) {
         this.logger.warn(
           `Failed to read sps provided info from bookkeeping info: ${err.message}`,
-          err.cause || err.stack,
+          err.cause?.stack || err.stack,
         );
 
         return [];

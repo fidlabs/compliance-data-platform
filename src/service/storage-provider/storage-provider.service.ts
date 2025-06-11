@@ -1,16 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
-  getProviderBiggestClientDistribution,
   getProviderBiggestClientDistributionAcc,
-  getProviderClientsWeekly,
   getProviderClientsWeeklyAcc,
-  getProviderRetrievability,
   getProviderRetrievabilityAcc,
   getProviderCount,
   getProvidersWithIpInfo,
   getWeekAverageProviderRetrievabilityAcc,
-  getWeekAverageProviderRetrievability,
 } from 'prisma/generated/client/sql';
 import {
   StorageProviderComplianceMetrics,
@@ -54,31 +50,21 @@ export class StorageProviderService {
     return await this.prismaService.$queryRawTyped(getProvidersWithIpInfo());
   }
 
-  public async getProviderClientsWeekly(
-    isAccumulative: boolean,
-  ): Promise<HistogramWeekResponse> {
+  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
     return new HistogramWeekResponse(
       await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
-        await this.prismaService.$queryRawTyped(
-          isAccumulative
-            ? getProviderClientsWeeklyAcc()
-            : getProviderClientsWeekly(),
-        ),
+        await this.prismaService.$queryRawTyped(getProviderClientsWeeklyAcc()),
       ),
     );
   }
 
-  public async getProviderBiggestClientDistributionWeekly(
-    isAccumulative: boolean,
-  ): Promise<HistogramWeekResponse> {
+  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
     return new HistogramWeekResponse(
       await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
-          isAccumulative
-            ? getProviderBiggestClientDistributionAcc()
-            : getProviderBiggestClientDistribution(),
+          getProviderBiggestClientDistributionAcc(),
         ),
         100,
       ),
@@ -92,31 +78,25 @@ export class StorageProviderService {
   }
 
   private async _getProviderRetrievability(
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
-      isAccumulative
-        ? getProviderRetrievabilityAcc(openDataOnly, httpRetrievability)
-        : getProviderRetrievability(openDataOnly, httpRetrievability),
+      getProviderRetrievabilityAcc(openDataOnly, httpRetrievability),
     );
   }
 
   public async getProviderRetrievabilityWeekly(
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<RetrievabilityWeekResponse> {
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability(
-        isAccumulative,
         openDataOnly,
         httpRetrievability,
       );
 
     const result = await this._getProviderRetrievability(
-      isAccumulative,
       openDataOnly,
       httpRetrievability,
     );
@@ -134,7 +114,6 @@ export class StorageProviderService {
               histogramWeek,
               (await this.getWeekAverageProviderRetrievability(
                 histogramWeek.week,
-                isAccumulative,
                 openDataOnly,
                 httpRetrievability,
               )) * 100,
@@ -146,33 +125,30 @@ export class StorageProviderService {
   }
 
   public getLastWeekAverageProviderRetrievability(
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<number> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
-      isAccumulative,
       openDataOnly,
       httpRetrievability,
     );
   }
 
   public async getProviderComplianceWeekly(
-    isAccumulative: boolean,
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<StorageProviderComplianceWeekResponse> {
     const weeks = await this.getWeeksTracked();
 
     const lastWeekAverageRetrievability =
-      await this.getLastWeekAverageProviderRetrievability(isAccumulative);
+      await this.getLastWeekAverageProviderRetrievability();
 
     const result: StorageProviderComplianceWeek[] = await Promise.all(
       weeks.map(async (week) => {
         const weekAverageRetrievability =
-          await this.getWeekAverageProviderRetrievability(week, isAccumulative);
+          await this.getWeekAverageProviderRetrievability(week);
 
-        const weekProviders = await this.getWeekProviders(week, isAccumulative);
+        const weekProviders = await this.getWeekProviders(week);
 
         const weekProvidersCompliance = weekProviders.map((provider) =>
           this.calculateProviderComplianceScore(
@@ -193,7 +169,7 @@ export class StorageProviderService {
           ...this.getProviderComplianceWeekCountAndDatacap(
             weekProvidersCompliance,
             weekProvidersIds,
-            await this.getWeekProvidersTotalDatacap(week, isAccumulative),
+            await this.getWeekProvidersTotalDatacap(week),
           ),
         };
       }),
@@ -210,13 +186,8 @@ export class StorageProviderService {
 
   public async getWeekProvidersTotalDatacap(
     week: Date,
-    isAccumulative: boolean,
   ): Promise<{ total_deal_size: bigint; provider: string }[]> {
-    return (
-      (isAccumulative
-        ? this.prismaService.providers_weekly_acc
-        : this.prismaService.providers_weekly) as any
-    ).findMany({
+    return this.prismaService.providers_weekly_acc.findMany({
       where: {
         week: week,
       },
@@ -230,33 +201,26 @@ export class StorageProviderService {
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   private async _getWeekProvidersForClients(
     week: Date,
-    isAccumulative: boolean,
   ): Promise<{ provider: string; client: string }[]> {
-    return await (
-      (isAccumulative
-        ? this.prismaService.client_provider_distribution_weekly_acc
-        : this.prismaService.client_provider_distribution_weekly) as any
-    ).findMany({
-      where: {
-        week: week,
+    return await this.prismaService.client_provider_distribution_weekly_acc.findMany(
+      {
+        where: {
+          week: week,
+        },
+        select: {
+          provider: true,
+          client: true,
+        },
+        distinct: ['provider', 'client'],
       },
-      select: {
-        provider: true,
-        client: true,
-      },
-      distinct: ['provider', 'client'],
-    });
+    );
   }
 
   public async getWeekProvidersForClients(
     week: Date,
-    isAccumulative: boolean,
     clients: string[],
   ): Promise<string[]> {
-    const providers = await this._getWeekProvidersForClients(
-      week,
-      isAccumulative,
-    );
+    const providers = await this._getWeekProvidersForClients(week);
 
     const result = providers
       .filter((p) => clients.includes(p.client))
@@ -266,15 +230,8 @@ export class StorageProviderService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getWeekProviders(
-    week: Date,
-    isAccumulative: boolean,
-  ): Promise<StorageProviderWeekly[]> {
-    return (
-      (isAccumulative
-        ? this.prismaService.providers_weekly_acc
-        : this.prismaService.providers_weekly) as any
-    ).findMany({
+  public async getWeekProviders(week: Date): Promise<StorageProviderWeekly[]> {
+    return this.prismaService.providers_weekly_acc.findMany({
       where: {
         week: week,
       },
@@ -298,23 +255,16 @@ export class StorageProviderService {
   // returns 0 - 1
   public async getWeekAverageProviderRetrievability(
     week: Date,
-    isAccumulative: boolean,
     openDataOnly = true,
     httpRetrievability = true,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
-        isAccumulative
-          ? getWeekAverageProviderRetrievabilityAcc(
-              openDataOnly,
-              httpRetrievability,
-              week,
-            )
-          : getWeekAverageProviderRetrievability(
-              openDataOnly,
-              httpRetrievability,
-              week,
-            ),
+        getWeekAverageProviderRetrievabilityAcc(
+          openDataOnly,
+          httpRetrievability,
+          week,
+        ),
       )
     )[0].average;
   }

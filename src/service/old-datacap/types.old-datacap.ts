@@ -1,9 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class OldDatacapAllocatorBalance {
-  @ApiProperty({
-    description: 'Allocator ID',
-  })
+  @ApiProperty({ description: 'Allocator ID' })
   allocator: string;
 
   @ApiProperty({
@@ -22,6 +20,7 @@ export class OldDatacapAllocatorBalanceWeek {
     type: String,
     format: 'date',
     example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
   })
   week: Date;
 
@@ -79,6 +78,7 @@ export class OldDatacapClientBalanceWeek {
     type: String,
     format: 'date',
     example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
   })
   week: Date;
 

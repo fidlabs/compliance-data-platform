@@ -52,7 +52,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
         this.healthy = false;
         this.logger.error(
           `Error while running IPNI Advertisement Fetcher job: ${err.message}`,
-          err.cause || err.stack,
+          err.cause?.stack || err.stack,
         );
       } finally {
         this.jobInProgress = false;

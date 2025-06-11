@@ -38,10 +38,12 @@ export class StorageProviderComplianceMetricsRequest {
 
 export class GetWeekStorageProvidersWithSpsComplianceRequestData extends StorageProviderComplianceMetricsRequest {
   @ApiPropertyOptional({
-    description: 'Requested week to check compliance for; default is last week',
+    description:
+      'Requested week to check compliance for; ISO format; default is last week',
     format: 'date',
+    example: '2024-04-22T00:00:00.000Z',
   })
-  week?: Date;
+  week?: string;
 }
 
 export class GetStorageProvidersRequest extends PaginationSortingInfo {

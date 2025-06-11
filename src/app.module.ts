@@ -6,16 +6,14 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
-import { AggregationService } from './aggregation/aggregation.service';
 import { AllocatorClientBookkeepingRunner } from './aggregation/runners/allocator-client-bookkeeping.runner';
 import { AllocatorRegistryRunner } from './aggregation/runners/allocator-registry.runner';
 import { AllocatorsWeeklyAccRunner } from './aggregation/runners/allocators-weekly-acc.runner';
-import { AllocatorsWeeklyRunner } from './aggregation/runners/allocators-weekly.runner';
 import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
 import { ClientAllocatorDistributionWeeklyAccRunner } from './aggregation/runners/client-allocator-distribution-weekly-acc.runner';
 import { ClientAllocatorDistributionWeeklyRunner } from './aggregation/runners/client-allocator-distribution-weekly.runner';
 import { ClientClaimsHourlyRunner } from './aggregation/runners/client-claims-hourly.runner';
-import { ClientProviderDistributionAccRunner } from './aggregation/runners/client-provider-distribution-acc.runner';
+import { ClientProviderDistributionWeeklyAccRunner } from './aggregation/runners/client-provider-distribution-weekly-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
 import { IpniReportingDailyRunner } from './aggregation/runners/ipni-reporting-daily.runner';
@@ -32,14 +30,8 @@ import { ProvidersWeeklyRunner } from './aggregation/runners/providers-weekly.ru
 import { UnifiedVerifiedDealHourlyRunner } from './aggregation/runners/unified-verified-deal-hourly.runner';
 import { ClientReportController } from './controller/client-report/client-report.controller';
 import { GoogleApisController } from './controller/proxy/googleapis.controller';
-import {
-  AllocatorsAccStatsController,
-  AllocatorsStatsController,
-} from './controller/stats/allocators/allocators-stats.controller';
-import {
-  StorageProvidersAccStatsController,
-  StorageProvidersStatsController,
-} from './controller/stats/storage-providers/storage-providers-stats.controller';
+import { AllocatorsAccStatsController } from './controller/stats/allocators/allocators-stats.controller';
+import { StorageProvidersAccStatsController } from './controller/stats/storage-providers/storage-providers-stats.controller';
 import { OldDatacapController } from './controller/stats/old-datacap/old-datacap.controller';
 import { StorageProvidersController } from './controller/storage-providers/storage-providers.controller';
 import { PostgresService } from './db/postgres.service';
@@ -83,13 +75,14 @@ import { AllocatorRunner } from './aggregation/runners/allocator.runner';
 import { AllocatorReportChecksService } from './service/allocator-report-checks/allocator-report-checks.service';
 import { AllocatorsController } from './controller/allocators/allocators.controller';
 import { ProviderRunner } from './aggregation/runners/provider.runner';
+import { ReportChecksController } from './controller/report-checks/report-checks.controller';
+import { ClientsController } from './controller/clients/clients.controller';
 
 const AGGREGATION_RUNNERS = [
   AllocatorClientBookkeepingRunner,
   AllocatorRegistryRunner,
   AllocatorRunner,
   ProviderRunner,
-  AllocatorsWeeklyRunner,
   AllocatorsWeeklyAccRunner,
   CidSharingRunner,
   ClientAllocatorDistributionWeeklyRunner,
@@ -97,7 +90,7 @@ const AGGREGATION_RUNNERS = [
   ClientClaimsHourlyRunner,
   ClientProviderDistributionRunner,
   ClientProviderDistributionWeeklyRunner,
-  ClientProviderDistributionAccRunner,
+  ClientProviderDistributionWeeklyAccRunner,
   ClientReplicaDistributionRunner,
   IpniReportingDailyRunner,
   OldDatacapBalanceNv22Runner,
@@ -123,21 +116,20 @@ const AGGREGATION_RUNNERS = [
     PrometheusMetricModule,
   ],
   controllers: [
-    StorageProvidersStatsController,
-    AllocatorsStatsController,
     AllocatorsController,
     StorageProvidersAccStatsController,
     AllocatorsAccStatsController,
     GoogleApisController,
     ClientReportController,
+    ClientsController,
     AllocatorReportController,
     OldDatacapController,
     StorageProvidersController,
+    ReportChecksController,
     AppController,
   ],
   providers: [
     ...AGGREGATION_RUNNERS,
-    AggregationService,
     AggregationTasksService,
     ClientReportGeneratorJobService,
     IpniAdvertisementFetcherJobService,

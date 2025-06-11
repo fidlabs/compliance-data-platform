@@ -6,10 +6,20 @@ export function stringToBool(s?: string): boolean | null {
   return null;
 }
 
+export function stringToDate(isoString?: string): Date | null {
+  if (!isoString) return null;
+  const date = DateTime.fromISO(isoString, { zone: 'utc' });
+  return date.isValid ? date.toJSDate() : null;
+}
+
 export type stringifiedBool = 'true' | 'false';
 
 export function lastWeek(): Date {
   return DateTime.now().toUTC().minus({ week: 1 }).startOf('week').toJSDate();
+}
+
+export function yesterday(): Date {
+  return DateTime.now().toUTC().minus({ day: 1 }).startOf('day').toJSDate();
 }
 
 export function envNotSet(value?: any): boolean {

@@ -105,46 +105,46 @@ export class AllocatorReportChecksService {
           },
         },
       });
-    }
+    } else {
+      const clientsWithNotEnoughCopies = report.clients
+        .filter((client) => {
+          const notEnoughCopiesPercentage = client.replica_distribution
+            .filter(
+              (distribution) =>
+                distribution.num_of_replicas < parseInt(report.required_copies),
+            )
+            .reduce(
+              (totalPercentage, distribution) =>
+                totalPercentage + distribution.percentage,
+              0,
+            );
 
-    const clientsWithNotEnoughCopies = report.clients
-      .filter((client) => {
-        const notEnoughCopiesPercentage = client.replica_distribution
-          .filter(
-            (distribution) =>
-              distribution.num_of_replicas < parseInt(report.required_copies),
-          )
-          .reduce(
-            (totalPercentage, distribution) =>
-              totalPercentage + distribution.percentage,
-            0,
+          return (
+            notEnoughCopiesPercentage >
+            this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES
           );
+        })
+        .map((client) => client.client_id);
 
-        return (
-          notEnoughCopiesPercentage >
-          this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES
-        );
-      })
-      .map((client) => client.client_id);
+      const checkPassed = clientsWithNotEnoughCopies.length <= 0;
 
-    const checkPassed = clientsWithNotEnoughCopies.length <= 0;
-
-    await this.prismaService.allocator_report_check_result.create({
-      data: {
-        allocator_report_id: reportId,
-        check: AllocatorReportCheck.CLIENT_NOT_ENOUGH_COPIES,
-        result: checkPassed,
-        metadata: {
-          violating_ids: clientsWithNotEnoughCopies,
-          max_clients_with_not_enough_copies: 0,
-          max_percentage_for_required_copies:
-            this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
-          msg: checkPassed
-            ? `All clients meet the ${report.required_copies} replicas requirement`
-            : `${this._clients(clientsWithNotEnoughCopies.length)} do not meet the ${report.required_copies} replicas requirement`,
+      await this.prismaService.allocator_report_check_result.create({
+        data: {
+          allocator_report_id: reportId,
+          check: AllocatorReportCheck.CLIENT_NOT_ENOUGH_COPIES,
+          result: checkPassed,
+          metadata: {
+            violating_ids: clientsWithNotEnoughCopies,
+            max_clients_with_not_enough_copies: 0,
+            max_percentage_for_required_copies:
+              this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
+            msg: checkPassed
+              ? `All clients meet the ${report.required_copies} replicas requirement`
+              : `${this._clients(clientsWithNotEnoughCopies.length)} do not meet the ${report.required_copies} replicas requirement`,
+          },
         },
-      },
-    });
+      });
+    }
   }
 
   private _clients(n: number): string {

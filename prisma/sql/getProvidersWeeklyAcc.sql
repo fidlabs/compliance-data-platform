@@ -14,6 +14,6 @@ select "week"                                as "week",
        sum("total_deal_size")::bigint        as "total_deal_size",
        max(coalesce("success_rate", 0))      as "avg_retrievability_success_rate",
        max(coalesce("success_rate_http", 0)) as "avg_retrievability_success_rate_http"
-from "client_provider_distribution_weekly_acc" as "cpdwa"
+from "client_provider_distribution_weekly_acc"
          left join "provider_retrievability_weekly" as "prw" using ("week", "provider")
 group by "week", "provider";

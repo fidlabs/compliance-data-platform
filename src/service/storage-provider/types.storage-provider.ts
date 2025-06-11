@@ -73,6 +73,7 @@ export class StorageProviderComplianceWeek extends IntersectionType(
     type: String,
     format: 'date',
     example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
   })
   week: Date;
 
@@ -144,28 +145,26 @@ export class StorageProviderComplianceWeekResponse {
 }
 
 export class StorageProviderWithIpInfo {
-  @ApiProperty({ type: String, description: 'ID of the storage provider' })
+  @ApiProperty({ description: 'Storage provider ID' })
   provider: string;
 
   @ApiProperty({
-    type: String,
     description: 'Latitude of the storage provider',
   })
   lat: string;
 
   @ApiProperty({
-    type: String,
     description: 'Longitude of the storage provider',
   })
   long: string;
 
-  @ApiProperty({ type: String, description: 'Country of the storage provider' })
+  @ApiProperty({ description: 'Country of the storage provider' })
   country: string;
 
-  @ApiProperty({ type: String, description: 'Region of the storage provider' })
+  @ApiProperty({ description: 'Region of the storage provider' })
   region: string;
 
-  @ApiProperty({ type: String, description: 'City of the storage provider' })
+  @ApiProperty({ description: 'City of the storage provider' })
   city: string;
 }
 

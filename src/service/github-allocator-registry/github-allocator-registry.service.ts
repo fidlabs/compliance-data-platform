@@ -141,7 +141,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       } catch (err) {
         this.logger.warn(
           `Error while fetching registry info for ${path}: ${err.message}`,
-          // err.cause || err.stack,
+          // err.cause?.stack || err.stack,
         );
       }
     }

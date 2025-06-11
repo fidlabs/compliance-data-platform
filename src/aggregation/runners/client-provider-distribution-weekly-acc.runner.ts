@@ -7,9 +7,11 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ClientProviderDistributionAccRunner implements AggregationRunner {
+export class ClientProviderDistributionWeeklyAccRunner
+  implements AggregationRunner
+{
   private readonly logger = new Logger(
-    ClientProviderDistributionAccRunner.name,
+    ClientProviderDistributionWeeklyAccRunner.name,
   );
 
   public async run({
@@ -41,7 +43,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
     while (nextWeek <= now) {
       this.logger.debug(`Processing week ${nextWeek}`);
       const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
-        ClientProviderDistributionAccRunner.name,
+        ClientProviderDistributionWeeklyAccRunner.name,
       );
 
       const result = await prismaDmobService.$queryRawTyped(
@@ -51,7 +53,7 @@ export class ClientProviderDistributionAccRunner implements AggregationRunner {
       getDataEndTimerMetric();
 
       const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(
-        ClientProviderDistributionAccRunner.name,
+        ClientProviderDistributionWeeklyAccRunner.name,
       );
 
       const data = result.map((dmobResult) => ({
