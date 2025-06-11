@@ -53,6 +53,9 @@ export class AllocatorReportChecksDetails extends ReportChecksCount {
   @ApiProperty({ description: 'Allocator ID' })
   allocatorId: string;
 
+  @ApiProperty({ description: 'Allocator name' })
+  allocatorName: string;
+
   @ApiProperty({
     description: 'List of failed report checks',
     type: ReportCheck,
