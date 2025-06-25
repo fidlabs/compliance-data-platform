@@ -10,22 +10,27 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from 'src/db/prisma.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
+import { ControllerBase } from '../base/controller-base';
 import {
   GetClientLatestClaimRequest,
+  GetClientLatestClaimResponse,
   GetClientStorageProvidersResponse,
 } from './types.clients';
-import { ClientLatestClaim } from 'src/service/client/types.client';
 
 @Controller('clients')
-export class ClientsController {
+export class ClientsController extends ControllerBase {
   private readonly logger = new Logger(ClientsController.name);
 
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly prismaService: PrismaService,
     private readonly clientService: ClientService,
-  ) {}
+    private readonly prismaDmobService: PrismaDmobService,
+  ) {
+    super();
+  }
 
   @Get(':client/providers')
   @ApiOperation({
@@ -74,23 +79,74 @@ export class ClientsController {
     };
   }
 
-  @Get('latest-claims/:clientId')
+  @Get(':clientId/latest-claims')
   @ApiOperation({
     summary: 'Get list of latest claims for a given client',
   })
   @ApiOkResponse({
     description: 'List of latest claims for a given client',
-    type: GetClientStorageProvidersResponse,
+    type: GetClientLatestClaimResponse,
   })
   public async getClientLatestClaims(
     @Param('clientId') clientId: string,
     @Query() query: GetClientLatestClaimRequest,
-  ): Promise<{ data: ClientLatestClaim[] }> {
-    const clientClaims = await this.clientService.getClientLatestClaims(
-      clientId,
+  ): Promise<GetClientLatestClaimResponse> {
+    const skip = query.page ? (query.page - 1) * query.limit : 0;
+    const take = query.limit ? Number(query.limit) : 15;
+    const sort = query.sort ?? 'createdAt';
+    const order = query.order ?? 'desc';
+    const clientIdPrefix = clientId.startsWith('f0')
+      ? clientId.slice(2)
+      : clientId;
+
+    let where = {};
+
+    if (query.filter) {
+      where = {
+        providerId: {
+          contains: query.filter.startsWith('f0')
+            ? query.filter.slice(2)
+            : query.filter,
+          mode: 'insensitive',
+        },
+      };
+    }
+
+    const result = await this.prismaDmobService.unified_verified_deal.findMany({
+      select: {
+        id: true,
+        dealId: true,
+        clientId: true,
+        type: true,
+        providerId: true,
+        pieceCid: true,
+        pieceSize: true,
+        createdAt: true,
+      },
+      where: {
+        type: 'claim',
+        clientId: clientIdPrefix,
+        ...where,
+      },
+      orderBy: {
+        [sort]: order,
+      },
+      skip,
+      take,
+    });
+
+    const clientClaims = result.map((claim) => ({
+      ...claim,
+      pieceSize: claim.pieceSize.toString(),
+      isDDO: claim.dealId === 0,
+    }));
+
+    return this.withPaginationInfo(
+      {
+        count: clientClaims.length,
+        data: clientClaims,
+      },
       query,
     );
-
-    return { data: clientClaims };
   }
 }

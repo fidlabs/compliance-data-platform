@@ -5,13 +5,11 @@ import {
   getClientData,
   getClientsByAllocator,
 } from 'prismaDmob/generated/client/sql';
-import { GetClientLatestClaimRequest } from 'src/controller/clients/types.clients';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
 import {
   ClientBookkeepingInfo,
-  ClientLatestClaim,
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
@@ -212,60 +210,6 @@ export class ClientService {
       bookkeepingInfo: this._mapClientBookkeeping(
         row.bookkeeping_info as Prisma.JsonObject,
       ),
-    }));
-  }
-
-  public async getClientLatestClaims(
-    client_id: string,
-    query: GetClientLatestClaimRequest,
-  ): Promise<ClientLatestClaim[]> {
-    const skip = query.page ? (query.page - 1) * query.limit : 0;
-    const take = query.limit ? Number(query.limit) : 15;
-    const sort = query.sort ?? 'createdAt';
-    const order = query.order ?? 'desc';
-    const clientIdPrefix = client_id.startsWith('f0')
-      ? client_id.slice(2)
-      : client_id;
-
-    let where = {};
-
-    if (query.filter) {
-      where = {
-        providerId: {
-          contains: query.filter.startsWith('f0')
-            ? query.filter.slice(2)
-            : query.filter,
-          mode: 'insensitive',
-        },
-      };
-    }
-
-    const result = await this.prismaDmobService.unified_verified_deal.findMany({
-      select: {
-        id: true,
-        dealId: true,
-        clientId: true,
-        type: true,
-        providerId: true,
-        pieceCid: true,
-        pieceSize: true,
-        createdAt: true,
-      },
-      where: {
-        type: 'claim',
-        clientId: clientIdPrefix,
-        ...where,
-      },
-      orderBy: {
-        [sort]: order,
-      },
-      skip,
-      take,
-    });
-
-    return result.map((claim) => ({
-      ...claim,
-      isDDO: claim.dealId === 0,
     }));
   }
 }
