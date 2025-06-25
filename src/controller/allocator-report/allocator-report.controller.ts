@@ -1,10 +1,12 @@
 import {
   Controller,
   Get,
+  HttpStatus,
   Inject,
   Logger,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 import {
@@ -22,7 +24,7 @@ export class AllocatorReportController {
   constructor(
     private readonly allocatorReportService: AllocatorReportService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
   @Get(':allocator')
   @ApiOperation({
@@ -62,7 +64,11 @@ export class AllocatorReportController {
   })
   public async getAllocatorReportById(
     @Param('allocator') allocator: string,
-    @Param('id') id: string,
+    @Param('id',
+      new ParseUUIDPipe({
+        errorHttpStatusCode: HttpStatus.NOT_FOUND,
+      }),
+    ) id: string,
   ) {
     const report = await this.allocatorReportService.getReport(allocator, id);
 
