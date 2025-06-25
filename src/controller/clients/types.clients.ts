@@ -33,7 +33,28 @@ export class GetClientStorageProvidersResponse {
 
 export class GetClientLatestClaimRequest extends PaginationSortingInfo {
   @ApiPropertyOptional({
-    description: 'Filter for: providerId',
+    description: 'Storage provider ID to filter by',
   })
   filter?: string;
+}
+
+export class ClientLatestClaim {
+  id: number;
+  clientId: string;
+  dealId: number;
+  isDDO: boolean;
+  type: string;
+  providerId: string;
+  pieceCid: string;
+  pieceSize: string;
+  createdAt: Date;
+}
+
+export class GetClientLatestClaimResponse {
+  @ApiProperty({
+    description: 'List of latest client claims',
+    type: ClientLatestClaim,
+    isArray: true,
+  })
+  data: ClientLatestClaim[];
 }
