@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Inject,
   Logger,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
 } from '@nestjs/common';
 import { ClientReportService } from 'src/service/client-report/client-report.service';
@@ -26,7 +28,7 @@ export class ClientReportController {
     private readonly clientReportsService: ClientReportService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
-  ) {}
+  ) { }
 
   @Post('/gh-trigger')
   @ApiExcludeEndpoint()
@@ -72,7 +74,13 @@ export class ClientReportController {
   })
   public async getClientReportById(
     @Param('client') client: string,
-    @Param('id') id: bigint,
+    @Param(
+      'id',
+      new ParseIntPipe({
+        errorHttpStatusCode: HttpStatus.NOT_FOUND,
+      }),
+    )
+    id: bigint,
   ) {
     const report = await this.clientReportsService.getReport(client, id);
 
