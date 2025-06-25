@@ -1,3 +1,4 @@
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   Controller,
   Get,
@@ -5,12 +6,16 @@ import {
   Logger,
   NotFoundException,
   Param,
+  Query,
 } from '@nestjs/common';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from 'src/db/prisma.service';
 import { ClientService } from 'src/service/client/client.service';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { GetClientStorageProvidersResponse } from './types.clients';
+import {
+  GetClientLatestClaimRequest,
+  GetClientStorageProvidersResponse,
+} from './types.clients';
+import { ClientLatestClaim } from 'src/service/client/types.client';
 
 @Controller('clients')
 export class ClientsController {
@@ -67,5 +72,25 @@ export class ClientsController {
         ).toFixed(2),
       })),
     };
+  }
+
+  @Get('latest-claims/:clientId')
+  @ApiOperation({
+    summary: 'Get list of latest claims for a given client',
+  })
+  @ApiOkResponse({
+    description: 'List of latest claims for a given client',
+    type: GetClientStorageProvidersResponse,
+  })
+  public async getClientLatestClaims(
+    @Param('clientId') clientId: string,
+    @Query() query: GetClientLatestClaimRequest,
+  ): Promise<{ data: ClientLatestClaim[] }> {
+    const clientClaims = await this.clientService.getClientLatestClaims(
+      clientId,
+      query,
+    );
+
+    return { data: clientClaims };
   }
 }
