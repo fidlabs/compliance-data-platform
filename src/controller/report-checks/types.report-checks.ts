@@ -8,9 +8,21 @@ export class ReportChecksCount {
   checksPassedCount: number;
 
   @ApiProperty({
+    description:
+      'The change of checksPassedCount compared to the previous period',
+  })
+  checksPassedChange: number | null;
+
+  @ApiProperty({
     description: 'Number of unique report checks failed',
   })
   checksFailedCount: number;
+
+  @ApiProperty({
+    description:
+      'The change of checksFailedCount compared to the previous period',
+  })
+  checksFailedChange: number | null;
 }
 
 export class ReportChecksWeek extends ReportChecksCount {
