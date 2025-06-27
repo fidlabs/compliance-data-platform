@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DateTime } from 'luxon';
 import { PrismaService } from 'src/db/prisma.service';
 import { ClientReportCheck } from 'prisma/generated/client';
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
@@ -44,6 +45,7 @@ export class ClientReportChecksService {
 
   public async storeReportChecks(reportId: bigint) {
     await this.storeMultipleAllocators(reportId);
+    await this.storeInactivity(reportId);
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
     await this.storeDealDataSharedWithOtherClientsChecks(reportId);
@@ -68,6 +70,46 @@ export class ClientReportChecksService {
 
   private async storeDealDataSharedWithOtherClientsChecks(reportId: bigint) {
     await this.storeDealDataSharedWithOtherClientsCidSharing(reportId);
+  }
+
+  private async storeInactivity(reportId: bigint) {
+    const { available_datacap, last_datacap_spent, last_datacap_received } =
+      await this.prismaService.client_report.findUnique({
+        select: {
+          available_datacap: true,
+          last_datacap_spent: true,
+          last_datacap_received: true,
+        },
+        where: {
+          id: reportId,
+        },
+      });
+    const inactivityPeriod = DateTime.now().diff(
+      DateTime.fromJSDate(last_datacap_spent),
+      'days',
+    ).days;
+    const timeSinceLastDatacap = DateTime.now().diff(
+      DateTime.fromJSDate(last_datacap_received),
+      'days',
+    ).days;
+
+    const checkPassed =
+      timeSinceLastDatacap < 30 || !available_datacap || inactivityPeriod < 30;
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.INACTIVITY,
+        result: checkPassed,
+        metadata: {
+          inactivity_period_days: inactivityPeriod,
+          available_datacap: available_datacap?.toString() ?? null,
+          time_since_last_datacap_days: timeSinceLastDatacap,
+          msg: checkPassed
+            ? `Client was active in last month or spent all its DataCap`
+            : `Client has unspent DataCap and was inactive for more than a month`,
+        },
+      },
+    });
   }
 
   private async storeProvidersExceedingProviderDeal(reportId: bigint) {

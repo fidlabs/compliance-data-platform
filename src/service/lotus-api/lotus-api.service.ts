@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   LotusStateLookupIdResponse,
   LotusStateMinerInfoResponse,
+  LotusStateVerifiedClientStatusResponse,
 } from './types.lotus-api';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
@@ -98,5 +99,21 @@ export class LotusApiService {
     if (!data?.result) throw new Error(`No data`);
 
     return data;
+  }
+
+  public async getClientDatacap(address: string): Promise<bigint | null> {
+    const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
+    const { data } = await firstValueFrom(
+      this.httpService.post<LotusStateVerifiedClientStatusResponse>(endpoint, {
+        jsonrpc: '2.0',
+        method: 'Filecoin.StateVerifiedClientStatus',
+        params: [address, []],
+        id: 0,
+      }),
+    );
+
+    if (data.error || !data.result) return null;
+
+    return BigInt(data.result);
   }
 }

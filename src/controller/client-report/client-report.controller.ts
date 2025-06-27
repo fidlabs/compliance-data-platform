@@ -28,7 +28,7 @@ export class ClientReportController {
     private readonly clientReportsService: ClientReportService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
-  ) { }
+  ) {}
 
   @Post('/gh-trigger')
   @ApiExcludeEndpoint()
