@@ -34,7 +34,7 @@ export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceW
 export class AllocatorSpsComplianceWeek {
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'ISO format',
   })
