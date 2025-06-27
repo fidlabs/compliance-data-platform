@@ -1,3 +1,4 @@
+import { AllocatorRegistry } from 'src/service/github-allocator-registry/types.github-allocator-registry';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
@@ -38,16 +39,29 @@ export class AllocatorRegistryRunner implements AggregationRunner {
       AllocatorRegistryRunner.name,
     );
 
-    // find duplicates and remove them
-    const uniqueResults = new Map<string, (typeof result)[0]>();
+    // find duplicates and remove them - prioritizing new scheme JSONs
+    const uniqueResults = new Map<string, AllocatorRegistry>();
+
+    const shouldInsert = (allocator: AllocatorRegistry): boolean => {
+      if (!uniqueResults.has(allocator.allocator_id)) {
+        return true;
+      }
+
+      const isOldSchemePath = (path: string) => path.match(/.*\/?\d+\.json$/i);
+
+      const existingPath = uniqueResults.get(allocator.allocator_id).json_path;
+      const newPath = allocator.json_path;
+      return isOldSchemePath(existingPath) && !isOldSchemePath(newPath);
+    };
 
     for (const allocator of result) {
-      if (!uniqueResults.has(allocator.allocator_id)) {
-        uniqueResults.set(allocator.allocator_id, allocator);
-      } else {
+      if (uniqueResults.has(allocator.allocator_id)) {
         this.logger.error(
           `Duplicate allocator found: ${allocator.allocator_id} in ${allocator.json_path} and ${uniqueResults.get(allocator.allocator_id).json_path}, please investigate`,
         );
+      }
+      if (shouldInsert(allocator)) {
+        uniqueResults.set(allocator.allocator_id, allocator);
       }
     }
 
