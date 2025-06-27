@@ -119,16 +119,9 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       });
     }
 
-    const isNumericalString = (str?: string) => {
-      return parseInt(str).toString() === str;
-    };
-
     const paths = response.data
-      // filter only old scheme json files
       .filter(
-        (v) =>
-          v.name.endsWith('.json') &&
-          isNumericalString(v.name.substring(0, v.name.length - 5)),
+        (v) => v.name.endsWith('.json') && v.name != 'Allocator JSON SPEC.json',
       )
       .map((v) => v.path);
 
