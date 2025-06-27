@@ -5,7 +5,7 @@ export class AggregatedProvidersIPNIReportingStatusWeek {
   @ApiProperty({
     description: 'ISO format',
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
   })
   week: Date;
