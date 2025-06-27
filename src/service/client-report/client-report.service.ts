@@ -6,6 +6,7 @@ import { ClientService } from '../client/client.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { AllocatorService } from '../allocator/allocator.service';
 import { EthApiService } from '../eth-api/eth-api.service';
+import { LotusApiService } from '../lotus-api/lotus-api.service';
 
 @Injectable()
 export class ClientReportService {
@@ -16,6 +17,7 @@ export class ClientReportService {
     private readonly clientService: ClientService,
     private readonly allocatorService: AllocatorService,
     private readonly ethApiService: EthApiService,
+    private readonly lotusApiService: LotusApiService,
   ) {}
 
   public async generateReport(clientIdOrAddress: string, returnFull = false) {
@@ -59,6 +61,16 @@ export class ClientReportService {
         )
       : null;
 
+    const availableDatacap = await this.lotusApiService.getClientDatacap(
+      clientData[0].addressId,
+    );
+    const lastDatacapSpent = await this.clientService.getLastDatacapSpent(
+      clientData[0].addressId,
+    );
+    const lastDatacapReceived = await this.clientService.getLastDatacapReceived(
+      clientData[0].addressId,
+    );
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -78,6 +90,9 @@ export class ClientReportService {
         storage_provider_ids_declared:
           bookkeepingInfo?.storageProviderIDsDeclared,
         client_contract_max_deviation: maxDeviation,
+        available_datacap: availableDatacap,
+        last_datacap_spent: lastDatacapSpent,
+        last_datacap_received: lastDatacapReceived,
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {

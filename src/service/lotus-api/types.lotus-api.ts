@@ -1,5 +1,12 @@
 // noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
 
+export interface LotusStateVerifiedClientStatusResponse {
+  jsonrpc: string;
+  result?: string;
+  error?: LotusError;
+  id: number;
+}
+
 export interface LotusStateMinerInfoResponse {
   jsonrpc: string;
   result: LotusStateMinerInfoResult;
