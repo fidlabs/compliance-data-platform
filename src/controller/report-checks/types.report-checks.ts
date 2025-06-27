@@ -28,7 +28,7 @@ export class ReportChecksCount {
 export class ReportChecksWeek extends ReportChecksCount {
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'ISO format',
   })
@@ -38,7 +38,7 @@ export class ReportChecksWeek extends ReportChecksCount {
 export class ReportChecksDay extends ReportChecksCount {
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'ISO format',
   })
@@ -62,7 +62,7 @@ export class ReportCheck {
 
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'Time when the check was first seen; ISO format',
   })
@@ -70,7 +70,7 @@ export class ReportCheck {
 
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description:
       'Time when the check was last seen before requested day; null if not seen before; ISO format',
@@ -101,8 +101,8 @@ export class AllocatorReportChecksDetails extends ReportChecksCount {
 
 export class GetAllocatorReportChecksDailyRequest {
   @ApiPropertyOptional({
-    description: 'Requested week; ISO format; default is last week',
-    format: 'date',
+    description: 'Requested week; default is last week; ISO format',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
   })
   week?: string;
@@ -110,7 +110,7 @@ export class GetAllocatorReportChecksDailyRequest {
 
 export class GetAllocatorReportChecksDailyResponse {
   @ApiProperty({
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'Requested week; ISO format',
   })
@@ -126,8 +126,8 @@ export class GetAllocatorReportChecksDailyResponse {
 
 export class GetAllocatorReportChecksDetailsRequest {
   @ApiPropertyOptional({
-    description: 'Requested day; ISO format; default is yesterday',
-    format: 'date',
+    description: 'Requested day; default is yesterday; ISO format',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
   })
   day?: string;
@@ -135,7 +135,7 @@ export class GetAllocatorReportChecksDetailsRequest {
 
 export class GetAllocatorReportChecksDetailsResponse {
   @ApiProperty({
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'Requested day; ISO format',
   })

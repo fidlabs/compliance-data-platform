@@ -45,8 +45,8 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData extends IntersectionT
 ) {
   @ApiPropertyOptional({
     description:
-      'Requested week to check compliance for; ISO format; default is last week',
-    format: 'date',
+      'Requested week to check compliance for; default is last week; ISO format',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
   })
   week?: string;

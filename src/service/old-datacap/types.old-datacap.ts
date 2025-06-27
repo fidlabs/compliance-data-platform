@@ -18,7 +18,7 @@ export class OldDatacapAllocatorBalance {
 export class OldDatacapAllocatorBalanceWeek {
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'ISO format',
   })
@@ -76,7 +76,7 @@ export class OldDatacapClientBalance {
 export class OldDatacapClientBalanceWeek {
   @ApiProperty({
     type: String,
-    format: 'date',
+    format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'ISO format',
   })
