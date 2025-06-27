@@ -24,6 +24,50 @@ export class ClientService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
+  public async getLastDatacapSpent(clientId: string): Promise<Date | null> {
+    const result =
+      await this.prismaService.unified_verified_deal_hourly.findFirst({
+        select: {
+          hour: true,
+        },
+        where: {
+          OR: [
+            {
+              client: clientId,
+            },
+          ],
+        },
+        orderBy: {
+          hour: 'desc',
+        },
+      });
+
+    return result?.hour;
+  }
+
+  public async getLastDatacapReceived(clientId: string): Promise<Date | null> {
+    const result =
+      await this.prismaDmobService.verified_client_allowance.findFirst({
+        select: {
+          createMessageTimestamp: true,
+        },
+        where: {
+          OR: [
+            {
+              addressId: clientId,
+            },
+          ],
+        },
+        orderBy: {
+          createMessageTimestamp: 'desc',
+        },
+      });
+
+    if (!result || !result.createMessageTimestamp) return null;
+
+    return new Date(result.createMessageTimestamp * 1000);
+  }
+
   public getClientApplicationUrl(clientData?: {
     allowanceArray: {
       auditTrail: string | null;
