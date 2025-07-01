@@ -293,6 +293,7 @@ model allocator_report {
   client_allocations                   allocator_report_client_allocation[]
   storage_provider_distribution        allocator_report_storage_provider_distribution[]
   data_types                           String[]
+  audit                                String[]
   required_copies                      String?
   required_sps                         String?
   check_results                        allocator_report_check_result[]
