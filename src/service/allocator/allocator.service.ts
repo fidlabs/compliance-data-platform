@@ -382,11 +382,15 @@ export class AllocatorService {
     const data_types = (application?.data_types as Prisma.JsonArray)?.map(
       (v) => v as string,
     );
+    const audit = (application?.audit as Prisma.JsonArray)?.map(
+      (v) => v as string,
+    );
 
     // parse it into somewhat coherent type
     return {
       application: {
         data_types,
+        audit,
         required_sps: application.required_sps as string,
         required_replicas: application.required_replicas as string,
       },

@@ -58,6 +58,7 @@ export class AllocatorReportService {
           ) / storageProviderDistribution.length,
         clients_number: verifiedClients.length,
         data_types: allocatorInfo?.application.data_types ?? [],
+        audit: allocatorInfo?.application.audit ?? [],
         required_copies: allocatorInfo?.application.required_replicas,
         required_sps: allocatorInfo?.application.required_sps,
         clients: {
