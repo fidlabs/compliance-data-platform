@@ -6,11 +6,15 @@ export class OldDatacapAllocatorBalance {
 
   @ApiProperty({
     description: 'Old datacap owned by the allocator',
+    type: String,
+    format: 'int64',
   })
   oldDatacap: bigint;
 
   @ApiProperty({
     description: 'Old datacap allocated by the allocator',
+    type: String,
+    format: 'int64',
   })
   allocations: bigint;
 }
@@ -26,11 +30,15 @@ export class OldDatacapAllocatorBalanceWeek {
 
   @ApiProperty({
     description: 'Old datacap owned by allocators that week',
+    type: String,
+    format: 'int64',
   })
   oldDatacap: bigint;
 
   @ApiProperty({
     description: 'Old datacap allocated to clients that week',
+    type: String,
+    format: 'int64',
   })
   allocations: bigint;
 
@@ -64,11 +72,15 @@ export class OldDatacapClientBalance {
 
   @ApiProperty({
     description: 'Old datacap owned by the client',
+    type: String,
+    format: 'int64',
   })
   oldDatacap: bigint;
 
   @ApiProperty({
     description: 'Old datacap spent by the client',
+    type: String,
+    format: 'int64',
   })
   claims: bigint;
 }
@@ -84,11 +96,15 @@ export class OldDatacapClientBalanceWeek {
 
   @ApiProperty({
     description: 'Old datacap owned by clients that week',
+    type: String,
+    format: 'int64',
   })
   oldDatacap: bigint;
 
   @ApiProperty({
     description: 'Old datacap spent by clients that week',
+    type: String,
+    format: 'int64',
   })
   claims: bigint;
 

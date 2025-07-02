@@ -19,6 +19,8 @@ export class Histogram {
   @ApiProperty({
     description:
       'Total datacap of allocators / storage providers in the bucket',
+    type: String,
+    format: 'int64',
   })
   totalDatacap: bigint;
 
