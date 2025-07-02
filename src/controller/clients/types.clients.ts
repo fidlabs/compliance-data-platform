@@ -8,6 +8,7 @@ export class ClientStorageProvidersStats {
   @ApiProperty({
     description: 'Total deal size with the provider in bytes',
     type: String,
+    format: 'int64',
   })
   total_deal_size: bigint;
 
@@ -20,6 +21,7 @@ export class ClientStorageProvidersStats {
 export class GetClientStorageProvidersResponse {
   @ApiProperty({
     description: 'Client name',
+    nullable: true,
   })
   name: string | null;
 

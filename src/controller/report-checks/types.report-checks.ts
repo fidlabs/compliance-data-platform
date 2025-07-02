@@ -10,6 +10,7 @@ export class ReportChecksCount {
   @ApiProperty({
     description:
       'The change of checksPassedCount compared to the previous period',
+    nullable: true,
   })
   checksPassedChange: number | null;
 
@@ -21,6 +22,7 @@ export class ReportChecksCount {
   @ApiProperty({
     description:
       'The change of checksFailedCount compared to the previous period',
+    nullable: true,
   })
   checksFailedChange: number | null;
 }
@@ -73,15 +75,21 @@ export class ReportCheck {
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description:
-      'Time when the check was last seen before requested day; null if not seen before; ISO format',
+      'Time when the check was last seen before requested day; ISO format',
   })
-  lastSeen: Date | null;
+  lastSeen: Date;
 
   @ApiProperty({
     description:
-      'Whether the check is new since a week ago (i.e. not seen in last week)',
+      'Whether the check is new since a week ago (i.e. not seen in the last week)',
   })
-  isNew: boolean;
+  isNewWeekly: boolean;
+
+  @ApiProperty({
+    description:
+      'Whether the check is new since a day ago (i.e. not seen in the last day)',
+  })
+  isNewDaily: boolean;
 }
 
 export class AllocatorReportChecksDetails extends ReportChecksCount {

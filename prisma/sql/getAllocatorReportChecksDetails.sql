@@ -12,7 +12,8 @@ with "today" as (select "allocator"                                             
                                                 'checkMsg', "metadata"::jsonb -> 'msg',
                                                 'firstSeen', "check_history"."firstSeen",
                                                 'lastSeen', "check_history"."lastSeen",
-                                                'isNew', "check_history"."isNew"
+                                                'isNewWeekly', "check_history"."isNewWeekly",
+                                                'isNewDaily', "check_history"."isNewDaily"
                                                  )
                                                  ) filter (where "result" = false),
                                         '[]'::jsonb
@@ -21,14 +22,15 @@ with "today" as (select "allocator"                                             
                  from "allocator_report_check_result"
                           join "allocator_report" "ar_main" on "allocator_report_check_result"."allocator_report_id" = "ar_main"."id"
 --
-                          left join lateral ( select date_trunc('day', coalesce(min("ar"."create_date"), $1::timestamp))         as "firstSeen",
-                                                     date_trunc('day', max("ar"."create_date"))                                  as "lastSeen",
-                                                     coalesce(max("ar"."create_date") < $1::timestamp - interval '7 days', true) as "isNew"
+                          left join lateral ( select min("ar"."create_date")                                                     as "firstSeen",
+                                                     max("ar"."create_date")                                                     as "lastSeen",
+                                                     coalesce(max("ar"."create_date") < $1::timestamp - interval '7 days', true) as "isNewWeekly",
+                                                     coalesce(max("ar"."create_date") < $1::timestamp - interval '1 day', true)  as "isNewDaily"
                                               from "allocator_report_check_result" "arc"
                                                        join "allocator_report" "ar" on "arc"."allocator_report_id" = "ar"."id"
                                               where "arc"."check" = "allocator_report_check_result"."check"
                                                 and "ar"."allocator" = "ar_main"."allocator"
-                                                and date_trunc('day', "ar"."create_date") < date_trunc('day', $1::timestamp)
+                                                and date_trunc('day', "ar"."create_date") <= date_trunc('day', $1::timestamp)
                      ) as "check_history" on true
 --
                  where date_trunc('day', "allocator_report_check_result"."create_date") = date_trunc('day', $1::timestamp)
