@@ -6,7 +6,7 @@ export class ControllerBase {
   public withPaginationInfo<T>(
     data: T,
     paginationInfo?: PaginationInfo,
-    allDataLength?: number, // length of the data before pagination
+    total?: number, // length of the data before pagination
   ): {
     pagination?: {
       limit: number;
@@ -22,10 +22,11 @@ export class ControllerBase {
         limit: paginationInfo.limit,
         page: paginationInfo.page,
         pages:
-          allDataLength === undefined
+          total === undefined
             ? undefined
-            : Math.ceil(allDataLength / paginationInfo.limit),
+            : Math.ceil(total / paginationInfo.limit),
       },
+      total,
       ...data,
     };
   }

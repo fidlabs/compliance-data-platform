@@ -112,30 +112,42 @@ export class ClientsController extends ControllerBase {
       };
     }
 
-    const result = await this.prismaDmobService.unified_verified_deal.findMany({
-      select: {
-        id: true,
-        dealId: true,
-        clientId: true,
-        type: true,
-        providerId: true,
-        pieceCid: true,
-        pieceSize: true,
-        createdAt: true,
-      },
-      where: {
-        type: 'claim',
-        clientId: clientIdPrefix,
-        ...where,
-      },
-      orderBy: {
-        [sort]: order,
-      },
-      skip,
-      take,
-    });
+    const [unifiedVerifiedDeal, total] = await Promise.all([
+      this.prismaDmobService.unified_verified_deal.findMany({
+        select: {
+          id: true,
+          dealId: true,
+          clientId: true,
+          type: true,
+          providerId: true,
+          pieceCid: true,
+          pieceSize: true,
+          createdAt: true,
+        },
+        where: {
+          clientId: clientIdPrefix,
+          ...where,
+        },
+        orderBy: [
+          {
+            [sort]: order,
+          },
+          {
+            id: order, // a secondary sort for the same e.g. createdAt
+          },
+        ],
+        skip,
+        take,
+      }),
+      this.prismaDmobService.unified_verified_deal.count({
+        where: {
+          clientId: clientIdPrefix,
+          ...where,
+        },
+      }),
+    ]);
 
-    const clientClaims = result.map((claim) => ({
+    const clientClaims = unifiedVerifiedDeal.map((claim) => ({
       ...claim,
       pieceSize: claim.pieceSize.toString(),
       isDDO: claim.dealId === 0,
@@ -147,6 +159,7 @@ export class ClientsController extends ControllerBase {
         data: clientClaims,
       },
       query,
+      total,
     );
   }
 }
