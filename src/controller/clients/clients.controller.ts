@@ -12,6 +12,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
+import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
 import {
   GetClientLatestClaimRequest,
@@ -79,6 +80,7 @@ export class ClientsController extends ControllerBase {
     };
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 60 * 2 }) // 2 hours
   @Get(':clientId/latest-claims')
   @ApiOperation({
     summary: 'Get list of latest claims for a given client',
@@ -100,19 +102,29 @@ export class ClientsController extends ControllerBase {
       : clientId;
 
     let where = {};
+    let whereHourly = {};
 
     if (query.filter) {
+      const providerIdPrefix = query.filter.startsWith('f0')
+        ? query.filter.slice(2)
+        : query.filter;
+
       where = {
         providerId: {
-          contains: query.filter.startsWith('f0')
-            ? query.filter.slice(2)
-            : query.filter,
+          contains: providerIdPrefix,
+          mode: 'insensitive',
+        },
+      };
+
+      whereHourly = {
+        provider: {
+          contains: providerIdPrefix,
           mode: 'insensitive',
         },
       };
     }
 
-    const [unifiedVerifiedDeal, total] = await Promise.all([
+    const [unifiedVerifiedDeal, unifiedVerifiedDealHourly] = await Promise.all([
       this.prismaDmobService.unified_verified_deal.findMany({
         select: {
           id: true,
@@ -139,10 +151,10 @@ export class ClientsController extends ControllerBase {
         skip,
         take,
       }),
-      this.prismaDmobService.unified_verified_deal.count({
+      this.prismaService.unified_verified_deal_hourly.findMany({
         where: {
-          clientId: clientIdPrefix,
-          ...where,
+          client: clientIdPrefix,
+          ...whereHourly,
         },
       }),
     ]);
@@ -159,7 +171,10 @@ export class ClientsController extends ControllerBase {
         data: clientClaims,
       },
       query,
-      total,
+      unifiedVerifiedDealHourly.reduce(
+        (acc, curr) => acc + curr.num_of_claims,
+        0,
+      ) ?? 0,
     );
   }
 }

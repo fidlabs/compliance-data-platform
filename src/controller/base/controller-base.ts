@@ -1,5 +1,5 @@
-import { Prisma } from 'prismaDmob/generated/client';
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from 'prismaDmob/generated/client';
 import { PaginationInfo, SortingInfo } from './types.controller-base';
 
 export class ControllerBase {
@@ -12,6 +12,7 @@ export class ControllerBase {
       limit: number;
       page: number;
       pages?: number;
+      total?: number;
     };
   } & T {
     paginationInfo = this.validatePaginationInfo(paginationInfo);
@@ -25,8 +26,8 @@ export class ControllerBase {
           total === undefined
             ? undefined
             : Math.ceil(total / paginationInfo.limit),
+        total,
       },
-      total,
       ...data,
     };
   }
