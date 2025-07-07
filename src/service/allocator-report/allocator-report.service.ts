@@ -6,6 +6,7 @@ import { AllocatorService } from '../allocator/allocator.service';
 import { ClientWithAllowance } from '../client/types.client';
 import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
 import { EthApiService } from '../eth-api/eth-api.service';
+import { Retryable } from 'src/utils/retryable';
 
 @Injectable()
 export class AllocatorReportService {
@@ -189,6 +190,7 @@ export class AllocatorReportService {
     return this.getReport(allocatorIdOrAddress);
   }
 
+  @Retryable({ retries: 3, delay: 5000 }) // 5 seconds
   public async getReport(allocatorIdOrAddress: string, id?: string) {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
