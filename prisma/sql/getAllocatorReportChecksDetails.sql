@@ -1,47 +1,48 @@
 -- @param {DateTime} $1:day
 
-with "today" as (select "allocator"                                                     as "allocatorId",
-                        "name"                                                          as "allocatorName",
-                        (count(distinct "check") filter ( where "result" = true))::int  as "checksPassedCount",
-                        (count(distinct "check") filter ( where "result" = false))::int as "checksFailedCount",
+with "today" as (select "report"."allocator"                                                                          as "allocatorId",
+                        "report"."name"                                                                               as "allocatorName",
+                        (count(distinct "check_result"."check") filter ( where "check_result"."result" = true))::int  as "checksPassedCount",
+                        (count(distinct "check_result"."check") filter ( where "check_result"."result" = false))::int as "checksFailedCount",
                         coalesce(
                                         jsonb_agg(
                                         distinct jsonb_build_object(
-                                                'reportId', "allocator_report_id",
-                                                'check', "check",
-                                                'checkMsg', "metadata"::jsonb -> 'msg',
-                                                'firstSeen', "check_history"."firstSeen",
+                                                'reportId', "check_result"."allocator_report_id",
+                                                'reportCreateDate', "report"."create_date",
+                                                'check', "check_result"."check",
+                                                'checkMsg', "check_result"."metadata"::jsonb -> 'msg',
+                                                'firstSeen', coalesce("check_history"."firstSeen", "report"."create_date"),
                                                 'lastSeen', "check_history"."lastSeen",
-                                                'isNewWeekly', "check_history"."isNewWeekly",
-                                                'isNewDaily', "check_history"."isNewDaily"
+                                                'lastPassed', "check_history"."lastPassed",
+                                                'isNewWeekly', coalesce("check_history"."lastSeen" < "report"."create_date" - interval '7 days', true),
+                                                'isNewDaily', coalesce("check_history"."lastSeen" < "report"."create_date" - interval '36 hours', true)
                                                  )
-                                                 ) filter (where "result" = false),
+                                                 ) filter (where "check_result"."result" = false),
                                         '[]'::jsonb
-                        )                                                               as "failedChecks"
+                        )                                                                                             as "failedChecks"
 --
-                 from "allocator_report_check_result"
-                          join "allocator_report" "ar_main" on "allocator_report_check_result"."allocator_report_id" = "ar_main"."id"
+                 from "allocator_report_check_result" "check_result"
+                          join "allocator_report" "report" on "check_result"."allocator_report_id" = "report"."id"
 --
-                          left join lateral ( select min("ar"."create_date")                                                     as "firstSeen",
-                                                     max("ar"."create_date")                                                     as "lastSeen",
-                                                     coalesce(max("ar"."create_date") < $1::timestamp - interval '7 days', true) as "isNewWeekly",
-                                                     coalesce(max("ar"."create_date") < $1::timestamp - interval '1 day', true)  as "isNewDaily"
-                                              from "allocator_report_check_result" "arc"
-                                                       join "allocator_report" "ar" on "arc"."allocator_report_id" = "ar"."id"
-                                              where "arc"."check" = "allocator_report_check_result"."check"
-                                                and "ar"."allocator" = "ar_main"."allocator"
-                                                and date_trunc('day', "ar"."create_date") <= date_trunc('day', $1::timestamp)
+                          left join lateral ( select min("report_history"."create_date") filter ( where "check_result_history"."result" = false ) as "firstSeen",
+                                                     max("report_history"."create_date") filter ( where "check_result_history"."result" = false ) as "lastSeen",
+                                                     max("report_history"."create_date") filter ( where "check_result_history"."result" = true )  as "lastPassed"
+                                              from "allocator_report_check_result" "check_result_history"
+                                                       join "allocator_report" "report_history" on "check_result_history"."allocator_report_id" = "report_history"."id"
+                                              where "check_result_history"."check" = "check_result"."check"
+                                                and "report_history"."allocator" = "report"."allocator"
+                                                and date_trunc('day', "report_history"."create_date") < date_trunc('day', $1::timestamp)
                      ) as "check_history" on true
 --
-                 where date_trunc('day', "allocator_report_check_result"."create_date") = date_trunc('day', $1::timestamp)
-                 group by "ar_main"."allocator", "ar_main"."name"),
+                 where date_trunc('day', "check_result"."create_date") = date_trunc('day', $1::timestamp)
+                 group by "report"."allocator", "report"."name"),
 --
-     "yesterday" as (select "allocator"                                                     as "allocatorId",
-                            (count(distinct "check") filter ( where "result" = true))::int  as "checksPassedCount",
-                            (count(distinct "check") filter ( where "result" = false))::int as "checksFailedCount"
-                     from "allocator_report_check_result"
-                              join "allocator_report" on "allocator_report_check_result"."allocator_report_id" = "allocator_report"."id"
-                     where date_trunc('day', "allocator_report_check_result"."create_date") = date_trunc('day', $1::timestamp) - interval '1 day'
+     "yesterday" as (select "report"."allocator"                                                                          as "allocatorId",
+                            (count(distinct "check_result"."check") filter ( where "check_result"."result" = true))::int  as "checksPassedCount",
+                            (count(distinct "check_result"."check") filter ( where "check_result"."result" = false))::int as "checksFailedCount"
+                     from "allocator_report_check_result" "check_result"
+                              join "allocator_report" "report" on "check_result"."allocator_report_id" = "report"."id"
+                     where date_trunc('day', "check_result"."create_date") = date_trunc('day', $1::timestamp) - interval '1 day'
                      group by "allocatorId")
 --
 select "today".*,

@@ -7,6 +7,7 @@ import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { AllocatorService } from '../allocator/allocator.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
+import { Retryable } from 'src/utils/retryable';
 
 @Injectable()
 export class ClientReportService {
@@ -154,6 +155,7 @@ export class ClientReportService {
     return this.getReport(clientIdOrAddress, undefined, full);
   }
 
+  @Retryable({ retries: 3, delay: 5000 }) // 5 seconds
   public async getReport(clientIdOrAddress: string, id?: any, full = false) {
     return this.prismaService.client_report.findFirst({
       where: {

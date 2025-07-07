@@ -4,8 +4,11 @@ import { Mutex } from 'async-mutex';
 
 const functionCallMutexes = new Map();
 
-// wraps the manual usage of cache-manager
-// generates globally unique cache key based on class name, method name and arguments
+// wraps the manual usage of @nestjs/cache-manager
+// generates globally unique cache key based on class name, function name and arguments
+// should not be used for API endpoint functions since cache there is managed by NestJS automatically
+// requires cache manager to be injected into the class
+// requires function to return a Promise
 export function Cacheable(options?: { key?: string; ttl?: number }) {
   const log = false;
 
@@ -60,7 +63,7 @@ export function Cacheable(options?: { key?: string; ttl?: number }) {
 
         const result = originalMethod.apply(this, args);
 
-        // because nest js cache managed is async
+        // because NestJS cache manager is async
         if (!(result instanceof Promise))
           throw new Error('@Cacheable() method must return a Promise');
 

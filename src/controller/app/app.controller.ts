@@ -109,11 +109,11 @@ export class AppController extends HealthIndicator {
       () => this._httpPingCheck('stats.filspark.com', 'https://stats.filspark.com'),
       () => this.typeOrmHealthIndicator.pingCheck('database', {
         connection: this.postgresService.pool,
-        timeout: 2000,
+        timeout: 5000,
       }),
       () => this.typeOrmHealthIndicator.pingCheck('database-dmob', {
         connection: this.postgresDmobService.pool,
-        timeout: 2000,
+        timeout: 5000,
       }),
       () => this.aggregationTasksService.getHealth(),
       () => this.clientReportGeneratorJobService.getHealth(),

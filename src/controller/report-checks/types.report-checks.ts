@@ -47,14 +47,22 @@ export class ReportChecksDay extends ReportChecksCount {
   day: Date;
 }
 
-export class ReportCheck {
+export class ReportFailedCheck {
   @ApiProperty({ description: 'Check message' })
   checkMsg: string;
 
   @ApiProperty({
-    description: 'Report ID where the check was generated',
+    description: 'Report ID where the failed check was generated',
   })
   reportId: string;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'Time when the report was generated; ISO format',
+  })
+  reportCreateDate: Date;
 
   @ApiProperty({
     description: 'Check type',
@@ -66,7 +74,7 @@ export class ReportCheck {
     type: String,
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
-    description: 'Time when the check was first seen; ISO format',
+    description: 'Time when the check was first seen failed; ISO format',
   })
   firstSeen: Date;
 
@@ -74,10 +82,21 @@ export class ReportCheck {
     type: String,
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
+    nullable: true,
     description:
-      'Time when the check was last seen before requested day; ISO format',
+      'Time when the check was last seen failed before requested day; null if not seen failed before; ISO format',
   })
-  lastSeen: Date;
+  lastSeen: Date | null;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    nullable: true,
+    description:
+      'Time when the check was last seen passed before requested day; null if not seen passed before; ISO format',
+  })
+  lastPassed: Date | null;
 
   @ApiProperty({
     description:
@@ -101,10 +120,10 @@ export class AllocatorReportChecksDetails extends ReportChecksCount {
 
   @ApiProperty({
     description: 'List of failed report checks',
-    type: ReportCheck,
+    type: ReportFailedCheck,
     isArray: true,
   })
-  failedChecks: ReportCheck[];
+  failedChecks: ReportFailedCheck[];
 }
 
 export class GetAllocatorReportChecksDailyRequest {
