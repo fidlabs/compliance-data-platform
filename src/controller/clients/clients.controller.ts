@@ -12,7 +12,6 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
-import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
 import {
   GetClientLatestClaimRequest,
@@ -80,7 +79,6 @@ export class ClientsController extends ControllerBase {
     };
   }
 
-  @Cacheable({ ttl: 1000 * 60 * 60 * 2 }) // 2 hours
   @Get(':clientId/latest-claims')
   @ApiOperation({
     summary: 'Get list of latest claims for a given client',
