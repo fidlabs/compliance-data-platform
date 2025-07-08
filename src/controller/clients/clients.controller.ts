@@ -151,7 +151,7 @@ export class ClientsController extends ControllerBase {
       }),
       this.prismaService.unified_verified_deal_hourly.findMany({
         where: {
-          client: clientIdPrefix,
+          client: clientId,
           ...whereHourly,
         },
       }),
