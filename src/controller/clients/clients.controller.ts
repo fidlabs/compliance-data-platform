@@ -100,42 +100,64 @@ export class ClientsController extends ControllerBase {
       : clientId;
 
     let where = {};
+    let whereHourly = {};
 
     if (query.filter) {
+      const providerIdPrefix = query.filter.startsWith('f0')
+        ? query.filter.slice(2)
+        : query.filter;
+
       where = {
         providerId: {
-          contains: query.filter.startsWith('f0')
-            ? query.filter.slice(2)
-            : query.filter,
+          contains: providerIdPrefix,
+          mode: 'insensitive',
+        },
+      };
+
+      whereHourly = {
+        provider: {
+          contains: providerIdPrefix,
           mode: 'insensitive',
         },
       };
     }
 
-    const result = await this.prismaDmobService.unified_verified_deal.findMany({
-      select: {
-        id: true,
-        dealId: true,
-        clientId: true,
-        type: true,
-        providerId: true,
-        pieceCid: true,
-        pieceSize: true,
-        createdAt: true,
-      },
-      where: {
-        type: 'claim',
-        clientId: clientIdPrefix,
-        ...where,
-      },
-      orderBy: {
-        [sort]: order,
-      },
-      skip,
-      take,
-    });
+    const [unifiedVerifiedDeal, unifiedVerifiedDealHourly] = await Promise.all([
+      this.prismaDmobService.unified_verified_deal.findMany({
+        select: {
+          id: true,
+          dealId: true,
+          clientId: true,
+          type: true,
+          providerId: true,
+          pieceCid: true,
+          pieceSize: true,
+          createdAt: true,
+        },
+        where: {
+          clientId: clientIdPrefix,
+          ...where,
+        },
+        orderBy: [
+          {
+            [sort]: order,
+          },
+          {
+            id: order, // a secondary sort for the same e.g. createdAt
+          },
+        ],
+        skip,
+        take,
+      }),
+      this.prismaService.unified_verified_deal_hourly.findMany({
+        where: {
+          client: clientIdPrefix,
+          ...whereHourly,
+        },
+      }),
+    ]);
 
-    const clientClaims = result.map((claim) => ({
+    const clientClaims = unifiedVerifiedDeal.map((claim) => ({
       ...claim,
       pieceSize: claim.pieceSize.toString(),
       isDDO: claim.dealId === 0,
@@ -147,6 +169,10 @@ export class ClientsController extends ControllerBase {
         data: clientClaims,
       },
       query,
+      unifiedVerifiedDealHourly.reduce(
+        (acc, curr) => acc + curr.num_of_claims,
+        0,
+      ) ?? 0,
     );
   }
 }
