@@ -67,7 +67,7 @@ export class ReportChecksController {
   public async getAllocatorReportChecksDetails(
     @Query() query: GetAllocatorReportChecksDetailsRequest,
   ): Promise<GetAllocatorReportChecksDetailsResponse> {
-    query.day ??= yesterday().toISOString();
+    query.day ??= yesterday().toJSDate().toISOString();
 
     return {
       day: query.day,

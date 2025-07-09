@@ -18,6 +18,9 @@ import { LotusApiService } from '../service/lotus-api/lotus-api.service';
 import { GitHubAllocatorRegistryService } from '../service/github-allocator-registry/github-allocator-registry.service';
 import { GitHubAllocatorClientBookkeepingService } from '../service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
 import { AggregationTable } from './aggregation-table';
+import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
+import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
+import { sleep } from 'src/utils/utils';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -42,6 +45,8 @@ export class AggregationTasksService extends HealthIndicator {
     private readonly lotusApiService: LotusApiService,
     private readonly allocatorRegistryService: GitHubAllocatorRegistryService,
     private readonly allocatorClientBookkeepingService: GitHubAllocatorClientBookkeepingService,
+    private readonly storageProviderService: StorageProviderService,
+    private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
   ) {
     super();
   }
@@ -136,6 +141,9 @@ export class AggregationTasksService extends HealthIndicator {
                   lotusApiService: this.lotusApiService,
                   allocatorRegistryService: this.allocatorRegistryService,
                   allocatorClientBookkeepingService: this.allocatorClientBookkeepingService,
+                  storageProviderService: this.storageProviderService,
+                  storageProviderUrlFinderService: this.storageProviderUrlFinderService,
+
                 }),
               aggregationRunnerName,
             );
@@ -194,8 +202,7 @@ export class AggregationTasksService extends HealthIndicator {
           `Error during aggregation job: ${aggregationRunnerName}, execution ${executionNumber}/${maxTries}: ${err.message || err.code || err}`,
         );
 
-        if (executionNumber != maxTries)
-          await new Promise((resolve) => setTimeout(resolve, 90000));
+        if (executionNumber != maxTries) await sleep(90000); // 90 seconds
       }
     }
 

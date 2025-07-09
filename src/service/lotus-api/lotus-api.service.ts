@@ -70,13 +70,13 @@ export class LotusApiService {
 
   @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   public async getMinerInfo(
-    providerId: string,
+    storageProviderId: string,
   ): Promise<LotusStateMinerInfoResponse> {
     try {
-      return await this._getMinerInfo(providerId);
+      return await this._getMinerInfo(storageProviderId);
     } catch (err) {
       throw new Error(
-        `Error fetching miner info for ${providerId}: ${err.message}`,
+        `Error fetching miner info for ${storageProviderId}: ${err.message}`,
         { cause: err },
       );
     }
@@ -84,7 +84,7 @@ export class LotusApiService {
 
   @Retryable({ retries: 3, delay: 5000 }) // 5 seconds
   private async _getMinerInfo(
-    providerId: string,
+    storageProviderId: string,
   ): Promise<LotusStateMinerInfoResponse> {
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
@@ -92,7 +92,7 @@ export class LotusApiService {
         jsonrpc: '2.0',
         id: 1,
         method: 'Filecoin.StateMinerInfo',
-        params: [providerId, null],
+        params: [storageProviderId, null],
       }),
     );
 

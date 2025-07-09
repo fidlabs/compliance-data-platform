@@ -13,11 +13,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   async getMetrics() {
-    const metrics = await this.$metrics.prometheus({
+    return await this.$metrics.prometheus({
       globalLabels: {
         env: this.configService.get<string>('PROMETHEUS_METRICS_ENV'),
       },
     });
-    return metrics;
   }
 }

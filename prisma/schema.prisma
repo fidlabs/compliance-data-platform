@@ -140,6 +140,14 @@ model provider_retrievability_daily {
   @@id([date, provider])
 }
 
+model provider_url_finder_retrievability_daily {
+  date         DateTime @default(now())
+  provider     String
+  success_rate Float?
+
+  @@id([date, provider])
+}
+
 model client_allocator_distribution_weekly_acc {
   week               DateTime
   client             String
@@ -214,19 +222,20 @@ enum StorageProviderIpniReportingStatus {
 }
 
 model client_report_storage_provider_distribution {
-  id                               BigInt                                                @id @default(autoincrement())
-  client_report                    client_report                                         @relation(fields: [client_report_id], references: [id])
-  client_report_id                 BigInt
-  provider                         String
-  total_deal_size                  BigInt
-  unique_data_size                 BigInt
-  location                         client_report_storage_provider_distribution_location?
-  retrievability_success_rate      Float?
-  retrievability_success_rate_http Float?
-  ipni_reporting_status            StorageProviderIpniReportingStatus?
-  ipni_reported_claims_count       BigInt?
-  claims_count                     BigInt?
-  declared_in_application_file     Boolean?
+  id                                     BigInt                                                @id @default(autoincrement())
+  client_report                          client_report                                         @relation(fields: [client_report_id], references: [id])
+  client_report_id                       BigInt
+  provider                               String
+  total_deal_size                        BigInt
+  unique_data_size                       BigInt
+  location                               client_report_storage_provider_distribution_location?
+  retrievability_success_rate            Float?
+  retrievability_success_rate_http       Float?
+  ipni_reporting_status                  StorageProviderIpniReportingStatus?
+  ipni_reported_claims_count             BigInt?
+  claims_count                           BigInt?
+  declared_in_application_file           Boolean?
+  retrievability_success_rate_url_finder Float?
 }
 
 model client_report_storage_provider_distribution_location {
@@ -283,23 +292,24 @@ model client_report_check_result {
 }
 
 model allocator_report {
-  id                                   String                                           @id @default(uuid()) @db.Uuid
-  create_date                          DateTime                                         @default(now())
-  allocator                            String
-  name                                 String?
-  address                              String
-  clients_number                       Int
-  multisig                             Boolean
-  avg_retrievability_success_rate      Float?
-  avg_retrievability_success_rate_http Float?
-  clients                              allocator_report_client[]
-  client_allocations                   allocator_report_client_allocation[]
-  storage_provider_distribution        allocator_report_storage_provider_distribution[]
-  data_types                           String[]
-  audit                                String[]
-  required_copies                      String?
-  required_sps                         String?
-  check_results                        allocator_report_check_result[]
+  id                                         String                                           @id @default(uuid()) @db.Uuid
+  create_date                                DateTime                                         @default(now())
+  allocator                                  String
+  name                                       String?
+  address                                    String
+  clients_number                             Int
+  multisig                                   Boolean
+  avg_retrievability_success_rate            Float?
+  avg_retrievability_success_rate_http       Float?
+  avg_retrievability_success_rate_url_finder Float?
+  clients                                    allocator_report_client[]
+  client_allocations                         allocator_report_client_allocation[]
+  storage_provider_distribution              allocator_report_storage_provider_distribution[]
+  data_types                                 String[]
+  audit                                      String[]
+  required_copies                            String?
+  required_sps                               String?
+  check_results                              allocator_report_check_result[]
 }
 
 model allocator_report_client {
@@ -338,19 +348,20 @@ model allocator_report_client_allocation {
 }
 
 model allocator_report_storage_provider_distribution {
-  id                               String                                                   @id @default(uuid()) @db.Uuid
-  allocator_report                 allocator_report                                         @relation(fields: [allocator_report_id], references: [id])
-  allocator_report_id              String                                                   @db.Uuid
-  provider                         String
-  total_deal_size                  BigInt
-  unique_data_size                 BigInt
-  perc_of_total_datacap            Float
-  location                         allocator_report_storage_provider_distribution_location?
-  retrievability_success_rate      Float?
-  retrievability_success_rate_http Float?
-  ipni_reporting_status            StorageProviderIpniReportingStatus?
-  ipni_reported_claims_count       BigInt?
-  claims_count                     BigInt?
+  id                                     String                                                   @id @default(uuid()) @db.Uuid
+  allocator_report                       allocator_report                                         @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id                    String                                                   @db.Uuid
+  provider                               String
+  total_deal_size                        BigInt
+  unique_data_size                       BigInt
+  perc_of_total_datacap                  Float
+  location                               allocator_report_storage_provider_distribution_location?
+  retrievability_success_rate            Float?
+  retrievability_success_rate_http       Float?
+  retrievability_success_rate_url_finder Float?
+  ipni_reporting_status                  StorageProviderIpniReportingStatus?
+  ipni_reported_claims_count             BigInt?
+  claims_count                           BigInt?
 }
 
 model allocator_report_storage_provider_distribution_location {

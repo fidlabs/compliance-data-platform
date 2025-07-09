@@ -4,6 +4,7 @@ import {
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
+import { yesterday } from 'src/utils/utils';
 
 export class IpniReportingDailyRunner implements AggregationRunner {
   public async run({
@@ -15,10 +16,6 @@ export class IpniReportingDailyRunner implements AggregationRunner {
       startGetDataTimerByRunnerNameMetric,
       startStoreDataTimerByRunnerNameMetric,
     } = prometheusMetricService.aggregateMetrics;
-
-    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
-      IpniReportingDailyRunner.name,
-    );
 
     const latestStored = await prismaService.ipni_reporting_daily.findFirst({
       select: {
@@ -33,14 +30,14 @@ export class IpniReportingDailyRunner implements AggregationRunner {
       ? DateTime.fromJSDate(latestStored.date, { zone: 'UTC' })
       : null;
 
-    const yesterday = DateTime.now()
-      .setZone('UTC')
-      .minus({ days: 1 })
-      .startOf('day');
-
-    if (latestStoredDate >= yesterday) {
+    if (latestStoredDate >= yesterday()) {
+      // already downloaded yesterday's data, wait for next day
       return;
     }
+
+    const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
+      IpniReportingDailyRunner.name,
+    );
 
     const result =
       await ipniMisreportingCheckerService.getAggregatedProvidersReportingStatus();

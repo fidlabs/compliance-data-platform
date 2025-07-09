@@ -123,8 +123,10 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
           },
         });
       } catch (err) {
-        if (err.code === 'P2002') return;
-        else throw err;
+        if (err.code === 'P2002') {
+          // ID already exists
+          return;
+        } else throw err;
       }
 
       currentAd = currentAd.PreviousID?.['/']

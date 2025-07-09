@@ -14,7 +14,7 @@ export class ClientReportService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly clientReportChecksService: ClientReportChecksService,
-    private readonly storageProviderService: StorageProviderReportService,
+    private readonly storageProviderReportService: StorageProviderReportService,
     private readonly clientService: ClientService,
     private readonly allocatorService: AllocatorService,
     private readonly ethApiService: EthApiService,
@@ -28,7 +28,7 @@ export class ClientReportService {
     if (!clientData?.length) return null;
 
     const storageProviderDistribution =
-      await this.storageProviderService.getStorageProviderDistribution(
+      await this.storageProviderReportService.getStorageProviderDistribution(
         clientData[0].addressId,
       );
 

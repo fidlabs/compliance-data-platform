@@ -14,7 +14,7 @@ export class AllocatorReportService {
 
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly storageProviderService: StorageProviderReportService,
+    private readonly storageProviderReportService: StorageProviderReportService,
     private readonly clientService: ClientService,
     private readonly allocatorService: AllocatorService,
     private readonly allocatorReportChecksService: AllocatorReportChecksService,
@@ -55,6 +55,11 @@ export class AllocatorReportService {
         avg_retrievability_success_rate_http:
           storageProviderDistribution.reduce(
             (acc, curr) => acc + curr.retrievability_success_rate_http,
+            0,
+          ) / storageProviderDistribution.length,
+        avg_retrievability_success_rate_url_finder:
+          storageProviderDistribution.reduce(
+            (acc, curr) => acc + curr.retrievability_success_rate_url_finder,
             0,
           ) / storageProviderDistribution.length,
         clients_number: verifiedClients.length,
@@ -146,7 +151,7 @@ export class AllocatorReportService {
 
     for (const clientId of clientIds) {
       storageProviderDistribution.push(
-        ...(await this.storageProviderService.getStorageProviderDistribution(
+        ...(await this.storageProviderReportService.getStorageProviderDistribution(
           clientId,
         )),
       );

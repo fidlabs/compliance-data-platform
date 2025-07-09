@@ -10,6 +10,8 @@ import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-reg
 import { LocationService } from 'src/service/location/location.service';
 import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
 import { AggregationTable } from './aggregation-table';
+import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
+import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
 
 export type AggregationRunnerRunServices = {
   prismaService: PrismaService;
@@ -23,6 +25,8 @@ export type AggregationRunnerRunServices = {
   lotusApiService?: LotusApiService;
   allocatorRegistryService?: GitHubAllocatorRegistryService;
   allocatorClientBookkeepingService?: GitHubAllocatorClientBookkeepingService;
+  storageProviderService: StorageProviderService;
+  storageProviderUrlFinderService: StorageProviderUrlFinderService;
 };
 
 export interface AggregationRunner {

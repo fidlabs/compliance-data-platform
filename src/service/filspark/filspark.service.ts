@@ -10,6 +10,7 @@ export class FilSparkService {
 
   constructor(private readonly httpService: HttpService) {}
 
+  // returns 0 - 1 success_rate, success_rate_http
   public async fetchRetrievability(
     date?: DateTime,
   ): Promise<RetrievabilityInfo[]> {

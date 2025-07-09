@@ -73,7 +73,11 @@ export function Cacheable(options?: { key?: string; ttl?: number }) {
           options?.ttl ?? undefined,
         );
 
-        if (log) logger.debug(`Cache set: ${cacheKey}`);
+        if (log)
+          logger.debug(
+            `Cache set: ${cacheKey}: ${JSON.stringify(await result)}`,
+          );
+
         return await result;
       } finally {
         mutexRelease();

@@ -101,7 +101,7 @@ export class LocationService {
   }
 
   private extractAddress(multiaddrInstance: Multiaddr): Address {
-    // TODO: temporary fix needed because multiaddr library does not support /dns/ prefix
+    // TODO temporary fix needed because multiaddr library does not support /dns/ prefix
     if (multiaddrInstance.toString().startsWith('/dns/')) {
       multiaddrInstance = new Multiaddr(
         multiaddrInstance.toString().replace('/dns/', '/dns4/'),
