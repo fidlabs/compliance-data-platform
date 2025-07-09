@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { LocationService } from '../location/location.service';
 import { PrismaService } from 'src/db/prisma.service';
+import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
+import { LocationService } from '../location/location.service';
 import { IPResponse } from '../location/types.location';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
-import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
 
 @Injectable()
 export class StorageProviderReportService {
@@ -40,8 +40,16 @@ export class StorageProviderReportService {
             minerInfo,
           );
 
-        const location =
-          await this.getClientProviderDistributionLocation(minerInfo);
+        let location: IPResponse | null = null;
+
+        try {
+          location =
+            await this.getClientProviderDistributionLocation(minerInfo);
+        } catch (error) {
+          this.logger.error(
+            `Error getting location for provider ${clientProviderDistribution.provider}: ${error}`,
+          );
+        }
 
         const {
           retrievability_success_rate,
