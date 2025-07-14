@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DateTime } from 'luxon';
+import {
+  ClientReportCheck,
+  StorageProviderIpniReportingStatus,
+} from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
-import { ClientReportCheck } from 'prisma/generated/client';
-import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { envNotSet } from 'src/utils/utils';
 
@@ -15,6 +17,7 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
+  public CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD: number; // percentage threshold
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -41,6 +44,10 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
     );
+
+    this.CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD = configService.get<number>(
+      'CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD',
+    );
   }
 
   public async storeReportChecks(reportId: bigint) {
@@ -49,6 +56,7 @@ export class ClientReportChecksService {
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
     await this.storeDealDataSharedWithOtherClientsChecks(reportId);
+    await this.storeUniqueDataSetSizeChecks(reportId);
   }
 
   private async storeStorageProviderDistributionChecks(reportId: bigint) {
@@ -70,6 +78,10 @@ export class ClientReportChecksService {
 
   private async storeDealDataSharedWithOtherClientsChecks(reportId: bigint) {
     await this.storeDealDataSharedWithOtherClientsCidSharing(reportId);
+  }
+
+  private async storeUniqueDataSetSizeChecks(reportId: bigint) {
+    await this.storeUniqDataSetSize(reportId);
   }
 
   private async storeInactivity(reportId: bigint) {
@@ -698,6 +710,72 @@ export class ClientReportChecksService {
           msg: checkPassed
             ? 'No CID sharing has been observed'
             : 'CID sharing has been observed',
+        },
+      },
+    });
+  }
+
+  private async storeUniqDataSetSize(reportId: bigint) {
+    const uniqDataSetSize =
+      await this.prismaService.client_report_uniq_data_set_size.findFirst({
+        where: {
+          client_report_id: reportId,
+        },
+      });
+
+    if (!uniqDataSetSize) {
+      this.logger.warn(
+        `No unique data set size found for report ID ${reportId}; skipping check`,
+      );
+
+      return;
+    }
+
+    if (
+      envNotSet(
+        this
+          .CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD,
+      )
+    ) {
+      this.logger.warn(
+        `Total unique data set size more than requested threshold env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    let checkPassed = false;
+
+    const thresholdMoreThanPercentage =
+      this
+        .CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD;
+
+    if (thresholdMoreThanPercentage === 0) {
+      checkPassed =
+        uniqDataSetSize.total_uniq_data_set_size <
+        uniqDataSetSize.total_requested_amount;
+    } else {
+      const threshold = BigInt(thresholdMoreThanPercentage * 100);
+
+      const thresholdValue =
+        (uniqDataSetSize.total_requested_amount * BigInt(threshold)) / 100n;
+
+      checkPassed = uniqDataSetSize.total_uniq_data_set_size < thresholdValue;
+    }
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED,
+        result: checkPassed,
+        metadata: {
+          total_requested_amount:
+            uniqDataSetSize.total_requested_amount.toString(),
+          total_uniq_data_set_size:
+            uniqDataSetSize.total_uniq_data_set_size?.toString() ?? null,
+          msg: checkPassed
+            ? 'Data stored on the network exceed declared data set size'
+            : 'Allocator assigned more than 50% of DC but client didn’t reached declared size of the data set',
         },
       },
     });

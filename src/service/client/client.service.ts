@@ -229,10 +229,34 @@ export class ClientService {
         : null;
     })();
 
+    const totalRequestedAmount = ((): bigint | null => {
+      const totalDataSizeKey = 'Total Requested Amount';
+
+      const totalDataSize = info.Datacap?.[totalDataSizeKey];
+
+      if (!totalDataSize) return null;
+
+      const units = {
+        GiB: 1024n * 1024n * 1024n,
+        TiB: 1024n * 1024n * 1024n * 1024n,
+        PiB: 1024n * 1024n * 1024n * 1024n * 1024n,
+      };
+
+      const match = totalDataSize.toString().match(/(\d+)\s*(GiB|TiB|PiB)?/i);
+
+      if (!match) return null;
+
+      const value = BigInt(match[1]);
+      const unit = match[2] ? units[match[2]] : 1n;
+
+      return BigInt(value * unit);
+    })();
+
     return {
       isPublicDataset,
       clientContractAddress,
       storageProviderIDsDeclared,
+      totalRequestedAmount,
     };
   }
 
