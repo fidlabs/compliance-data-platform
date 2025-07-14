@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { parse } from 'bytes-iec';
 
 export function stringToBool(s?: string): boolean | null {
   if (['1', 'TRUE', 'YES', 'ON'].includes(s?.toUpperCase())) return true;
@@ -36,4 +37,13 @@ export function envSet(value?: any): boolean {
 
 export async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function parseDataSizeToBytes(value?: string | null): bigint | null {
+  if (!value) return null;
+
+  if (!value.toUpperCase().endsWith('B'))
+    throw new Error(`Invalid unit: ${value}`);
+
+  return BigInt(parse(value));
 }
