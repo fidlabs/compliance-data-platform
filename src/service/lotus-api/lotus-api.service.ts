@@ -101,13 +101,13 @@ export class LotusApiService {
     return data;
   }
 
-  public async getClientDatacap(address: string): Promise<bigint | null> {
+  public async getClientDatacap(clientId: string): Promise<bigint | null> {
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateVerifiedClientStatusResponse>(endpoint, {
         jsonrpc: '2.0',
         method: 'Filecoin.StateVerifiedClientStatus',
-        params: [address, []],
+        params: [clientId, []],
         id: 0,
       }),
     );

@@ -7,9 +7,9 @@ import {
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { AllocatorRegistry } from './types.github-allocator-registry';
 import { envSet } from 'src/utils/utils';
+import { AllocatorService } from '../allocator/allocator.service';
 
 @Injectable()
 export class GitHubAllocatorRegistryService extends HealthIndicator {
@@ -19,7 +19,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly lotusApiService: LotusApiService,
+    private readonly allocatorService: AllocatorService,
   ) {
     super();
   }
@@ -159,31 +159,51 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       },
     )) as any;
 
-    const data = JSON.parse(atob(file.data.content));
+    const jsonData = JSON.parse(atob(file.data.content));
 
-    if (!data?.pathway_addresses?.msig) {
-      this.logger.warn(`No msig address for ${path}`);
-      return null;
-    }
+    const jsonAllocatorAddress =
+      jsonData?.pathway_addresses?.msig || jsonData?.address;
 
-    // TODO use allocatorService.getAllocatorData(...).address here, get rid of lotusApiService.getFilecoinId?
-    const id = await this.lotusApiService.getFilecoinId(
-      data.pathway_addresses.msig,
-    );
+    const jsonAllocatorId = jsonData?.allocator_id;
 
-    if (!id) {
+    const dbAllocatorAddress = !jsonAllocatorId
+      ? null
+      : (await this.allocatorService.getAllocatorData(jsonAllocatorId))
+          ?.address;
+
+    const dbAllocatorId = !jsonAllocatorAddress
+      ? null
+      : (await this.allocatorService.getAllocatorData(jsonAllocatorAddress))
+          ?.addressId;
+
+    // double check data integrity
+    if (
+      jsonAllocatorAddress &&
+      dbAllocatorAddress &&
+      jsonAllocatorAddress !== dbAllocatorAddress
+    ) {
       this.logger.warn(
-        `No ID for address ${data.pathway_addresses.msig} (${path})`,
+        `allocator address from json: ${jsonAllocatorAddress} / ${jsonAllocatorId} does not match the database: ${dbAllocatorAddress} for path: ${path}, please investigate`,
       );
-
-      return null;
     }
 
-    return {
-      allocator_id: id,
-      allocator_address: data.pathway_addresses.msig,
-      json_path: path,
-      registry_info: data,
-    };
+    if (jsonAllocatorId && dbAllocatorId && jsonAllocatorId !== dbAllocatorId) {
+      this.logger.warn(
+        `allocator id from json: ${jsonAllocatorAddress} / ${jsonAllocatorId} does not match the database: ${dbAllocatorId} for path: ${path}, please investigate`,
+      );
+    }
+
+    // prefer json data over db data
+    const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
+    const allocatorId = jsonAllocatorId || dbAllocatorId;
+
+    return !allocatorId
+      ? null
+      : {
+          allocator_id: allocatorId,
+          allocator_address: allocatorAddress,
+          json_path: path,
+          registry_info: jsonData,
+        };
   }
 }

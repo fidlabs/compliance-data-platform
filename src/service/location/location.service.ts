@@ -24,10 +24,12 @@ export class LocationService {
     try {
       return await this._getLocation(multiAddrs);
     } catch (err) {
-      throw new Error(
+      this.logger.warn(
         `Error getting location for ${multiAddrs}: ${err.message}`,
-        { cause: err },
+        // err.cause?.stack || err.stack,
       );
+
+      return null;
     }
   }
 
