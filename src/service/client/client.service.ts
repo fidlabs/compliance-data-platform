@@ -31,11 +31,7 @@ export class ClientService {
           hour: true,
         },
         where: {
-          OR: [
-            {
-              client: clientId,
-            },
-          ],
+          client: clientId,
         },
         orderBy: {
           hour: 'desc',
@@ -52,11 +48,7 @@ export class ClientService {
           createMessageTimestamp: true,
         },
         where: {
-          OR: [
-            {
-              addressId: clientId,
-            },
-          ],
+          addressId: clientId,
         },
         orderBy: {
           createMessageTimestamp: 'desc',

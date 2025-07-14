@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
+import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { IpniMisreportingCheckerService } from '../ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { LocationService } from '../location/location.service';
-import { IPResponse } from '../location/types.location';
-import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
 
 @Injectable()
 export class StorageProviderReportService {
@@ -40,16 +38,9 @@ export class StorageProviderReportService {
             minerInfo,
           );
 
-        let location: IPResponse | null = null;
-
-        try {
-          location =
-            await this.getClientProviderDistributionLocation(minerInfo);
-        } catch (error) {
-          this.logger.error(
-            `Error getting location for provider ${clientProviderDistribution.provider}: ${error}`,
-          );
-        }
+        const location = await this.locationService.getLocation(
+          minerInfo.result.Multiaddrs,
+        );
 
         const {
           retrievability_success_rate,
@@ -124,11 +115,5 @@ export class StorageProviderReportService {
         retrievability_success_rate_http: null,
       };
     }
-  }
-
-  private async getClientProviderDistributionLocation(
-    minerInfo: LotusStateMinerInfoResponse,
-  ): Promise<IPResponse | null> {
-    return this.locationService.getLocation(minerInfo.result.Multiaddrs);
   }
 }

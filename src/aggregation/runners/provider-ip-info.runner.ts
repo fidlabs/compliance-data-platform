@@ -34,36 +34,17 @@ export class ProviderIpInfoRunner implements AggregationRunner {
       staleProviders.map(async (provider) => {
         const minerInfo = await lotusApiService.getMinerInfo(provider);
 
-        const empty = {
-          provider,
-          lat: null,
-          long: null,
-          country: null,
-          region: null,
-          city: null,
-        };
+        const location = await locationService.getLocation(
+          minerInfo.result.Multiaddrs,
+        );
 
-        let result;
-        try {
-          result = await locationService.getLocation(
-            minerInfo.result.Multiaddrs,
-          );
-        } catch (err) {
-          this.logger.warn(err);
-          return empty;
-        }
-
-        if (!result) return empty;
-
-        const { loc, country, region, city } = result;
-        const [lat, long] = loc.split(',');
         return {
           provider,
-          lat,
-          long,
-          country,
-          region,
-          city,
+          lat: location?.loc?.split(',')?.[0],
+          long: location?.loc?.split(',')?.[1],
+          country: location?.country,
+          region: location?.region,
+          city: location?.city,
         };
       }),
     );
