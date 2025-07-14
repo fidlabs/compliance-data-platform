@@ -203,29 +203,32 @@ model allocators_weekly_acc {
 }
 
 model client_report {
-  id                            BigInt                                        @id @default(autoincrement())
-  create_date                   DateTime                                      @default(now())
-  client                        String
-  client_address                String?
-  avg_secs_to_first_deal        Float?
-  organization_name             String
-  application_url               String?
-  storage_provider_distribution client_report_storage_provider_distribution[]
-  replica_distribution          client_report_replica_distribution[]
-  cid_sharing                   client_report_cid_sharing[]
-  check_results                 client_report_check_result[]
-  allocators                    String[]                                      @default([])
-  allocator_required_copies     String?
-  allocator_required_sps        String?
-  is_public_dataset             Boolean?
-  using_client_contract         Boolean?
-  client_contract_max_deviation String?
-  storage_provider_ids_declared String[]                                      @default([])
-  available_datacap             BigInt?
-  last_datacap_spent            DateTime?
-  last_datacap_received         DateTime?
-  low_replica_threshold         Int?
-  high_replica_threshold        Int?
+  id                              BigInt                                        @id @default(autoincrement())
+  create_date                     DateTime                                      @default(now())
+  client                          String
+  client_address                  String?
+  avg_secs_to_first_deal          Float?
+  organization_name               String
+  application_url                 String?
+  storage_provider_distribution   client_report_storage_provider_distribution[]
+  replica_distribution            client_report_replica_distribution[]
+  cid_sharing                     client_report_cid_sharing[]
+  check_results                   client_report_check_result[]
+  allocators                      String[]                                      @default([])
+  allocator_required_copies       String?
+  allocator_required_sps          String?
+  is_public_dataset               Boolean?
+  using_client_contract           Boolean?
+  client_contract_max_deviation   String?
+  storage_provider_ids_declared   String[]                                      @default([])
+  available_datacap               BigInt?
+  last_datacap_spent              DateTime?
+  last_datacap_received           DateTime?
+  low_replica_threshold           Int?
+  high_replica_threshold          Int?
+  total_requested_amount          BigInt?
+  expected_size_of_single_dataset BigInt?
+  total_uniq_data_set_size        BigInt?
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -481,6 +484,7 @@ enum ClientReportCheck {
   MULTIPLE_ALLOCATORS
   NOT_ENOUGH_COPIES
   INACTIVITY
+  UNIQ_DATA_SET_SIZE_TO_DECLARED
 }
 
 enum AllocatorReportCheck {

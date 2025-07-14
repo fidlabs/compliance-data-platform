@@ -36,6 +36,7 @@
     "async-mutex": "^0.5.0",
     "axios": "^1.8.4",
     "axios-better-stacktrace": "^2.1.7",
+    "bytes-iec": "^3.1.1",
     "cache-manager": "^5.7.6",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",

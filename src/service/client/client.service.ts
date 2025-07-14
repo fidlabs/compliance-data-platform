@@ -1,6 +1,7 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from 'prisma/generated/client';
+import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 import {
   getClientData,
   getClientsByAllocator,
@@ -13,7 +14,7 @@ import {
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
-import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
+import { parseDataSizeToBytes } from 'src/utils/utils';
 
 @Injectable()
 export class ClientService {
@@ -229,10 +230,29 @@ export class ClientService {
         : null;
     })();
 
+    const getUnitSizeFromJsonInBytes = (key: string): bigint | null => {
+      try {
+        return parseDataSizeToBytes(info.Datacap?.[key]);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse ${key} from bookkeeping info: ${error.message}`,
+          // error.cause?.stack || error.stack,
+        );
+
+        return null;
+      }
+    };
+
     return {
       isPublicDataset,
       clientContractAddress,
       storageProviderIDsDeclared,
+      totalRequestedAmount: getUnitSizeFromJsonInBytes(
+        'Total Requested Amount',
+      ),
+      expectedSizeOfSingleDataset: getUnitSizeFromJsonInBytes(
+        'Single Size Dataset',
+      ),
     };
   }
 

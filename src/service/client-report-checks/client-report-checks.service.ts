@@ -17,6 +17,7 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
+  public CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -43,6 +44,9 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
     );
+    this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE = configService.get<number>(
+      'CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE',
+    );
   }
 
   public async storeReportChecks(reportId: bigint) {
@@ -51,6 +55,7 @@ export class ClientReportChecksService {
     await this.storeStorageProviderDistributionChecks(reportId);
     await this.storeDealDataReplicationChecks(reportId);
     await this.storeDealDataSharedWithOtherClientsChecks(reportId);
+    await this.storeUniqueDataSetSizeChecks(reportId);
   }
 
   private async storeStorageProviderDistributionChecks(reportId: bigint) {
@@ -73,6 +78,10 @@ export class ClientReportChecksService {
 
   private async storeDealDataSharedWithOtherClientsChecks(reportId: bigint) {
     await this.storeDealDataSharedWithOtherClientsCidSharing(reportId);
+  }
+
+  private async storeUniqueDataSetSizeChecks(reportId: bigint) {
+    await this.storeUniqueDataSetSize(reportId);
   }
 
   private async storeInactivity(reportId: bigint) {
@@ -756,6 +765,55 @@ export class ClientReportChecksService {
           msg: checkPassed
             ? 'No CID sharing has been observed'
             : 'CID sharing has been observed',
+        },
+      },
+    });
+  }
+
+  private async storeUniqueDataSetSize(reportId: bigint) {
+    // prettier-ignore
+    if (envNotSet(this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE)) {
+      this.logger.warn(
+        `CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    const report = await this.prismaService.client_report.findFirst({
+      where: {
+        id: reportId,
+      },
+    });
+
+    let checkPassed: boolean;
+    let checkMessage: string;
+
+    if (!report.expected_size_of_single_dataset) {
+      checkPassed = false;
+      checkMessage =
+        'Single Size Dataset field is not set correctly in the client application JSON';
+    } else {
+      // prettier-ignore
+      const thresholdValue =
+        (report.expected_size_of_single_dataset * BigInt(this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE)) / 100n;
+
+      checkPassed =
+        report.total_uniq_data_set_size <
+        report.expected_size_of_single_dataset + thresholdValue;
+
+      checkMessage = checkPassed
+        ? 'Unique data set size looks healthy'
+        : 'Unique data set size exceeds declared';
+    }
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED,
+        result: checkPassed,
+        metadata: {
+          msg: checkMessage,
         },
       },
     });
