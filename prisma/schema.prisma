@@ -195,6 +195,7 @@ model client_report {
   replica_distribution          client_report_replica_distribution[]
   cid_sharing                   client_report_cid_sharing[]
   check_results                 client_report_check_result[]
+  uniq_data_set_size            client_report_uniq_data_set_size[]
   allocators                    String[]                                      @default([])
   allocator_required_copies     String?
   allocator_required_sps        String?
@@ -242,6 +243,14 @@ model client_report_storage_provider_distribution_location {
   hostname                 String?
   provider_distribution    client_report_storage_provider_distribution @relation(fields: [provider_distribution_id], references: [id])
   provider_distribution_id BigInt                                      @unique
+}
+
+model client_report_uniq_data_set_size {
+  id                       BigInt        @id @default(autoincrement())
+  client_report            client_report @relation(fields: [client_report_id], references: [id])
+  client_report_id         BigInt
+  total_requested_amount   BigInt
+  total_uniq_data_set_size BigInt
 }
 
 model client_report_replica_distribution {
@@ -455,6 +464,7 @@ enum ClientReportCheck {
   MULTIPLE_ALLOCATORS
   NOT_ENOUGH_COPIES
   INACTIVITY
+  UNIQ_DATA_SET_SIZE_TO_DECLARED
 }
 
 enum AllocatorReportCheck {

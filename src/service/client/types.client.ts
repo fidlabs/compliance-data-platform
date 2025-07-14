@@ -25,4 +25,5 @@ export class ClientBookkeepingInfo {
   isPublicDataset: boolean | null;
   clientContractAddress: string | null;
   storageProviderIDsDeclared: string[];
+  totalRequestedAmount: bigint | null;
 }
