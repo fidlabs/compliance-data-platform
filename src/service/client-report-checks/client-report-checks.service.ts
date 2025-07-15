@@ -774,8 +774,8 @@ export class ClientReportChecksService {
           total_uniq_data_set_size:
             uniqDataSetSize.total_uniq_data_set_size?.toString() ?? null,
           msg: checkPassed
-            ? 'Data stored on the network exceed declared data set size'
-            : 'Allocator assigned more than 50% of DC but client didn’t reached declared size of the data set',
+            ? 'Client didn’t reached declared size of the data set'
+            : 'Data stored on the network exceed declared data set size',
         },
       },
     });

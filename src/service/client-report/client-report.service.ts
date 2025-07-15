@@ -72,7 +72,7 @@ export class ClientReportService {
       clientData[0].addressId,
     );
 
-    const totalRequestedAmount = bookkeepingInfo?.totalRequestedAmount;
+    const totalRequestedAmount = bookkeepingInfo?.totalRequestedAmount ?? 0n;
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -130,7 +130,7 @@ export class ClientReportService {
         uniq_data_set_size: {
           create: {
             total_requested_amount: totalRequestedAmount,
-            total_uniq_data_set_size: replicaDistribution.reduce(
+            total_uniq_data_set_size: replicaDistribution?.reduce(
               (acc, cur) => acc + cur.unique_data_size,
               0n,
             ),
