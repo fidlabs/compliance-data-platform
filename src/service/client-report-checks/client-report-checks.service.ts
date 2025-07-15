@@ -773,9 +773,7 @@ export class ClientReportChecksService {
             uniqDataSetSize.total_requested_amount.toString(),
           total_uniq_data_set_size:
             uniqDataSetSize.total_uniq_data_set_size?.toString() ?? null,
-          msg: checkPassed
-            ? 'Client didn’t reached declared size of the data set'
-            : 'Data stored on the network exceed declared data set size',
+          msg: 'Unique data set size exceeds declared',
         },
       },
     });
