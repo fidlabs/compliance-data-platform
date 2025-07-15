@@ -32,11 +32,6 @@ export class ClientReportService {
         clientData[0].addressId,
       );
 
-    const replicaDistribution =
-      await this.clientService.getReplicationDistribution(
-        clientData[0].addressId,
-      );
-
     const cidSharing = await this.clientService.getCidSharing(
       clientData[0].addressId,
     );
@@ -62,16 +57,6 @@ export class ClientReportService {
         )
       : null;
 
-    const availableDatacap = await this.lotusApiService.getClientDatacap(
-      clientData[0].addressId,
-    );
-    const lastDatacapSpent = await this.clientService.getLastDatacapSpent(
-      clientData[0].addressId,
-    );
-    const lastDatacapReceived = await this.clientService.getLastDatacapReceived(
-      clientData[0].addressId,
-    );
-
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -95,9 +80,15 @@ export class ClientReportService {
         storage_provider_ids_declared:
           bookkeepingInfo?.storageProviderIDsDeclared,
         client_contract_max_deviation: maxDeviation,
-        available_datacap: availableDatacap,
-        last_datacap_spent: lastDatacapSpent,
-        last_datacap_received: lastDatacapReceived,
+        available_datacap: await this.lotusApiService.getClientDatacap(
+          clientData[0].addressId,
+        ),
+        last_datacap_spent: await this.clientService.getLastDatacapSpent(
+          clientData[0].addressId,
+        ),
+        last_datacap_received: await this.clientService.getLastDatacapReceived(
+          clientData[0].addressId,
+        ),
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {
@@ -116,7 +107,9 @@ export class ClientReportService {
             }) ?? [],
         },
         replica_distribution: {
-          create: replicaDistribution,
+          create: await this.clientService.getReplicationDistribution(
+            clientData[0].addressId,
+          ),
         },
         cid_sharing: {
           create: await Promise.all(

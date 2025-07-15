@@ -253,10 +253,12 @@ export class ClientService {
   public async getAverageSecondsToFirstDeal(
     clientId: string,
   ): Promise<number | null> {
-    return (
-      await this.prismaService.$queryRawTyped(
-        getAverageSecondsToFirstDeal(clientId, null),
-      )
-    )[0].average;
+    return Number(
+      (
+        await this.prismaService.$queryRawTyped(
+          getAverageSecondsToFirstDeal(clientId, null),
+        )
+      )?.[0]?.average,
+    );
   }
 }

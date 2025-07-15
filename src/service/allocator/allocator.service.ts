@@ -389,12 +389,16 @@ export class AllocatorService {
       (v as string).trim(),
     );
 
+    const extractNumericString = (value: any): string | null => {
+      return (value as string)?.replace(/[^0-9]/g, '') || null;
+    };
+
     return {
       application: {
         data_types,
         audit,
-        required_sps: application.required_sps as string,
-        required_replicas: application.required_replicas as string,
+        required_sps: extractNumericString(application.required_sps),
+        required_replicas: extractNumericString(application.required_replicas),
       },
     };
   }
@@ -402,10 +406,12 @@ export class AllocatorService {
   public async getAverageSecondsToFirstDeal(
     allocatorId: string,
   ): Promise<number | null> {
-    return (
-      await this.prismaService.$queryRawTyped(
-        getAverageSecondsToFirstDeal(null, allocatorId),
-      )
-    )[0].average;
+    return Number(
+      (
+        await this.prismaService.$queryRawTyped(
+          getAverageSecondsToFirstDeal(null, allocatorId),
+        )
+      )?.[0]?.average,
+    );
   }
 }
