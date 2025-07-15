@@ -44,6 +44,16 @@ model allocator_client_bookkeeping {
   @@index([client_id])
 }
 
+model client_datacap_allocation {
+  id           Int      @id
+  client_id    String
+  allocator_id String
+  timestamp    DateTime
+  allocation   Decimal  @db.Decimal
+
+  @@index([client_id])
+}
+
 model client_allocator_distribution_weekly {
   week               DateTime
   client             String
@@ -197,6 +207,7 @@ model client_report {
   create_date                   DateTime                                      @default(now())
   client                        String
   client_address                String?
+  avg_secs_to_first_deal        Float?
   organization_name             String
   application_url               String?
   storage_provider_distribution client_report_storage_provider_distribution[]
@@ -295,6 +306,7 @@ model allocator_report {
   id                                         String                                           @id @default(uuid()) @db.Uuid
   create_date                                DateTime                                         @default(now())
   allocator                                  String
+  avg_secs_to_first_deal                     Float?
   name                                       String?
   address                                    String
   clients_number                             Int

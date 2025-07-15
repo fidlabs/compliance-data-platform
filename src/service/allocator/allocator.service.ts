@@ -7,6 +7,7 @@ import {
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
+  getAverageSecondsToFirstDeal,
 } from 'prisma/generated/client/sql';
 import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
 import { groupBy } from 'lodash';
@@ -396,5 +397,15 @@ export class AllocatorService {
         required_replicas: application.required_replicas as string,
       },
     };
+  }
+
+  public async getAverageSecondsToFirstDeal(
+    allocatorId: string,
+  ): Promise<number | null> {
+    return (
+      await this.prismaService.$queryRawTyped(
+        getAverageSecondsToFirstDeal(null, allocatorId),
+      )
+    )[0].average;
   }
 }

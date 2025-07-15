@@ -77,6 +77,10 @@ export class ClientReportService {
         client: clientData[0].addressId,
         client_address: clientData[0].address,
         allocators: allocators,
+        avg_secs_to_first_deal:
+          await this.clientService.getAverageSecondsToFirstDeal(
+            clientData[0].addressId,
+          ),
         allocator_required_copies:
           mainAllocatorRegistryInfo?.application.required_replicas,
         allocator_required_sps:
