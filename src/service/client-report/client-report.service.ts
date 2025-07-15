@@ -127,7 +127,7 @@ export class ClientReportService {
         },
         uniq_data_set_size: {
           create: {
-            total_requested_amount: bookkeepingInfo?.totalRequestedAmount,
+            total_requested_amount: bookkeepingInfo?.totalRequestedAmount ?? 0n,
             total_uniq_data_set_size: replicaDistribution.reduce(
               (acc, cur) => acc + cur.unique_data_size,
               0n,
