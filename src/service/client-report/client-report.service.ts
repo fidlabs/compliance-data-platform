@@ -32,6 +32,11 @@ export class ClientReportService {
         clientData[0].addressId,
       );
 
+    const replicaDistribution =
+      await this.clientService.getReplicationDistribution(
+        clientData[0].addressId,
+      );
+
     const cidSharing = await this.clientService.getCidSharing(
       clientData[0].addressId,
     );
@@ -107,9 +112,7 @@ export class ClientReportService {
             }) ?? [],
         },
         replica_distribution: {
-          create: await this.clientService.getReplicationDistribution(
-            clientData[0].addressId,
-          ),
+          create: replicaDistribution,
         },
         cid_sharing: {
           create: await Promise.all(
