@@ -79,8 +79,10 @@ import { ReportChecksController } from './controller/report-checks/report-checks
 import { ClientsController } from './controller/clients/clients.controller';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
+import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
 
 const AGGREGATION_RUNNERS = [
+  ClientDatacapAllocationRunner,
   ProviderUrlFinderRetrievabilityDailyRunner,
   AllocatorClientBookkeepingRunner,
   AllocatorRegistryRunner,
@@ -109,6 +111,8 @@ const AGGREGATION_RUNNERS = [
   UnifiedVerifiedDealHourlyRunner,
 ];
 
+const AGGREGATION_RUNNERS_RUN_ONLY = [];
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -132,7 +136,9 @@ const AGGREGATION_RUNNERS = [
     AppController,
   ],
   providers: [
-    ...AGGREGATION_RUNNERS,
+    ...(AGGREGATION_RUNNERS_RUN_ONLY.length
+      ? AGGREGATION_RUNNERS_RUN_ONLY
+      : AGGREGATION_RUNNERS),
     AggregationTasksService,
     ClientReportGeneratorJobService,
     IpniAdvertisementFetcherJobService,
@@ -176,7 +182,9 @@ const AGGREGATION_RUNNERS = [
     {
       provide: 'AggregationRunner',
       useFactory: (...runners) => runners,
-      inject: AGGREGATION_RUNNERS,
+      inject: AGGREGATION_RUNNERS_RUN_ONLY.length
+        ? AGGREGATION_RUNNERS_RUN_ONLY
+        : AGGREGATION_RUNNERS,
     },
   ],
 })

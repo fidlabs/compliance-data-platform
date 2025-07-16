@@ -618,7 +618,7 @@ export class ClientReportChecksService {
           metadata: {
             max_percentage_for_required_copies:
               this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES,
-            msg: `${percentageSumOfNotEnoughCopiesDeals.toFixed(2)}% of data have less than allocator-defined ${requiredCopiesCount} replicas`,
+            msg: `${percentageSumOfNotEnoughCopiesDeals.toFixed(2)}% of data have less than allocator-defined ${requiredCopiesCount}+ replicas`,
           },
         },
       });
