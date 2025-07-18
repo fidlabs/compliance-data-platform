@@ -44,7 +44,6 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
     );
-
     this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE = configService.get<number>(
       'CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE',
     );
@@ -770,7 +769,9 @@ export class ClientReportChecksService {
             client_report.total_requested_amount.toString(),
           total_uniq_data_set_size:
             client_report.total_uniq_data_set_size?.toString() ?? null,
-          msg: 'Unique data set size exceeds declared',
+          msg: checkPassed
+            ? 'Unique data set size looks healthy'
+            : 'Unique data set size exceeds declared',
         },
       },
     });
