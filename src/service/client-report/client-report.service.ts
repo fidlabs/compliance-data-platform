@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
-import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
-import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
-import { ClientService } from '../client/client.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { Retryable } from 'src/utils/retryable';
 import { AllocatorService } from '../allocator/allocator.service';
+import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
+import { ClientService } from '../client/client.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { Retryable } from 'src/utils/retryable';
+import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 
 @Injectable()
 export class ClientReportService {
@@ -72,6 +72,8 @@ export class ClientReportService {
       clientData[0].addressId,
     );
 
+    const totalRequestedAmount = bookkeepingInfo?.totalRequestedAmount ?? 0n;
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -94,6 +96,11 @@ export class ClientReportService {
         available_datacap: availableDatacap,
         last_datacap_spent: lastDatacapSpent,
         last_datacap_received: lastDatacapReceived,
+        total_requested_amount: totalRequestedAmount,
+        total_uniq_data_set_size: replicaDistribution?.reduce(
+          (acc, cur) => acc + cur.unique_data_size,
+          0n,
+        ),
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {

@@ -213,6 +213,8 @@ model client_report {
   available_datacap             BigInt?
   last_datacap_spent            DateTime?
   last_datacap_received         DateTime?
+  total_requested_amount        BigInt?
+  total_uniq_data_set_size      BigInt?
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -466,6 +468,7 @@ enum ClientReportCheck {
   MULTIPLE_ALLOCATORS
   NOT_ENOUGH_COPIES
   INACTIVITY
+  UNIQ_DATA_SET_SIZE_TO_DECLARED
 }
 
 enum AllocatorReportCheck {
