@@ -17,7 +17,7 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
-  public CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD: number; // percentage threshold
+  public CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -45,8 +45,8 @@ export class ClientReportChecksService {
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
     );
 
-    this.CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD = configService.get<number>(
-      'CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD',
+    this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE = configService.get<number>(
+      'CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE',
     );
   }
 
@@ -716,16 +716,15 @@ export class ClientReportChecksService {
   }
 
   private async storeUniqDataSetSize(reportId: bigint) {
-    const uniqDataSetSize =
-      await this.prismaService.client_report_uniq_data_set_size.findFirst({
-        where: {
-          client_report_id: reportId,
-        },
-      });
+    const client_report = await this.prismaService.client_report.findFirst({
+      where: {
+        id: reportId,
+      },
+    });
 
-    if (!uniqDataSetSize) {
+    if (!client_report) {
       this.logger.warn(
-        `No unique data set size found for report ID ${reportId}; skipping check`,
+        `Client report with id ${reportId} not found; skipping check`,
       );
 
       return;
@@ -733,12 +732,11 @@ export class ClientReportChecksService {
 
     if (
       envNotSet(
-        this
-          .CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD,
+        this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE,
       )
     ) {
       this.logger.warn(
-        `Total unique data set size more than requested threshold env is not set; skipping check`,
+        `CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE env is not set; skipping check`,
       );
 
       return;
@@ -747,20 +745,19 @@ export class ClientReportChecksService {
     let checkPassed = false;
 
     const thresholdMoreThanPercentage =
-      this
-        .CLIENT_REPORT_MAX_TOTAL_UNIQ_DATA_SET_SIZE_MORE_THAN_REQUESTED_THRESHOLD;
+      this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE;
 
     if (thresholdMoreThanPercentage === 0) {
       checkPassed =
-        uniqDataSetSize.total_uniq_data_set_size <
-        uniqDataSetSize.total_requested_amount;
+        client_report.total_uniq_data_set_size <
+        client_report.total_requested_amount;
     } else {
       const threshold = BigInt(thresholdMoreThanPercentage * 100);
 
       const thresholdValue =
-        (uniqDataSetSize.total_requested_amount * BigInt(threshold)) / 100n;
+        (client_report.total_requested_amount * BigInt(threshold)) / 100n;
 
-      checkPassed = uniqDataSetSize.total_uniq_data_set_size < thresholdValue;
+      checkPassed = client_report.total_uniq_data_set_size < thresholdValue;
     }
 
     await this.prismaService.client_report_check_result.create({
@@ -770,9 +767,9 @@ export class ClientReportChecksService {
         result: checkPassed,
         metadata: {
           total_requested_amount:
-            uniqDataSetSize.total_requested_amount.toString(),
+            client_report.total_requested_amount.toString(),
           total_uniq_data_set_size:
-            uniqDataSetSize.total_uniq_data_set_size?.toString() ?? null,
+            client_report.total_uniq_data_set_size?.toString() ?? null,
           msg: 'Unique data set size exceeds declared',
         },
       },
