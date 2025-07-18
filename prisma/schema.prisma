@@ -466,6 +466,7 @@ enum ClientReportCheck {
   MULTIPLE_ALLOCATORS
   NOT_ENOUGH_COPIES
   INACTIVITY
+  DEAL_DATA_REPLICATION_HIGHT_REPLICA
 }
 
 enum AllocatorReportCheck {
