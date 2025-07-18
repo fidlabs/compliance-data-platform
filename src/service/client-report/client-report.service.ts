@@ -96,6 +96,11 @@ export class ClientReportService {
         available_datacap: availableDatacap,
         last_datacap_spent: lastDatacapSpent,
         last_datacap_received: lastDatacapReceived,
+        total_requested_amount: totalRequestedAmount,
+        total_uniq_data_set_size: replicaDistribution?.reduce(
+          (acc, cur) => acc + cur.unique_data_size,
+          0n,
+        ),
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {
@@ -126,15 +131,6 @@ export class ClientReportService {
                 ),
             })),
           ),
-        },
-        uniq_data_set_size: {
-          create: {
-            total_requested_amount: totalRequestedAmount,
-            total_uniq_data_set_size: replicaDistribution?.reduce(
-              (acc, cur) => acc + cur.unique_data_size,
-              0n,
-            ),
-          },
         },
       },
     });
