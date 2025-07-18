@@ -224,8 +224,8 @@ model client_report {
   available_datacap             BigInt?
   last_datacap_spent            DateTime?
   last_datacap_received         DateTime?
-  total_requested_amount        BigInt
-  total_uniq_data_set_size      BigInt
+  total_requested_amount        BigInt?
+  total_uniq_data_set_size      BigInt?
 }
 
 enum StorageProviderIpniReportingStatus {
