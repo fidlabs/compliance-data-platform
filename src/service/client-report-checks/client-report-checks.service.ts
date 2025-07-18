@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DateTime } from 'luxon';
+import {
+  ClientReportCheck,
+  StorageProviderIpniReportingStatus,
+} from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
-import { ClientReportCheck } from 'prisma/generated/client';
-import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { envNotSet } from 'src/utils/utils';
 
@@ -12,9 +14,11 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE: number;
   public CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA: number;
+  public CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA: number;
   public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
+  public CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -35,12 +39,17 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD = configService.get<number>(
       'CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD',
     );
+    this.CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD = configService.get<number>(
+      'CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD',
+    );
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES',
     );
     this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
     );
+
+    
   }
 
   public async storeReportChecks(reportId: bigint) {
@@ -65,6 +74,7 @@ export class ClientReportChecksService {
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
     await this.storeDealDataLowReplica(reportId);
+    await this.storeDealDataHightReplica(reportId);
     await this.storeDealDataNotEnoughCopies(reportId);
   }
 
@@ -671,6 +681,58 @@ export class ClientReportChecksService {
           max_percentage_for_low_replica:
             this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
           msg: `Low replica percentage is ${percentageSumOfLowReplicaDeals.toFixed(2)}%`,
+        },
+      },
+    });
+  }
+
+  private async storeDealDataHightReplica(reportId: bigint) {
+    if (envNotSet(this.CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA)) {
+      this.logger.warn(
+        `CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    const resultOfPercentage =
+      await this.prismaService.client_report_replica_distribution.groupBy({
+        by: ['client_report_id'],
+        where: {
+          client_report_id: reportId,
+          num_of_replicas: {
+            gt: this.CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD,
+          },
+        },
+        _sum: {
+          percentage: true,
+        },
+      });
+
+    const percentageSumOfHightReplicaDeals =
+      resultOfPercentage.length > 0 && resultOfPercentage[0]._sum.percentage;
+
+    const checkPassed =
+      percentageSumOfHightReplicaDeals <=
+      this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA;
+
+    await this.prismaService.client_report_check_result.create({
+      data: {
+        client_report_id: reportId,
+        check: ClientReportCheck.DEAL_DATA_REPLICATION_HIGHT_REPLICA,
+        result: checkPassed,
+        metadata: {
+          max_percentage_for_replica:
+            this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
+          msg: `Hight replica percentage is ${percentageSumOfHightReplicaDeals.toFixed(2)}%`,
         },
       },
     });
