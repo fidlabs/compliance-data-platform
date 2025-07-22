@@ -14,11 +14,11 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE: number;
   public CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA: number;
-  public CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA: number;
+  public CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA: number;
   public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
-  public CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD: number;
+  public CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -39,8 +39,8 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD = configService.get<number>(
       'CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD',
     );
-    this.CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD = configService.get<number>(
-      'CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD',
+    this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD = configService.get<number>(
+      'CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD',
     );
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES',
@@ -74,7 +74,7 @@ export class ClientReportChecksService {
 
   private async storeDealDataReplicationChecks(reportId: bigint) {
     await this.storeDealDataLowReplica(reportId);
-    await this.storeDealDataHightReplica(reportId);
+    await this.storeDealDataHighReplica(reportId);
     await this.storeDealDataNotEnoughCopies(reportId);
   }
 
@@ -686,8 +686,8 @@ export class ClientReportChecksService {
     });
   }
 
-  private async storeDealDataHightReplica(reportId: bigint) {
-    if (envNotSet(this.CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD)) {
+  private async storeDealDataHighReplica(reportId: bigint) {
+    if (envNotSet(this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD)) {
       this.logger.warn(
         `CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD env is not set; skipping check`,
       );
@@ -695,9 +695,9 @@ export class ClientReportChecksService {
       return;
     }
 
-    if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA)) {
+    if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA)) {
       this.logger.warn(
-        `CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA env is not set; skipping check`,
+        `CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA env is not set; skipping check`,
       );
 
       return;
@@ -709,7 +709,7 @@ export class ClientReportChecksService {
         where: {
           client_report_id: reportId,
           num_of_replicas: {
-            gt: this.CLIENT_REPORT_MAX_HIGHT_REPLICA_THRESHOLD,
+            gt: this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD,
           },
         },
         _sum: {
@@ -717,22 +717,22 @@ export class ClientReportChecksService {
         },
       });
 
-    const percentageSumOfHightReplicaDeals =
+    const percentageSumOfHighReplicaDeals =
       resultOfPercentage.length > 0 && resultOfPercentage[0]._sum.percentage;
 
     const checkPassed =
-      percentageSumOfHightReplicaDeals <=
-      this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGHT_REPLICA;
+      percentageSumOfHighReplicaDeals <=
+      this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA;
 
     await this.prismaService.client_report_check_result.create({
       data: {
         client_report_id: reportId,
-        check: ClientReportCheck.DEAL_DATA_REPLICATION_HIGHT_REPLICA,
+        check: ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA,
         result: checkPassed,
         metadata: {
           max_percentage_for_replica:
             this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
-          msg: `Hight replica percentage is ${percentageSumOfHightReplicaDeals.toFixed(2)}%`,
+          msg: `High replica percentage is ${percentageSumOfHighReplicaDeals.toFixed(2)}%`,
         },
       },
     });
