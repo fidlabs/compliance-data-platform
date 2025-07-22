@@ -8,12 +8,9 @@ with "miner_pieces" as (select "pieceCid"           as "piece_cid",
                         from "unified_verified_deal"
                         where "termStart" >= 3698160                                                -- current fil+ edition start
                           and date_trunc('week', to_timestamp("termStart" * 30 + 1598306400)) <= $1 -- deals up to provided week
-                        group by "pieceCid",
-                                 "clientId",
-                                 "providerId")
-
-select "client",
-       "provider",
+                        group by "pieceCid", "clientId", "providerId")
+select "client"                       as "client",
+       "provider"                     as "provider",
        sum("total_deal_size")::bigint as "total_deal_size",
        sum("piece_size")::bigint      as "unique_data_size"
 from "miner_pieces"

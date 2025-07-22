@@ -20,6 +20,6 @@ select "verified_client"."addressId"         as "addressId",
 from "verified_client"
          left join "verified_client_allowance"
                    on "verified_client"."addressId" = "verified_client_allowance"."addressId"
-where "verified_client"."address" = $1
-   or "verified_client"."addressId" = $1
+where upper("verified_client"."address") = upper($1)
+   or upper("verified_client"."addressId") = upper($1)
 group by "verified_client"."id";
