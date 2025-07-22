@@ -13,6 +13,7 @@ import {
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
+import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 
 @Injectable()
 export class ClientService {
@@ -247,5 +248,17 @@ export class ClientService {
         row.bookkeeping_info as Prisma.JsonObject,
       ),
     }));
+  }
+
+  public async getAverageSecondsToFirstDeal(
+    clientId: string,
+  ): Promise<number | null> {
+    return Number(
+      (
+        await this.prismaService.$queryRawTyped(
+          getAverageSecondsToFirstDeal(clientId, null),
+        )
+      )?.[0]?.average,
+    );
   }
 }

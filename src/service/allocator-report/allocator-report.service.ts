@@ -47,6 +47,10 @@ export class AllocatorReportService {
         address: allocatorData.address,
         name: allocatorData.name || null,
         multisig: allocatorData.isMultisig,
+        avg_secs_to_first_deal:
+          await this.allocatorService.getAverageSecondsToFirstDeal(
+            allocatorData.addressId,
+          ),
         avg_retrievability_success_rate:
           storageProviderDistribution.reduce(
             (acc, curr) => acc + curr.retrievability_success_rate,

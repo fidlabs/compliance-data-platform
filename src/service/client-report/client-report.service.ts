@@ -62,21 +62,15 @@ export class ClientReportService {
         )
       : null;
 
-    const availableDatacap = await this.lotusApiService.getClientDatacap(
-      clientData[0].addressId,
-    );
-    const lastDatacapSpent = await this.clientService.getLastDatacapSpent(
-      clientData[0].addressId,
-    );
-    const lastDatacapReceived = await this.clientService.getLastDatacapReceived(
-      clientData[0].addressId,
-    );
-
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
         client_address: clientData[0].address,
         allocators: allocators,
+        avg_secs_to_first_deal:
+          await this.clientService.getAverageSecondsToFirstDeal(
+            clientData[0].addressId,
+          ),
         allocator_required_copies:
           mainAllocatorRegistryInfo?.application.required_replicas,
         allocator_required_sps:
@@ -91,9 +85,15 @@ export class ClientReportService {
         storage_provider_ids_declared:
           bookkeepingInfo?.storageProviderIDsDeclared,
         client_contract_max_deviation: maxDeviation,
-        available_datacap: availableDatacap,
-        last_datacap_spent: lastDatacapSpent,
-        last_datacap_received: lastDatacapReceived,
+        available_datacap: await this.lotusApiService.getClientDatacap(
+          clientData[0].addressId,
+        ),
+        last_datacap_spent: await this.clientService.getLastDatacapSpent(
+          clientData[0].addressId,
+        ),
+        last_datacap_received: await this.clientService.getLastDatacapReceived(
+          clientData[0].addressId,
+        ),
         storage_provider_distribution: {
           create:
             storageProviderDistribution?.map((provider) => {
