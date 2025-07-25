@@ -26,4 +26,5 @@ export class ClientBookkeepingInfo {
   clientContractAddress: string | null;
   storageProviderIDsDeclared: string[];
   totalRequestedAmount: bigint | null;
+  expectedSizeOfSingleDataset: bigint | null;
 }

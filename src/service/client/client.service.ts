@@ -1,6 +1,7 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from 'prisma/generated/client';
+import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 import {
   getClientData,
   getClientsByAllocator,
@@ -13,7 +14,6 @@ import {
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
-import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 
 @Injectable()
 export class ClientService {
@@ -229,12 +229,10 @@ export class ClientService {
         : null;
     })();
 
-    const totalRequestedAmount = ((): bigint | null => {
-      const totalDataSizeKey = 'Total Requested Amount';
+    const getUnitSizeFromJson = (key: string): bigint | null => {
+      const dataSize = info.Datacap?.[key];
 
-      const totalDataSize = info.Datacap?.[totalDataSizeKey];
-
-      if (!totalDataSize) return null;
+      if (!dataSize) return null;
 
       const units = {
         GiB: 1024n * 1024n * 1024n,
@@ -242,7 +240,7 @@ export class ClientService {
         PiB: 1024n * 1024n * 1024n * 1024n * 1024n,
       };
 
-      const match = totalDataSize.toString().match(/(\d+)\s*(GiB|TiB|PiB)?/i);
+      const match = dataSize.toString().match(/(\d+)\s*(GiB|TiB|PiB)?/i);
 
       if (!match) return null;
 
@@ -250,13 +248,14 @@ export class ClientService {
       const unit = match[2] ? units[match[2]] : 1n;
 
       return BigInt(value * unit);
-    })();
+    };
 
     return {
       isPublicDataset,
       clientContractAddress,
       storageProviderIDsDeclared,
-      totalRequestedAmount,
+      totalRequestedAmount: getUnitSizeFromJson('Total Requested Amount'),
+      expectedSizeOfSingleDataset: getUnitSizeFromJson('Single Size Dataset'),
     };
   }
 

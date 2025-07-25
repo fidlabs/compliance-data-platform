@@ -95,6 +95,8 @@ export class ClientReportService {
           clientData[0].addressId,
         ),
         total_requested_amount: bookkeepingInfo?.totalRequestedAmount ?? 0n,
+        expected_size_of_single_dataset:
+          bookkeepingInfo?.expectedSizeOfSingleDataset ?? 0n,
         total_uniq_data_set_size: replicaDistribution?.reduce(
           (acc, cur) => acc + cur.unique_data_size,
           0n,

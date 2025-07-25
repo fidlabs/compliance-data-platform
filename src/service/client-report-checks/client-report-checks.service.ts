@@ -749,14 +749,16 @@ export class ClientReportChecksService {
     if (thresholdMoreThanPercentage === 0) {
       checkPassed =
         client_report.total_uniq_data_set_size <
-        client_report.total_requested_amount;
+        client_report.expected_size_of_single_dataset;
     } else {
-      const threshold = BigInt(thresholdMoreThanPercentage * 100);
-
       const thresholdValue =
-        (client_report.total_requested_amount * BigInt(threshold)) / 100n;
+        (client_report.expected_size_of_single_dataset *
+          BigInt(thresholdMoreThanPercentage)) /
+        100n;
 
-      checkPassed = client_report.total_uniq_data_set_size < thresholdValue;
+      checkPassed =
+        client_report.total_uniq_data_set_size <
+        client_report.expected_size_of_single_dataset + thresholdValue;
     }
 
     await this.prismaService.client_report_check_result.create({
@@ -767,8 +769,11 @@ export class ClientReportChecksService {
         metadata: {
           total_requested_amount:
             client_report.total_requested_amount.toString(),
+          expected_size_of_single_dataset:
+            client_report.expected_size_of_single_dataset.toString(),
           total_uniq_data_set_size:
             client_report.total_uniq_data_set_size?.toString() ?? null,
+
           msg: checkPassed
             ? 'Unique data set size looks healthy'
             : 'Unique data set size exceeds declared',
