@@ -7,6 +7,7 @@ import {
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { getCurrentProgramRound } from 'src/utils/program-rounds';
 import { envNotSet } from 'src/utils/utils';
 
 @Injectable()
@@ -698,6 +699,34 @@ export class ClientReportChecksService {
     if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA)) {
       this.logger.warn(
         `CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA env is not set; skipping check`,
+      );
+
+      return;
+    }
+
+    const allocatorClientReport =
+      await this.prismaService.allocator_report_client.findFirst({
+        where: {
+          allocator_report_id: reportId.toString(),
+        },
+      });
+
+    const dateOfApplications = allocatorClientReport.application_timestamp;
+    const currentRound = getCurrentProgramRound();
+
+    if (!currentRound) {
+      this.logger.warn(
+        `No current program round found for date: ${dateOfApplications.toISOString()}`,
+      );
+
+      return;
+    }
+
+    const dateOfApplicationsSecs = dateOfApplications.getTime() / 1000;
+
+    if (dateOfApplicationsSecs < currentRound.start) {
+      this.logger.warn(
+        `Allocator report is from the prev round: ${dateOfApplications.toISOString()} skipping check HIGH_REPLICA for this client report`,
       );
 
       return;
