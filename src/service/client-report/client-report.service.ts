@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
-import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
-import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
-import { ClientService } from '../client/client.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { Retryable } from 'src/utils/retryable';
 import { AllocatorService } from '../allocator/allocator.service';
+import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
+import { ClientService } from '../client/client.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { Retryable } from 'src/utils/retryable';
+import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 
 @Injectable()
 export class ClientReportService {
@@ -93,6 +93,13 @@ export class ClientReportService {
         ),
         last_datacap_received: await this.clientService.getLastDatacapReceived(
           clientData[0].addressId,
+        ),
+        total_requested_amount: bookkeepingInfo?.totalRequestedAmount ?? 0n,
+        expected_size_of_single_dataset:
+          bookkeepingInfo?.expectedSizeOfSingleDataset ?? 0n,
+        total_uniq_data_set_size: replicaDistribution?.reduce(
+          (acc, cur) => acc + cur.unique_data_size,
+          0n,
         ),
         storage_provider_distribution: {
           create:
