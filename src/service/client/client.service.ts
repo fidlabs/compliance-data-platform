@@ -1,5 +1,6 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { parse } from 'bytes-iec';
 import { Prisma } from 'prisma/generated/client';
 import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 import {
@@ -229,33 +230,38 @@ export class ClientService {
         : null;
     })();
 
-    const getUnitSizeFromJson = (key: string): bigint | null => {
+    const getUnitSizeFromJsonInBytes = (key: string): bigint | null => {
       const dataSize = info.Datacap?.[key];
 
       if (!dataSize) return null;
 
-      const units = {
-        GiB: 1024n * 1024n * 1024n,
-        TiB: 1024n * 1024n * 1024n * 1024n,
-        PiB: 1024n * 1024n * 1024n * 1024n * 1024n,
-      };
+      let result: bigint | null = null;
 
-      const match = dataSize.toString().match(/(\d+)\s*(GiB|TiB|PiB)?/i);
+      try {
+        const parsedBytes = parse(dataSize);
 
-      if (!match) return null;
+        if (parsedBytes) {
+          result = BigInt(parsedBytes);
+        } else {
+          throw new Error(`Failed to parse string ${dataSize} into bytes`);
+        }
+      } catch (error) {
+        this.logger.error(error);
+      }
 
-      const value = BigInt(match[1]);
-      const unit = match[2] ? units[match[2]] : 1n;
-
-      return BigInt(value * unit);
+      return result;
     };
 
     return {
       isPublicDataset,
       clientContractAddress,
       storageProviderIDsDeclared,
-      totalRequestedAmount: getUnitSizeFromJson('Total Requested Amount'),
-      expectedSizeOfSingleDataset: getUnitSizeFromJson('Single Size Dataset'),
+      totalRequestedAmount: getUnitSizeFromJsonInBytes(
+        'Total Requested Amount',
+      ),
+      expectedSizeOfSingleDataset: getUnitSizeFromJsonInBytes(
+        'Single Size Dataset',
+      ),
     };
   }
 
