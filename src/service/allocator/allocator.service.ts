@@ -66,30 +66,41 @@ export class AllocatorService {
       ),
     );
 
-    const jsonLinks = await this.prismaService.allocator_registry.findMany({
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         allocator_id: true,
         json_path: true,
+        registry_info: true,
       },
     });
 
-    const jsonLinksMap = jsonLinks.reduce((acc, v) => {
-      acc[v.allocator_id] = v.json_path;
+    const registryInfoMap = registryInfo.reduce((acc, v) => {
+      acc[v.allocator_id] = v;
       return acc;
     }, {});
 
-    const owner = this.configService.get<string>(
+    const registryRepoOwner = this.configService.get<string>(
       'ALLOCATOR_REGISTRY_REPO_OWNER',
     );
 
-    const name = this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME');
-    const urlBase = `https://github.com/${owner}/${name}/blob/main`;
+    const registryRepoName = this.configService.get<string>(
+      'ALLOCATOR_REGISTRY_REPO_NAME',
+    );
+
+    const registryRepoUrlBase = `https://github.com/${registryRepoOwner}/${registryRepoName}/blob/main`;
 
     return allocators.map((allocator) => {
-      const path = jsonLinksMap[allocator.addressId];
-      const application_json_url = path ? `${urlBase}/${path}` : null;
+      const path = registryInfoMap[allocator.addressId]?.json_path;
+
       return {
-        application_json_url,
+        application_json_url: path ? `${registryRepoUrlBase}/${path}` : null,
+        metapathway_type:
+          registryInfoMap[allocator.addressId]?.registry_info
+            ?.metapathway_type ?? null,
+        application_audit:
+          registryInfoMap[
+            allocator.addressId
+          ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
         ...allocator,
       };
     });
