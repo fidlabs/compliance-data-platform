@@ -44,12 +44,12 @@ export class ControllerBase {
   }
 
   public sorted<T>(values: T[], sortingInfo?: SortingInfo): T[] {
-    if (!sortingInfo?.sort) return values;
-    sortingInfo.order ??= 'asc';
+    sortingInfo = this.validateSortingInfo(values, sortingInfo);
+    if (!sortingInfo?.sort || !values) return values;
 
-    return values.sort((_a, _b) => {
-      let a = _a[sortingInfo.sort];
-      let b = _b[sortingInfo.sort];
+    const sortAsc = (a: any, b: any): -1 | 0 | 1 => {
+      if (a === null || a === undefined) return 1;
+      if (b === null || b === undefined) return -1;
 
       // try to cast string to number if applicable
       if (parseFloat(a).toString() === a && parseFloat(b).toString() === b) {
@@ -57,20 +57,68 @@ export class ControllerBase {
         b = parseFloat(b);
       }
 
-      if (a instanceof Prisma.Decimal) {
-        if (a.lessThan(b)) return sortingInfo.order === 'asc' ? -1 : 1;
-        if (a.greaterThan(b)) return sortingInfo.order === 'asc' ? 1 : -1;
-      } else {
-        if (a < b) return sortingInfo.order === 'asc' ? -1 : 1;
-        if (a > b) return sortingInfo.order === 'asc' ? 1 : -1;
+      // compare string case insensitively
+      if (typeof a === 'string' && typeof b === 'string') {
+        a = a.toLowerCase();
+        b = b.toLowerCase();
       }
+
+      if (a instanceof Prisma.Decimal) {
+        if (a.lessThan(b)) return -1;
+        if (a.greaterThan(b)) return 1;
+      } else {
+        if (a < b) return -1;
+        if (a > b) return 1;
+      }
+
       return 0;
+    };
+
+    return values.sort((_a: T, _b: T): -1 | 0 | 1 => {
+      const a = _a[sortingInfo.sort];
+      const b = _b[sortingInfo.sort];
+
+      return sortingInfo!.order === 'asc' ? sortAsc(a, b) : sortAsc(b, a);
     });
+  }
+
+  private validateSortingInfo<T>(
+    values: T[],
+    sortingInfo?: SortingInfo,
+  ): SortingInfo | null {
+    if (!sortingInfo) return null;
+
+    if (sortingInfo.order && !sortingInfo.sort)
+      throw new BadRequestException(
+        undefined,
+        'Invalid sorting value: sort must be set if order is set',
+      );
+
+    if (sortingInfo.order && !['asc', 'desc'].includes(sortingInfo.order))
+      throw new BadRequestException(
+        undefined,
+        'Invalid sorting value: order must be "asc" or "desc"',
+      );
+
+    if (
+      sortingInfo.sort &&
+      values.length > 0 &&
+      values[0][sortingInfo.sort] === undefined
+    )
+      throw new BadRequestException(
+        undefined,
+        `Invalid sorting value: sort '${sortingInfo.sort}' does not exist in the data`,
+      );
+
+    return {
+      sort: sortingInfo.sort,
+      order: sortingInfo.order ?? 'asc',
+    };
   }
 
   private validatePaginationInfo(
     paginationInfo?: PaginationInfo,
-  ): PaginationInfo {
+  ): PaginationInfo | null {
     if (!paginationInfo) return null;
     const limit = Number(paginationInfo.limit?.toString());
     const page = Number(paginationInfo.page?.toString());
