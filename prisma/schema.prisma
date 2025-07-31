@@ -26,9 +26,22 @@ model provider {
 
 model allocator_registry {
   allocator_id      String
-  allocator_address String @unique
+  allocator_address String  @unique
   json_path         String
   registry_info     Json
+  active            Boolean @default(true)
+  program_round     Int?
+
+  @@id([allocator_id])
+}
+
+model allocator_registry_archive {
+  allocator_id      String
+  allocator_address String  @unique
+  json_path         String
+  registry_info     Json
+  active            Boolean @default(true)
+  program_round     Int
 
   @@id([allocator_id])
 }
