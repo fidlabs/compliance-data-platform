@@ -17,6 +17,7 @@ import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
 import { ClientAllocatorDistributionWeeklyAccRunner } from './aggregation/runners/client-allocator-distribution-weekly-acc.runner';
 import { ClientAllocatorDistributionWeeklyRunner } from './aggregation/runners/client-allocator-distribution-weekly.runner';
 import { ClientClaimsHourlyRunner } from './aggregation/runners/client-claims-hourly.runner';
+import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
 import { ClientProviderDistributionWeeklyAccRunner } from './aggregation/runners/client-provider-distribution-weekly-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
