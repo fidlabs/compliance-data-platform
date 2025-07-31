@@ -10,6 +10,7 @@ import {
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
+import { binaryUnits } from 'src/utils/utils';
 import {
   ClientBookkeepingInfo,
   ClientWithAllowance,
@@ -238,6 +239,14 @@ export class ClientService {
       let result: bigint | null = null;
 
       try {
+        //check if the dataSize is a string with a binary unit
+        const unit = binaryUnits.find((u) => dataSize.endsWith(u));
+
+        if (!unit) {
+          throw new Error(`Unknown unit in data size: ${dataSize}`);
+        }
+
+        //if it is, parse it
         const parsedBytes = parse(dataSize);
 
         if (parsedBytes) {

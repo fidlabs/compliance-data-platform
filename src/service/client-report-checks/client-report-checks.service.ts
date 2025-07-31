@@ -742,23 +742,41 @@ export class ClientReportChecksService {
     }
 
     let checkPassed = false;
+    let checkMessage: string | undefined = undefined;
 
-    const thresholdMoreThanPercentage =
-      this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE;
+    try {
+      if (!client_report.expected_size_of_single_dataset) {
+        checkMessage =
+          'Single Size Dataset field is not set correctly in the application';
 
-    if (thresholdMoreThanPercentage === 0) {
-      checkPassed =
-        client_report.total_uniq_data_set_size <
-        client_report.expected_size_of_single_dataset;
-    } else {
-      const thresholdValue =
-        (client_report.expected_size_of_single_dataset *
-          BigInt(thresholdMoreThanPercentage)) /
-        100n;
+        throw new Error(
+          `Client report with id ${reportId} has no expected_size_of_single_dataset`,
+        );
+      }
 
-      checkPassed =
-        client_report.total_uniq_data_set_size <
-        client_report.expected_size_of_single_dataset + thresholdValue;
+      const thresholdMoreThanPercentage =
+        this.CLIENT_REPORT_TOTAL_UNIQ_DATA_SET_SIZE_ALLOW_EXCEEDS_PERCENTAGE;
+
+      if (thresholdMoreThanPercentage === 0) {
+        checkPassed =
+          client_report.total_uniq_data_set_size <
+          client_report.expected_size_of_single_dataset;
+      } else {
+        const thresholdValue =
+          (client_report.expected_size_of_single_dataset *
+            BigInt(thresholdMoreThanPercentage)) /
+          100n;
+
+        checkPassed =
+          client_report.total_uniq_data_set_size <
+          client_report.expected_size_of_single_dataset + thresholdValue;
+      }
+
+      checkMessage = checkPassed
+        ? 'Unique data set size looks healthy'
+        : 'Unique data set size exceeds declared';
+    } catch (error) {
+      this.logger.warn(error);
     }
 
     await this.prismaService.client_report_check_result.create({
@@ -768,15 +786,12 @@ export class ClientReportChecksService {
         result: checkPassed,
         metadata: {
           total_requested_amount:
-            client_report.total_requested_amount.toString(),
+            client_report.total_requested_amount?.toString() ?? null,
           expected_size_of_single_dataset:
-            client_report.expected_size_of_single_dataset.toString(),
+            client_report.expected_size_of_single_dataset?.toString() ?? null,
           total_uniq_data_set_size:
             client_report.total_uniq_data_set_size?.toString() ?? null,
-
-          msg: checkPassed
-            ? 'Unique data set size looks healthy'
-            : 'Unique data set size exceeds declared',
+          msg: checkMessage,
         },
       },
     });
