@@ -29,7 +29,6 @@ import { ProvidersWeeklyAccRunner } from './aggregation/runners/providers-weekly
 import { ProvidersWeeklyRunner } from './aggregation/runners/providers-weekly.runner';
 import { UnifiedVerifiedDealHourlyRunner } from './aggregation/runners/unified-verified-deal-hourly.runner';
 import { ClientReportController } from './controller/client-report/client-report.controller';
-import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { AllocatorsAccStatsController } from './controller/stats/allocators/allocators-stats.controller';
 import { StorageProvidersAccStatsController } from './controller/stats/storage-providers/storage-providers-stats.controller';
 import { OldDatacapController } from './controller/stats/old-datacap/old-datacap.controller';
@@ -126,7 +125,6 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     AllocatorsController,
     StorageProvidersAccStatsController,
     AllocatorsAccStatsController,
-    GoogleApisController,
     ClientReportController,
     ClientsController,
     AllocatorReportController,
