@@ -1,6 +1,8 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { parse } from 'bytes-iec';
 import { Prisma } from 'prisma/generated/client';
+import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 import {
   getClientData,
   getClientsByAllocator,
@@ -8,12 +10,12 @@ import {
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
+import { binaryUnits } from 'src/utils/utils';
 import {
   ClientBookkeepingInfo,
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
-import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
 
 @Injectable()
 export class ClientService {
@@ -229,10 +231,46 @@ export class ClientService {
         : null;
     })();
 
+    const getUnitSizeFromJsonInBytes = (key: string): bigint | null => {
+      const dataSize = info.Datacap?.[key];
+
+      if (!dataSize) return null;
+
+      let result: bigint | null = null;
+
+      try {
+        //check if the dataSize is a string with a binary unit
+        const unit = binaryUnits.find((u) => dataSize.endsWith(u));
+
+        if (!unit) {
+          throw new Error(`Unknown unit in data size: ${dataSize}`);
+        }
+
+        //if it is, parse it
+        const parsedBytes = parse(dataSize);
+
+        if (parsedBytes) {
+          result = BigInt(parsedBytes);
+        } else {
+          throw new Error(`Failed to parse string ${dataSize} into bytes`);
+        }
+      } catch (error) {
+        this.logger.error(error);
+      }
+
+      return result;
+    };
+
     return {
       isPublicDataset,
       clientContractAddress,
       storageProviderIDsDeclared,
+      totalRequestedAmount: getUnitSizeFromJsonInBytes(
+        'Total Requested Amount',
+      ),
+      expectedSizeOfSingleDataset: getUnitSizeFromJsonInBytes(
+        'Single Size Dataset',
+      ),
     };
   }
 
