@@ -1,4 +1,6 @@
-export type FilPlusEdition = {
+export const DEFAULT_FILPLUS_EDITION_ID = 6;
+
+export type FilplusEditionConfig = {
   id: number;
   start?: number;
   end?: number;
@@ -6,12 +8,27 @@ export type FilPlusEdition = {
   highReplicaThreshold: number;
 };
 
+export type FilPlusEdition = {
+  startDate: Date;
+  endDate: Date;
+  isCurrent: boolean;
+} & FilplusEditionConfig;
+
 // prettier-ignore
-export const filPlusEditions: FilPlusEdition[] = [
+export const filPlusEditions: FilplusEditionConfig[] = [
   { id: 4, end: 1709251200, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // < 1 March 2024
   { id: 5, start: 1709251200, end: 1752192000, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // 1 March 2024 - 11 July 2025
   { id: 6, start: 1752192000, lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 11 July 2025
 ];
+
+const getFilPlusEditions = (): FilPlusEdition[] => {
+  return filPlusEditions.map((edition) => ({
+    ...edition,
+    isCurrent: edition.id === DEFAULT_FILPLUS_EDITION_ID,
+    startDate: new Date(edition.start * 1000),
+    endDate: new Date(edition.end * 1000),
+  }));
+};
 
 export const getFilPlusEditionByTimestamp = (
   timestamp: number,
@@ -20,6 +37,7 @@ export const getFilPlusEditionByTimestamp = (
     // assume milliseconds instead of seconds
     timestamp /= 1000;
   }
+  const filPlusEditions = getFilPlusEditions();
 
   return filPlusEditions.find(
     (edition) =>
@@ -29,6 +47,7 @@ export const getFilPlusEditionByTimestamp = (
 };
 
 export const getFilPlusEditionById = (id: number): FilPlusEdition | null => {
+  const filPlusEditions = getFilPlusEditions();
   return filPlusEditions.find((edition) => edition.id === id) ?? null;
 };
 
