@@ -10,6 +10,7 @@ import {
 } from 'src/service/allocator/types.allocator';
 import { stringifiedBool } from 'src/utils/utils';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
+import { FilPlusEditionRequest } from '../base/program-round-controller-base';
 
 export class GetDatacapFlowDataRequest {
   @ApiPropertyOptional({
@@ -44,7 +45,7 @@ export class GetDatacapFlowDataResponse {
   data: AllocatorDatacapFlowData[];
 }
 
-class _GetAllocatorsRequest {
+class _GetAllocatorsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
     description: 'Filter to apply to addressId, address, name or orgName',
   })

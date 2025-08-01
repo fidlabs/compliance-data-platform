@@ -1,11 +1,11 @@
+import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get } from '@nestjs/common';
-import { OldDatacapService } from 'src/service/old-datacap/old-datacap.service';
 import { ApiOkResponse } from '@nestjs/swagger';
+import { OldDatacapService } from 'src/service/old-datacap/old-datacap.service';
 import {
   OldDatacapAllocatorBalanceWeekResponse,
   OldDatacapClientBalanceWeekResponse,
 } from 'src/service/old-datacap/types.old-datacap';
-import { CacheTTL } from '@nestjs/cache-manager';
 
 @Controller('stats/old-datacap')
 @CacheTTL(1000 * 60 * 30) // 30 minutes

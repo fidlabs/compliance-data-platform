@@ -1,23 +1,24 @@
+import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Query } from '@nestjs/common';
-import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
+import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
-import {
-  StorageProviderComplianceMetrics,
-  StorageProviderComplianceWeekResponse,
-} from 'src/service/storage-provider/types.storage-provider';
-import { CacheTTL } from '@nestjs/cache-manager';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import {
   AggregatedProvidersIPNIReportingStatus,
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
-import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
+import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
+import {
+  StorageProviderComplianceMetrics,
+  StorageProviderComplianceWeekResponse,
+} from 'src/service/storage-provider/types.storage-provider';
+import { stringToBool, stringToNumber } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
-import { stringToBool } from 'src/utils/utils';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -29,14 +30,22 @@ export class StorageProvidersAccStatsController {
 
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderClientsWeekly();
+  public async getProviderClientsWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.storageProviderService.getProviderClientsWeekly(
+      stringToNumber(query.roundId),
+    );
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly();
+  public async getProviderBiggestClientDistributionWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
+      stringToNumber(query.roundId),
+    );
   }
 
   @Get('retrievability')
@@ -47,6 +56,7 @@ export class StorageProvidersAccStatsController {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
+      stringToNumber(query.roundId),
     );
   }
 
@@ -82,7 +92,11 @@ export class StorageProvidersAccStatsController {
     description: 'Aggregated storage providers IPNI reporting status over time',
     type: AggregatedProvidersIPNIReportingStatusWeekly,
   })
-  public async getAggregatedProvidersIPNIReportingStatusWeekly(): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
-    return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly();
+  public async getAggregatedProvidersIPNIReportingStatusWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
+    return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly(
+      stringToNumber(query.roundId),
+    );
   }
 }
