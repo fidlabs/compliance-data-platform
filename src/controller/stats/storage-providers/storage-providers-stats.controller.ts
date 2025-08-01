@@ -39,6 +39,7 @@ export class StorageProvidersAccStatsController {
     return await this.storageProviderService.getProviderBiggestClientDistributionWeekly();
   }
 
+  // Retrievability Score tab
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getProviderRetrievabilityWeekly(
@@ -47,9 +48,11 @@ export class StorageProvidersAccStatsController {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
+      query?.roundId,
     );
   }
 
+  // compliance tab
   @Get('compliance-data')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
   public async getProviderComplianceWeekly(

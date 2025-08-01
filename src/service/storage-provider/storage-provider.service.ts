@@ -1,13 +1,33 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/db/prisma.service';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import {
   getProviderBiggestClientDistributionAcc,
   getProviderClientsWeeklyAcc,
-  getProviderRetrievabilityAcc,
   getProviderCount,
+  getProviderRetrievabilityAcc,
   getProvidersWithIpInfo,
   getWeekAverageProviderRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
+import { PrismaService } from 'src/db/prisma.service';
+import { Cacheable } from 'src/utils/cacheable';
+import {
+  getCurrentProgramRound,
+  getProgramRoundByNumber,
+} from 'src/utils/program-rounds';
+import { getLastWeekBeforeTimestamp, lastWeek } from 'src/utils/utils';
+import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
+import {
+  HistogramWeekFlat,
+  HistogramWeekResponse,
+  RetrievabilityHistogramWeek,
+  RetrievabilityHistogramWeekResponse,
+  RetrievabilityWeekResponse,
+} from '../histogram-helper/types.histogram-helper';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
@@ -20,17 +40,6 @@ import {
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
-import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
-import {
-  HistogramWeekFlat,
-  HistogramWeekResponse,
-  RetrievabilityHistogramWeek,
-  RetrievabilityHistogramWeekResponse,
-  RetrievabilityWeekResponse,
-} from '../histogram-helper/types.histogram-helper';
-import { Cacheable } from 'src/utils/cacheable';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { lastWeek } from 'src/utils/utils';
 
 @Injectable()
 export class StorageProviderService {
@@ -89,12 +98,28 @@ export class StorageProviderService {
   public async getProviderRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
+    roundId?,
   ): Promise<RetrievabilityWeekResponse> {
-    const lastWeekAverageRetrievability =
-      await this.getLastWeekAverageProviderRetrievability(
-        openDataOnly,
-        httpRetrievability,
-      );
+    const programRoundData = roundId
+      ? getProgramRoundByNumber(roundId)
+      : getCurrentProgramRound();
+
+    if (!programRoundData) {
+      throw new BadRequestException(`Invalid program round ID: ${roundId}`);
+    }
+
+    const isCurrentRound = programRoundData.isCurrent;
+
+    const lastWeekAverageRetrievability = isCurrentRound
+      ? await this.getLastWeekAverageProviderRetrievability(
+          openDataOnly,
+          httpRetrievability,
+        )
+      : this.getWeekAverageProviderRetrievability(
+          getLastWeekBeforeTimestamp(programRoundData.start),
+          openDataOnly,
+          httpRetrievability,
+        );
 
     const result = await this._getProviderRetrievability(
       openDataOnly,
@@ -138,7 +163,9 @@ export class StorageProviderService {
   public async getProviderComplianceWeekly(
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<StorageProviderComplianceWeekResponse> {
-    const weeks = await this.getWeeksTracked();
+    const roundData = getProgramRoundByNumber(metricsToCheck?.roundId);
+
+    const weeks = await this.getWeeksTracked(new Date(roundData.start * 1000));
 
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability();
@@ -238,10 +265,15 @@ export class StorageProviderService {
     });
   }
 
-  public async getWeeksTracked(): Promise<Date[]> {
+  public async getWeeksTracked(fromWeek?: Date): Promise<Date[]> {
     return (
       await this.prismaService.providers_weekly_acc.findMany({
         distinct: ['week'],
+        where: {
+          week: {
+            gte: fromWeek,
+          },
+        },
         select: {
           week: true,
         },
