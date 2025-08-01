@@ -2,6 +2,7 @@ import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
+import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import {
   HistogramWeek,
@@ -19,7 +20,6 @@ import {
 } from 'src/service/storage-provider/types.storage-provider';
 import { stringToBool } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
-import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
