@@ -112,11 +112,13 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
     retrievability = true,
     numberOfClients = true,
     totalDealSize = true,
+    roundId = '6',
   ) {
     super();
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
+    this.roundId = roundId;
   }
 
   public static of(metrics: StorageProviderComplianceMetricsRequest) {
@@ -124,6 +126,7 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
       stringToBool(metrics.retrievability) ?? true,
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
+      metrics.roundId,
     );
   }
 }
