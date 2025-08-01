@@ -32,7 +32,9 @@ export class AllocatorRegistryArchiveRunner implements AggregationRunner {
     );
 
     let archiveResult =
-      await allocatorRegistryService.getAllocatorsRegistry('Allocator_Archive');
+      await allocatorRegistryService.fetchAllocatorsRegistry(
+        'Allocator_Archive',
+      );
 
     getDataEndTimerMetric();
 
