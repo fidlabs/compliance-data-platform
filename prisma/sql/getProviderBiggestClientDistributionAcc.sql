@@ -1,8 +1,13 @@
+-- @param {DateTime} $1:startDate
+-- @param {DateTime} $2:endDate
+
 with "providers_with_ratio" as (select "week"                                          as "week",
                                        "provider"                                      as "provider",
                                        max("total_deal_size") / sum("total_deal_size") as "biggestToTotalRatio",
                                        sum("total_deal_size")                          as "totalDatacap"
                                 from "client_provider_distribution_weekly_acc"
+                                where "week" >= $1
+                                  and "week" <= $2
                                 group by "provider", "week")
 select "week"                                                 as "week",
        100 * ceil("biggestToTotalRatio"::float * 20) / 20 - 5 as "valueFromExclusive",

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/terminus';
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
+import { PrismaService } from 'src/db/prisma.service';
 import { envSet } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { AllocatorRegistry } from './types.github-allocator-registry';
@@ -20,6 +21,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   constructor(
     private readonly configService: ConfigService,
     private readonly allocatorService: AllocatorService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -200,7 +202,10 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     // prefer json data over db data
     const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
     const allocatorId = jsonAllocatorId || dbAllocatorId;
-    const programRoundData = this.getAllocatorProgramRoundData(jsonData, path);
+    const filPlusEditionData = this.getAllocatorFilPlusEditionData(
+      jsonData,
+      path,
+    );
 
     return !allocatorId
       ? null
@@ -209,11 +214,11 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
           allocator_address: allocatorAddress,
           json_path: path,
           registry_info: jsonData,
-          ...programRoundData,
+          ...filPlusEditionData,
         };
   }
 
-  private getAllocatorProgramRoundData(
+  private getAllocatorFilPlusEditionData(
     jsonData: object,
     allocatorJsonPath: string,
   ): {
