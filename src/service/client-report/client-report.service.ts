@@ -8,6 +8,7 @@ import { AllocatorService } from '../allocator/allocator.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { Retryable } from 'src/utils/retryable';
+import { getFilPlusEditionByTimestamp } from 'src/utils/filplus-edition';
 
 @Injectable()
 export class ClientReportService {
@@ -62,6 +63,13 @@ export class ClientReportService {
         )
       : null;
 
+    const clientApplicationTimestamp =
+      clientData[0].allowanceArray?.[0]?.issueCreateTimestamp;
+
+    const filPlusEditionData = clientApplicationTimestamp
+      ? getFilPlusEditionByTimestamp(clientApplicationTimestamp)
+      : null;
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -71,6 +79,9 @@ export class ClientReportService {
           await this.clientService.getAverageSecondsToFirstDeal(
             clientData[0].addressId,
           ),
+        low_replica_threshold: filPlusEditionData?.lowReplicaThreshold ?? null,
+        high_replica_threshold:
+          filPlusEditionData?.highReplicaThreshold ?? null,
         allocator_required_copies:
           mainAllocatorRegistryInfo?.application.required_replicas,
         allocator_required_sps:
