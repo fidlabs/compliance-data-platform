@@ -3,13 +3,13 @@ export type FilPlusEdition = {
   start: number;
   end?: number;
   lowReplicaThreshold: number;
-  highReplicaThreshold?: number;
+  highReplicaThreshold: number;
 };
 
 // prettier-ignore
 const filPlusEditions: FilPlusEdition[] = [
-  { id: 5, start: 0, end: 1751846399, lowReplicaThreshold: 4 }, // < 2026-07-06
-  { id: 6, start: 1751846400, lowReplicaThreshold: 4, highReplicaThreshold: 8, }, // >= 2026-07-07
+  { id: 5, start: 0, end: 1751846399, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // < 2026-07-06
+  { id: 6, start: 1751846400, lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 2026-07-07
 ];
 
 export const getFilPlusEditionByTimestamp = (

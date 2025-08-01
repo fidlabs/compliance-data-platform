@@ -15,10 +15,8 @@ export class ClientReportChecksService {
   public CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA: number;
-  public CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS: number;
-  public CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD: number;
 
   private readonly logger = new Logger(ClientReportChecksService.name);
 
@@ -39,17 +37,11 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA',
     );
-    this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD = configService.get<number>(
-      'CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD',
-    );
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES',
     );
     this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
-    );
-    this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD = configService.get<number>(
-      'CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD',
     );
   }
 
@@ -637,14 +629,6 @@ export class ClientReportChecksService {
   }
 
   private async storeDealDataLowReplica(reportId: bigint) {
-    if (envNotSet(this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD)) {
-      this.logger.warn(
-        `CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD env is not set; skipping check`,
-      );
-
-      return;
-    }
-
     if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA)) {
       this.logger.warn(
         `CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA env is not set; skipping check`,
@@ -660,14 +644,26 @@ export class ClientReportChecksService {
         },
       });
 
-    const percentageSumOfLowReplicaDeals = replicaDistribution
-      .filter(
-        (distribution) =>
-          distribution.num_of_replicas <=
-          this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD,
-      )
-      .map((distribution) => distribution.percentage)
-      .reduce((a, b) => a + b, 0);
+    const lowReplicaThreshold = (
+      await this.prismaService.client_report.findFirst({
+        where: {
+          id: reportId,
+        },
+        select: {
+          low_replica_threshold: true,
+        },
+      })
+    ).low_replica_threshold;
+
+    const percentageSumOfLowReplicaDeals = lowReplicaThreshold
+      ? replicaDistribution
+          .filter(
+            (distribution) =>
+              distribution.num_of_replicas < lowReplicaThreshold,
+          )
+          .map((distribution) => distribution.percentage)
+          .reduce((a, b) => a + b, 0)
+      : 0;
 
     const checkPassed =
       percentageSumOfLowReplicaDeals <=
@@ -688,14 +684,6 @@ export class ClientReportChecksService {
   }
 
   private async storeDealDataHighReplica(reportId: bigint) {
-    if (envNotSet(this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD)) {
-      this.logger.warn(
-        `CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD env is not set; skipping check`,
-      );
-
-      return;
-    }
-
     if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA)) {
       this.logger.warn(
         `CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA env is not set; skipping check`,
@@ -704,22 +692,33 @@ export class ClientReportChecksService {
       return;
     }
 
-    const resultOfPercentage =
-      await this.prismaService.client_report_replica_distribution.groupBy({
-        by: ['client_report_id'],
+    const replicaDistribution =
+      await this.prismaService.client_report_replica_distribution.findMany({
         where: {
           client_report_id: reportId,
-          num_of_replicas: {
-            gt: this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD,
-          },
-        },
-        _sum: {
-          percentage: true,
         },
       });
 
-    const percentageSumOfHighReplicaDeals =
-      resultOfPercentage.length > 0 ? resultOfPercentage[0]._sum.percentage : 0;
+    const highReplicaThreshold = (
+      await this.prismaService.client_report.findFirst({
+        where: {
+          id: reportId,
+        },
+        select: {
+          high_replica_threshold: true,
+        },
+      })
+    ).high_replica_threshold;
+
+    const percentageSumOfHighReplicaDeals = highReplicaThreshold
+      ? replicaDistribution
+          .filter(
+            (distribution) =>
+              distribution.num_of_replicas > highReplicaThreshold,
+          )
+          .map((distribution) => distribution.percentage)
+          .reduce((a, b) => a + b, 0)
+      : 0;
 
     const checkPassed =
       percentageSumOfHighReplicaDeals <=
