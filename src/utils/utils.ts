@@ -18,6 +18,13 @@ export function lastWeek(): Date {
   return DateTime.now().toUTC().minus({ week: 1 }).startOf('week').toJSDate();
 }
 
+export function getLastWeekBeforeTimestamp(timestamp: number): Date {
+  return DateTime.fromSeconds(timestamp)
+    .minus({ week: 1 })
+    .startOf('week')
+    .toJSDate();
+}
+
 export function yesterday(): DateTime {
   return DateTime.now().toUTC().minus({ day: 1 }).startOf('day');
 }
