@@ -7,10 +7,6 @@ import {
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
-import {
-  getProgramRoundByTimestamp,
-  ProgramRound,
-} from 'src/utils/program-rounds';
 import { envNotSet } from 'src/utils/utils';
 
 @Injectable()
@@ -40,11 +36,11 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA',
     );
+    this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA = configService.get<number>(
+      'CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA',
+    );
     this.CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD = configService.get<number>(
       'CLIENT_REPORT_MAX_LOW_REPLICA_THRESHOLD',
-    );
-    this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD = configService.get<number>(
-      'CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD',
     );
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES',
@@ -52,8 +48,9 @@ export class ClientReportChecksService {
     this.CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS = configService.get<number>(
       'CLIENT_REPORT_MAX_PERCENTAGE_NOT_DECLARED_PROVIDERS',
     );
-
-    
+    this.CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD = configService.get<number>(
+      'CLIENT_REPORT_MAX_HIGH_REPLICA_THRESHOLD',
+    );
   }
 
   public async storeReportChecks(reportId: bigint) {
@@ -656,14 +653,12 @@ export class ClientReportChecksService {
       return;
     }
 
-    const [currentRoundData, replicaDistribution] = await Promise.all([
-      this.getProgramRoundDataForReport(reportId),
-      this.prismaService.client_report_replica_distribution.findMany({
+    const replicaDistribution =
+      await this.prismaService.client_report_replica_distribution.findMany({
         where: {
           client_report_id: reportId,
         },
-      }),
-    ]);
+      });
 
     const percentageSumOfLowReplicaDeals = replicaDistribution
       .filter(
@@ -687,9 +682,6 @@ export class ClientReportChecksService {
           max_percentage_for_low_replica:
             this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_LOW_REPLICA,
           msg: `Low replica percentage is ${percentageSumOfLowReplicaDeals.toFixed(2)}%`,
-          round_program_rules: {
-            low_replica_threshold: currentRoundData.lowReplicaRequirement,
-          },
         },
       },
     });
@@ -712,9 +704,8 @@ export class ClientReportChecksService {
       return;
     }
 
-    const [currentRoundData, resultOfPercentage] = await Promise.all([
-      this.getProgramRoundDataForReport(reportId),
-      this.prismaService.client_report_replica_distribution.groupBy({
+    const resultOfPercentage =
+      await this.prismaService.client_report_replica_distribution.groupBy({
         by: ['client_report_id'],
         where: {
           client_report_id: reportId,
@@ -725,8 +716,7 @@ export class ClientReportChecksService {
         _sum: {
           percentage: true,
         },
-      }),
-    ]);
+      });
 
     const percentageSumOfHighReplicaDeals =
       resultOfPercentage.length > 0 ? resultOfPercentage[0]._sum.percentage : 0;
@@ -744,10 +734,6 @@ export class ClientReportChecksService {
           max_percentage_for_replica:
             this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_HIGH_REPLICA,
           msg: `High replica percentage is ${percentageSumOfHighReplicaDeals.toFixed(2)}%`,
-          round_program_rules: {
-            low_replica_threshold: currentRoundData.lowReplicaRequirement,
-            high_replica_threshold: currentRoundData.highReplicaRequirement,
-          },
         },
       },
     });
@@ -790,39 +776,5 @@ export class ClientReportChecksService {
 
   private _storageProvidersAre(n: number): string {
     return this._storageProviders(n) + ' ' + (n === 1 ? 'is' : 'are');
-  }
-
-  private async getProgramRoundDataForReport(
-    reportId: bigint,
-  ): Promise<ProgramRound | undefined> {
-    const allocatorClientReport =
-      await this.prismaService.allocator_report_client.findFirst({
-        where: {
-          allocator_report_id: reportId.toString(),
-        },
-      });
-
-    const dateOfApplications = allocatorClientReport.application_timestamp;
-    const dateOfApplicationsTimestamp = dateOfApplications.getTime() / 1000;
-
-    const roundData = getProgramRoundByTimestamp(dateOfApplicationsTimestamp);
-
-    if (!roundData) {
-      this.logger.warn(
-        `No current program round found for date: ${dateOfApplications.toISOString()}`,
-      );
-
-      return;
-    }
-
-    if (dateOfApplicationsTimestamp < roundData.start) {
-      this.logger.warn(
-        `Allocator report is from the previous round: ${dateOfApplications.toISOString()} skipping check HIGH_REPLICA for this client report`,
-      );
-
-      return;
-    }
-
-    return roundData;
   }
 }

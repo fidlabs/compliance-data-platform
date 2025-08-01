@@ -224,6 +224,8 @@ model client_report {
   available_datacap             BigInt?
   last_datacap_spent            DateTime?
   last_datacap_received         DateTime?
+  low_replica_threshold         Int?
+  high_replica_threshold        Int?
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -474,11 +476,11 @@ enum ClientReportCheck {
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED
   DEAL_DATA_REPLICATION_LOW_REPLICA
+  DEAL_DATA_REPLICATION_HIGH_REPLICA
   DEAL_DATA_REPLICATION_CID_SHARING
   MULTIPLE_ALLOCATORS
   NOT_ENOUGH_COPIES
   INACTIVITY
-  DEAL_DATA_REPLICATION_HIGH_REPLICA
 }
 
 enum AllocatorReportCheck {
