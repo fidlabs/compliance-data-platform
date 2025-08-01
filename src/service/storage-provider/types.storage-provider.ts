@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IntersectionType } from '@nestjs/swagger';
+import { ApiProperty, IntersectionType } from '@nestjs/swagger';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { stringToBool } from 'src/utils/utils';
 
@@ -98,7 +98,7 @@ export class StorageProviderComplianceWeekResults extends IntersectionType(
   averageSuccessRate: number;
 }
 
-export class StorageProviderComplianceMetrics {
+export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   @ApiProperty()
   retrievability: boolean;
 
@@ -112,10 +112,13 @@ export class StorageProviderComplianceMetrics {
     retrievability = true,
     numberOfClients = true,
     totalDealSize = true,
+    roundId = '6',
   ) {
+    super();
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
+    this.roundId = roundId;
   }
 
   public static of(metrics: StorageProviderComplianceMetricsRequest) {
@@ -123,6 +126,7 @@ export class StorageProviderComplianceMetrics {
       stringToBool(metrics.retrievability) ?? true,
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
+      metrics.roundId,
     );
   }
 }
