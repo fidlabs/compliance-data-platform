@@ -58,7 +58,12 @@ export class AppController extends HealthIndicator {
     return 'debug';
   }
 
-  @Get('health')
+  @Get('/version')
+  public async getVersion() {
+    return process.env.npm_package_version;
+  }
+
+  @Get('/health')
   @HealthCheck({ noCache: true })
   @CacheTTL(1) // disable cache
   public async getHealth(): Promise<HealthCheckResult> {
