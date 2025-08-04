@@ -15,7 +15,7 @@ async function bootstrap() {
   // setup swagger
   const config = new DocumentBuilder()
     .setTitle('Compliance Data Platform API')
-    .setVersion('0.1')
+    .setVersion(process.env.npm_package_version)
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
