@@ -637,13 +637,6 @@ export class ClientReportChecksService {
       return;
     }
 
-    const replicaDistribution =
-      await this.prismaService.client_report_replica_distribution.findMany({
-        where: {
-          client_report_id: reportId,
-        },
-      });
-
     const lowReplicaThreshold = (
       await this.prismaService.client_report.findFirst({
         where: {
@@ -655,15 +648,20 @@ export class ClientReportChecksService {
       })
     ).low_replica_threshold;
 
-    const percentageSumOfLowReplicaDeals = lowReplicaThreshold
-      ? replicaDistribution
-          .filter(
-            (distribution) =>
-              distribution.num_of_replicas < lowReplicaThreshold,
-          )
-          .map((distribution) => distribution.percentage)
-          .reduce((a, b) => a + b, 0)
-      : 0;
+    const percentageSumOfLowReplicaDeals =
+      (
+        await this.prismaService.client_report_replica_distribution.aggregate({
+          _sum: {
+            percentage: true,
+          },
+          where: {
+            client_report_id: reportId,
+            num_of_replicas: {
+              lt: lowReplicaThreshold,
+            },
+          },
+        })
+      )._sum.percentage ?? 0;
 
     const checkPassed =
       percentageSumOfLowReplicaDeals <=
@@ -692,13 +690,6 @@ export class ClientReportChecksService {
       return;
     }
 
-    const replicaDistribution =
-      await this.prismaService.client_report_replica_distribution.findMany({
-        where: {
-          client_report_id: reportId,
-        },
-      });
-
     const highReplicaThreshold = (
       await this.prismaService.client_report.findFirst({
         where: {
@@ -710,15 +701,20 @@ export class ClientReportChecksService {
       })
     ).high_replica_threshold;
 
-    const percentageSumOfHighReplicaDeals = highReplicaThreshold
-      ? replicaDistribution
-          .filter(
-            (distribution) =>
-              distribution.num_of_replicas > highReplicaThreshold,
-          )
-          .map((distribution) => distribution.percentage)
-          .reduce((a, b) => a + b, 0)
-      : 0;
+    const percentageSumOfHighReplicaDeals =
+      (
+        await this.prismaService.client_report_replica_distribution.aggregate({
+          _sum: {
+            percentage: true,
+          },
+          where: {
+            client_report_id: reportId,
+            num_of_replicas: {
+              gt: highReplicaThreshold,
+            },
+          },
+        })
+      )._sum.percentage ?? 0;
 
     const checkPassed =
       percentageSumOfHighReplicaDeals <=
