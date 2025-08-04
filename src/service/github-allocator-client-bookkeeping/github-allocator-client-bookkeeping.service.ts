@@ -78,7 +78,7 @@ export class GitHubAllocatorClientBookkeepingService {
     return this.octokit[key];
   }
 
-  public async getAllocatorsClientBookkeeping(
+  public async fetchAllocatorsClientBookkeeping(
     owner: string,
     repo: string,
   ): Promise<AllocatorClientBookkeeping[]> {
@@ -118,7 +118,7 @@ export class GitHubAllocatorClientBookkeepingService {
       await Promise.allSettled(
         chunk.map(async (path: string) => {
           try {
-            const info = await this.getClientInfo(owner, repo, path);
+            const info = await this.fetchClientInfo(owner, repo, path);
             if (info) clients.push(info);
           } catch (err) {
             this.logger.warn(
@@ -133,7 +133,7 @@ export class GitHubAllocatorClientBookkeepingService {
     return clients;
   }
 
-  private async getClientInfo(
+  private async fetchClientInfo(
     owner: string,
     repo: string,
     path: string,

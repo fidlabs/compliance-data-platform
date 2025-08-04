@@ -60,7 +60,7 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
 
     for (const bookkeeping of bookkeeping_repos) {
       const bookkeepingData =
-        await allocatorClientBookkeepingService.getAllocatorsClientBookkeeping(
+        await allocatorClientBookkeepingService.fetchAllocatorsClientBookkeeping(
           bookkeeping.owner,
           bookkeeping.repo,
         );

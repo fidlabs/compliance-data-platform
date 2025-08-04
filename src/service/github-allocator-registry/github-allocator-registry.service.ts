@@ -92,7 +92,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     return this.octokit;
   }
 
-  public async getAllocatorsRegistry(): Promise<AllocatorRegistry[]> {
+  public async fetchAllocatorsRegistry(): Promise<AllocatorRegistry[]> {
     const octokit = await this.getOctokit();
     let response;
 
@@ -129,7 +129,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
     for (const path of paths) {
       try {
-        const info = await this.getAllocatorInfo(path);
+        const info = await this.fetchAllocatorInfo(path);
         if (info) registry.push(info);
       } catch (err) {
         this.logger.warn(
@@ -142,7 +142,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     return registry;
   }
 
-  private async getAllocatorInfo(
+  private async fetchAllocatorInfo(
     path: string,
   ): Promise<AllocatorRegistry | null> {
     const octokit = await this.getOctokit();
