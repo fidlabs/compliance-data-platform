@@ -49,7 +49,7 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
 
   private async _runAllocatorReportGeneration() {
     const allocators =
-      await this.allocatorRegistryService.getAllocatorsRegistry();
+      await this.allocatorRegistryService.fetchAllocatorsRegistry();
 
     const allocatorsAddresses = [
       ...new Set(allocators.map((allocator) => allocator.allocator_address)),

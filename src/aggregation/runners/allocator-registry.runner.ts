@@ -31,7 +31,7 @@ export class AllocatorRegistryRunner implements AggregationRunner {
       AllocatorRegistryRunner.name,
     );
 
-    let result = await allocatorRegistryService.getAllocatorsRegistry();
+    let result = await allocatorRegistryService.fetchAllocatorsRegistry();
 
     getDataEndTimerMetric();
 
