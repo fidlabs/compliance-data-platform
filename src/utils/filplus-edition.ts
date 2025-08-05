@@ -2,6 +2,7 @@ export type FilPlusEdition = {
   id: number;
   start: number;
   end?: number;
+  isCurrent?: boolean; // Optional, used to i the current edition
   lowReplicaThreshold: number;
   highReplicaThreshold: number;
 };
@@ -22,4 +23,15 @@ export const getFilPlusEditionByTimestamp = (
   );
 
   return edition ?? filPlusEditions[filPlusEditions.length - 1]; // return the last edition if no match found
+};
+
+export const getFilPlusEditionByNumber = (
+  roundId: number,
+): FilPlusEdition | undefined => {
+  return filPlusEditions.find((round) => round.id === roundId);
+};
+
+export const getCurrentFilPlusEdition = (): FilPlusEdition => {
+  const now = Math.floor(Date.now() / 1000);
+  return getFilPlusEditionByTimestamp(now);
 };

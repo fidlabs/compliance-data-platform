@@ -1,6 +1,6 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
-import { getCurrentProgramRound } from 'src/utils/program-rounds';
+import { getCurrentFilPlusEdition } from 'src/utils/filplus-edition';
 import { stringToBool } from 'src/utils/utils';
 
 export enum StorageProviderComplianceScoreRange {
@@ -119,7 +119,7 @@ export class StorageProviderComplianceMetrics {
       stringToBool(metrics.retrievability) ?? true,
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
-      metrics.roundId ?? getCurrentProgramRound().id,
+      metrics.roundId ?? getCurrentFilPlusEdition().id,
     );
   }
 }

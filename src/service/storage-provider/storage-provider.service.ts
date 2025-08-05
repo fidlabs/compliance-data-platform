@@ -15,10 +15,7 @@ import {
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
-import {
-  getCurrentProgramRound,
-  getProgramRoundByNumber,
-} from 'src/utils/program-rounds';
+
 import { getLastWeekBeforeTimestamp, lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -40,6 +37,10 @@ import {
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
+import {
+  getCurrentFilPlusEdition,
+  getFilPlusEditionByNumber,
+} from 'src/utils/filplus-edition';
 
 @Injectable()
 export class StorageProviderService {
@@ -101,8 +102,8 @@ export class StorageProviderService {
     roundId?,
   ): Promise<RetrievabilityWeekResponse> {
     const programRoundData = roundId
-      ? getProgramRoundByNumber(roundId)
-      : getCurrentProgramRound();
+      ? getFilPlusEditionByNumber(roundId)
+      : getCurrentFilPlusEdition();
 
     if (!programRoundData) {
       throw new BadRequestException(`Invalid program round ID: ${roundId}`);
@@ -115,7 +116,7 @@ export class StorageProviderService {
           openDataOnly,
           httpRetrievability,
         )
-      : this.getWeekAverageProviderRetrievability(
+      : await this.getWeekAverageProviderRetrievability(
           getLastWeekBeforeTimestamp(programRoundData.start),
           openDataOnly,
           httpRetrievability,
@@ -163,7 +164,7 @@ export class StorageProviderService {
   public async getProviderComplianceWeekly(
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<StorageProviderComplianceWeekResponse> {
-    const roundData = getProgramRoundByNumber(metricsToCheck?.roundId);
+    const roundData = getFilPlusEditionByNumber(metricsToCheck?.roundId);
 
     const weeks = await this.getWeeksTracked(new Date(roundData.start * 1000));
 
