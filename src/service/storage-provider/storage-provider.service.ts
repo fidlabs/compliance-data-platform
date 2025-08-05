@@ -15,10 +15,6 @@ import {
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
-import {
-  getCurrentProgramRound,
-  getProgramRoundByNumber,
-} from 'src/utils/program-rounds';
 import { getLastWeekBeforeTimestamp, lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -40,6 +36,11 @@ import {
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
+import { getFilPlusEditionDateTimeRange } from 'src/utils/filplus-edition';
+import {
+  getCurrentProgramRound,
+  getProgramRoundByNumber,
+} from 'src/utils/program-rounds';
 
 @Injectable()
 export class StorageProviderService {
@@ -59,21 +60,37 @@ export class StorageProviderService {
     return await this.prismaService.$queryRawTyped(getProvidersWithIpInfo());
   }
 
-  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
-      await this.getProviderCount(),
-      await this.histogramHelper.getWeeklyHistogramResult(
-        await this.prismaService.$queryRawTyped(getProviderClientsWeeklyAcc()),
-      ),
-    );
-  }
+  public async getProviderClientsWeekly(
+    roundId?: number,
+  ): Promise<HistogramWeekResponse> {
+    const editionDate = getFilPlusEditionDateTimeRange(roundId);
 
-  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
     return new HistogramWeekResponse(
       await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
-          getProviderBiggestClientDistributionAcc(),
+          getProviderClientsWeeklyAcc(
+            editionDate.startDate,
+            editionDate.endDate,
+          ),
+        ),
+      ),
+    );
+  }
+
+  public async getProviderBiggestClientDistributionWeekly(
+    roundId?: number,
+  ): Promise<HistogramWeekResponse> {
+    const editionDate = getFilPlusEditionDateTimeRange(roundId);
+
+    return new HistogramWeekResponse(
+      await this.getProviderCount(),
+      await this.histogramHelper.getWeeklyHistogramResult(
+        await this.prismaService.$queryRawTyped(
+          getProviderBiggestClientDistributionAcc(
+            editionDate.startDate,
+            editionDate.endDate,
+          ),
         ),
         100,
       ),
@@ -98,7 +115,7 @@ export class StorageProviderService {
   public async getProviderRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-    roundId?,
+    roundId?: number,
   ): Promise<RetrievabilityWeekResponse> {
     const programRoundData = roundId
       ? getProgramRoundByNumber(roundId)

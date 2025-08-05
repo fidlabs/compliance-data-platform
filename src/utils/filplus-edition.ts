@@ -23,3 +23,29 @@ export const getFilPlusEditionByTimestamp = (
 
   return edition ?? filPlusEditions[filPlusEditions.length - 1]; // return the last edition if no match found
 };
+
+export const getFilPlusEditionByNumber = (
+  roundId: number,
+): FilPlusEdition | undefined => {
+  return filPlusEditions.find((round) => round.id === roundId);
+};
+
+export const getCurrentFilPlusEdition = (): FilPlusEdition => {
+  const now = Math.floor(Date.now() / 1000);
+  return getFilPlusEditionByTimestamp(now);
+};
+
+export const getFilPlusEditionDateTimeRange = (
+  roundId: number,
+): { startDate: Date; endDate: Date } | undefined => {
+  const edition = getFilPlusEditionByNumber(roundId);
+
+  if (!edition) {
+    throw new Error(`FilPlus edition with ID ${roundId} not found`);
+  }
+
+  return {
+    startDate: new Date(edition.start * 1000),
+    endDate: edition.end ? new Date(edition.end * 1000) : new Date(),
+  };
+};
