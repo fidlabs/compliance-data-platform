@@ -657,6 +657,13 @@ export class ClientReportChecksService {
       })
     ).low_replica_threshold;
 
+    if (lowReplicaThreshold === null) {
+      this.logger.warn(
+        `Low replica threshold is not set for report ${reportId}; skipping  check`,
+      );
+      return;
+    }
+
     const percentageSumOfLowReplicaDeals =
       (
         await this.prismaService.client_report_replica_distribution.aggregate({
@@ -709,6 +716,13 @@ export class ClientReportChecksService {
         },
       })
     ).high_replica_threshold;
+
+    if (highReplicaThreshold === null) {
+      this.logger.warn(
+        `High replica threshold is not set for report ${reportId}; skipping check`,
+      );
+      return;
+    }
 
     const percentageSumOfHighReplicaDeals =
       (
