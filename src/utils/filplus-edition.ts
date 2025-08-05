@@ -35,3 +35,18 @@ export const getCurrentFilPlusEdition = (): FilPlusEdition => {
   const now = Math.floor(Date.now() / 1000);
   return getFilPlusEditionByTimestamp(now);
 };
+
+export const getFilPlusEditionDateTimeRange = (
+  roundId: number,
+): { startDate: Date; endDate: Date } | undefined => {
+  const edition = getFilPlusEditionByNumber(roundId);
+
+  if (!edition) {
+    throw new Error(`FilPlus edition with ID ${roundId} not found`);
+  }
+
+  return {
+    startDate: new Date(edition.start * 1000),
+    endDate: edition.end ? new Date(edition.end * 1000) : new Date(),
+  };
+};

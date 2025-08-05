@@ -1,8 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class ProgramRoundFilter {
+export class FilPlusEditionRequest {
   @ApiPropertyOptional({
-    description: 'Program round ID to filter by',
+    description: 'FilPlus Edition ID to filter by',
     example: '6',
   })
   roundId?: number;

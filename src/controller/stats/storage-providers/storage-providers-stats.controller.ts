@@ -1,23 +1,24 @@
+import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Query } from '@nestjs/common';
-import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
+import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
-import {
-  StorageProviderComplianceMetrics,
-  StorageProviderComplianceWeekResponse,
-} from 'src/service/storage-provider/types.storage-provider';
-import { CacheTTL } from '@nestjs/cache-manager';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import {
   AggregatedProvidersIPNIReportingStatus,
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
-import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
-import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
+import {
+  StorageProviderComplianceMetrics,
+  StorageProviderComplianceWeekResponse,
+} from 'src/service/storage-provider/types.storage-provider';
 import { stringToBool } from 'src/utils/utils';
+import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -27,16 +28,26 @@ export class StorageProvidersAccStatsController {
     private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
 
+  // Number of Allocations tab
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderClientsWeekly();
+  public async getProviderClientsWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.storageProviderService.getProviderClientsWeekly(
+      query.roundId,
+    );
   }
 
+  // Biggest Allocation tab
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly();
+  public async getProviderBiggestClientDistributionWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
+      query.roundId,
+    );
   }
 
   // Retrievability Score tab
@@ -76,6 +87,7 @@ export class StorageProvidersAccStatsController {
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatus();
   }
 
+  // ipin misreporting tab
   @Get('/aggregated-ipni-status-weekly')
   @CacheTTL(1000 * 60 * 60) // 1 hour
   @ApiOperation({
@@ -85,7 +97,11 @@ export class StorageProvidersAccStatsController {
     description: 'Aggregated storage providers IPNI reporting status over time',
     type: AggregatedProvidersIPNIReportingStatusWeekly,
   })
-  public async getAggregatedProvidersIPNIReportingStatusWeekly(): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
-    return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly();
+  public async getAggregatedProvidersIPNIReportingStatusWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
+    return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly(
+      query.roundId,
+    );
   }
 }

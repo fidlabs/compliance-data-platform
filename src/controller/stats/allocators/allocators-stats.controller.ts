@@ -11,16 +11,22 @@ import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
 import { stringToBool } from 'src/utils/utils';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
 export class AllocatorsAccStatsController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
+  // client diversity tab
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorClientsWeekly();
+  public async getAllocatorClientsWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.allocatorService.getStandardAllocatorClientsWeekly(
+      query.roundId,
+    );
   }
 
   @Get('retrievability')

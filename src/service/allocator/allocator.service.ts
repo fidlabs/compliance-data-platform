@@ -1,24 +1,22 @@
-import { Prisma } from 'prisma/generated/client';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/db/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { groupBy } from 'lodash';
+import { Prisma } from 'prisma/generated/client';
 import {
+  getAverageSecondsToFirstDeal,
   getStandardAllocatorBiggestClientDistributionAcc,
-  getStandardAllocatorRetrievabilityAcc,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
+  getStandardAllocatorRetrievabilityAcc,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
-  getAverageSecondsToFirstDeal,
 } from 'prisma/generated/client/sql';
 import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
-import { groupBy } from 'lodash';
-import { StorageProviderService } from '../storage-provider/storage-provider.service';
-import {
-  AllocatorComplianceScore,
-  AllocatorComplianceScoreRange,
-  AllocatorSpsComplianceWeek,
-  AllocatorSpsComplianceWeekResponse,
-  AllocatorSpsComplianceWeekSingle,
-} from './types.allocator';
+import { PrismaService } from 'src/db/prisma.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
+import { Cacheable } from 'src/utils/cacheable';
+import { getFilPlusEditionDateTimeRange } from 'src/utils/filplus-edition';
+import { lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekFlat,
@@ -27,15 +25,18 @@ import {
   RetrievabilityHistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from '../histogram-helper/types.histogram-helper';
+import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
 } from '../storage-provider/types.storage-provider';
-import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cacheable } from 'src/utils/cacheable';
-import { ConfigService } from '@nestjs/config';
-import { lastWeek } from 'src/utils/utils';
+import {
+  AllocatorComplianceScore,
+  AllocatorComplianceScoreRange,
+  AllocatorSpsComplianceWeek,
+  AllocatorSpsComplianceWeekResponse,
+  AllocatorSpsComplianceWeekSingle,
+} from './types.allocator';
 
 @Injectable()
 export class AllocatorService {
@@ -106,12 +107,19 @@ export class AllocatorService {
     });
   }
 
-  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
+  public async getStandardAllocatorClientsWeekly(
+    roundId?: number,
+  ): Promise<HistogramWeekResponse> {
+    const editionDate = getFilPlusEditionDateTimeRange(roundId);
+
     return new HistogramWeekResponse(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
-          getStandardAllocatorClientsWeeklyAcc(),
+          getStandardAllocatorClientsWeeklyAcc(
+            editionDate.startDate,
+            editionDate.endDate,
+          ),
         ),
       ),
     );
