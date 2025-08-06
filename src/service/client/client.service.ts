@@ -14,7 +14,7 @@ import {
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
-import { parseDataSizeToBytes } from 'src/utils/utils';
+import { bigIntDiv, parseDataSizeToBytes } from 'src/utils/utils';
 
 @Injectable()
 export class ClientService {
@@ -90,7 +90,7 @@ export class ClientService {
 
     return distribution?.map((distribution) => ({
       ...distribution,
-      percentage: Number((distribution.total_deal_size * 10000n) / total) / 100,
+      percentage: bigIntDiv(distribution.total_deal_size, total) * 100,
     }));
   }
 
@@ -273,12 +273,10 @@ export class ClientService {
   public async getAverageSecondsToFirstDeal(
     clientId: string,
   ): Promise<number | null> {
-    return Number(
-      (
-        await this.prismaService.$queryRawTyped(
-          getAverageSecondsToFirstDeal(clientId, null),
-        )
-      )?.[0]?.average,
-    );
+    return (
+      await this.prismaService.$queryRawTyped(
+        getAverageSecondsToFirstDeal(clientId, null),
+      )
+    )?.[0]?.average;
   }
 }

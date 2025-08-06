@@ -52,8 +52,11 @@ export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceW
 
   @ApiProperty({
     description: 'Total datacap of the allocator in the week',
+    type: String,
+    format: 'int64',
+    example: '42',
   })
-  totalDatacap: number;
+  totalDatacap: bigint;
 
   @ApiProperty({
     description:

@@ -73,16 +73,16 @@ export class AllocatorService {
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocators(
     returnInactive = true,
-    isMetaallocator: boolean | null = null,
-    filter: string | null = null,
-    usingMetaallocatorId: string | null = null,
+    isMetaallocator?: boolean,
+    filter?: string,
+    usingMetaallocatorId?: string,
   ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(
         returnInactive,
-        isMetaallocator,
-        filter,
-        usingMetaallocatorId,
+        isMetaallocator ?? null,
+        filter ?? null,
+        usingMetaallocatorId ?? null,
       ),
     );
 
@@ -328,20 +328,18 @@ export class AllocatorService {
   public async getWeekAllocatorTotalDatacap(
     week: Date,
     allocatorId: string,
-  ): Promise<number> {
-    return Number(
-      (
-        await this.prismaService.allocators_weekly_acc.aggregate({
-          _sum: {
-            total_sum_of_allocations: true,
-          },
-          where: {
-            allocator: allocatorId,
-            week: week,
-          },
-        })
-      )._sum.total_sum_of_allocations,
-    );
+  ): Promise<bigint> {
+    return (
+      await this.prismaService.allocators_weekly_acc.aggregate({
+        _sum: {
+          total_sum_of_allocations: true,
+        },
+        where: {
+          allocator: allocatorId,
+          week: week,
+        },
+      })
+    )._sum.total_sum_of_allocations;
   }
 
   // returns the number of standard allocators (not metaallocators)
@@ -449,12 +447,10 @@ export class AllocatorService {
   public async getAverageSecondsToFirstDeal(
     allocatorId: string,
   ): Promise<number | null> {
-    return Number(
-      (
-        await this.prismaService.$queryRawTyped(
-          getAverageSecondsToFirstDeal(null, allocatorId),
-        )
-      )?.[0]?.average,
-    );
+    return (
+      await this.prismaService.$queryRawTyped(
+        getAverageSecondsToFirstDeal(null, allocatorId),
+      )
+    )?.[0]?.average;
   }
 }

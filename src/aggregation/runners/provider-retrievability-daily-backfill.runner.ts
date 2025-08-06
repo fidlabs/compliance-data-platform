@@ -4,6 +4,7 @@ import {
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
+import { stringToNumber } from 'src/utils/utils';
 
 export class ProviderRetrievabilityDailyBackfillRunner
   implements AggregationRunner
@@ -66,10 +67,10 @@ export class ProviderRetrievabilityDailyBackfillRunner
     const data = retrievabilityData.map((row) => ({
       date: backfillDate.toJSDate(),
       provider: row.miner_id,
-      total: parseInt(row.total),
-      successful: parseInt(row.successful),
+      total: stringToNumber(row.total),
+      successful: stringToNumber(row.successful),
       success_rate: row.success_rate,
-      successful_http: parseInt(row.successful_http),
+      successful_http: stringToNumber(row.successful_http),
       success_rate_http: row.success_rate_http,
     }));
 

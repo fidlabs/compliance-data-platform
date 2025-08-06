@@ -3,7 +3,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { AllocatorReportCheck } from 'prisma/generated/client';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { ConfigService } from '@nestjs/config';
-import { envNotSet } from 'src/utils/utils';
+import { envNotSet, stringToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorReportChecksService {
@@ -111,7 +111,8 @@ export class AllocatorReportChecksService {
           const notEnoughCopiesPercentage = client.replica_distribution
             .filter(
               (distribution) =>
-                distribution.num_of_replicas < parseInt(report.required_copies),
+                distribution.num_of_replicas <
+                stringToNumber(report.required_copies),
             )
             .reduce(
               (totalPercentage, distribution) =>

@@ -1,16 +1,23 @@
 import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
-export class PaginationInfo {
+export class PaginationInfoRequest {
   @ApiPropertyOptional({
     description: 'Number of items per page; default is no pagination',
     minimum: 1,
+    type: Number,
   })
-  limit?: number;
+  limit?: string;
 
   @ApiPropertyOptional({
     description: 'Page number, starts from 1; default is no pagination',
     minimum: 1,
+    type: Number,
   })
+  page?: string;
+}
+
+export class PaginationInfo {
+  limit?: number;
   page?: number;
 }
 
@@ -28,6 +35,6 @@ export class SortingInfo {
 }
 
 export class PaginationSortingInfo extends IntersectionType(
-  PaginationInfo,
+  PaginationInfoRequest,
   SortingInfo,
 ) {}

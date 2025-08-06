@@ -9,6 +9,7 @@ export class ClientStorageProvidersStats {
     description: 'Total deal size with the provider in bytes',
     type: String,
     format: 'int64',
+    example: '42',
   })
   total_deal_size: bigint;
 

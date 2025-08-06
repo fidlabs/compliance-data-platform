@@ -413,11 +413,11 @@ export class StorageProviderService {
       total_deal_size: bigint | null;
       provider: string;
     }[],
-  ): number {
-    return Number(
+  ): bigint {
+    return (
       providersTotalDatacap
         .filter((p) => providers.includes(p.provider))
-        .reduce((acc, p) => acc + p.total_deal_size, 0n) ?? 0,
+        .reduce((acc, p) => acc + p.total_deal_size, 0n) ?? 0n
     );
   }
 

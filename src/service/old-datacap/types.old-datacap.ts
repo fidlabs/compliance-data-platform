@@ -8,6 +8,7 @@ export class OldDatacapAllocatorBalance {
     description: 'Old datacap owned by the allocator',
     type: String,
     format: 'int64',
+    example: '42',
   })
   oldDatacap: bigint;
 
@@ -15,6 +16,7 @@ export class OldDatacapAllocatorBalance {
     description: 'Old datacap allocated by the allocator',
     type: String,
     format: 'int64',
+    example: '42',
   })
   allocations: bigint;
 }
@@ -32,6 +34,7 @@ export class OldDatacapAllocatorBalanceWeek {
     description: 'Old datacap owned by allocators that week',
     type: String,
     format: 'int64',
+    example: '42',
   })
   oldDatacap: bigint;
 
@@ -39,6 +42,7 @@ export class OldDatacapAllocatorBalanceWeek {
     description: 'Old datacap allocated to clients that week',
     type: String,
     format: 'int64',
+    example: '42',
   })
   allocations: bigint;
 
@@ -74,6 +78,7 @@ export class OldDatacapClientBalance {
     description: 'Old datacap owned by the client',
     type: String,
     format: 'int64',
+    example: '42',
   })
   oldDatacap: bigint;
 
@@ -81,6 +86,7 @@ export class OldDatacapClientBalance {
     description: 'Old datacap spent by the client',
     type: String,
     format: 'int64',
+    example: '42',
   })
   claims: bigint;
 }
@@ -98,6 +104,7 @@ export class OldDatacapClientBalanceWeek {
     description: 'Old datacap owned by clients that week',
     type: String,
     format: 'int64',
+    example: '42',
   })
   oldDatacap: bigint;
 
@@ -105,6 +112,7 @@ export class OldDatacapClientBalanceWeek {
     description: 'Old datacap spent by clients that week',
     type: String,
     format: 'int64',
+    example: '42',
   })
   claims: bigint;
 
