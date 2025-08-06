@@ -89,11 +89,12 @@ export class ClientsController extends ControllerBase {
     @Param('clientId') clientId: string,
     @Query() query: GetClientLatestClaimRequest,
   ): Promise<GetClientLatestClaimResponse> {
+    query.page = query.page ?? '1';
+    query.limit = query.limit ?? '15';
     const paginationInfo = this.validatePaginationInfo(query);
-    const skip = paginationInfo.page
-      ? (paginationInfo.page - 1) * paginationInfo.limit
-      : 0;
-    const take = paginationInfo.limit ?? 15;
+
+    const skip = (paginationInfo.page - 1) * paginationInfo.limit;
+    const take = paginationInfo.limit;
 
     const sort = query.sort ?? 'createdAt';
     const order = query.order ?? 'desc';
