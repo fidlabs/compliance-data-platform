@@ -50,7 +50,7 @@ export class ReportChecksController {
     query.week ??= lastWeek().toISOString();
 
     return {
-      week: query.week,
+      week: stringToDate(query.week),
       results: await this.prismaService.$queryRawTyped(
         getAllocatorReportChecksDaily(stringToDate(query.week)),
       ),
@@ -70,7 +70,7 @@ export class ReportChecksController {
     query.day ??= yesterday().toJSDate().toISOString();
 
     return {
-      day: query.day,
+      day: stringToDate(query.day),
       results: (
         await this.prismaService.$queryRawTyped(
           getAllocatorReportChecksDetails(stringToDate(query.day)),
