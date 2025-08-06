@@ -70,9 +70,17 @@ export function stringToNumber(valueString?: string): number | null {
 
   if (
     !Number.isFinite(valueNumber) ||
-    valueNumber.toString() !== valueString.replace(rxInsignificant, '')
+    valueNumber
+      .toLocaleString('en-US', {
+        useGrouping: false,
+        maximumFractionDigits: 20,
+        minimumFractionDigits: 0,
+      })
+      .replace(rxInsignificant, '') !== valueString.replace(rxInsignificant, '')
   ) {
-    throw new Error(`Invalid or too large number: ${valueString}`);
+    throw new Error(
+      `Invalid / too large number or precision loss: ${valueString}`,
+    );
   }
 
   return valueNumber ?? null;
@@ -81,11 +89,13 @@ export function stringToNumber(valueString?: string): number | null {
 export function bigIntDiv(
   a: bigint,
   b: bigint | number,
-  precision: number = 4,
+  precision: number = 2,
 ): number {
   const _precisionMultiplier = 10 ** precision;
-  return (
-    bigIntToNumber((a * BigInt(_precisionMultiplier)) / BigInt(b)) /
-    _precisionMultiplier
+  return stringToNumber(
+    (
+      bigIntToNumber((a * BigInt(_precisionMultiplier)) / BigInt(b)) /
+      _precisionMultiplier
+    ).toFixed(precision),
   );
 }

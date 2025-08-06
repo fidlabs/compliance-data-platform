@@ -170,8 +170,10 @@ export class AllocatorReportService {
     return storageProviderDistribution.map((provider) => {
       return {
         ...provider,
-        perc_of_total_datacap:
-          bigIntDiv(provider.total_deal_size, totalDatacap) * 100,
+        perc_of_total_datacap: bigIntDiv(
+          provider.total_deal_size * 100n,
+          totalDatacap,
+        ),
       };
     });
   }
