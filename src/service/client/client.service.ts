@@ -90,7 +90,7 @@ export class ClientService {
 
     return distribution?.map((distribution) => ({
       ...distribution,
-      percentage: bigIntDiv(distribution.total_deal_size, total) * 100,
+      percentage: bigIntDiv(distribution.total_deal_size * 100n, total),
     }));
   }
 
