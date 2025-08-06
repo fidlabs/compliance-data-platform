@@ -7,7 +7,7 @@ import {
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
-import { envNotSet } from 'src/utils/utils';
+import { bigIntDiv, envNotSet, stringToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class ClientReportChecksService {
@@ -153,8 +153,7 @@ export class ClientReportChecksService {
         : providerDistribution
             .filter(
               (provider) =>
-                Number((provider.total_deal_size * 10000n) / totalDealSize) /
-                  100 >
+                bigIntDiv(provider.total_deal_size, totalDealSize) * 100 >
                 this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE,
             )
             .map((provider) => provider.provider);
@@ -610,7 +609,7 @@ export class ClientReportChecksService {
       const percentageSumOfNotEnoughCopiesDeals = replicaDistribution
         .filter(
           (distribution) =>
-            distribution.num_of_replicas < parseInt(requiredCopiesCount),
+            distribution.num_of_replicas < stringToNumber(requiredCopiesCount),
         )
         .reduce(
           (totalPercentage, distribution) =>

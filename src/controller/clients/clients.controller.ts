@@ -18,6 +18,7 @@ import {
   GetClientLatestClaimResponse,
   GetClientStorageProvidersResponse,
 } from './types.clients';
+import { bigIntDiv } from 'src/utils/utils';
 
 @Controller('clients')
 export class ClientsController extends ControllerBase {
@@ -59,11 +60,9 @@ export class ClientsController extends ControllerBase {
         },
       });
 
-    const totalDealSizeSum = Number(
-      clientProviderDistribution.reduce(
-        (acc, provider) => acc + provider.total_deal_size,
-        0n,
-      ),
+    const totalDealSizeSum = clientProviderDistribution.reduce(
+      (acc, provider) => acc + provider.total_deal_size,
+      0n,
     );
 
     return {
@@ -72,8 +71,7 @@ export class ClientsController extends ControllerBase {
         provider: provider.provider,
         total_deal_size: provider.total_deal_size,
         percent: (
-          (Number(provider.total_deal_size) / totalDealSizeSum) *
-          100
+          bigIntDiv(provider.total_deal_size, totalDealSizeSum) * 100
         ).toFixed(2),
       })),
     };
@@ -91,8 +89,12 @@ export class ClientsController extends ControllerBase {
     @Param('clientId') clientId: string,
     @Query() query: GetClientLatestClaimRequest,
   ): Promise<GetClientLatestClaimResponse> {
-    const skip = query.page ? (query.page - 1) * query.limit : 0;
-    const take = query.limit ? Number(query.limit) : 15;
+    const paginationInfo = this.validatePaginationInfo(query);
+    const skip = paginationInfo.page
+      ? (paginationInfo.page - 1) * paginationInfo.limit
+      : 0;
+    const take = paginationInfo.limit ?? 15;
+
     const sort = query.sort ?? 'createdAt';
     const order = query.order ?? 'desc';
     const clientIdPrefix = clientId.startsWith('f0')

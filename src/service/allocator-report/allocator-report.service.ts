@@ -7,6 +7,7 @@ import { ClientWithAllowance } from '../client/types.client';
 import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { Retryable } from 'src/utils/retryable';
+import { bigIntDiv } from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorReportService {
@@ -161,18 +162,16 @@ export class AllocatorReportService {
       );
     }
 
-    const totalDatacap = Number(
-      storageProviderDistribution.reduce(
-        (acc, curr) => acc + curr.total_deal_size,
-        0n,
-      ),
+    const totalDatacap = storageProviderDistribution.reduce(
+      (acc, curr) => acc + curr.total_deal_size,
+      0n,
     );
 
     return storageProviderDistribution.map((provider) => {
       return {
         ...provider,
         perc_of_total_datacap:
-          (Number(provider.total_deal_size) / totalDatacap) * 100,
+          bigIntDiv(provider.total_deal_size, totalDatacap) * 100,
       };
     });
   }

@@ -4,7 +4,7 @@ import {
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
-import { yesterday } from 'src/utils/utils';
+import { stringToNumber, yesterday } from 'src/utils/utils';
 
 export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
   public async run({
@@ -50,10 +50,10 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
     const data = retrievabilityData.map((row) => ({
       date: _yesterday.toJSDate(),
       provider: row.miner_id,
-      total: parseInt(row.total),
-      successful: parseInt(row.successful),
+      total: stringToNumber(row.total),
+      successful: stringToNumber(row.successful),
       success_rate: row.success_rate,
-      successful_http: parseInt(row.successful_http),
+      successful_http: stringToNumber(row.successful_http),
       success_rate_http: row.success_rate_http,
     }));
 

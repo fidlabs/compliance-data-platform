@@ -10,6 +10,7 @@ import {
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 import { getIpniReportingWeekly } from 'prisma/generated/client/sql';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import { bigIntToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class IpniMisreportingCheckerService {
@@ -107,7 +108,7 @@ export class IpniMisreportingCheckerService {
   private async getProviderActualClaimsCount(
     storageProviderId: string,
   ): Promise<number> {
-    return Number(
+    return bigIntToNumber(
       (
         await this.prismaService.client_provider_distribution.aggregate({
           _sum: {
@@ -122,7 +123,7 @@ export class IpniMisreportingCheckerService {
   }
 
   private async getProviderIPNIReportedClaimsCountByPeerId(
-    peerId?: string | null,
+    peerId?: string,
   ): Promise<number | null> {
     if (!peerId) return null;
 
@@ -135,7 +136,7 @@ export class IpniMisreportingCheckerService {
 
     if (dbEmpty) return null;
 
-    return Number(
+    return bigIntToNumber(
       (
         await this.prismaService.ipni_publisher_advertisement.aggregate({
           _sum: {

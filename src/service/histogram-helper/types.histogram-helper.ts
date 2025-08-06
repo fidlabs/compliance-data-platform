@@ -21,6 +21,7 @@ export class Histogram {
       'Total datacap of allocators / storage providers in the bucket',
     type: String,
     format: 'int64',
+    example: '42',
   })
   totalDatacap: bigint;
 

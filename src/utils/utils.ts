@@ -39,11 +39,53 @@ export async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function parseDataSizeToBytes(value?: string | null): bigint | null {
+export function parseDataSizeToBytes(value?: string): bigint | null {
   if (!value) return null;
 
   if (!value.toUpperCase().endsWith('B'))
     throw new Error(`Invalid unit: ${value}`);
 
   return BigInt(parse(value));
+}
+
+export function bigIntToNumber(valueBigInt?: bigint): number | null {
+  if (valueBigInt === undefined || valueBigInt === null) return null;
+
+  // eslint-disable-next-line no-restricted-syntax
+  const valueNumber = Number(valueBigInt);
+
+  if (BigInt(valueNumber) !== valueBigInt) {
+    throw new Error(`Value ${valueBigInt} is too large to convert to number`);
+  }
+
+  return valueNumber;
+}
+
+export function stringToNumber(valueString?: string): number | null {
+  if (!valueString) return null;
+
+  const rxInsignificant = /^[\s0]+|(?<=\..*)[\s0.]+$|\.0+$|\.$/gm;
+  // eslint-disable-next-line no-restricted-globals
+  const valueNumber = parseFloat(valueString);
+
+  if (
+    !Number.isFinite(valueNumber) ||
+    valueNumber.toString() !== valueString.replace(rxInsignificant, '')
+  ) {
+    throw new Error(`Invalid or too large number: ${valueString}`);
+  }
+
+  return valueNumber;
+}
+
+export function bigIntDiv(
+  a: bigint,
+  b: bigint | number,
+  precision: number = 4,
+): number {
+  const _precisionMultiplier = 10 ** precision;
+  return (
+    bigIntToNumber((a * BigInt(_precisionMultiplier)) / BigInt(b)) /
+    _precisionMultiplier
+  );
 }

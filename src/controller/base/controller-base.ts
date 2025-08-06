@@ -1,11 +1,16 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from 'prismaDmob/generated/client';
-import { PaginationInfo, SortingInfo } from './types.controller-base';
+import {
+  PaginationInfo,
+  PaginationInfoRequest,
+  SortingInfo,
+} from './types.controller-base';
+import { stringToNumber } from 'src/utils/utils';
 
 export class ControllerBase {
   public withPaginationInfo<T>(
     data: T,
-    paginationInfo?: PaginationInfo,
+    _paginationInfo?: PaginationInfoRequest,
     total?: number, // length of the data before pagination
   ): {
     pagination?: {
@@ -15,7 +20,7 @@ export class ControllerBase {
       total?: number;
     };
   } & T {
-    paginationInfo = this.validatePaginationInfo(paginationInfo);
+    const paginationInfo = this.validatePaginationInfo(_paginationInfo);
     if (!paginationInfo) return data;
 
     return {
@@ -32,8 +37,11 @@ export class ControllerBase {
     };
   }
 
-  public paginated<T>(values: T[], paginationInfo?: PaginationInfo): T[] {
-    paginationInfo = this.validatePaginationInfo(paginationInfo);
+  public paginated<T>(
+    values: T[],
+    _paginationInfo?: PaginationInfoRequest,
+  ): T[] {
+    const paginationInfo = this.validatePaginationInfo(_paginationInfo);
     if (!paginationInfo) return values;
 
     const startIndex = paginationInfo.limit * (paginationInfo.page - 1);
@@ -52,9 +60,12 @@ export class ControllerBase {
       if (b === null || b === undefined) return -1;
 
       // try to cast string to number if applicable
-      if (parseFloat(a).toString() === a && parseFloat(b).toString() === b) {
-        a = parseFloat(a);
-        b = parseFloat(b);
+      if (
+        stringToNumber(a).toString() === a &&
+        stringToNumber(b).toString() === b
+      ) {
+        a = stringToNumber(a);
+        b = stringToNumber(b);
       }
 
       // compare string case insensitively
@@ -116,12 +127,12 @@ export class ControllerBase {
     };
   }
 
-  private validatePaginationInfo(
-    paginationInfo?: PaginationInfo,
+  protected validatePaginationInfo(
+    paginationInfo?: PaginationInfoRequest,
   ): PaginationInfo | null {
     if (!paginationInfo) return null;
-    const limit = Number(paginationInfo.limit?.toString());
-    const page = Number(paginationInfo.page?.toString());
+    const limit = stringToNumber(paginationInfo.limit?.toString());
+    const page = stringToNumber(paginationInfo.page?.toString());
 
     if (paginationInfo.limit && (Number.isNaN(limit) || limit <= 0))
       throw new BadRequestException(
