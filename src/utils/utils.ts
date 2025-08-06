@@ -58,7 +58,7 @@ export function bigIntToNumber(valueBigInt?: bigint): number | null {
     throw new Error(`Value ${valueBigInt} is too large to convert to number`);
   }
 
-  return valueNumber;
+  return valueNumber ?? null;
 }
 
 export function stringToNumber(valueString?: string): number | null {
@@ -75,7 +75,7 @@ export function stringToNumber(valueString?: string): number | null {
     throw new Error(`Invalid or too large number: ${valueString}`);
   }
 
-  return valueNumber;
+  return valueNumber ?? null;
 }
 
 export function bigIntDiv(

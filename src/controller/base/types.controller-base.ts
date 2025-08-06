@@ -17,8 +17,34 @@ export class PaginationInfoRequest {
 }
 
 export class PaginationInfo {
+  @ApiPropertyOptional({
+    description: 'Number of items per page; undefined if no pagination',
+  })
   limit?: number;
+
+  @ApiPropertyOptional({
+    description: 'Page number, starts from 1; undefined if no pagination',
+  })
   page?: number;
+}
+
+class _PaginationInfoResponse extends PaginationInfo {
+  @ApiPropertyOptional({
+    description: 'Total number of pages; undefined if no pagination or unknown',
+  })
+  pages?: number;
+
+  @ApiPropertyOptional({
+    description: 'Total number of items; undefined if no pagination or unknown',
+  })
+  total?: number;
+}
+
+export class PaginationInfoResponse {
+  @ApiPropertyOptional({
+    description: 'Pagination information',
+  })
+  pagination?: _PaginationInfoResponse;
 }
 
 export class SortingInfo {

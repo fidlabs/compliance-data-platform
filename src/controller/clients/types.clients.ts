@@ -42,14 +42,36 @@ export class GetClientLatestClaimRequest extends PaginationSortingInfo {
 }
 
 export class ClientLatestClaim {
+  @ApiProperty({})
   id: number;
+
+  @ApiProperty({})
   clientId: string;
+
+  @ApiProperty({})
   dealId: number;
+
+  @ApiProperty({})
   isDDO: boolean;
+
+  @ApiProperty({})
   type: string;
+
+  @ApiProperty({})
   providerId: string;
+
+  @ApiProperty({})
   pieceCid: string;
+
+  @ApiProperty({})
   pieceSize: string;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
+  })
   createdAt: Date;
 }
 
@@ -60,4 +82,9 @@ export class GetClientLatestClaimResponse {
     isArray: true,
   })
   data: ClientLatestClaim[];
+
+  @ApiProperty({
+    description: 'Number of returned claims',
+  })
+  count: number;
 }
