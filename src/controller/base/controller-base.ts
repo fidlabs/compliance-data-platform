@@ -3,6 +3,7 @@ import { Prisma } from 'prismaDmob/generated/client';
 import {
   PaginationInfo,
   PaginationInfoRequest,
+  PaginationInfoResponse,
   SortingInfo,
 } from './types.controller-base';
 import { stringToNumber } from 'src/utils/utils';
@@ -12,26 +13,18 @@ export class ControllerBase {
     data: T,
     _paginationInfo?: PaginationInfoRequest,
     total?: number, // length of the data before pagination
-  ): {
-    pagination?: {
-      limit: number;
-      page: number;
-      pages?: number;
-      total?: number;
-    };
-  } & T {
+  ): PaginationInfoResponse & T {
     const paginationInfo = this.validatePaginationInfo(_paginationInfo);
-    if (!paginationInfo) return data;
 
     return {
       pagination: {
-        limit: paginationInfo.limit,
-        page: paginationInfo.page,
+        limit: paginationInfo?.limit ?? undefined,
+        page: paginationInfo?.page ?? undefined,
         pages:
-          total === undefined
+          total === undefined || total === null || !paginationInfo?.limit
             ? undefined
             : Math.ceil(total / paginationInfo.limit),
-        total,
+        total: total ?? undefined,
       },
       ...data,
     };
@@ -131,8 +124,11 @@ export class ControllerBase {
     paginationInfo?: PaginationInfoRequest,
   ): PaginationInfo | null {
     if (!paginationInfo) return null;
-    const limit = stringToNumber(paginationInfo.limit?.toString());
-    const page = stringToNumber(paginationInfo.page?.toString());
+    // eslint-disable-next-line no-restricted-syntax
+    const limit = Number(paginationInfo.limit);
+
+    // eslint-disable-next-line no-restricted-syntax
+    const page = Number(paginationInfo.page);
 
     if (paginationInfo.limit && (Number.isNaN(limit) || limit <= 0))
       throw new BadRequestException(
