@@ -48,23 +48,31 @@ export class ControllerBase {
     sortingInfo = this.validateSortingInfo(values, sortingInfo);
     if (!sortingInfo?.sort || !values) return values;
 
+    const isValidStringNumber = (value: string): boolean => {
+      try {
+        stringToNumber(value);
+        return true;
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_) {
+        return false;
+      }
+    };
+
     const sortAsc = (a: any, b: any): -1 | 0 | 1 => {
       if (a === null || a === undefined) return 1;
       if (b === null || b === undefined) return -1;
 
-      // try to cast string to number if applicable
-      if (
-        stringToNumber(a).toString() === a &&
-        stringToNumber(b).toString() === b
-      ) {
-        a = stringToNumber(a);
-        b = stringToNumber(b);
-      }
-
-      // compare string case insensitively
       if (typeof a === 'string' && typeof b === 'string') {
-        a = a.toLowerCase();
-        b = b.toLowerCase();
+        if (isValidStringNumber(a) && isValidStringNumber(b)) {
+          // try to cast string to number if applicable
+          a = stringToNumber(a);
+          b = stringToNumber(b);
+        } else {
+          // compare string case insensitively
+          a = a.toLowerCase();
+          b = b.toLowerCase();
+        }
       }
 
       if (a instanceof Prisma.Decimal) {
