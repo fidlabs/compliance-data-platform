@@ -447,10 +447,13 @@ export class AllocatorService {
   public async getAverageSecondsToFirstDeal(
     allocatorId: string,
   ): Promise<number | null> {
-    return (
-      await this.prismaService.$queryRawTyped(
-        getAverageSecondsToFirstDeal(null, allocatorId),
-      )
-    )?.[0]?.average;
+    // eslint-disable-next-line no-restricted-syntax
+    return Number(
+      (
+        await this.prismaService.$queryRawTyped(
+          getAverageSecondsToFirstDeal(null, allocatorId),
+        )
+      )?.[0]?.average,
+    );
   }
 }

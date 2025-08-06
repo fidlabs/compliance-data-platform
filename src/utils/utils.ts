@@ -58,7 +58,7 @@ export function bigIntToNumber(valueBigInt?: bigint): number | null {
     throw new Error(`Value ${valueBigInt} is too large to convert to number`);
   }
 
-  return valueNumber ?? null;
+  return valueNumber;
 }
 
 export function stringToNumber(valueString?: string): number | null {
@@ -83,7 +83,7 @@ export function stringToNumber(valueString?: string): number | null {
     );
   }
 
-  return valueNumber ?? null;
+  return valueNumber;
 }
 
 export function bigIntDiv(
@@ -92,10 +92,16 @@ export function bigIntDiv(
   precision: number = 2,
 ): number {
   const _precisionMultiplier = 10 ** precision;
-  return stringToNumber(
+
+  const result = stringToNumber(
     (
       bigIntToNumber((a * BigInt(_precisionMultiplier)) / BigInt(b)) /
       _precisionMultiplier
     ).toFixed(precision),
   );
+
+  if (result === null)
+    throw new Error('Computation resulted in an invalid number');
+
+  return result;
 }
