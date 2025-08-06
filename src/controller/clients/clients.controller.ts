@@ -70,8 +70,9 @@ export class ClientsController extends ControllerBase {
       stats: clientProviderDistribution.map((provider) => ({
         provider: provider.provider,
         total_deal_size: provider.total_deal_size,
-        percent: (
-          bigIntDiv(provider.total_deal_size, totalDealSizeSum) * 100
+        percent: bigIntDiv(
+          provider.total_deal_size * 100n,
+          totalDealSizeSum,
         ).toFixed(2),
       })),
     };
