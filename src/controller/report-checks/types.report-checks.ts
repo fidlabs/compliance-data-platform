@@ -137,11 +137,12 @@ export class GetAllocatorReportChecksDailyRequest {
 
 export class GetAllocatorReportChecksDailyResponse {
   @ApiProperty({
+    type: String,
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'Requested week; ISO format',
   })
-  week: string;
+  week: Date;
 
   @ApiProperty({
     description: 'Allocator report checks daily',
@@ -162,11 +163,12 @@ export class GetAllocatorReportChecksDetailsRequest {
 
 export class GetAllocatorReportChecksDetailsResponse {
   @ApiProperty({
+    type: String,
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
     description: 'Requested day; ISO format',
   })
-  day: string;
+  day: Date;
 
   @ApiProperty({
     description: 'Allocator report checks details',

@@ -34,18 +34,27 @@ export class StorageProviderComplianceWeekPercentage {
 export class StorageProviderComplianceWeekTotalDatacap {
   @ApiProperty({
     description: 'Total datacap of compliant storage providers',
+    type: String,
+    format: 'int64',
+    example: '42',
   })
-  compliantSpsTotalDatacap: number;
+  compliantSpsTotalDatacap: bigint;
 
   @ApiProperty({
     description: 'Total datacap of partially compliant storage providers',
+    type: String,
+    format: 'int64',
+    example: '42',
   })
-  partiallyCompliantSpsTotalDatacap: number;
+  partiallyCompliantSpsTotalDatacap: bigint;
 
   @ApiProperty({
     description: 'Total datacap of non-compliant storage providers',
+    type: String,
+    format: 'int64',
+    example: '42',
   })
-  nonCompliantSpsTotalDatacap: number;
+  nonCompliantSpsTotalDatacap: bigint;
 }
 
 export class StorageProviderComplianceWeekCount {

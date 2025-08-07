@@ -35,7 +35,7 @@ export class CidContactService {
 
   public async getIPNIPublisherAdvertisement(
     baseUrl: string,
-    advertisementId?: string | null,
+    advertisementId?: string,
   ): Promise<IPNIAdvertisement | null> {
     try {
       return await this._getIPNIPublisherAdvertisement(
@@ -51,7 +51,7 @@ export class CidContactService {
 
   private async _getIPNIPublisherAdvertisement(
     baseUrl: string,
-    advertisementId?: string | null,
+    advertisementId?: string,
   ): Promise<IPNIAdvertisement | null> {
     if (!advertisementId) return null;
 

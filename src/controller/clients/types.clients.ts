@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaginationSortingInfo } from '../base/types.controller-base';
+import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 
 export class ClientStorageProvidersStats {
   @ApiProperty({ description: 'Storage provider ID' })
@@ -9,6 +9,7 @@ export class ClientStorageProvidersStats {
     description: 'Total deal size with the provider in bytes',
     type: String,
     format: 'int64',
+    example: '42',
   })
   total_deal_size: bigint;
 
@@ -33,7 +34,7 @@ export class GetClientStorageProvidersResponse {
   stats: ClientStorageProvidersStats[];
 }
 
-export class GetClientLatestClaimRequest extends PaginationSortingInfo {
+export class GetClientLatestClaimRequest extends PaginationSortingInfoRequest {
   @ApiPropertyOptional({
     description: 'Storage provider ID to filter by',
   })
@@ -41,14 +42,36 @@ export class GetClientLatestClaimRequest extends PaginationSortingInfo {
 }
 
 export class ClientLatestClaim {
+  @ApiProperty({})
   id: number;
+
+  @ApiProperty({})
   clientId: string;
+
+  @ApiProperty({})
   dealId: number;
+
+  @ApiProperty({})
   isDDO: boolean;
+
+  @ApiProperty({})
   type: string;
+
+  @ApiProperty({})
   providerId: string;
+
+  @ApiProperty({})
   pieceCid: string;
+
+  @ApiProperty({})
   pieceSize: string;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
+  })
   createdAt: Date;
 }
 
@@ -59,4 +82,9 @@ export class GetClientLatestClaimResponse {
     isArray: true,
   })
   data: ClientLatestClaim[];
+
+  @ApiProperty({
+    description: 'Number of returned claims',
+  })
+  count: number;
 }

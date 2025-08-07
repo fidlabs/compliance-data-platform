@@ -1,6 +1,6 @@
 import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
-import { PaginationSortingInfo } from '../base/types.controller-base';
+import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { stringifiedBool } from 'src/utils/utils';
 
 export class StorageProviderComplianceMetricsRequest {
@@ -46,7 +46,7 @@ export class GetWeekStorageProvidersWithSpsComplianceRequestData extends Storage
   week?: string;
 }
 
-export class GetStorageProvidersRequest extends PaginationSortingInfo {
+export class GetStorageProvidersRequest extends PaginationSortingInfoRequest {
   @ApiPropertyOptional({
     description: 'Storage provider ID to filter by',
   })

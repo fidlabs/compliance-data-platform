@@ -7,7 +7,7 @@ import {
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
-import { envNotSet } from 'src/utils/utils';
+import { bigIntDiv, envNotSet, stringToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class ClientReportChecksService {
@@ -96,10 +96,12 @@ export class ClientReportChecksService {
           id: reportId,
         },
       });
+
     const inactivityPeriod = DateTime.now().diff(
       DateTime.fromJSDate(last_datacap_spent),
       'days',
     ).days;
+
     const timeSinceLastDatacap = DateTime.now().diff(
       DateTime.fromJSDate(last_datacap_received),
       'days',
@@ -107,15 +109,16 @@ export class ClientReportChecksService {
 
     const checkPassed =
       timeSinceLastDatacap < 30 || !available_datacap || inactivityPeriod < 30;
+
     await this.prismaService.client_report_check_result.create({
       data: {
         client_report_id: reportId,
         check: ClientReportCheck.INACTIVITY,
         result: checkPassed,
         metadata: {
-          inactivity_period_days: inactivityPeriod,
+          inactivity_period_days: inactivityPeriod.toFixed(2),
           available_datacap: available_datacap?.toString() ?? null,
-          time_since_last_datacap_days: timeSinceLastDatacap,
+          time_since_last_datacap_days: timeSinceLastDatacap.toFixed(2),
           msg: checkPassed
             ? `Client was active in last month or spent all its DataCap`
             : `Client has unspent DataCap and was inactive for more than a month`,
@@ -153,8 +156,7 @@ export class ClientReportChecksService {
         : providerDistribution
             .filter(
               (provider) =>
-                Number((provider.total_deal_size * 10000n) / totalDealSize) /
-                  100 >
+                bigIntDiv(provider.total_deal_size * 100n, totalDealSize) >
                 this.CLIENT_REPORT_MAX_PROVIDER_DEAL_PERCENTAGE,
             )
             .map((provider) => provider.provider);
@@ -610,7 +612,7 @@ export class ClientReportChecksService {
       const percentageSumOfNotEnoughCopiesDeals = replicaDistribution
         .filter(
           (distribution) =>
-            distribution.num_of_replicas < parseInt(requiredCopiesCount),
+            distribution.num_of_replicas < stringToNumber(requiredCopiesCount),
         )
         .reduce(
           (totalPercentage, distribution) =>

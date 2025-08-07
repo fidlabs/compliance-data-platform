@@ -1,39 +1,40 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from 'prismaDmob/generated/client';
-import { PaginationInfo, SortingInfo } from './types.controller-base';
+import {
+  PaginationInfo,
+  PaginationInfoRequest,
+  PaginationInfoResponse,
+  SortingInfoRequest,
+} from './types.controller-base';
+import { stringToNumber } from 'src/utils/utils';
 
 export class ControllerBase {
   public withPaginationInfo<T>(
     data: T,
-    paginationInfo?: PaginationInfo,
+    _paginationInfo?: PaginationInfoRequest,
     total?: number, // length of the data before pagination
-  ): {
-    pagination?: {
-      limit: number;
-      page: number;
-      pages?: number;
-      total?: number;
-    };
-  } & T {
-    paginationInfo = this.validatePaginationInfo(paginationInfo);
-    if (!paginationInfo) return data;
+  ): PaginationInfoResponse & T {
+    const paginationInfo = this.validatePaginationInfo(_paginationInfo);
 
     return {
       pagination: {
-        limit: paginationInfo.limit,
-        page: paginationInfo.page,
+        limit: paginationInfo?.limit ?? undefined,
+        page: paginationInfo?.page ?? undefined,
         pages:
-          total === undefined
+          total === undefined || total === null || !paginationInfo?.limit
             ? undefined
             : Math.ceil(total / paginationInfo.limit),
-        total,
+        total: total ?? undefined,
       },
       ...data,
     };
   }
 
-  public paginated<T>(values: T[], paginationInfo?: PaginationInfo): T[] {
-    paginationInfo = this.validatePaginationInfo(paginationInfo);
+  public paginated<T>(
+    values: T[],
+    _paginationInfo?: PaginationInfoRequest,
+  ): T[] {
+    const paginationInfo = this.validatePaginationInfo(_paginationInfo);
     if (!paginationInfo) return values;
 
     const startIndex = paginationInfo.limit * (paginationInfo.page - 1);
@@ -43,24 +44,35 @@ export class ControllerBase {
     return values.slice(startIndex, endIndex);
   }
 
-  public sorted<T>(values: T[], sortingInfo?: SortingInfo): T[] {
+  public sorted<T>(values: T[], sortingInfo?: SortingInfoRequest): T[] {
     sortingInfo = this.validateSortingInfo(values, sortingInfo);
     if (!sortingInfo?.sort || !values) return values;
+
+    const isValidStringNumber = (value: string): boolean => {
+      try {
+        stringToNumber(value);
+        return true;
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (_) {
+        return false;
+      }
+    };
 
     const sortAsc = (a: any, b: any): -1 | 0 | 1 => {
       if (a === null || a === undefined) return 1;
       if (b === null || b === undefined) return -1;
 
-      // try to cast string to number if applicable
-      if (parseFloat(a).toString() === a && parseFloat(b).toString() === b) {
-        a = parseFloat(a);
-        b = parseFloat(b);
-      }
-
-      // compare string case insensitively
       if (typeof a === 'string' && typeof b === 'string') {
-        a = a.toLowerCase();
-        b = b.toLowerCase();
+        if (isValidStringNumber(a) && isValidStringNumber(b)) {
+          // try to cast string to number if applicable
+          a = stringToNumber(a);
+          b = stringToNumber(b);
+        } else {
+          // compare string case insensitively
+          a = a.toLowerCase();
+          b = b.toLowerCase();
+        }
       }
 
       if (a instanceof Prisma.Decimal) {
@@ -84,8 +96,8 @@ export class ControllerBase {
 
   private validateSortingInfo<T>(
     values: T[],
-    sortingInfo?: SortingInfo,
-  ): SortingInfo | null {
+    sortingInfo?: SortingInfoRequest,
+  ): SortingInfoRequest | null {
     if (!sortingInfo) return null;
 
     if (sortingInfo.order && !sortingInfo.sort)
@@ -116,12 +128,15 @@ export class ControllerBase {
     };
   }
 
-  private validatePaginationInfo(
-    paginationInfo?: PaginationInfo,
+  protected validatePaginationInfo(
+    paginationInfo?: PaginationInfoRequest,
   ): PaginationInfo | null {
     if (!paginationInfo) return null;
-    const limit = Number(paginationInfo.limit?.toString());
-    const page = Number(paginationInfo.page?.toString());
+    // eslint-disable-next-line no-restricted-syntax
+    const limit = Number(paginationInfo.limit);
+
+    // eslint-disable-next-line no-restricted-syntax
+    const page = Number(paginationInfo.page);
 
     if (paginationInfo.limit && (Number.isNaN(limit) || limit <= 0))
       throw new BadRequestException(
