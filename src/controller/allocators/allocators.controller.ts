@@ -5,6 +5,8 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import {
   GetAllocatorsRequest,
+  GetDatacapFlowDataRequest,
+  GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
 } from './types.allocators';
@@ -22,6 +24,28 @@ export class AllocatorsController extends ControllerBase {
     private readonly allocatorService: AllocatorService,
   ) {
     super();
+  }
+
+  @Get('/dc-flow')
+  @ApiOperation({
+    summary: 'Get datacap flow data for allocators',
+  })
+  @ApiOkResponse({
+    description: 'Datacap flow data for allocators',
+    type: GetDatacapFlowDataResponse,
+  })
+  public async getDatacapFlowData(
+    @Query() query: GetDatacapFlowDataRequest,
+  ): Promise<GetDatacapFlowDataResponse> {
+    const dcFlowData = await this.allocatorService.getDatacapFlowData(
+      stringToBool(query.showInactive) ?? true,
+      stringToDate(query.cutoffDate),
+    );
+
+    return {
+      cutoffDate: stringToDate(query.cutoffDate) ?? new Date(),
+      data: dcFlowData,
+    };
   }
 
   @Get()
