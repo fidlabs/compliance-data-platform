@@ -4,7 +4,7 @@ import {
   PaginationInfo,
   PaginationInfoRequest,
   PaginationInfoResponse,
-  SortingInfo,
+  SortingInfoRequest,
 } from './types.controller-base';
 import { stringToNumber } from 'src/utils/utils';
 
@@ -44,7 +44,7 @@ export class ControllerBase {
     return values.slice(startIndex, endIndex);
   }
 
-  public sorted<T>(values: T[], sortingInfo?: SortingInfo): T[] {
+  public sorted<T>(values: T[], sortingInfo?: SortingInfoRequest): T[] {
     sortingInfo = this.validateSortingInfo(values, sortingInfo);
     if (!sortingInfo?.sort || !values) return values;
 
@@ -96,8 +96,8 @@ export class ControllerBase {
 
   private validateSortingInfo<T>(
     values: T[],
-    sortingInfo?: SortingInfo,
-  ): SortingInfo | null {
+    sortingInfo?: SortingInfoRequest,
+  ): SortingInfoRequest | null {
     if (!sortingInfo) return null;
 
     if (sortingInfo.order && !sortingInfo.sort)

@@ -47,7 +47,7 @@ export class PaginationInfoResponse {
   pagination?: _PaginationInfoResponse;
 }
 
-export class SortingInfo {
+export class SortingInfoRequest {
   @ApiPropertyOptional({
     description: 'Sorting field; default is no sorting',
   })
@@ -60,7 +60,7 @@ export class SortingInfo {
   order?: 'asc' | 'desc';
 }
 
-export class PaginationSortingInfo extends IntersectionType(
+export class PaginationSortingInfoRequest extends IntersectionType(
   PaginationInfoRequest,
-  SortingInfo,
+  SortingInfoRequest,
 ) {}

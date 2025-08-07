@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaginationSortingInfo } from '../base/types.controller-base';
+import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 
 export class ClientStorageProvidersStats {
   @ApiProperty({ description: 'Storage provider ID' })
@@ -34,7 +34,7 @@ export class GetClientStorageProvidersResponse {
   stats: ClientStorageProvidersStats[];
 }
 
-export class GetClientLatestClaimRequest extends PaginationSortingInfo {
+export class GetClientLatestClaimRequest extends PaginationSortingInfoRequest {
   @ApiPropertyOptional({
     description: 'Storage provider ID to filter by',
   })
