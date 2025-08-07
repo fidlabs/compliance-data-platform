@@ -3,7 +3,7 @@ import {
   ApiPropertyOptional,
   IntersectionType,
 } from '@nestjs/swagger';
-import { PaginationSortingInfo } from '../base/types.controller-base';
+import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import {
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
@@ -59,7 +59,7 @@ class _GetAllocatorsRequest {
 
 export class GetAllocatorsRequest extends IntersectionType(
   _GetAllocatorsRequest,
-  PaginationSortingInfo,
+  PaginationSortingInfoRequest,
 ) {
   @ApiPropertyOptional({
     description: 'Flag to show inactive allocators; default is true',
@@ -99,7 +99,7 @@ export class GetWeekAllocatorsWithSpsComplianceRequestData extends IntersectionT
 
 export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(
   GetWeekAllocatorsWithSpsComplianceRequestData,
-  PaginationSortingInfo,
+  PaginationSortingInfoRequest,
 ) {
   @ApiPropertyOptional({
     description: 'Compliance score to filter by',
