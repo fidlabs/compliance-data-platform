@@ -4,9 +4,45 @@ import {
   IntersectionType,
 } from '@nestjs/swagger';
 import { PaginationSortingInfo } from '../base/types.controller-base';
-import { AllocatorComplianceScoreRange } from 'src/service/allocator/types.allocator';
+import {
+  AllocatorComplianceScoreRange,
+  AllocatorDatacapFlowData,
+} from 'src/service/allocator/types.allocator';
 import { stringifiedBool } from 'src/utils/utils';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
+
+export class GetDatacapFlowDataRequest {
+  @ApiPropertyOptional({
+    description: 'Flag to show inactive allocators; default is true',
+    type: Boolean,
+  })
+  showInactive?: stringifiedBool;
+
+  @ApiPropertyOptional({
+    description:
+      'Requested date to fetch historical data to; default is now, meaning all available data; ISO format',
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+  })
+  cutoffDate?: string;
+}
+
+export class GetDatacapFlowDataResponse {
+  @ApiProperty({
+    type: String,
+    description: 'Requested date; ISO format',
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+  })
+  cutoffDate: Date;
+
+  @ApiProperty({
+    isArray: true,
+    type: AllocatorDatacapFlowData,
+    description: 'Datacap flow data up to the requested date',
+  })
+  data: AllocatorDatacapFlowData[];
+}
 
 class _GetAllocatorsRequest {
   @ApiPropertyOptional({
