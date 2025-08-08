@@ -1,5 +1,7 @@
 -- @param {Boolean} $1:openDataOnly
 -- @param {Boolean} $2:httpRetrievability
+-- @param {DateTime} $3:startDate
+-- @param {DateTime} $4:endDate
 
 -- question - do we do a cutoff date or just switch for past data as well?
 with "open_data_pathway_allocator" as (
@@ -15,7 +17,10 @@ with "open_data_pathway_allocator" as (
                                 when $2 = true then "avg_weighted_retrievability_success_rate_http"
                                 else "avg_weighted_retrievability_success_rate"
                                 end                    as "selected_retrievability"
-                     from "allocators_weekly_acc")
+                     from "allocators_weekly_acc"
+                     where "week" >= $3
+                     and "week" <= $4
+                    )
 select "week"                                       as "week",
        ceil("selected_retrievability" * 20) * 5 - 5 as "valueFromExclusive",
        ceil("selected_retrievability" * 20) * 5     as "valueToInclusive",

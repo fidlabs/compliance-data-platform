@@ -25,10 +25,11 @@ export class AllocatorsAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getStandardAllocatorClientsWeekly(
-      query.roundId,
+      Number(query.roundId),
     );
   }
 
+  // Retrievability Score tab
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getAllocatorRetrievabilityWeekly(
@@ -37,15 +38,22 @@ export class AllocatorsAccStatsController {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
+      Number(query.roundId),
     );
   }
 
+  // biggest allocation tab
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly();
+  public async getAllocatorBiggestClientDistributionWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
+      Number(query.roundId),
+    );
   }
 
+  // sp compliance tab
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
   public async getAllocatorSpsComplianceWeekly(

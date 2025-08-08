@@ -35,7 +35,7 @@ export class StorageProvidersAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderClientsWeekly(
-      query.roundId,
+      Number(query.roundId),
     );
   }
 
@@ -46,7 +46,7 @@ export class StorageProvidersAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
-      query.roundId,
+      Number(query.roundId),
     );
   }
 
@@ -59,7 +59,7 @@ export class StorageProvidersAccStatsController {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
-      query?.roundId,
+      Number(query.roundId),
     );
   }
 
@@ -101,7 +101,7 @@ export class StorageProvidersAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly(
-      query.roundId,
+      Number(query.roundId),
     );
   }
 }

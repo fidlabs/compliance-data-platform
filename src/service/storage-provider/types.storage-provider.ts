@@ -1,6 +1,7 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
-import { getCurrentProgramRound } from 'src/utils/program-rounds';
+import { DEFAULT_FILPLUS_EDITION_ID } from 'src/utils/filplus-edition';
 import { stringToBool } from 'src/utils/utils';
 
 export enum StorageProviderComplianceScoreRange {
@@ -89,7 +90,7 @@ export class StorageProviderComplianceWeek extends IntersectionType(
   averageSuccessRate: number;
 }
 
-export class StorageProviderComplianceMetrics {
+export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   @ApiProperty()
   retrievability: boolean;
 
@@ -99,15 +100,13 @@ export class StorageProviderComplianceMetrics {
   @ApiProperty()
   totalDealSize: boolean;
 
-  @ApiProperty()
-  roundId: number;
-
   constructor(
     retrievability = true,
     numberOfClients = true,
     totalDealSize = true,
-    roundId = 6,
+    roundId = DEFAULT_FILPLUS_EDITION_ID,
   ) {
+    super();
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
@@ -119,7 +118,7 @@ export class StorageProviderComplianceMetrics {
       stringToBool(metrics.retrievability) ?? true,
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
-      metrics.roundId ?? getCurrentProgramRound().id,
+      Number(metrics.roundId),
     );
   }
 }

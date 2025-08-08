@@ -1,5 +1,7 @@
 -- @param {Boolean} $1:openDataOnly
 -- @param {Boolean} $2:httpRetrievability
+-- @param {DateTime} $3:startDate
+-- @param {DateTime} $4:endDate
 
 with "open_data_pathway_provider" as (
     select distinct "provider" as "provider"
@@ -15,7 +17,10 @@ with "open_data_pathway_provider" as (
                                 when $2 = true then "avg_retrievability_success_rate_http"
                                 else "avg_retrievability_success_rate"
                                 end           as "selected_retrievability"
-                     from "providers_weekly_acc")
+                     from "providers_weekly_acc"
+                     where "week" >= $3
+                       and "week" <= $4
+                     )
 select "week"                                              as "week",
        100 * ceil("selected_retrievability" * 20) / 20 - 5 as "valueFromExclusive",
        100 * ceil("selected_retrievability" * 20) / 20     as "valueToInclusive",
