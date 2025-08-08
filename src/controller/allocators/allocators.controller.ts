@@ -38,6 +38,7 @@ export class AllocatorsController extends ControllerBase {
       stringToBool(query.isMetaallocator),
       query.filter,
       query.usingMetaallocator,
+      query.roundId,
     );
 
     return this.withPaginationInfo(
@@ -50,7 +51,7 @@ export class AllocatorsController extends ControllerBase {
     );
   }
 
-  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  // @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   private async _getWeekAllocatorsWithSpsCompliance(
     query: GetWeekAllocatorsWithSpsComplianceRequestData,
   ) {

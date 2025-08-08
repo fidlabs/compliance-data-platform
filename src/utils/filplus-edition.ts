@@ -1,34 +1,54 @@
-export type FilPlusEdition = {
+export const DEFAULT_FILPLUS_EDITION_ID = 6;
+
+export type FilplusEditionConfig = {
   id: number;
-  start: number;
-  end?: number;
-  isCurrent?: boolean; // Optional, used to i the current edition
+  startTimestamp: number;
+  endTimestamp: number;
   lowReplicaThreshold: number;
   highReplicaThreshold: number;
 };
 
+export type FilPlusEdition = {
+  startDate: Date;
+  endDate: Date;
+  isCurrent: boolean;
+} & FilplusEditionConfig;
+
 // prettier-ignore
-const filPlusEditions: FilPlusEdition[] = [
-  { id: 5, start: 0, end: 1751846399, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // < 2026-07-06
-  { id: 6, start: 1751846400, lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 2026-07-07
+const filPlusEditions: FilplusEditionConfig[] = [
+  { id: 5, startTimestamp: 0, endTimestamp: 1751846399, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // < 2026-07-06 and before 2026-07-07
+  { id: 6, startTimestamp: 1751846400, endTimestamp: 4891363200, lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 2026-07-07 to future
 ];
+
+const getFilPlusEditions = (): FilPlusEdition[] => {
+  return filPlusEditions.map((edition) => ({
+    ...edition,
+    isCurrent: edition.id === DEFAULT_FILPLUS_EDITION_ID,
+    startDate: new Date(edition.startTimestamp * 1000),
+    endDate: new Date(edition.endTimestamp * 1000),
+  }));
+};
 
 export const getFilPlusEditionByTimestamp = (
   timestamp: number,
 ): FilPlusEdition => {
-  const edition = filPlusEditions.find((edition) =>
-    edition.end
-      ? edition.start <= timestamp && edition.end >= timestamp
-      : edition.start <= timestamp,
+  const allEditions = getFilPlusEditions();
+
+  const edition = allEditions.find((edition) =>
+    edition.endTimestamp
+      ? edition.startTimestamp <= timestamp && edition.endTimestamp >= timestamp
+      : edition.startTimestamp <= timestamp,
   );
 
-  return edition ?? filPlusEditions[filPlusEditions.length - 1]; // return the last edition if no match found
+  return edition ?? allEditions[filPlusEditions.length - 1]; // return the last edition if no match found
 };
 
 export const getFilPlusEditionByNumber = (
   roundId: number,
 ): FilPlusEdition | undefined => {
-  return filPlusEditions.find((round) => round.id === roundId);
+  const allEditions = getFilPlusEditions();
+
+  return allEditions.find((round) => round.id === roundId);
 };
 
 export const getCurrentFilPlusEdition = (): FilPlusEdition => {
@@ -36,9 +56,9 @@ export const getCurrentFilPlusEdition = (): FilPlusEdition => {
   return getFilPlusEditionByTimestamp(now);
 };
 
-export const getFilPlusEditionDateTimeRange = (
+export const getFilPlusEditionWithDateTimeRange = (
   roundId: number,
-): { startDate: Date; endDate: Date } | undefined => {
+): FilPlusEdition => {
   const edition = getFilPlusEditionByNumber(roundId);
 
   if (!edition) {
@@ -46,7 +66,11 @@ export const getFilPlusEditionDateTimeRange = (
   }
 
   return {
-    startDate: new Date(edition.start * 1000),
-    endDate: edition.end ? new Date(edition.end * 1000) : new Date(),
+    ...edition,
+    isCurrent: edition.id === getCurrentFilPlusEdition().id,
+    startDate: new Date(edition.startTimestamp * 1000),
+    endDate: edition.endTimestamp
+      ? new Date(edition.endTimestamp * 1000)
+      : new Date(),
   };
 };
