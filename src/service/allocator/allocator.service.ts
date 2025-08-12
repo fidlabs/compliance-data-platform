@@ -22,6 +22,7 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
 import {
   DEFAULT_FILPLUS_EDITION_ID,
+  getAllocatorRegistryModelByFilPlusEdition,
   getCurrentFilPlusEdition,
   getFilPlusEditionByNumber,
   getFilPlusEditionWithDateTimeRange,
@@ -61,18 +62,6 @@ export class AllocatorService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  private getAllocatorModelByFilPlusEdition(roundId: number) {
-    const editionData = getFilPlusEditionByNumber(roundId);
-
-    if (!editionData) {
-      throw new BadRequestException(`Invalid program round ID: ${roundId}`);
-    }
-
-    return editionData.isCurrent
-      ? 'allocator_registry'
-      : 'allocator_registry_archived';
-  }
-
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocators(
     returnInactive = true,
@@ -82,7 +71,8 @@ export class AllocatorService {
     roundId = DEFAULT_FILPLUS_EDITION_ID,
   ) {
     const editionDate = getFilPlusEditionWithDateTimeRange(roundId);
-    const allocatorRegistry = this.getAllocatorModelByFilPlusEdition(roundId);
+    const allocatorRegistry =
+      getAllocatorRegistryModelByFilPlusEdition(roundId);
 
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(
@@ -561,5 +551,22 @@ export class AllocatorService {
         )
       )?.[0]?.average,
     );
+  }
+
+  public async getActiveAllocatorRegistryIdsByFilPlusEdition(
+    roundId = DEFAULT_FILPLUS_EDITION_ID,
+  ): Promise<string[]> {
+    const allocatorRegistry =
+      getAllocatorRegistryModelByFilPlusEdition(roundId);
+
+    const allocators = await this.prismaService[allocatorRegistry].findMany({
+      where: {
+        active: true,
+      },
+      select: {
+        allocator_id: true,
+      },
+    });
+    return allocators.map((a) => a.allocator_id);
   }
 }

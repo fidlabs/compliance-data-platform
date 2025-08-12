@@ -21,7 +21,7 @@ import { stringToBool } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 
 @Controller('stats/acc/providers')
-@CacheTTL(1000 * 60 * 30) // 30 minutes
+// @CacheTTL(1000 * 60 * 30) // 30 minutes
 export class StorageProvidersAccStatsController {
   constructor(
     private readonly storageProviderService: StorageProviderService,
@@ -89,7 +89,7 @@ export class StorageProvidersAccStatsController {
 
   // ipin misreporting tab
   @Get('/aggregated-ipni-status-weekly')
-  @CacheTTL(1000 * 60 * 60) // 1 hour
+  // @CacheTTL(1000 * 60 * 60) // 1 hour
   @ApiOperation({
     summary: 'Get aggregated storage providers IPNI reporting status over time',
   })

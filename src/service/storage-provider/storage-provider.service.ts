@@ -42,6 +42,8 @@ import {
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
+import { GitHubAllocatorRegistryService } from '../github-allocator-registry/github-allocator-registry.service';
+import { AllocatorService } from '../allocator/allocator.service';
 
 @Injectable()
 export class StorageProviderService {
@@ -50,6 +52,9 @@ export class StorageProviderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly histogramHelper: HistogramHelperService,
+    // private readonly allocatorRegistryService: GitHubAllocatorRegistryService,
+    private readonly allocatorService: AllocatorService,
+
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
@@ -197,11 +202,13 @@ export class StorageProviderService {
   public getLastWeekAverageProviderRetrievability(
     openDataOnly = true,
     httpRetrievability = true,
+    allocatorIds: string[] = null,
   ): Promise<number> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
       openDataOnly,
       httpRetrievability,
+      allocatorIds,
     );
   }
 
@@ -212,21 +219,35 @@ export class StorageProviderService {
       metricsToCheck.roundId,
     );
 
-    const weeks = await this.getWeeksTracked(
-      roundData.startDate,
-      roundData.endDate,
-    );
+    const [weeks, activeAllocatorIds] = await Promise.all([
+      this.getWeeksTracked(roundData.startDate, roundData.endDate),
+      this.allocatorService.getActiveAllocatorRegistryIdsByFilPlusEdition(
+        metricsToCheck.roundId,
+      ),
+    ]);
 
     const lastWeekAverageRetrievability = roundData.isCurrent
-      ? await this.getLastWeekAverageProviderRetrievability()
+      ? await this.getLastWeekAverageProviderRetrievability(
+          true,
+          true,
+          activeAllocatorIds,
+        )
       : await this.getWeekAverageProviderRetrievability(
           getLastWeekBeforeTimestamp(roundData.endTimestamp),
+          true,
+          true,
+          activeAllocatorIds,
         );
 
     const result: StorageProviderComplianceWeek[] = await Promise.all(
       weeks.map(async (week) => {
         const weekAverageRetrievability =
-          await this.getWeekAverageProviderRetrievability(week);
+          await this.getWeekAverageProviderRetrievability(
+            week,
+            true,
+            true,
+            activeAllocatorIds,
+          );
 
         const weekProviders = await this.getWeekProviders(week);
 
@@ -350,6 +371,7 @@ export class StorageProviderService {
     week: Date,
     openDataOnly = true,
     httpRetrievability = true,
+    allocatorIds = null,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
@@ -357,6 +379,7 @@ export class StorageProviderService {
           openDataOnly,
           httpRetrievability,
           week,
+          allocatorIds,
         ),
       )
     )[0].average;
