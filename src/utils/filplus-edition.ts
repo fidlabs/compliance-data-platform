@@ -1,3 +1,5 @@
+import { BadRequestException } from '@nestjs/common';
+
 export const DEFAULT_FILPLUS_EDITION_ID = 6;
 
 export type FilplusEditionConfig = {
@@ -73,4 +75,16 @@ export const getFilPlusEditionWithDateTimeRange = (
       ? new Date(edition.endTimestamp * 1000)
       : new Date(),
   };
+};
+
+export const getAllocatorRegistryModelByFilPlusEdition = (roundId: number) => {
+  const editionData = getFilPlusEditionByNumber(roundId);
+
+  if (!editionData) {
+    throw new BadRequestException(`Invalid program round ID: ${roundId}`);
+  }
+
+  return editionData.isCurrent
+    ? 'allocator_registry'
+    : 'allocator_registry_archived';
 };
