@@ -13,12 +13,6 @@ import { StorageProviderComplianceMetricsRequest } from '../storage-providers/ty
 
 export class GetDatacapFlowDataRequest {
   @ApiPropertyOptional({
-    description: 'Flag to show inactive allocators; default is true',
-    type: Boolean,
-  })
-  showInactive?: stringifiedBool;
-
-  @ApiPropertyOptional({
     description:
       'Requested date to fetch historical data to; default is now, meaning all available data; ISO format',
     format: 'date-time',
