@@ -18,7 +18,6 @@ import { FilPlusEditionRequest } from 'src/controller/base/program-round-control
 export class AllocatorsAccStatsController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
-  // client diversity tab
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getAllocatorClientsWeekly(
@@ -29,7 +28,6 @@ export class AllocatorsAccStatsController {
     );
   }
 
-  // Retrievability Score tab
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getAllocatorRetrievabilityWeekly(
@@ -42,7 +40,6 @@ export class AllocatorsAccStatsController {
     );
   }
 
-  // biggest allocation tab
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getAllocatorBiggestClientDistributionWeekly(
@@ -53,7 +50,6 @@ export class AllocatorsAccStatsController {
     );
   }
 
-  // sp compliance tab
   @Get('sps-compliance')
   @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
   public async getAllocatorSpsComplianceWeekly(

@@ -8,10 +8,6 @@ import {
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import { PrismaService } from 'src/db/prisma.service';
-import {
-  DEFAULT_FILPLUS_EDITION_ID,
-  getAllocatorRegistryModelByFilPlusEdition,
-} from 'src/utils/filplus-edition';
 import { envSet } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { AllocatorRegistry } from './types.github-allocator-registry';
@@ -206,7 +202,10 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     // prefer json data over db data
     const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
     const allocatorId = jsonAllocatorId || dbAllocatorId;
-    const programRoundData = this.getAllocatorProgramRoundData(jsonData, path);
+    const filPlusEditionData = this.getAllocatorFilPlusEditionData(
+      jsonData,
+      path,
+    );
 
     return !allocatorId
       ? null
@@ -215,11 +214,11 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
           allocator_address: allocatorAddress,
           json_path: path,
           registry_info: jsonData,
-          ...programRoundData,
+          ...filPlusEditionData,
         };
   }
 
-  private getAllocatorProgramRoundData(
+  private getAllocatorFilPlusEditionData(
     jsonData: object,
     allocatorJsonPath: string,
   ): {
@@ -241,22 +240,5 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     }
 
     return { program_round: allocatorProgramRound, active: allocatorIsActive };
-  }
-
-  public async getActiveAllocatorRegistryIdsByFilPlusEdition(
-    roundId = DEFAULT_FILPLUS_EDITION_ID,
-  ): Promise<string[]> {
-    const allocatorRegistry =
-      getAllocatorRegistryModelByFilPlusEdition(roundId);
-
-    const allocators = await this.prismaService[allocatorRegistry].findMany({
-      where: {
-        active: true,
-      },
-      select: {
-        allocator_id: true,
-      },
-    });
-    return allocators.map((a) => a.allocator_id);
   }
 }
