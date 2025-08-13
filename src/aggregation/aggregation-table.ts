@@ -25,4 +25,5 @@ export enum AggregationTable {
   Provider,
   ProviderUrlFinderRetrievabilityDaily,
   ClientDatacapAllocation,
+  AllocatorRegistryArchive,
 }
