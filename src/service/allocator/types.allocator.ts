@@ -122,7 +122,7 @@ export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceW
   totalSps: number;
 }
 
-export class AllocatorSpsComplianceWeek {
+export class AllocatorSpsComplianceWeekResults {
   @ApiProperty({
     type: String,
     format: 'date-time',
@@ -144,7 +144,7 @@ export class AllocatorSpsComplianceWeek {
   allocators: AllocatorSpsComplianceWeekSingle[];
 }
 
-export class AllocatorSpsComplianceWeekResponse {
+export class AllocatorSpsComplianceWeek {
   @ApiProperty({
     description: 'Storage providers compliance metrics checked',
   })
@@ -156,13 +156,13 @@ export class AllocatorSpsComplianceWeekResponse {
   })
   averageSuccessRate: number;
 
-  @ApiProperty({ type: AllocatorSpsComplianceWeek, isArray: true })
-  results: AllocatorSpsComplianceWeek[];
+  @ApiProperty({ type: AllocatorSpsComplianceWeekResults, isArray: true })
+  results: AllocatorSpsComplianceWeekResults[];
 
   constructor(
     metricsChecked: StorageProviderComplianceMetrics,
     averageSuccessRate: number,
-    results: AllocatorSpsComplianceWeek[],
+    results: AllocatorSpsComplianceWeekResults[],
   ) {
     this.metricsChecked = metricsChecked;
     this.averageSuccessRate = averageSuccessRate;

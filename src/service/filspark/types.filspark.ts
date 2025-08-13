@@ -1,4 +1,4 @@
-export class RetrievabilityInfo {
+export class FilsparkRetrievabilityInfo {
   miner_id: string;
   total: string;
   successful: string;
