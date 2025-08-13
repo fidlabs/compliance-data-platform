@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
-import { RetrievabilityInfo } from './types.filspark';
+import { FilsparkRetrievabilityInfo } from './types.filspark';
 
 @Injectable()
 export class FilSparkService {
@@ -13,13 +13,13 @@ export class FilSparkService {
   // returns 0 - 1 success_rate, success_rate_http
   public async fetchRetrievability(
     date?: DateTime,
-  ): Promise<RetrievabilityInfo[]> {
+  ): Promise<FilsparkRetrievabilityInfo[]> {
     const dateParam = date?.toFormat('yyyy-MM-dd');
     const endpoint =
       'https://stats.filspark.com/miners/retrieval-success-rate/summary';
 
     const { data } = await lastValueFrom(
-      this.httpService.get<RetrievabilityInfo[]>(endpoint, {
+      this.httpService.get<FilsparkRetrievabilityInfo[]>(endpoint, {
         params: dateParam && {
           from: dateParam,
           to: dateParam,

@@ -2,12 +2,12 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import {
-  HistogramWeekResponse,
-  RetrievabilityWeekResponse,
+  HistogramWeek,
+  RetrievabilityWeek,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import {
   StorageProviderComplianceMetrics,
-  StorageProviderComplianceWeekResponse,
+  StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
 import { CacheTTL } from '@nestjs/cache-manager';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
@@ -28,22 +28,22 @@ export class StorageProvidersAccStatsController {
   ) {}
 
   @Get('clients')
-  @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
+  @ApiOkResponse({ type: HistogramWeek })
+  public async getProviderClientsWeekly(): Promise<HistogramWeek> {
     return await this.storageProviderService.getProviderClientsWeekly();
   }
 
   @Get('biggest-client-distribution')
-  @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
+  @ApiOkResponse({ type: HistogramWeek })
+  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeek> {
     return await this.storageProviderService.getProviderBiggestClientDistributionWeekly();
   }
 
   @Get('retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  @ApiOkResponse({ type: RetrievabilityWeek })
   public async getProviderRetrievabilityWeekly(
     @Query() query: GetRetrievabilityWeeklyRequest,
-  ): Promise<RetrievabilityWeekResponse> {
+  ): Promise<RetrievabilityWeek> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
@@ -51,10 +51,10 @@ export class StorageProvidersAccStatsController {
   }
 
   @Get('compliance-data')
-  @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
+  @ApiOkResponse({ type: StorageProviderComplianceWeek })
   public async getProviderComplianceWeekly(
     @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
-  ): Promise<StorageProviderComplianceWeekResponse> {
+  ): Promise<StorageProviderComplianceWeek> {
     return await this.storageProviderService.getProviderComplianceWeekly(
       StorageProviderComplianceMetrics.of(spMetricsToCheck),
     );

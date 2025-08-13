@@ -22,17 +22,17 @@ import {
   AllocatorComplianceScore,
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
+  AllocatorSpsComplianceWeekResults,
   AllocatorSpsComplianceWeek,
-  AllocatorSpsComplianceWeekResponse,
   AllocatorSpsComplianceWeekSingle,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekFlat,
-  HistogramWeekResponse,
+  HistogramWeek,
   RetrievabilityHistogramWeek,
-  RetrievabilityHistogramWeekResponse,
-  RetrievabilityWeekResponse,
+  RetrievabilityHistogramWeekResults,
+  RetrievabilityWeek,
 } from '../histogram-helper/types.histogram-helper';
 import {
   StorageProviderComplianceMetrics,
@@ -220,8 +220,8 @@ export class AllocatorService {
       );
   }
 
-  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -243,7 +243,7 @@ export class AllocatorService {
   public async getStandardAllocatorRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-  ): Promise<RetrievabilityWeekResponse> {
+  ): Promise<RetrievabilityWeek> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
         lastWeek(),
@@ -259,9 +259,9 @@ export class AllocatorService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(result, 100);
 
-    return new RetrievabilityWeekResponse(
+    return new RetrievabilityWeek(
       lastWeekAverageRetrievability * 100,
-      new RetrievabilityHistogramWeekResponse(
+      new RetrievabilityHistogramWeekResults(
         await this.getStandardAllocatorCount(openDataOnly),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
@@ -279,8 +279,8 @@ export class AllocatorService {
     );
   }
 
-  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -318,7 +318,7 @@ export class AllocatorService {
   public async getWeekStandardAllocatorSpsCompliance(
     week: Date,
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeek> {
+  ): Promise<AllocatorSpsComplianceWeekResults> {
     const weekAverageProvidersRetrievability =
       await this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
@@ -382,7 +382,7 @@ export class AllocatorService {
   // TODO measure and optimize this function
   public async getStandardAllocatorSpsComplianceWeekly(
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeekResponse> {
+  ): Promise<AllocatorSpsComplianceWeek> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
     const lastWeekAverageProviderRetrievability =
@@ -398,7 +398,7 @@ export class AllocatorService {
       ),
     );
 
-    return new AllocatorSpsComplianceWeekResponse(
+    return new AllocatorSpsComplianceWeek(
       spMetricsToCheck,
       lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(

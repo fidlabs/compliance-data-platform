@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { groupBy } from 'lodash';
 import {
   Histogram,
-  HistogramWeek,
+  HistogramWeekResults,
   HistogramWeekFlat,
 } from './types.histogram-helper';
 
@@ -15,9 +15,9 @@ export class HistogramHelperService {
     histogramWeeksFlat: HistogramWeekFlat[],
     maxRangeTopValue?: number,
     minRangeLowValue: number = 0,
-  ): Promise<HistogramWeek[]> {
+  ): Promise<HistogramWeekResults[]> {
     const histogramsByWeek = groupBy(histogramWeeksFlat, (p) => p.week);
-    const results: HistogramWeek[] = [];
+    const results: HistogramWeekResults[] = [];
 
     for (const week in histogramsByWeek) {
       const weekResults = histogramsByWeek[week].map((r) => {
@@ -30,7 +30,7 @@ export class HistogramHelperService {
       });
 
       results.push(
-        new HistogramWeek(
+        new HistogramWeekResults(
           new Date(week),
           weekResults.reduce(
             (partialSum, response) => partialSum + response.count,
@@ -74,10 +74,10 @@ export class HistogramHelperService {
 
   // calculate missing, empty histogram buckets
   private withMissingBuckets(
-    histogramWeeks: HistogramWeek[],
+    histogramWeeks: HistogramWeekResults[],
     maxRangeTopValue?: number,
     minRangeLowValue: number = 0,
-  ): HistogramWeek[] {
+  ): HistogramWeekResults[] {
     const maxMinSpan = this.getMaxMinSpan(histogramWeeks);
     const allBucketsTopValues = this.getAllBucketsTopValues(
       histogramWeeks,
@@ -106,7 +106,7 @@ export class HistogramHelperService {
     return histogramWeeks;
   }
 
-  private getMaxMinSpan(histogramWeeks: HistogramWeek[]): number {
+  private getMaxMinSpan(histogramWeeks: HistogramWeekResults[]): number {
     if (histogramWeeks.length === 0) return 0;
 
     const maxRangeTopValue = Math.max(
@@ -125,7 +125,7 @@ export class HistogramHelperService {
   }
 
   private getAllBucketsTopValues(
-    histogramWeeks: HistogramWeek[],
+    histogramWeeks: HistogramWeekResults[],
     maxMinSpan: number,
     maxRangeTopValue?: number,
     minRangeLowValue: number | undefined = 0,

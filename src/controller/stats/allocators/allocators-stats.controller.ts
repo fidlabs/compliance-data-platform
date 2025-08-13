@@ -1,10 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { AllocatorSpsComplianceWeekResponse } from 'src/service/allocator/types.allocator';
+import { AllocatorSpsComplianceWeek } from 'src/service/allocator/types.allocator';
 import {
-  HistogramWeekResponse,
-  RetrievabilityWeekResponse,
+  HistogramWeek,
+  RetrievabilityWeek,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { CacheTTL } from '@nestjs/cache-manager';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
@@ -18,16 +18,16 @@ export class AllocatorsAccStatsController {
   constructor(private readonly allocatorService: AllocatorService) {}
 
   @Get('clients')
-  @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
+  @ApiOkResponse({ type: HistogramWeek })
+  public async getAllocatorClientsWeekly(): Promise<HistogramWeek> {
     return await this.allocatorService.getStandardAllocatorClientsWeekly();
   }
 
   @Get('retrievability')
-  @ApiOkResponse({ type: RetrievabilityWeekResponse })
+  @ApiOkResponse({ type: RetrievabilityWeek })
   public async getAllocatorRetrievabilityWeekly(
     @Query() query: GetRetrievabilityWeeklyRequest,
-  ): Promise<RetrievabilityWeekResponse> {
+  ): Promise<RetrievabilityWeek> {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
@@ -35,16 +35,16 @@ export class AllocatorsAccStatsController {
   }
 
   @Get('biggest-client-distribution')
-  @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
+  @ApiOkResponse({ type: HistogramWeek })
+  public async getAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeek> {
     return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly();
   }
 
   @Get('sps-compliance')
-  @ApiOkResponse({ type: AllocatorSpsComplianceWeekResponse })
+  @ApiOkResponse({ type: AllocatorSpsComplianceWeek })
   public async getAllocatorSpsComplianceWeekly(
     @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
-  ): Promise<AllocatorSpsComplianceWeekResponse> {
+  ): Promise<AllocatorSpsComplianceWeek> {
     return await this.allocatorService.getStandardAllocatorSpsComplianceWeekly(
       StorageProviderComplianceMetrics.of(spMetricsToCheck),
     );

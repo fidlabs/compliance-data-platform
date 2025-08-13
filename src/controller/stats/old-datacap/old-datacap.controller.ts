@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { OldDatacapService } from 'src/service/old-datacap/old-datacap.service';
 import { ApiOkResponse } from '@nestjs/swagger';
+import { CacheTTL } from '@nestjs/cache-manager';
 import {
   OldDatacapAllocatorBalanceWeekResponse,
   OldDatacapClientBalanceWeekResponse,
-} from 'src/service/old-datacap/types.old-datacap';
-import { CacheTTL } from '@nestjs/cache-manager';
+} from './types.old-datacap';
 
 @Controller('stats/old-datacap')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -15,12 +15,12 @@ export class OldDatacapController {
   @Get('allocator-balance')
   @ApiOkResponse({ type: OldDatacapAllocatorBalanceWeekResponse })
   public async getAllocatorBalance(): Promise<OldDatacapAllocatorBalanceWeekResponse> {
-    return await this.oldDatacapService.getAllocatorBalance();
+    return { results: await this.oldDatacapService.getAllocatorBalance() };
   }
 
   @Get('client-balance')
   @ApiOkResponse({ type: OldDatacapClientBalanceWeekResponse })
   public async getClientBalance(): Promise<OldDatacapClientBalanceWeekResponse> {
-    return await this.oldDatacapService.getClientBalance();
+    return { results: await this.oldDatacapService.getClientBalance() };
   }
 }
