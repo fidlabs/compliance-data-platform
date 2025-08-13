@@ -21,14 +21,13 @@ import { stringToBool } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 
 @Controller('stats/acc/providers')
-// @CacheTTL(1000 * 60 * 30) // 30 minutes
+@CacheTTL(1000 * 60 * 30) // 30 minutes
 export class StorageProvidersAccStatsController {
   constructor(
     private readonly storageProviderService: StorageProviderService,
     private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
   ) {}
 
-  // Number of Allocations tab
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getProviderClientsWeekly(
@@ -39,7 +38,6 @@ export class StorageProvidersAccStatsController {
     );
   }
 
-  // Biggest Allocation tab
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
   public async getProviderBiggestClientDistributionWeekly(
@@ -50,7 +48,6 @@ export class StorageProvidersAccStatsController {
     );
   }
 
-  // Retrievability Score tab
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeekResponse })
   public async getProviderRetrievabilityWeekly(
@@ -63,7 +60,6 @@ export class StorageProvidersAccStatsController {
     );
   }
 
-  // compliance tab
   @Get('compliance-data')
   @ApiOkResponse({ type: StorageProviderComplianceWeekResponse })
   public async getProviderComplianceWeekly(
@@ -87,9 +83,8 @@ export class StorageProvidersAccStatsController {
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatus();
   }
 
-  // ipin misreporting tab
   @Get('/aggregated-ipni-status-weekly')
-  // @CacheTTL(1000 * 60 * 60) // 1 hour
+  @CacheTTL(1000 * 60 * 60) // 1 hour
   @ApiOperation({
     summary: 'Get aggregated storage providers IPNI reporting status over time',
   })

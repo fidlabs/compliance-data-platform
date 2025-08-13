@@ -71,9 +71,7 @@ export const getFilPlusEditionWithDateTimeRange = (
     ...edition,
     isCurrent: edition.id === getCurrentFilPlusEdition().id,
     startDate: new Date(edition.startTimestamp * 1000),
-    endDate: edition.endTimestamp
-      ? new Date(edition.endTimestamp * 1000)
-      : new Date(),
+    endDate: new Date(edition.endTimestamp * 1000),
   };
 };
 

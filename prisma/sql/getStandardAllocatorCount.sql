@@ -16,5 +16,5 @@ where (
         or "allocator" in (select "allocator" from "open_data_pathway_allocator")
     )
   and ("is_metaallocator" = false or "is_metaallocator" is null)
-  and week >= $2
-  and week <= $3;
+  and "allocators_weekly_acc"."week" >= $2
+  and "allocators_weekly_acc"."week" <= $3;
