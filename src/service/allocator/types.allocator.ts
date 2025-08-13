@@ -35,6 +35,63 @@ export class AllocatorDatacapFlowData {
   applicationAudit: string | null;
 }
 
+export enum AllocatorAuditStateOutcome {
+  passed = 'passed',
+  passedConditionally = 'passedConditionally',
+}
+
+export class AllocatorAuditStateAudits {
+  @ApiProperty({
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'Timestamp when the audit ended; ISO format',
+  })
+  ended: string;
+
+  @ApiProperty({
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'Timestamp when the audit started; ISO format',
+  })
+  started: string;
+
+  @ApiProperty({
+    description: 'Audit outcome',
+    enum: AllocatorAuditStateOutcome,
+  })
+  outcome: AllocatorAuditStateOutcome;
+
+  @ApiProperty({
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'Timestamp when datacap was allocated; ISO format',
+  })
+  dc_allocated: string;
+
+  @ApiProperty({
+    description: 'Datacap amount allocated in the audit in PiB',
+  })
+  datacap_amount: number;
+}
+
+export class AllocatorAuditStateData {
+  @ApiProperty({ description: 'Allocator ID' })
+  allocatorId: string;
+
+  @ApiProperty({
+    description: 'Allocator name',
+    nullable: true,
+  })
+  allocatorName: string | null;
+
+  @ApiProperty({
+    description: 'Allocator audits',
+    isArray: true,
+    type: AllocatorAuditStateAudits,
+  })
+  audits: AllocatorAuditStateAudits[];
+}
+
 export enum AllocatorComplianceScoreRange {
   NonCompliant = 'nonCompliant',
   PartiallyCompliant = 'partiallyCompliant',
