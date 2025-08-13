@@ -22,7 +22,6 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
 import {
   DEFAULT_FILPLUS_EDITION_ID,
-  getAllocatorRegistryModelByFilPlusEdition,
   getCurrentFilPlusEdition,
   getFilPlusEditionByNumber,
   getFilPlusEditionWithDateTimeRange,
@@ -68,32 +67,21 @@ export class AllocatorService {
     isMetaallocator: boolean | null = null,
     filter: string | null = null,
     usingMetaallocatorId: string | null = null,
-    roundId = DEFAULT_FILPLUS_EDITION_ID,
   ) {
-    const editionDate = getFilPlusEditionWithDateTimeRange(roundId);
-    const allocatorRegistry =
-      getAllocatorRegistryModelByFilPlusEdition(roundId);
-
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(
         returnInactive,
         isMetaallocator,
         filter,
         usingMetaallocatorId,
-        editionDate.startDate,
-        editionDate.endDate,
       ),
     );
 
-    const registryInfo = await this.prismaService[allocatorRegistry].findMany({
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         allocator_id: true,
         json_path: true,
         registry_info: true,
-        active: true,
-      },
-      where: {
-        active: !returnInactive,
       },
     });
 
@@ -347,33 +335,6 @@ export class AllocatorService {
       },
     );
 
-    // const weekAllocators: AllocatorSpsComplianceWeekSingle[] =
-    // await Promise.all(
-    //   Object.entries(clientsByAllocator).map(
-    //     // prettier-ignore
-    //     async ([allocator, clients]): Promise<AllocatorSpsComplianceWeekSingle> => {
-    //       const weekProvidersForAllocator =
-    //         await this.storageProviderService.getWeekProvidersForClients(
-    //           week,
-    //           clients.map((p) => p.client),
-    //         );
-
-    //       return {
-    //         id: allocator,
-    //         totalDatacap: await this.getWeekAllocatorTotalDatacap(
-    //           week,
-    //           allocator,
-    //         ),
-    //         ...this.storageProviderService.getProvidersCompliancePercentage(
-    //           weekProvidersCompliance,
-    //           weekProvidersForAllocator,
-    //         ),
-    //         totalSps: weekProvidersForAllocator.length,
-    //       };
-    //     },
-    //   ),
-    // );
-
     return {
       week: week,
       averageSuccessRate: weekAverageProvidersRetrievability * 100,
@@ -382,7 +343,6 @@ export class AllocatorService {
     };
   }
 
-  // TODO measure and optimize this function
   public async getStandardAllocatorSpsComplianceWeekly(
     spMetricsToCheck?: StorageProviderComplianceMetrics,
   ): Promise<AllocatorSpsComplianceWeekResponse> {
@@ -551,22 +511,5 @@ export class AllocatorService {
         )
       )?.[0]?.average,
     );
-  }
-
-  public async getActiveAllocatorRegistryIdsByFilPlusEdition(
-    roundId = DEFAULT_FILPLUS_EDITION_ID,
-  ): Promise<string[]> {
-    const allocatorRegistry =
-      getAllocatorRegistryModelByFilPlusEdition(roundId);
-
-    const allocators = await this.prismaService[allocatorRegistry].findMany({
-      where: {
-        active: true,
-      },
-      select: {
-        allocator_id: true,
-      },
-    });
-    return allocators.map((a) => a.allocator_id);
   }
 }
