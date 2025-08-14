@@ -4,6 +4,37 @@ import {
   StorageProviderComplianceWeekPercentage,
 } from '../storage-provider/types.storage-provider';
 
+export class AllocatorDatacapFlowData {
+  @ApiProperty({ description: 'Allocator ID' })
+  allocatorId: string;
+
+  @ApiProperty({
+    description: 'Allocator name',
+    nullable: true,
+  })
+  allocatorName: string | null;
+
+  @ApiProperty({
+    description: 'Datacap of the allocator',
+    type: String,
+    format: 'int64',
+    example: '42',
+  })
+  datacap: bigint;
+
+  @ApiProperty({
+    description: 'Allocator metapathway type',
+    nullable: true,
+  })
+  metapathwayType: string | null;
+
+  @ApiProperty({
+    description: 'Allocator application audit',
+    nullable: true,
+  })
+  applicationAudit: string | null;
+}
+
 export enum AllocatorComplianceScoreRange {
   NonCompliant = 'nonCompliant',
   PartiallyCompliant = 'partiallyCompliant',
@@ -21,8 +52,11 @@ export class AllocatorSpsComplianceWeekSingle extends StorageProviderComplianceW
 
   @ApiProperty({
     description: 'Total datacap of the allocator in the week',
+    type: String,
+    format: 'int64',
+    example: '42',
   })
-  totalDatacap: number;
+  totalDatacap: bigint;
 
   @ApiProperty({
     description:

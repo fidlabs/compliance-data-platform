@@ -6,6 +6,7 @@ import {
   DEFAULT_FILPLUS_EDITION_ID,
   getFilPlusEditionWithDateTimeRange,
 } from 'src/utils/filplus-edition';
+import { bigIntToNumber } from 'src/utils/utils';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
@@ -115,7 +116,7 @@ export class IpniMisreportingCheckerService {
   private async getProviderActualClaimsCount(
     storageProviderId: string,
   ): Promise<number> {
-    return Number(
+    return bigIntToNumber(
       (
         await this.prismaService.client_provider_distribution.aggregate({
           _sum: {
@@ -130,7 +131,7 @@ export class IpniMisreportingCheckerService {
   }
 
   private async getProviderIPNIReportedClaimsCountByPeerId(
-    peerId?: string | null,
+    peerId?: string,
   ): Promise<number | null> {
     if (!peerId) return null;
 
@@ -143,7 +144,7 @@ export class IpniMisreportingCheckerService {
 
     if (dbEmpty) return null;
 
-    return Number(
+    return bigIntToNumber(
       (
         await this.prismaService.ipni_publisher_advertisement.aggregate({
           _sum: {

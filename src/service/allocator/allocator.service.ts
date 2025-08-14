@@ -16,7 +16,10 @@ import {
   getStandardAllocatorRetrievabilityAcc,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
-import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
+import {
+  getAllocatorDatacapFlowData,
+  getAllocatorsFull,
+} from 'prismaDmob/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
@@ -43,6 +46,7 @@ import {
 import {
   AllocatorComplianceScore,
   AllocatorComplianceScoreRange,
+  AllocatorDatacapFlowData,
   AllocatorSpsComplianceWeek,
   AllocatorSpsComplianceWeekResponse,
   AllocatorSpsComplianceWeekSingle,
@@ -62,21 +66,7 @@ export class AllocatorService {
   ) {}
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getAllocators(
-    returnInactive = true,
-    isMetaallocator: boolean | null = null,
-    filter: string | null = null,
-    usingMetaallocatorId: string | null = null,
-  ) {
-    const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorsFull(
-        returnInactive,
-        isMetaallocator,
-        filter,
-        usingMetaallocatorId,
-      ),
-    );
-
+  public async getAllocatorRegistryInfoMap() {
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         allocator_id: true,
@@ -85,10 +75,27 @@ export class AllocatorService {
       },
     });
 
-    const registryInfoMap = registryInfo.reduce((acc, v) => {
+    return registryInfo.reduce((acc, v) => {
       acc[v.allocator_id] = v;
       return acc;
     }, {});
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getAllocators(
+    returnInactive = true,
+    isMetaallocator?: boolean,
+    filter?: string,
+    usingMetaallocatorId?: string,
+  ) {
+    const allocators = await this.prismaDmobService.$queryRawTyped(
+      getAllocatorsFull(
+        returnInactive,
+        isMetaallocator ?? null,
+        filter ?? null,
+        usingMetaallocatorId ?? null,
+      ),
+    );
 
     const registryRepoOwner = this.configService.get<string>(
       'ALLOCATOR_REGISTRY_REPO_OWNER',
@@ -99,18 +106,43 @@ export class AllocatorService {
     );
 
     const registryRepoUrlBase = `https://github.com/${registryRepoOwner}/${registryRepoName}/blob/main`;
+    const registryInfoMap = await this.getAllocatorRegistryInfoMap();
 
     return allocators.map((allocator) => {
       const path = registryInfoMap[allocator.addressId]?.json_path;
 
       return {
-        application_json_url: path ? `${registryRepoUrlBase}/${path}` : null,
-        metapathway_type:
+        applicationJsonUrl: path ? `${registryRepoUrlBase}/${path}` : null,
+        metapathwayType:
           registryInfoMap[allocator.addressId]?.registry_info
             ?.metapathway_type ?? null,
-        application_audit:
+        applicationAudit:
           registryInfoMap[
             allocator.addressId
+          ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
+        ...allocator,
+      };
+    });
+  }
+
+  public async getDatacapFlowData(
+    returnInactive = true,
+    cutoffDate?: Date,
+  ): Promise<AllocatorDatacapFlowData[]> {
+    const allocators = await this.prismaDmobService.$queryRawTyped(
+      getAllocatorDatacapFlowData(returnInactive, cutoffDate),
+    );
+
+    const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+
+    return allocators.map((allocator) => {
+      return {
+        metapathwayType:
+          registryInfoMap[allocator.allocatorId]?.registry_info
+            ?.metapathway_type ?? null,
+        applicationAudit:
+          registryInfoMap[
+            allocator.allocatorId
           ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
         ...allocator,
       };
@@ -312,10 +344,10 @@ export class AllocatorService {
 
     const totalDatacapMap = totalDatacaps.reduce(
       (acc, item) => {
-        acc[item.allocator] = Number(item.total_sum_of_allocations);
+        acc[item.allocator] = BigInt(item.total_sum_of_allocations);
         return acc;
       },
-      {} as Record<string, number>,
+      {} as Record<string, bigint>,
     );
 
     const weekAllocators: AllocatorSpsComplianceWeekSingle[] = allocatorIds.map(
@@ -381,20 +413,18 @@ export class AllocatorService {
   public async getWeekAllocatorTotalDatacap(
     week: Date,
     allocatorId: string,
-  ): Promise<number> {
-    return Number(
-      (
-        await this.prismaService.allocators_weekly_acc.aggregate({
-          _sum: {
-            total_sum_of_allocations: true,
-          },
-          where: {
-            allocator: allocatorId,
-            week: week,
-          },
-        })
-      )._sum.total_sum_of_allocations,
-    );
+  ): Promise<bigint> {
+    return (
+      await this.prismaService.allocators_weekly_acc.aggregate({
+        _sum: {
+          total_sum_of_allocations: true,
+        },
+        where: {
+          allocator: allocatorId,
+          week: week,
+        },
+      })
+    )._sum.total_sum_of_allocations;
   }
 
   // returns the number of standard allocators (not metaallocators)
@@ -504,6 +534,7 @@ export class AllocatorService {
   public async getAverageSecondsToFirstDeal(
     allocatorId: string,
   ): Promise<number | null> {
+    // eslint-disable-next-line no-restricted-syntax
     return Number(
       (
         await this.prismaService.$queryRawTyped(
