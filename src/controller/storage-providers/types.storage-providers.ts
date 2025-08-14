@@ -36,7 +36,7 @@ export class StorageProviderComplianceMetricsRequest extends FilPlusEditionReque
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
-    this.roundId = 5; //TODO: make it dynamic
+    this.roundId = this.roundId;
   }
 }
 
