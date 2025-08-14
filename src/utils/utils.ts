@@ -20,6 +20,7 @@ export function lastWeek(): Date {
 
 export function getLastWeekBeforeTimestamp(timestamp: number): Date {
   return DateTime.fromSeconds(timestamp)
+    .toUTC()
     .minus({ week: 1 })
     .startOf('week')
     .toJSDate();
