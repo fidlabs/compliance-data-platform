@@ -13,6 +13,7 @@ import {
 import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
 import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
+import { AllocatorAuditStateData } from 'src/service/allocator/types.allocator';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -38,7 +39,6 @@ export class AllocatorsController extends ControllerBase {
     @Query() query: GetDatacapFlowDataRequest,
   ): Promise<GetDatacapFlowDataResponse> {
     const dcFlowData = await this.allocatorService.getDatacapFlowData(
-      stringToBool(query.showInactive) ?? true,
       stringToDate(query.cutoffDate),
     );
 
@@ -46,6 +46,19 @@ export class AllocatorsController extends ControllerBase {
       cutoffDate: stringToDate(query.cutoffDate) ?? new Date(),
       data: dcFlowData,
     };
+  }
+
+  @Get('/audit-state')
+  @ApiOperation({
+    summary: 'Get audit state data for allocators',
+  })
+  @ApiOkResponse({
+    description: 'Audit state data for allocators',
+    type: AllocatorAuditStateData,
+    isArray: true,
+  })
+  public async getAuditStateData(): Promise<AllocatorAuditStateData[]> {
+    return await this.allocatorService.getAuditStateData();
   }
 
   @Get()

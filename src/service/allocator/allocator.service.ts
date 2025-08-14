@@ -16,20 +16,23 @@ import {
 import { groupBy } from 'lodash';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
+  AllocatorAuditStateAudits,
+  AllocatorAuditStateData,
+  AllocatorAuditStateOutcome,
   AllocatorComplianceScore,
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
+  AllocatorSpsComplianceWeekResults,
   AllocatorSpsComplianceWeek,
-  AllocatorSpsComplianceWeekResponse,
   AllocatorSpsComplianceWeekSingle,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekFlat,
-  HistogramWeekResponse,
+  HistogramWeek,
   RetrievabilityHistogramWeek,
-  RetrievabilityHistogramWeekResponse,
-  RetrievabilityWeekResponse,
+  RetrievabilityHistogramWeekResults,
+  RetrievabilityWeek,
 } from '../histogram-helper/types.histogram-helper';
 import {
   StorageProviderComplianceMetrics,
@@ -39,7 +42,7 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
-import { lastWeek } from 'src/utils/utils';
+import { lastWeek, stringToDate } from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorService {
@@ -114,32 +117,111 @@ export class AllocatorService {
     });
   }
 
-  public async getDatacapFlowData(
-    returnInactive = true,
-    cutoffDate?: Date,
-  ): Promise<AllocatorDatacapFlowData[]> {
+  public async getAuditStateData(): Promise<AllocatorAuditStateData[]> {
+    const mapAuditOutcome = (
+      allocatorId: string,
+      outcome: string,
+    ): AllocatorAuditStateOutcome | null => {
+      switch (outcome.toUpperCase()) {
+        case 'MATCHED':
+        case 'MATCH':
+        case 'DOUBLED':
+          return AllocatorAuditStateOutcome.passed;
+        case 'THROTTLED':
+          return AllocatorAuditStateOutcome.passedConditionally;
+        case 'GRANTED':
+          // assuming first audit outcome is always GRANTED and this case is handled elsewhere
+          // every other GRANTED outcome is invalid
+          this.logger.warn(
+            `Allocator ${allocatorId} has non-first audit outcome GRANTED, please investigate`,
+          );
+          return null;
+        default:
+          this.logger.warn(
+            `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
+          );
+          return null;
+      }
+    };
+
+    const validateAudits = (
+      allocatorId: string,
+      audits: any[],
+    ): AllocatorAuditStateAudits[] => {
+      if (!audits || audits.length === 0) return [];
+
+      audits = audits.sort(
+        (a, b) =>
+          stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
+      );
+
+      if (audits[0].outcome.toUpperCase() !== 'GRANTED') {
+        this.logger.warn(
+          `Allocator ${allocatorId} has 1st audit with outcome ${audits[1].outcome} !== GRANTED, please investigate`,
+        );
+
+        return audits;
+      }
+
+      return audits.slice(1);
+    };
+
     const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorDatacapFlowData(returnInactive, cutoffDate),
+      getAllocatorsFull(false, null, null, null),
     );
 
     const registryInfoMap = await this.getAllocatorRegistryInfoMap();
 
-    return allocators.map((allocator) => {
-      return {
-        metapathwayType:
-          registryInfoMap[allocator.allocatorId]?.registry_info
-            ?.metapathway_type ?? null,
-        applicationAudit:
-          registryInfoMap[
-            allocator.allocatorId
-          ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
-        ...allocator,
-      };
-    });
+    return allocators
+      .map((allocator) => {
+        return {
+          allocatorId: allocator.addressId,
+          allocatorName: allocator.name,
+          audits: validateAudits(
+            allocator.addressId,
+            registryInfoMap[allocator.addressId]?.registry_info?.audits,
+          )
+            .map((audit) => {
+              return {
+                ...audit,
+                outcome: mapAuditOutcome(allocator.addressId, audit.outcome),
+              };
+            })
+            .filter((audit) => audit.outcome),
+        };
+      })
+      .filter((allocator) => allocator.audits?.length > 0);
   }
 
-  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getDatacapFlowData(
+    cutoffDate?: Date,
+  ): Promise<AllocatorDatacapFlowData[]> {
+    const allocators = await this.prismaDmobService.$queryRawTyped(
+      getAllocatorDatacapFlowData(false, cutoffDate),
+    );
+
+    const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+
+    return allocators
+      .map((allocator) => {
+        return {
+          metapathwayType:
+            registryInfoMap[allocator.allocatorId]?.registry_info
+              ?.metapathway_type ?? null,
+          applicationAudit:
+            registryInfoMap[
+              allocator.allocatorId
+            ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
+          ...allocator,
+        };
+      })
+      .filter(
+        (allocator) => allocator.metapathwayType && allocator.applicationAudit,
+      );
+  }
+
+  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -161,7 +243,7 @@ export class AllocatorService {
   public async getStandardAllocatorRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-  ): Promise<RetrievabilityWeekResponse> {
+  ): Promise<RetrievabilityWeek> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
         lastWeek(),
@@ -177,9 +259,9 @@ export class AllocatorService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(result, 100);
 
-    return new RetrievabilityWeekResponse(
+    return new RetrievabilityWeek(
       lastWeekAverageRetrievability * 100,
-      new RetrievabilityHistogramWeekResponse(
+      new RetrievabilityHistogramWeekResults(
         await this.getStandardAllocatorCount(openDataOnly),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
@@ -197,8 +279,8 @@ export class AllocatorService {
     );
   }
 
-  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -236,7 +318,7 @@ export class AllocatorService {
   public async getWeekStandardAllocatorSpsCompliance(
     week: Date,
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeek> {
+  ): Promise<AllocatorSpsComplianceWeekResults> {
     const weekAverageProvidersRetrievability =
       await this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
@@ -300,7 +382,7 @@ export class AllocatorService {
   // TODO measure and optimize this function
   public async getStandardAllocatorSpsComplianceWeekly(
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeekResponse> {
+  ): Promise<AllocatorSpsComplianceWeek> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
     const lastWeekAverageProviderRetrievability =
@@ -316,7 +398,7 @@ export class AllocatorService {
       ),
     );
 
-    return new AllocatorSpsComplianceWeekResponse(
+    return new AllocatorSpsComplianceWeek(
       spMetricsToCheck,
       lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(
