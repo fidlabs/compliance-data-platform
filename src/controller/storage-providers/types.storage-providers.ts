@@ -3,7 +3,6 @@ import { StorageProviderComplianceScoreRange } from 'src/service/storage-provide
 import { stringifiedBool } from 'src/utils/utils';
 import { FilPlusEditionRequest } from '../base/program-round-controller-base';
 import { PaginationSortingInfo } from '../base/types.controller-base';
-import { ProgramRoundFilter } from '../base/program-round-controller-base';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({

@@ -9,7 +9,6 @@ import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
 import { Prisma } from 'prisma/generated/client';
 import {
-  getAverageSecondsToFirstDeal,
   getStandardAllocatorBiggestClientDistributionAcc,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
@@ -85,7 +84,7 @@ export class AllocatorService {
       },
     });
 
-    const jsonLinksMap = jsonLinks.reduce((acc, v) => {
+    const jsonLinksMap = registryInfo.reduce((acc, v) => {
       acc[v.allocator_id] = v.json_path;
       return acc;
     }, {});
@@ -485,17 +484,5 @@ export class AllocatorService {
         required_replicas: application.required_replicas as string,
       },
     };
-  }
-
-  public async getAverageSecondsToFirstDeal(
-    allocatorId: string,
-  ): Promise<number | null> {
-    return Number(
-      (
-        await this.prismaService.$queryRawTyped(
-          getAverageSecondsToFirstDeal(null, allocatorId),
-        )
-      )?.[0]?.average,
-    );
   }
 }

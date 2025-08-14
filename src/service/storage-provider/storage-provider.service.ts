@@ -15,12 +15,6 @@ import {
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
-
-import {
-  DEFAULT_FILPLUS_EDITION_ID,
-  getCurrentFilPlusEdition,
-  getFilPlusEditionWithDateTimeRange,
-} from 'src/utils/filplus-edition';
 import { getLastWeekBeforeTimestamp, lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -42,6 +36,11 @@ import {
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
+import {
+  DEFAULT_FILPLUS_EDITION_ID,
+  getCurrentFilPlusEdition,
+  getFilPlusEditionWithDateTimeRange,
+} from 'src/utils/filplus-edition';
 
 @Injectable()
 export class StorageProviderService {
