@@ -1,10 +1,11 @@
 import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
+import { FilPlusEditionRequest } from '../base/program-round-controller-base';
 import { PaginationSortingInfo } from '../base/types.controller-base';
 import { ProgramRoundFilter } from '../base/program-round-controller-base';
 
-export class StorageProviderComplianceMetricsRequest extends ProgramRoundFilter {
+export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
     description:
       'Set to false to disable retrievability compliance metric check; default is true',

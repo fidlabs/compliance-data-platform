@@ -1,7 +1,12 @@
+-- @param {DateTime} $1:startDate
+-- @param {DateTime} $2:endDate
+
 with "clients_per_provider" as (select "week"                   as "week",
                                        count(distinct "client") as "clientsCount",
                                        sum("total_deal_size")   as "totalDatacap"
                                 from "client_provider_distribution_weekly_acc"
+                                WHERE "week" >= $1
+                                AND "week" <= $2
                                 group by "provider", "week")
 select "week"                      as "week",
        ("clientsCount" - 1)::int   as "valueFromExclusive",

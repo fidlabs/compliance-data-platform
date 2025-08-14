@@ -1,8 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ProgramRoundFilter } from 'src/controller/base/program-round-controller-base';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
 import { stringifiedBool } from 'src/utils/utils';
 
-export class GetRetrievabilityWeeklyRequest extends ProgramRoundFilter {
+export class GetRetrievabilityWeeklyRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
     description: 'Flag to show open data only actors; default is false',
     type: Boolean,

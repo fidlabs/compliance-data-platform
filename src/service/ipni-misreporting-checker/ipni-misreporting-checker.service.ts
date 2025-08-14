@@ -10,6 +10,7 @@ import {
 import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
 import { getIpniReportingWeekly } from 'prisma/generated/client/sql';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import { getFilPlusEditionDateTimeRange } from 'src/utils/filplus-edition';
 
 @Injectable()
 export class IpniMisreportingCheckerService {
@@ -61,9 +62,13 @@ export class IpniMisreportingCheckerService {
     };
   }
 
-  public async getAggregatedProvidersReportingStatusWeekly(): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
+  public async getAggregatedProvidersReportingStatusWeekly(
+    roundId?: number,
+  ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
+    const editionDate = getFilPlusEditionDateTimeRange(roundId);
+
     const result = await this.prismaService.$queryRawTyped(
-      getIpniReportingWeekly(),
+      getIpniReportingWeekly(editionDate.startDate, editionDate.endDate),
     );
 
     return {
