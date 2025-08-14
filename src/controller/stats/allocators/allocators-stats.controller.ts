@@ -10,7 +10,8 @@ import { CacheTTL } from '@nestjs/cache-manager';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
-import { stringToBool } from 'src/utils/utils';
+import { stringToBool, stringToNumber } from 'src/utils/utils';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -19,8 +20,12 @@ export class AllocatorsAccStatsController {
 
   @Get('clients')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorClientsWeekly();
+  public async getAllocatorClientsWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.allocatorService.getStandardAllocatorClientsWeekly(
+      stringToNumber(query.roundId),
+    );
   }
 
   @Get('retrievability')
@@ -31,13 +36,18 @@ export class AllocatorsAccStatsController {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
+      stringToNumber(query.roundId),
     );
   }
 
   @Get('biggest-client-distribution')
   @ApiOkResponse({ type: HistogramWeekResponse })
-  public async getAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly();
+  public async getAllocatorBiggestClientDistributionWeekly(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<HistogramWeekResponse> {
+    return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
+      stringToNumber(query.roundId),
+    );
   }
 
   @Get('sps-compliance')
