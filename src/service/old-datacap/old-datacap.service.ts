@@ -1,23 +1,36 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { groupBy } from 'lodash';
 import { PrismaService } from 'src/db/prisma.service';
+import {
+  DEFAULT_FILPLUS_EDITION_ID,
+  getFilPlusEditionWithDateTimeRange,
+} from 'src/utils/filplus-edition';
 import {
   OldDatacapAllocatorBalanceWeek,
   OldDatacapAllocatorBalanceWeekResponse,
   OldDatacapClientBalanceWeek,
   OldDatacapClientBalanceWeekResponse,
 } from './types.old-datacap';
-import { groupBy } from 'lodash';
 
 @Injectable()
 export class OldDatacapService {
   private readonly logger = new Logger(OldDatacapService.name);
-
   constructor(private readonly prismaService: PrismaService) {}
 
-  public async getAllocatorBalance(): Promise<OldDatacapAllocatorBalanceWeekResponse> {
-    const aggResults =
-      await this.prismaService.old_datacap_balance_weekly.groupBy({
+  public async getAllocatorBalance(
+    roundId = DEFAULT_FILPLUS_EDITION_ID,
+  ): Promise<OldDatacapAllocatorBalanceWeekResponse> {
+    const editionData = getFilPlusEditionWithDateTimeRange(roundId);
+
+    const [aggResults, allRows] = await Promise.all([
+      this.prismaService.old_datacap_balance_weekly.groupBy({
         by: ['week'],
+        where: {
+          week: {
+            gte: editionData.startDate,
+            lte: editionData.endDate,
+          },
+        },
         _count: {
           allocator: true,
         },
@@ -29,11 +42,13 @@ export class OldDatacapService {
         orderBy: {
           week: 'asc',
         },
-      });
-
-    const allRows =
-      await this.prismaService.old_datacap_balance_weekly.findMany({
+      }),
+      this.prismaService.old_datacap_balance_weekly.findMany({
         where: {
+          week: {
+            gte: editionData.startDate,
+            lte: editionData.endDate,
+          },
           OR: [
             {
               old_dc_balance: {
@@ -47,13 +62,16 @@ export class OldDatacapService {
             },
           ],
         },
-      });
+      }),
+    ]);
+
     const allocatorData = allRows.map((r) => ({
       week: r.week.toISOString(),
       allocator: r.allocator,
       oldDatacap: r.old_dc_balance,
       allocations: r.allocations,
     }));
+
     const byWeek = groupBy(allocatorData, (row) => row.week);
 
     const results: OldDatacapAllocatorBalanceWeek[] = aggResults.map((r) => ({
@@ -72,10 +90,20 @@ export class OldDatacapService {
     return { results };
   }
 
-  public async getClientBalance(): Promise<OldDatacapClientBalanceWeekResponse> {
-    const dbResults =
-      await this.prismaService.old_datacap_client_balance_weekly.groupBy({
+  public async getClientBalance(
+    roundId = DEFAULT_FILPLUS_EDITION_ID,
+  ): Promise<OldDatacapClientBalanceWeekResponse> {
+    const editionData = getFilPlusEditionWithDateTimeRange(roundId);
+
+    const [dbResults, allRows] = await Promise.all([
+      this.prismaService.old_datacap_client_balance_weekly.groupBy({
         by: ['week'],
+        where: {
+          week: {
+            gte: editionData.startDate,
+            lte: editionData.endDate,
+          },
+        },
         _count: {
           client: true,
         },
@@ -87,11 +115,13 @@ export class OldDatacapService {
         orderBy: {
           week: 'asc',
         },
-      });
-
-    const allRows =
-      await this.prismaService.old_datacap_client_balance_weekly.findMany({
+      }),
+      this.prismaService.old_datacap_client_balance_weekly.findMany({
         where: {
+          week: {
+            gte: editionData.startDate,
+            lte: editionData.endDate,
+          },
           OR: [
             {
               old_dc_balance: {
@@ -105,13 +135,16 @@ export class OldDatacapService {
             },
           ],
         },
-      });
+      }),
+    ]);
+
     const clientData = allRows.map((r) => ({
       week: r.week.toISOString(),
       client: r.client,
       oldDatacap: r.old_dc_balance,
       claims: r.claims,
     }));
+
     const byWeek = groupBy(clientData, (row) => row.week);
 
     const results: OldDatacapClientBalanceWeek[] = dbResults.map((r) => ({

@@ -2,6 +2,8 @@
 -- @param {Boolean} $2:isMetaallocator?
 -- @param {String} $3:filter?
 -- @param {String} $4:usingMetaallocatorId?
+-- @param {DateTime} $5:startDate
+-- @param {DateTime} $6:endDate
 
 with "allocator_using_metaallocator" as (select * from "verifier" where "verifier"."isVirtual" = true),
      "metaallocator" as (select * from "verifier" where "isMetaAllocator" = true)
@@ -80,6 +82,8 @@ from "verifier"
          left join "verified_client"
                    on "verifier"."addressId" = "verified_client"."verifierAddressId"
          where ($1 or "verifier"."createdAtHeight" > 3698160) -- current fil+ edition start
+         and "verifier"."issueCreateTimestamp" >= $5
+         and "verifier"."issueCreateTimestamp" <= $6
          and ("verifier"."isMetaAllocator" = $2 or $2 is null)
            and ($3 = '' or $3 is null
              or "verifier"."address" = $3
