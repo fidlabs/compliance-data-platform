@@ -49,7 +49,7 @@ export class ProviderIpInfoRunner implements AggregationRunner {
       }),
     );
 
-    const data = fullData.filter((v) => v);
+    const data = fullData.filter(Boolean);
 
     getDataEndTimerMetric();
 
