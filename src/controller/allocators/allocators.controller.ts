@@ -13,7 +13,10 @@ import {
 import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
 import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
-import { AllocatorAuditStateData } from 'src/service/allocator/types.allocator';
+import {
+  AllocatorAuditStateData,
+  AllocatorAuditTimesData,
+} from 'src/service/allocator/types.allocator';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -59,6 +62,18 @@ export class AllocatorsController extends ControllerBase {
   })
   public async getAuditStateData(): Promise<AllocatorAuditStateData[]> {
     return await this.allocatorService.getAuditStateData();
+  }
+
+  @Get('/audit-times')
+  @ApiOperation({
+    summary: 'Get audit times data for allocators',
+  })
+  @ApiOkResponse({
+    description: 'Audit times data for allocators',
+    type: AllocatorAuditTimesData,
+  })
+  public async getAuditTimesData(): Promise<AllocatorAuditTimesData> {
+    return await this.allocatorService.getAuditTimesData();
   }
 
   @Get()

@@ -25,6 +25,7 @@ import {
   AllocatorSpsComplianceWeekResults,
   AllocatorSpsComplianceWeek,
   AllocatorSpsComplianceWeekSingle,
+  AllocatorAuditTimesData,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -42,7 +43,12 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
-import { lastWeek, stringToDate } from 'src/utils/utils';
+import {
+  arrayAverage,
+  lastWeek,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorService {
@@ -115,6 +121,52 @@ export class AllocatorService {
         ...allocator,
       };
     });
+  }
+
+  public async getAuditTimesData(): Promise<AllocatorAuditTimesData> {
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
+      select: {
+        registry_info: true,
+      },
+    });
+
+    const allocatorsAudits = registryInfo.map(
+      (allocator) => allocator.registry_info?.['audits'] ?? [],
+    );
+
+    const averageAuditTimesSecs: number[] = [];
+    const averageAllocationTimesSecs: number[] = [];
+
+    for (let n = 0; ; ++n) {
+      const nthAudits = allocatorsAudits
+        .map((audits) => audits[n] ?? null)
+        .filter(Boolean);
+
+      if (nthAudits.length === 0) break;
+
+      const nthAuditTimeSecs = nthAudits
+        .map((audit) => {
+          // prettier-ignore
+          return (stringToDate(audit.ended)?.getTime() - stringToDate(audit.started)?.getTime()) / 1000;
+        })
+        .filter(Number.isFinite);
+
+      const nthAllocationTimesSecs = nthAudits
+        .map((audit) => {
+          // prettier-ignore
+          return (stringToDate(audit.dc_allocated)?.getTime() - stringToDate(audit.ended)?.getTime()) / 1000;
+        })
+        .filter(Number.isFinite);
+
+      averageAuditTimesSecs.push(Math.round(arrayAverage(nthAuditTimeSecs)));
+      // prettier-ignore
+      averageAllocationTimesSecs.push(Math.round(arrayAverage(nthAllocationTimesSecs)));
+    }
+
+    return {
+      averageAuditTimesSecs,
+      averageAllocationTimesSecs,
+    };
   }
 
   public async getAuditStateData(): Promise<AllocatorAuditStateData[]> {
