@@ -14,7 +14,8 @@ import { Cacheable } from 'src/utils/cacheable';
 import { ControllerBase } from '../base/controller-base';
 import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
 import {
-  AllocatorAuditStateData,
+  AllocatorAuditOutcomesData,
+  AllocatorAuditStatesData,
   AllocatorAuditTimesData,
 } from 'src/service/allocator/types.allocator';
 
@@ -51,17 +52,17 @@ export class AllocatorsController extends ControllerBase {
     };
   }
 
-  @Get('/audit-state')
+  @Get('/audit-states')
   @ApiOperation({
-    summary: 'Get audit state data for allocators',
+    summary: 'Get audit states data for allocators',
   })
   @ApiOkResponse({
-    description: 'Audit state data for allocators',
-    type: AllocatorAuditStateData,
+    description: 'Audit states data for allocators',
+    type: AllocatorAuditStatesData,
     isArray: true,
   })
-  public async getAuditStateData(): Promise<AllocatorAuditStateData[]> {
-    return await this.allocatorService.getAuditStateData();
+  public async getAuditStatesData(): Promise<AllocatorAuditStatesData[]> {
+    return await this.allocatorService.getAuditStatesData();
   }
 
   @Get('/audit-times')
@@ -74,6 +75,19 @@ export class AllocatorsController extends ControllerBase {
   })
   public async getAuditTimesData(): Promise<AllocatorAuditTimesData> {
     return await this.allocatorService.getAuditTimesData();
+  }
+
+  @Get('/audit-outcomes')
+  @ApiOperation({
+    summary: 'Get audit outcomes data for allocators',
+  })
+  @ApiOkResponse({
+    description: 'Audit outcomes data for allocators',
+    type: AllocatorAuditOutcomesData,
+    isArray: true,
+  })
+  public async getAuditOutcomesData(): Promise<AllocatorAuditOutcomesData[]> {
+    return await this.allocatorService.getAuditOutcomesData();
   }
 
   @Get()
