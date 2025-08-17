@@ -35,6 +35,24 @@ export class AllocatorDatacapFlowData {
   applicationAudit: string | null;
 }
 
+export class AllocatorAuditTimesData {
+  @ApiProperty({
+    description:
+      'Average times from audit started time to ended time for each audit round in seconds',
+    isArray: true,
+    type: Number,
+  })
+  averageAuditTimesSecs: number[];
+
+  @ApiProperty({
+    description:
+      'Average times from audit ended time to datacap allocated time for each audit round in seconds',
+    isArray: true,
+    type: Number,
+  })
+  averageAllocationTimesSecs: number[];
+}
+
 export enum AllocatorAuditStateOutcome {
   passed = 'passed',
   passedConditionally = 'passedConditionally',
