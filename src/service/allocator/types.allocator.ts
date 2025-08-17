@@ -53,9 +53,53 @@ export class AllocatorAuditTimesData {
   averageAllocationTimesSecs: number[];
 }
 
-export enum AllocatorAuditStateOutcome {
+export enum AllocatorAuditOutcome {
+  invalid = 'invalid',
+  unknown = 'unknown',
+  notAudited = 'notAudited',
   passed = 'passed',
   passedConditionally = 'passedConditionally',
+  failed = 'failed',
+}
+
+type AllocatorAuditOutcomesMetrics = {
+  [K in AllocatorAuditOutcome]?: number;
+};
+
+export class AllocatorAuditOutcomesData {
+  @ApiProperty({
+    description: 'Month of the audit data; YYYY-MM format',
+    example: '2024-04',
+  })
+  month: string;
+
+  @ApiProperty({
+    description: 'Datacap amount for each audit outcome in the month in PiB',
+    type: 'object',
+    example: {
+      passed: 50,
+      passedConditionally: 100,
+    },
+    additionalProperties: {
+      type: 'number',
+      enum: Object.values(AllocatorAuditOutcome),
+    },
+  })
+  datacap: AllocatorAuditOutcomesMetrics;
+
+  @ApiProperty({
+    description: 'Number of audits for each audit outcome in the month',
+    type: 'object',
+    example: {
+      passed: 1,
+      passedConditionally: 2,
+    },
+    additionalProperties: {
+      type: 'number',
+      enum: Object.values(AllocatorAuditOutcome),
+    },
+  })
+  count: AllocatorAuditOutcomesMetrics;
 }
 
 export class AllocatorAuditStateAudits {
@@ -75,9 +119,9 @@ export class AllocatorAuditStateAudits {
 
   @ApiProperty({
     description: 'Audit outcome',
-    enum: AllocatorAuditStateOutcome,
+    enum: AllocatorAuditOutcome,
   })
-  outcome: AllocatorAuditStateOutcome;
+  outcome: AllocatorAuditOutcome;
 
   @ApiProperty({
     format: 'date-time',
@@ -92,7 +136,7 @@ export class AllocatorAuditStateAudits {
   datacap_amount: number;
 }
 
-export class AllocatorAuditStateData {
+export class AllocatorAuditStatesData {
   @ApiProperty({ description: 'Allocator ID' })
   allocatorId: string;
 

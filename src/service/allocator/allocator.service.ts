@@ -17,8 +17,8 @@ import { groupBy } from 'lodash';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
   AllocatorAuditStateAudits,
-  AllocatorAuditStateData,
-  AllocatorAuditStateOutcome,
+  AllocatorAuditStatesData,
+  AllocatorAuditOutcome,
   AllocatorComplianceScore,
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
@@ -26,6 +26,7 @@ import {
   AllocatorSpsComplianceWeek,
   AllocatorSpsComplianceWeekSingle,
   AllocatorAuditTimesData,
+  AllocatorAuditOutcomesData,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -43,12 +44,7 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
-import {
-  arrayAverage,
-  lastWeek,
-  stringToDate,
-  stringToNumber,
-} from 'src/utils/utils';
+import { arrayAverage, lastWeek, stringToDate } from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorService {
@@ -169,33 +165,131 @@ export class AllocatorService {
     };
   }
 
-  public async getAuditStateData(): Promise<AllocatorAuditStateData[]> {
-    const mapAuditOutcome = (
-      allocatorId: string,
-      outcome: string,
-    ): AllocatorAuditStateOutcome | null => {
-      switch (outcome.toUpperCase()) {
-        case 'MATCHED':
-        case 'MATCH':
-        case 'DOUBLED':
-          return AllocatorAuditStateOutcome.passed;
-        case 'THROTTLED':
-          return AllocatorAuditStateOutcome.passedConditionally;
-        case 'GRANTED':
-          // assuming first audit outcome is always GRANTED and this case is handled elsewhere
-          // every other GRANTED outcome is invalid
-          this.logger.warn(
-            `Allocator ${allocatorId} has non-first audit outcome GRANTED, please investigate`,
-          );
-          return null;
-        default:
-          this.logger.warn(
-            `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
-          );
-          return null;
-      }
-    };
+  private mapNonFirstAuditOutcome(
+    allocatorId: string,
+    outcome: string,
+  ): AllocatorAuditOutcome | null {
+    switch (outcome.toUpperCase()) {
+      case 'MATCH':
+      case 'MATCHED':
+      case 'DOUBLE':
+      case 'DOUBLED':
+        return AllocatorAuditOutcome.passed;
+      case 'THROTTLE':
+      case 'THROTTLED':
+        return AllocatorAuditOutcome.passedConditionally;
+      case 'REJECT':
+      case 'REJECTED':
+      case 'FAIL':
+      case 'FAILED':
+        return AllocatorAuditOutcome.failed;
+      case 'GRANTED':
+        // assuming first audit outcome is always GRANTED and this case is handled elsewhere
+        // every other GRANTED outcome is invalid
+        this.logger.warn(
+          `Allocator ${allocatorId} has non-first audit outcome GRANTED, please investigate`,
+        );
+        return AllocatorAuditOutcome.invalid;
+      default:
+        this.logger.warn(
+          `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
+        );
+        return AllocatorAuditOutcome.unknown;
+    }
+  }
 
+  private mapAuditOutcome(
+    allocatorId: string,
+    outcome: string,
+    auditIndex: number,
+  ): AllocatorAuditOutcome | null {
+    if (auditIndex === 0) {
+      // first audit outcome should always be GRANTED
+      if (outcome.toUpperCase() !== 'GRANTED') {
+        this.logger.warn(
+          `Allocator ${allocatorId} has first audit with outcome ${outcome} !== GRANTED, please investigate`,
+        );
+      }
+
+      // first datacap is granted without audit
+      return AllocatorAuditOutcome.notAudited;
+    }
+
+    return this.mapNonFirstAuditOutcome(allocatorId, outcome);
+  }
+
+  public async getAuditOutcomesData(): Promise<AllocatorAuditOutcomesData[]> {
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
+      select: {
+        allocator_id: true,
+        registry_info: true,
+      },
+    });
+
+    const allocatorsAuditsFlat = registryInfo
+      .flatMap((allocator) =>
+        (allocator.registry_info?.['audits'] ?? []).map((audit, i: number) => ({
+          outcome: this.mapAuditOutcome(
+            allocator.allocator_id,
+            audit.outcome,
+            i,
+          ),
+          ended: audit.ended,
+          datacapAmount: audit.datacap_amount,
+        })),
+      )
+      .filter((a) => stringToDate(a.ended));
+
+    const allocatorsAuditsByMonth = groupBy(allocatorsAuditsFlat, (audit) => {
+      return stringToDate(audit.ended).toISOString().slice(0, 7);
+    });
+
+    const auditsByMonthSummary = Object.entries(allocatorsAuditsByMonth).map(
+      ([month, auditsInMonth]) => {
+        const auditsByOutcome = groupBy(
+          auditsInMonth,
+          (audit) => audit.outcome,
+        );
+
+        const outcomeSums = Object.entries(auditsByOutcome).reduce(
+          (acc, [outcome, audits]) => {
+            acc[outcome] = audits.reduce(
+              (sum, audit) => sum + audit.datacapAmount,
+              0,
+            );
+
+            return acc;
+          },
+          {},
+        );
+
+        const outcomeCount = Object.fromEntries(
+          Object.entries(auditsByOutcome).map(([outcome, audits]) => [
+            outcome,
+            audits.length,
+          ]),
+        );
+
+        return {
+          month,
+          datacap: {
+            ...outcomeSums,
+          },
+          count: {
+            ...outcomeCount,
+          },
+        };
+      },
+    );
+
+    auditsByMonthSummary.sort((a, b) => {
+      return stringToDate(a.month).getTime() - stringToDate(b.month).getTime();
+    });
+
+    return auditsByMonthSummary;
+  }
+
+  public async getAuditStatesData(): Promise<AllocatorAuditStatesData[]> {
     const validateAudits = (
       allocatorId: string,
       audits: any[],
@@ -209,7 +303,7 @@ export class AllocatorService {
 
       if (audits[0].outcome.toUpperCase() !== 'GRANTED') {
         this.logger.warn(
-          `Allocator ${allocatorId} has 1st audit with outcome ${audits[1].outcome} !== GRANTED, please investigate`,
+          `Allocator ${allocatorId} has first audit with outcome ${audits[0].outcome} !== GRANTED, please investigate`,
         );
 
         return audits;
@@ -236,7 +330,10 @@ export class AllocatorService {
             .map((audit) => {
               return {
                 ...audit,
-                outcome: mapAuditOutcome(allocator.addressId, audit.outcome),
+                outcome: this.mapNonFirstAuditOutcome(
+                  allocator.addressId,
+                  audit.outcome,
+                ),
               };
             })
             .filter((audit) => audit.outcome),
