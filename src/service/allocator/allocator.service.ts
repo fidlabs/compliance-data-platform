@@ -25,8 +25,9 @@ import {
   AllocatorSpsComplianceWeekResults,
   AllocatorSpsComplianceWeek,
   AllocatorSpsComplianceWeekSingle,
-  AllocatorAuditTimesData,
+  AllocatorAuditTimesByRoundData,
   AllocatorAuditOutcomesData,
+  AllocatorAuditTimesByMonthData,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -119,7 +120,59 @@ export class AllocatorService {
     });
   }
 
-  public async getAuditTimesData(): Promise<AllocatorAuditTimesData> {
+  public async getAuditTimesByMonthData(): Promise<
+    AllocatorAuditTimesByMonthData[]
+  > {
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
+      select: {
+        registry_info: true,
+      },
+    });
+
+    const allocatorsAuditsFlat = registryInfo
+      .flatMap((allocator) =>
+        (allocator.registry_info?.['audits'] ?? []).map((audit) => ({
+          ...audit,
+        })),
+      )
+      .filter((a) => stringToDate(a.ended));
+
+    const allocatorsAuditsByMonth = groupBy(allocatorsAuditsFlat, (audit) => {
+      return stringToDate(audit.ended).toISOString().slice(0, 7);
+    });
+
+    return Object.entries(allocatorsAuditsByMonth)
+      .map(([month, auditsInMonth]) => {
+        const monthAuditTimesSecs = auditsInMonth
+          .map((audit) => {
+            // prettier-ignore
+            return (stringToDate(audit.ended)?.getTime() - stringToDate(audit.started)?.getTime()) / 1000;
+          })
+          .filter(Number.isFinite);
+
+        const monthAllocationTimesSecs = auditsInMonth
+          .map((audit) => {
+            // prettier-ignore
+            return (stringToDate(audit.dc_allocated)?.getTime() - stringToDate(audit.ended)?.getTime()) / 1000;
+          })
+          .filter(Number.isFinite);
+
+        return {
+          month,
+          averageAuditTimeSecs: Math.round(arrayAverage(monthAuditTimesSecs)),
+          // prettier-ignore
+          averageAllocationTimeSecs: Math.round(arrayAverage(monthAllocationTimesSecs),
+          ),
+        };
+      })
+      .sort((a, b) => {
+        return (
+          stringToDate(a.month).getTime() - stringToDate(b.month).getTime()
+        );
+      });
+  }
+
+  public async getAuditTimesByRoundData(): Promise<AllocatorAuditTimesByRoundData> {
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         registry_info: true,
@@ -244,8 +297,8 @@ export class AllocatorService {
       return stringToDate(audit.ended).toISOString().slice(0, 7);
     });
 
-    const auditsByMonthSummary = Object.entries(allocatorsAuditsByMonth).map(
-      ([month, auditsInMonth]) => {
+    return Object.entries(allocatorsAuditsByMonth)
+      .map(([month, auditsInMonth]) => {
         const auditsByOutcome = groupBy(
           auditsInMonth,
           (audit) => audit.outcome,
@@ -279,14 +332,12 @@ export class AllocatorService {
             ...outcomeCount,
           },
         };
-      },
-    );
-
-    auditsByMonthSummary.sort((a, b) => {
-      return stringToDate(a.month).getTime() - stringToDate(b.month).getTime();
-    });
-
-    return auditsByMonthSummary;
+      })
+      .sort((a, b) => {
+        return (
+          stringToDate(a.month).getTime() - stringToDate(b.month).getTime()
+        );
+      });
   }
 
   public async getAuditStatesData(): Promise<AllocatorAuditStatesData[]> {

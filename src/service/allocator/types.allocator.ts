@@ -35,7 +35,7 @@ export class AllocatorDatacapFlowData {
   applicationAudit: string | null;
 }
 
-export class AllocatorAuditTimesData {
+export class AllocatorAuditTimesByRoundData {
   @ApiProperty({
     description:
       'Average times from audit started time to ended time for each audit round in seconds',
@@ -51,6 +51,26 @@ export class AllocatorAuditTimesData {
     type: Number,
   })
   averageAllocationTimesSecs: number[];
+}
+
+export class AllocatorAuditTimesByMonthData {
+  @ApiProperty({
+    description: 'Month of the audit data; YYYY-MM format',
+    example: '2024-04',
+  })
+  month: string;
+
+  @ApiProperty({
+    description:
+      'Average time from audit started time to ended time for the month in seconds',
+  })
+  averageAuditTimeSecs: number;
+
+  @ApiProperty({
+    description:
+      'Average time from audit ended time to datacap allocated time for the month in seconds',
+  })
+  averageAllocationTimeSecs: number;
 }
 
 export enum AllocatorAuditOutcome {
