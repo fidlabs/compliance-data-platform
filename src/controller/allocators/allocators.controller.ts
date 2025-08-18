@@ -16,7 +16,8 @@ import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
 import {
   AllocatorAuditOutcomesData,
   AllocatorAuditStatesData,
-  AllocatorAuditTimesData,
+  AllocatorAuditTimesByMonthData,
+  AllocatorAuditTimesByRoundData,
 } from 'src/service/allocator/types.allocator';
 
 @Controller('allocators')
@@ -65,24 +66,39 @@ export class AllocatorsController extends ControllerBase {
     return await this.allocatorService.getAuditStatesData();
   }
 
-  @Get('/audit-times')
+  @Get('/audit-times-by-round')
   @ApiOperation({
-    summary: 'Get audit times data for allocators',
+    summary: 'Get audit times data for allocators by audit round',
   })
   @ApiOkResponse({
-    description: 'Audit times data for allocators',
-    type: AllocatorAuditTimesData,
+    description: 'Audit times data for allocators by audit round',
+    type: AllocatorAuditTimesByRoundData,
   })
-  public async getAuditTimesData(): Promise<AllocatorAuditTimesData> {
-    return await this.allocatorService.getAuditTimesData();
+  public async getAuditTimesByRoundData(): Promise<AllocatorAuditTimesByRoundData> {
+    return await this.allocatorService.getAuditTimesByRoundData();
+  }
+
+  @Get('/audit-times-by-month')
+  @ApiOperation({
+    summary: 'Get audit times data for allocators by month',
+  })
+  @ApiOkResponse({
+    description: 'Audit times data for allocators by month',
+    type: AllocatorAuditTimesByMonthData,
+    isArray: true,
+  })
+  public async getAuditTimesByMonthData(): Promise<
+    AllocatorAuditTimesByMonthData[]
+  > {
+    return await this.allocatorService.getAuditTimesByMonthData();
   }
 
   @Get('/audit-outcomes')
   @ApiOperation({
-    summary: 'Get audit outcomes data for allocators',
+    summary: 'Get audit outcomes data for allocators by month',
   })
   @ApiOkResponse({
-    description: 'Audit outcomes data for allocators',
+    description: 'Audit outcomes data for allocators by month',
     type: AllocatorAuditOutcomesData,
     isArray: true,
   })
