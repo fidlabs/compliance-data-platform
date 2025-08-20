@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
+import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { stringifiedBool } from 'src/utils/utils';
 
 export class GetRetrievabilityWeeklyRequest extends FilPlusEditionRequest {

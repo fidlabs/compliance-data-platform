@@ -1,4 +1,4 @@
-export const DEFAULT_FILPLUS_EDITION_ID = 6;
+import { DateTime } from 'luxon';
 
 export type FilplusEditionConfig = {
   id: number;
@@ -24,9 +24,10 @@ export const filPlusEditions: FilplusEditionConfig[] = [
 const getFilPlusEditions = (): FilPlusEdition[] => {
   return filPlusEditions.map((edition) => ({
     ...edition,
-    isCurrent: edition.id === DEFAULT_FILPLUS_EDITION_ID,
-    startDate: new Date(edition.start * 1000),
-    endDate: new Date(edition.end * 1000),
+    isCurrent:
+      Date.now() / 1000 >= edition.start && Date.now() / 1000 <= edition.end,
+    startDate: DateTime.fromSeconds(edition.start).toUTC().toJSDate(),
+    endDate: DateTime.fromSeconds(edition.end).toUTC().toJSDate(),
   }));
 };
 

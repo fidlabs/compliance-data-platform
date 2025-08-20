@@ -1,8 +1,8 @@
 import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
-import { FilPlusEditionRequest } from '../base/program-round-controller-base';
 import { PaginationSortingInfoRequest } from '../base/types.controller-base';
+import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
@@ -30,14 +30,12 @@ export class StorageProviderComplianceMetricsRequest extends FilPlusEditionReque
     retrievability: stringifiedBool = 'true',
     numberOfClients: stringifiedBool = 'true',
     totalDealSize: stringifiedBool = 'true',
-    roundId = '6',
   ) {
     super();
 
     this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
-    this.roundId = roundId;
   }
 }
 

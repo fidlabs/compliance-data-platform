@@ -1,10 +1,5 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   getProviderBiggestClientDistributionAcc,
   getProviderClientsWeeklyAcc,
@@ -15,14 +10,10 @@ import {
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
-import { stringToNumber } from 'src/utils/utils';
+import { FilPlusEdition } from 'src/utils/filplus-edition';
+import { lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 
-import {
-  DEFAULT_FILPLUS_EDITION_ID,
-  getFilPlusEditionById,
-} from 'src/utils/filplus-edition';
-import { lastWeek } from 'src/utils/utils';
 import {
   HistogramWeek,
   HistogramWeekFlat,
@@ -63,21 +54,19 @@ export class StorageProviderService {
   }
 
   public async getProviderClientsWeekly(
-    roundId = DEFAULT_FILPLUS_EDITION_ID,
+    filPlusEditionData: FilPlusEdition | null = null,
   ): Promise<HistogramWeek> {
-    const editionDate = getFilPlusEditionById(roundId);
-
     return new HistogramWeek(
       await this.getProviderCount(
         false,
-        editionDate.startDate,
-        editionDate.endDate,
+        filPlusEditionData?.startDate,
+        filPlusEditionData?.endDate,
       ),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
           getProviderClientsWeeklyAcc(
-            editionDate.startDate,
-            editionDate.endDate,
+            filPlusEditionData?.startDate,
+            filPlusEditionData?.endDate,
           ),
         ),
       ),
@@ -85,21 +74,19 @@ export class StorageProviderService {
   }
 
   public async getProviderBiggestClientDistributionWeekly(
-    roundId = DEFAULT_FILPLUS_EDITION_ID,
+    filPlusEditionData: FilPlusEdition | null = null,
   ): Promise<HistogramWeek> {
-    const editionDate = getFilPlusEditionById(roundId);
-
     return new HistogramWeek(
       await this.getProviderCount(
         false,
-        editionDate.startDate,
-        editionDate.endDate,
+        filPlusEditionData?.startDate,
+        filPlusEditionData?.endDate,
       ),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
           getProviderBiggestClientDistributionAcc(
-            editionDate.startDate,
-            editionDate.endDate,
+            filPlusEditionData?.startDate,
+            filPlusEditionData?.endDate,
           ),
         ),
         100,
@@ -109,8 +96,8 @@ export class StorageProviderService {
 
   public async getProviderCount(
     openDataOnly = false,
-    startWeekDate = new Date(0),
-    endWeekDate = new Date('9999-12-31'),
+    startWeekDate: Date | null = null,
+    endWeekDate: Date | null = null,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
@@ -122,8 +109,8 @@ export class StorageProviderService {
   private async _getProviderRetrievability(
     openDataOnly = true,
     httpRetrievability = true,
-    startWeekDate = new Date(0),
-    endWeekDate = new Date('9999-12-31'),
+    startWeekDate: Date | null = null,
+    endWeekDate: Date | null = null,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
       getProviderRetrievabilityAcc(
@@ -138,28 +125,21 @@ export class StorageProviderService {
   public async getProviderRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-    roundId = DEFAULT_FILPLUS_EDITION_ID,
+    filPlusEditionData: FilPlusEdition | null,
   ): Promise<RetrievabilityWeek> {
-    const editionData = getFilPlusEditionById(roundId);
-
-    if (!editionData) {
-      throw new BadRequestException(`Invalid program round ID: ${roundId}`);
-    }
-
-    const isCurrentRound = editionData.isCurrent;
-
-    const lastWeekAverageRetrievability = isCurrentRound
-      ? await this.getLastWeekAverageProviderRetrievability(
-          openDataOnly,
-          httpRetrievability,
-        )
-      : null;
+    const lastWeekAverageRetrievability =
+      filPlusEditionData?.isCurrent || !filPlusEditionData
+        ? await this.getLastWeekAverageProviderRetrievability(
+            openDataOnly,
+            httpRetrievability,
+          )
+        : null;
 
     const result = await this._getProviderRetrievability(
       openDataOnly,
       httpRetrievability,
-      editionData.startDate,
-      editionData.endDate,
+      filPlusEditionData?.startDate,
+      filPlusEditionData?.endDate,
     );
 
     const weeklyHistogramResult =
@@ -170,8 +150,8 @@ export class StorageProviderService {
       new RetrievabilityHistogramWeekResults(
         await this.getProviderCount(
           openDataOnly,
-          editionData.startDate,
-          editionData.endDate,
+          filPlusEditionData?.startDate,
+          filPlusEditionData?.endDate,
         ),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
@@ -181,6 +161,7 @@ export class StorageProviderService {
                 histogramWeek.week,
                 openDataOnly,
                 httpRetrievability,
+                filPlusEditionData?.id,
               )) * 100,
             ),
           ),
@@ -192,32 +173,43 @@ export class StorageProviderService {
   public getLastWeekAverageProviderRetrievability(
     openDataOnly = true,
     httpRetrievability = true,
+    editionId: number | null = null,
   ): Promise<number> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
       openDataOnly,
       httpRetrievability,
+      editionId,
     );
   }
 
   public async getProviderComplianceWeekly(
     metricsToCheck?: StorageProviderComplianceMetrics,
+    filPlusEditionData: FilPlusEdition | null = null,
   ): Promise<StorageProviderComplianceWeek> {
-    const roundData = getFilPlusEditionById(
-      stringToNumber(metricsToCheck.roundId),
-    );
-
     const [weeks, lastWeekAverageRetrievability] = await Promise.all([
-      this.getWeeksTracked(roundData.startDate, roundData.endDate),
-      roundData.isCurrent
-        ? this.getLastWeekAverageProviderRetrievability()
+      this.getWeeksTracked(
+        filPlusEditionData?.startDate,
+        filPlusEditionData?.endDate,
+      ),
+      filPlusEditionData?.isCurrent
+        ? this.getLastWeekAverageProviderRetrievability(
+            true,
+            true,
+            filPlusEditionData?.id,
+          )
         : null,
     ]);
 
     const result: StorageProviderComplianceWeekResults[] = await Promise.all(
       weeks.map(async (week) => {
         const weekAverageRetrievability =
-          await this.getWeekAverageProviderRetrievability(week);
+          await this.getWeekAverageProviderRetrievability(
+            week,
+            true,
+            true,
+            filPlusEditionData?.id,
+          );
 
         const weekProviders = await this.getWeekProviders(week);
 
@@ -312,16 +304,19 @@ export class StorageProviderService {
   }
 
   public async getWeeksTracked(
-    fromWeekDate?: Date,
-    toDWeekDate?: Date,
+    startWeekDate: Date | null = null,
+    endDWeekDate: Date | null = null,
   ): Promise<Date[]> {
+    const fromWeekFilter = startWeekDate ? { gte: startWeekDate } : {};
+    const toWeekFilter = endDWeekDate ? { lte: endDWeekDate } : {};
+
     return (
       await this.prismaService.providers_weekly_acc.findMany({
         distinct: ['week'],
         where: {
           week: {
-            gte: fromWeekDate,
-            lte: toDWeekDate,
+            ...fromWeekFilter,
+            ...toWeekFilter,
           },
         },
         select: {
@@ -339,6 +334,7 @@ export class StorageProviderService {
     week: Date,
     openDataOnly = true,
     httpRetrievability = true,
+    editionId: number | null = null,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
@@ -346,6 +342,7 @@ export class StorageProviderService {
           openDataOnly,
           httpRetrievability,
           week,
+          editionId,
         ),
       )
     )[0].average;
