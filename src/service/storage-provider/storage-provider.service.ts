@@ -16,6 +16,11 @@ import {
 import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
 import {
+  DEFAULT_FILPLUS_EDITION_ID,
+  getCurrentFilPlusEdition,
+  getFilPlusEditionWithDateTimeRange,
+} from 'src/utils/filplus-edition';
+import {
   getLastWeekBeforeTimestamp,
   lastWeek,
   stringToNumber,
@@ -40,11 +45,6 @@ import {
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
 } from './types.storage-provider';
-import {
-  DEFAULT_FILPLUS_EDITION_ID,
-  getCurrentFilPlusEdition,
-  getFilPlusEditionWithDateTimeRange,
-} from 'src/utils/filplus-edition';
 
 @Injectable()
 export class StorageProviderService {
@@ -350,6 +350,7 @@ export class StorageProviderService {
     week: Date,
     openDataOnly = true,
     httpRetrievability = true,
+    roundId = DEFAULT_FILPLUS_EDITION_ID,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
@@ -357,6 +358,7 @@ export class StorageProviderService {
           openDataOnly,
           httpRetrievability,
           week,
+          roundId,
         ),
       )
     )[0].average;

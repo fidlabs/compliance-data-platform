@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { DateTime } from 'luxon';
 
 export const DEFAULT_FILPLUS_EDITION_ID = 6;
 
@@ -26,8 +27,8 @@ const getFilPlusEditions = (): FilPlusEdition[] => {
   return filPlusEditions.map((edition) => ({
     ...edition,
     isCurrent: edition.id === DEFAULT_FILPLUS_EDITION_ID,
-    startDate: new Date(edition.startTimestamp * 1000),
-    endDate: new Date(edition.endTimestamp * 1000),
+    startDate: DateTime.fromSeconds(edition.startTimestamp).toUTC().toJSDate(),
+    endDate: DateTime.fromSeconds(edition.endTimestamp).toUTC().toJSDate(),
   }));
 };
 
@@ -67,12 +68,7 @@ export const getFilPlusEditionWithDateTimeRange = (
     throw new Error(`FilPlus edition with ID ${roundId} not found`);
   }
 
-  return {
-    ...edition,
-    isCurrent: edition.id === getCurrentFilPlusEdition().id,
-    startDate: new Date(edition.startTimestamp * 1000),
-    endDate: new Date(edition.endTimestamp * 1000),
-  };
+  return edition;
 };
 
 export const getAllocatorRegistryModelByFilPlusEdition = (roundId: number) => {
