@@ -29,8 +29,7 @@ model allocator_registry {
   allocator_address String  @unique
   json_path         String
   registry_info     Json
-  active            Boolean @default(true)
-  program_round     Int?
+  rejected          Boolean @default(false)
 
   @@id([allocator_id])
 }
@@ -40,8 +39,7 @@ model allocator_registry_archive {
   allocator_address String  @unique
   json_path         String
   registry_info     Json
-  active            Boolean @default(true)
-  program_round     Int
+  rejected          Boolean @default(false)
 
   @@id([allocator_id])
 }

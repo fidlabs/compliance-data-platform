@@ -10,7 +10,7 @@ import {
 } from 'src/service/allocator/types.allocator';
 import { stringifiedBool } from 'src/utils/utils';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
-import { FilPlusEditionRequest } from '../base/program-round-controller-base';
+import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 
 export class GetDatacapFlowDataRequest {
   @ApiPropertyOptional({

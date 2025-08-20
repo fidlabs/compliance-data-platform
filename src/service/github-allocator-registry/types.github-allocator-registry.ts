@@ -3,6 +3,5 @@ export class AllocatorRegistry {
   allocator_address: string;
   json_path: string;
   registry_info: object;
-  active: boolean;
-  program_round: number;
+  rejected: boolean;
 }

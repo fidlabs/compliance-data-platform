@@ -95,7 +95,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   }
 
   public async fetchAllocatorsRegistry(
-    ghPath: string = 'Allocators',
+    gitHubPath: string = 'Allocators',
   ): Promise<AllocatorRegistry[]> {
     const octokit = await this.getOctokit();
     let response;
@@ -110,7 +110,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
             'ALLOCATOR_REGISTRY_REPO_OWNER',
           ),
           repo: this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME'),
-          path: ghPath,
+          path: gitHubPath,
           headers: {
             'X-GitHub-Api-Version': '2022-11-28',
           },
@@ -119,7 +119,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     } catch (err) {
       this.healthy = false;
       throw new Error(
-        `Error fetching allocators registry from path: ${ghPath}, error: ${err.message}`,
+        `Error fetching allocators registry from path: ${gitHubPath}, error: ${err.message}`,
         {
           cause: err,
         },
@@ -202,10 +202,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     // prefer json data over db data
     const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
     const allocatorId = jsonAllocatorId || dbAllocatorId;
-    const filPlusEditionData = this.getAllocatorFilPlusEditionData(
-      jsonData,
-      path,
-    );
+    const isAllocatorRejected = this.checkIfAllocatorIsRejected(jsonData, path);
 
     return !allocatorId
       ? null
@@ -214,31 +211,24 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
           allocator_address: allocatorAddress,
           json_path: path,
           registry_info: jsonData,
-          ...filPlusEditionData,
+          rejected: isAllocatorRejected,
         };
   }
 
-  private getAllocatorFilPlusEditionData(
+  private checkIfAllocatorIsRejected(
     jsonData: object,
     allocatorJsonPath: string,
-  ): {
-    program_round: number;
-    active: boolean;
-  } {
-    let allocatorProgramRound: number;
-    let allocatorIsActive: boolean;
+  ): boolean {
+    let allocatorIsRejected: boolean;
 
     if (allocatorJsonPath.includes('Allocator_Archive')) {
-      allocatorProgramRound = 5;
-      allocatorIsActive = jsonData['status'] === 'Active';
+      allocatorIsRejected = jsonData['status'] != 'Active';
     } else {
-      allocatorProgramRound = 6;
-
-      allocatorIsActive = allocatorJsonPath.match(/^\d{4}\.json$/i) //old schema in current round
-        ? jsonData['status'] === 'Active'
-        : !jsonData['audits']?.some((audit) => audit.outcome === 'REJECTED');
+      allocatorIsRejected = allocatorJsonPath.match(/^\d{4}\.json$/i) // old schema in current edition
+        ? jsonData['status'] != 'Active'
+        : jsonData['audits']?.some((audit) => audit.outcome === 'REJECTED');
     }
 
-    return { program_round: allocatorProgramRound, active: allocatorIsActive };
+    return allocatorIsRejected;
   }
 }
