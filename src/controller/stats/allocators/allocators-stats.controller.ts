@@ -1,17 +1,17 @@
+import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Query } from '@nestjs/common';
-import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { ApiOkResponse } from '@nestjs/swagger';
+import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
+import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
+import { AllocatorService } from 'src/service/allocator/allocator.service';
 import { AllocatorSpsComplianceWeekResponse } from 'src/service/allocator/types.allocator';
 import {
   HistogramWeekResponse,
   RetrievabilityWeekResponse,
 } from 'src/service/histogram-helper/types.histogram-helper';
-import { CacheTTL } from '@nestjs/cache-manager';
-import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
-import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
 import { stringToBool, stringToNumber } from 'src/utils/utils';
-import { FilPlusEditionRequest } from 'src/controller/base/program-round-controller-base';
+import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
