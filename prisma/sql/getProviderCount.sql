@@ -14,7 +14,9 @@ from "providers_weekly_acc"
 where (
           $1 = false
               or "provider" in (select "provider" from "open_data_pathway_provider")
-          )
-and "week" >= $2
-and "week" <= $3;
+
+)
+and ($2::date is null or "week" >= $2 )
+and ($3::date is null or "week" <= $3)
+
     

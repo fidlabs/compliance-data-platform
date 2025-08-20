@@ -10,17 +10,16 @@ with "open_data_pathway_provider" as (
     where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
        or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
 ),
-     "provider_weekly" as (select "week"      as "week",
+  "provider_weekly" as (select "week"      as "week",
                             "provider"        as "provider",
                             "total_deal_size" as "total_deal_size",
                             case
                                 when $2 = true then "avg_retrievability_success_rate_http"
                                 else "avg_retrievability_success_rate"
                                 end           as "selected_retrievability"
-                     from "providers_weekly_acc"
-                     where "week" >= $3
-                       and "week" <= $4
-                     )
+                    from "providers_weekly_acc"
+                    where ($3::date is null or "week" >= $3) and ($4::date is null or "week" <= $4)
+)
 select "week"                                              as "week",
        100 * ceil("selected_retrievability" * 20) / 20 - 5 as "valueFromExclusive",
        100 * ceil("selected_retrievability" * 20) / 20     as "valueToInclusive",

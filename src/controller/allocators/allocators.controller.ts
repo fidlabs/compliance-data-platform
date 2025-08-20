@@ -1,8 +1,21 @@
-import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { AllocatorService } from 'src/service/allocator/allocator.service';
+import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { AllocatorService } from 'src/service/allocator/allocator.service';
+import {
+  AllocatorAuditOutcomesData,
+  AllocatorAuditStatesData,
+  AllocatorAuditTimesByMonthData,
+  AllocatorAuditTimesByRoundData,
+} from 'src/service/allocator/types.allocator';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
+import { Cacheable } from 'src/utils/cacheable';
+import {
+  getCurrentFilPlusEdition,
+  getFilPlusEditionByTimestamp,
+} from 'src/utils/filplus-edition';
+import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
+import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
 import {
   GetAllocatorsRequest,
   GetDatacapFlowDataRequest,
@@ -10,23 +23,7 @@ import {
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
 } from './types.allocators';
-import { Cacheable } from 'src/utils/cacheable';
-import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
-import {
-  AllocatorAuditOutcomesData,
-  AllocatorAuditStatesData,
-  AllocatorAuditTimesByMonthData,
-  AllocatorAuditTimesByRoundData,
-} from 'src/service/allocator/types.allocator';
-import {
-  FilPlusEditionDefaultCurrentRequest,
-  FilPlusEditionRequest,
-} from '../base/types.filplus-edition-controller-base';
-import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
-import {
-  getCurrentFilPlusEdition,
-  getFilPlusEditionByTimestamp,
-} from 'src/utils/filplus-edition';
+import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -75,7 +72,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     isArray: true,
   })
   public async getAuditStatesData(
-    @Query() query: FilPlusEditionDefaultCurrentRequest,
+    @Query() query: FilPlusEditionRequest,
   ): Promise<AllocatorAuditStatesData[]> {
     return await this.allocatorService.getAuditStatesData(
       this.getFilPlusEditionFromRequest(query) ?? getCurrentFilPlusEdition(),
@@ -91,7 +88,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     type: AllocatorAuditTimesByRoundData,
   })
   public async getAuditTimesByRoundData(
-    @Query() query: FilPlusEditionDefaultCurrentRequest,
+    @Query() query: FilPlusEditionRequest,
   ): Promise<AllocatorAuditTimesByRoundData> {
     return await this.allocatorService.getAuditTimesByRoundData(
       this.getFilPlusEditionFromRequest(query) ?? getCurrentFilPlusEdition(),

@@ -8,6 +8,8 @@ select "week"                                  as "week",
        sum("total_sum_of_allocations")::bigint as "totalDatacap"
 from "allocators_weekly_acc"
          left join "allocator" on "allocators_weekly_acc"."allocator" = "allocator"."id"
-where ("is_metaallocator" = false or "is_metaallocator" is null) and "week" >= $1 and "week" <= $2
+where ("is_metaallocator" = false or "is_metaallocator" is null)
+    and ($1::date is null or "week" >= $1)
+    and ($2::date is null or "week" <= $2)
 group by "valueFromExclusive", "valueToInclusive", "week"
 order by "week", "valueFromExclusive";
