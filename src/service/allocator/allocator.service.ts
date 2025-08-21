@@ -1,5 +1,10 @@
 import { Prisma } from 'prisma/generated/client';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getStandardAllocatorBiggestClientDistributionAcc,
@@ -16,7 +21,6 @@ import {
 import { groupBy } from 'lodash';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
-  AllocatorAuditStateAudits,
   AllocatorAuditStatesData,
   AllocatorAuditOutcome,
   AllocatorComplianceScore,
@@ -46,6 +50,11 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
 import { arrayAverage, lastWeek, stringToDate } from 'src/utils/utils';
+import { DateTime } from 'luxon';
+import { FilPlusEdition } from 'src/utils/filplus-edition';
+import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
+import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
+import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 
 @Injectable()
 export class AllocatorService {
@@ -120,9 +129,13 @@ export class AllocatorService {
     });
   }
 
-  public async getAuditTimesByMonthData(): Promise<
-    AllocatorAuditTimesByMonthData[]
-  > {
+  public async getAuditTimesByMonthData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditTimesByMonthData[]> {
+    if (filPlusEdition.id === 5) {
+      throw new BadRequestException('Data not available for edition 5');
+    }
+
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         registry_info: true,
@@ -172,7 +185,13 @@ export class AllocatorService {
       });
   }
 
-  public async getAuditTimesByRoundData(): Promise<AllocatorAuditTimesByRoundData> {
+  public async getAuditTimesByRoundData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditTimesByRoundData> {
+    if (filPlusEdition.id === 5) {
+      return edition5AllocatorAuditTimesByRoundData;
+    }
+
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         registry_info: true,
@@ -215,13 +234,27 @@ export class AllocatorService {
     return {
       averageAuditTimesSecs,
       averageAllocationTimesSecs,
+      averageConversationTimesSecs: null, // conversation times are not available for FilPlus edition 6
     };
   }
 
-  private mapNonFirstAuditOutcome(
+  private mapAuditOutcome(
     allocatorId: string,
     outcome: string,
+    auditIndex: number,
   ): AllocatorAuditOutcome | null {
+    if (auditIndex === 0) {
+      // first audit outcome should always be GRANTED
+      if (outcome.toUpperCase() !== 'GRANTED') {
+        this.logger.warn(
+          `Allocator ${allocatorId} has first audit with outcome ${outcome} !== GRANTED, please investigate`,
+        );
+      }
+
+      // first datacap is granted without audit
+      return AllocatorAuditOutcome.notAudited;
+    }
+
     switch (outcome.toUpperCase()) {
       case 'MATCH':
       case 'MATCHED':
@@ -251,27 +284,13 @@ export class AllocatorService {
     }
   }
 
-  private mapAuditOutcome(
-    allocatorId: string,
-    outcome: string,
-    auditIndex: number,
-  ): AllocatorAuditOutcome | null {
-    if (auditIndex === 0) {
-      // first audit outcome should always be GRANTED
-      if (outcome.toUpperCase() !== 'GRANTED') {
-        this.logger.warn(
-          `Allocator ${allocatorId} has first audit with outcome ${outcome} !== GRANTED, please investigate`,
-        );
-      }
-
-      // first datacap is granted without audit
-      return AllocatorAuditOutcome.notAudited;
+  public async getAuditOutcomesData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditOutcomesData[]> {
+    if (filPlusEdition.id === 5) {
+      return edition5AllocatorAuditOutcomesData;
     }
 
-    return this.mapNonFirstAuditOutcome(allocatorId, outcome);
-  }
-
-  public async getAuditOutcomesData(): Promise<AllocatorAuditOutcomesData[]> {
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         allocator_id: true,
@@ -279,89 +298,77 @@ export class AllocatorService {
       },
     });
 
-    const allocatorsAuditsFlat = registryInfo
-      .flatMap((allocator) =>
-        (allocator.registry_info?.['audits'] ?? []).map((audit, i: number) => ({
-          outcome: this.mapAuditOutcome(
-            allocator.allocator_id,
-            audit.outcome,
-            i,
-          ),
-          ended: audit.ended,
-          datacapAmount: audit.datacap_amount,
-        })),
-      )
-      .filter((a) => stringToDate(a.ended));
+    const firstAuditMonth = new Date(filPlusEdition.start * 1000)
+      .toISOString()
+      .slice(0, 7);
 
-    const allocatorsAuditsByMonth = groupBy(allocatorsAuditsFlat, (audit) => {
-      return stringToDate(audit.ended).toISOString().slice(0, 7);
-    });
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const result: AllocatorAuditOutcomesData[] = [];
 
-    return Object.entries(allocatorsAuditsByMonth)
-      .map(([month, auditsInMonth]) => {
-        const auditsByOutcome = groupBy(
-          auditsInMonth,
-          (audit) => audit.outcome,
-        );
+    for (
+      let auditMonth = firstAuditMonth;
+      stringToDate(auditMonth).getTime() <=
+      stringToDate(currentMonth).getTime();
+      auditMonth = DateTime.fromISO(auditMonth)
+        .plus({ month: 1 })
+        .toISODate()
+        .slice(0, 7)
+    ) {
+      const allocatorAuditStatesUpMonth = registryInfo.map((allocator) => {
+        const allocatorAudits =
+          allocator.registry_info?.['audits']?.filter((audit) =>
+            stringToDate(audit.ended),
+          ) ?? [];
 
-        const outcomeSums = Object.entries(auditsByOutcome).reduce(
-          (acc, [outcome, audits]) => {
-            acc[outcome] = audits.reduce(
-              (sum, audit) => sum + audit.datacapAmount,
-              0,
-            );
+        const allocatorAuditsUpToMonth = allocatorAudits
+          .filter((audit) => {
+            return stringToDate(audit.ended) <= stringToDate(auditMonth);
+          })
+          .sort(
+            (a, b) =>
+              stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
+          );
 
-            return acc;
-          },
-          {},
-        );
+        const lastAllocatorAuditUpToMonth =
+          allocatorAuditsUpToMonth[allocatorAuditsUpToMonth.length - 1];
 
-        const outcomeCount = Object.fromEntries(
-          Object.entries(auditsByOutcome).map(([outcome, audits]) => [
-            outcome,
-            audits.length,
-          ]),
-        );
-
-        return {
-          month,
-          datacap: {
-            ...outcomeSums,
-          },
-          count: {
-            ...outcomeCount,
-          },
-        };
-      })
-      .sort((a, b) => {
-        return (
-          stringToDate(a.month).getTime() - stringToDate(b.month).getTime()
-        );
+        return lastAllocatorAuditUpToMonth
+          ? {
+              outcome: this.mapAuditOutcome(
+                allocator.allocator_id,
+                lastAllocatorAuditUpToMonth.outcome,
+                allocatorAuditsUpToMonth.length - 1,
+              ),
+              datacapAmount: lastAllocatorAuditUpToMonth.datacap_amount,
+            }
+          : {
+              outcome: AllocatorAuditOutcome.unknown,
+              datacapAmount: 0,
+            };
       });
+
+      result.push({
+        month: auditMonth,
+        datacap: allocatorAuditStatesUpMonth.reduce((acc, audit) => {
+          acc[audit.outcome] = (acc[audit.outcome] ?? 0) + audit.datacapAmount;
+          return acc;
+        }, {}),
+        count: allocatorAuditStatesUpMonth.reduce((acc, audit) => {
+          acc[audit.outcome] = (acc[audit.outcome] ?? 0) + 1;
+          return acc;
+        }, {}),
+      });
+    }
+
+    return result;
   }
 
-  public async getAuditStatesData(): Promise<AllocatorAuditStatesData[]> {
-    const validateAudits = (
-      allocatorId: string,
-      audits: any[],
-    ): AllocatorAuditStateAudits[] => {
-      if (!audits || audits.length === 0) return [];
-
-      audits = audits.sort(
-        (a, b) =>
-          stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
-      );
-
-      if (audits[0].outcome.toUpperCase() !== 'GRANTED') {
-        this.logger.warn(
-          `Allocator ${allocatorId} has first audit with outcome ${audits[0].outcome} !== GRANTED, please investigate`,
-        );
-
-        return audits;
-      }
-
-      return audits.slice(1);
-    };
+  public async getAuditStatesData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditStatesData[]> {
+    if (filPlusEdition.id === 5) {
+      return edition5AllocatorAuditStatesData;
+    }
 
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(false, null, null, null),
@@ -371,23 +378,30 @@ export class AllocatorService {
 
     return allocators
       .map((allocator) => {
+        const allocatorAudits = registryInfoMap[
+          allocator.addressId
+        ]?.registry_info?.audits.sort(
+          (a, b) =>
+            stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
+        );
+
         return {
           allocatorId: allocator.addressId,
           allocatorName: allocator.name,
-          audits: validateAudits(
-            allocator.addressId,
-            registryInfoMap[allocator.addressId]?.registry_info?.audits,
-          )
-            .map((audit) => {
-              return {
-                ...audit,
-                outcome: this.mapNonFirstAuditOutcome(
-                  allocator.addressId,
-                  audit.outcome,
-                ),
-              };
-            })
-            .filter((audit) => audit.outcome),
+          audits:
+            allocatorAudits
+              ?.map((audit, i) => {
+                return {
+                  ...audit,
+                  outcome: this.mapAuditOutcome(
+                    allocator.addressId,
+                    audit.outcome,
+                    i,
+                  ),
+                };
+              })
+              ?.slice(1) // skip the first audit, which is always GRANTED
+              ?.filter((audit) => audit.outcome) ?? [],
         };
       })
       .filter((allocator) => allocator.audits?.length > 0);
