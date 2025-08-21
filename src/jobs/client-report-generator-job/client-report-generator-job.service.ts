@@ -80,7 +80,7 @@ export class ClientReportGeneratorJobService extends HealthIndicator {
     return { reports: applications.length, fails: fails };
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   public async runClientReportGenerationJob() {
     try {
       this.logger.log('Starting client reports generation');
