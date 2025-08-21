@@ -209,7 +209,7 @@ export class AllocatorReportChecksService {
     });
 
     await Promise.all(
-      moreThanAllowedThresholdChecks.map(async ([check]) =>
+      moreThanAllowedThresholdChecks.map(([check]) =>
         this.prismaService.allocator_report_check_result.create({
           data: {
             allocator_report_id: reportId,
