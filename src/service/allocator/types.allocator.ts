@@ -46,11 +46,21 @@ export class AllocatorAuditTimesByRoundData {
 
   @ApiProperty({
     description:
-      'Average times from audit ended time to datacap allocated time for each audit round in seconds',
+      'Average times from audit ended time to datacap allocated time for each audit round in seconds; null for FilPlus edition 5 data',
     isArray: true,
     type: Number,
+    nullable: true,
   })
-  averageAllocationTimesSecs: number[];
+  averageAllocationTimesSecs: number[] | null;
+
+  @ApiProperty({
+    description:
+      'Average conversation time for each audit round in seconds; null for FilPlus edition 6 data',
+    isArray: true,
+    type: Number,
+    nullable: true,
+  })
+  averageConversationTimesSecs: number[] | null;
 }
 
 export class AllocatorAuditTimesByMonthData {
@@ -126,29 +136,35 @@ export class AllocatorAuditStateAudits {
   @ApiProperty({
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
-    description: 'Timestamp when the audit ended; ISO format',
+    description:
+      'Timestamp when the audit ended; null for FilPlus edition 5 data; ISO format',
+    nullable: true,
   })
-  ended: string;
+  ended: string | null;
 
   @ApiProperty({
     format: 'date-time',
     example: '2024-04-22T00:00:00.000Z',
-    description: 'Timestamp when the audit started; ISO format',
+    description:
+      'Timestamp when the audit started; null for FilPlus edition 5 data; ISO format',
+    nullable: true,
   })
-  started: string;
+  started: string | null;
+
+  @ApiProperty({
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description:
+      'Timestamp when datacap was allocated; null for FilPlus edition 5 data; ISO format',
+    nullable: true,
+  })
+  dc_allocated: string | null;
 
   @ApiProperty({
     description: 'Audit outcome',
     enum: AllocatorAuditOutcome,
   })
   outcome: AllocatorAuditOutcome;
-
-  @ApiProperty({
-    format: 'date-time',
-    example: '2024-04-22T00:00:00.000Z',
-    description: 'Timestamp when datacap was allocated; ISO format',
-  })
-  dc_allocated: string;
 
   @ApiProperty({
     description: 'Datacap amount allocated in the audit in PiB',
