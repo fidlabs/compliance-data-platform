@@ -1,4 +1,6 @@
 -- @param {Boolean} $1:openDataOnly
+-- @param {DateTime} $2:startDate
+-- @param {DateTime} $3:endDate
 
 with "open_data_pathway_allocator" as (
     select distinct "allocator_id" as "allocator"
@@ -13,4 +15,6 @@ where (
     $1 = false
         or "allocator" in (select "allocator" from "open_data_pathway_allocator")
     )
-  and ("is_metaallocator" = false or "is_metaallocator" is null);
+  and ("is_metaallocator" = false or "is_metaallocator" is null)
+  and week >= $2
+  and week <= $3;
