@@ -1,14 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/db/prisma.service';
-import { AllocatorReportCheck } from 'prisma/generated/client';
-import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { ConfigService } from '@nestjs/config';
+import { groupBy } from 'lodash';
+import { AllocatorReportCheck } from 'prisma/generated/client';
+import { PrismaService } from 'src/db/prisma.service';
+import { CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP } from 'src/utils/client-report-check-message-map';
+import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { envNotSet, stringToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class AllocatorReportChecksService {
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
-
+  public readonly MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS = 50; // < 50% of clients checks may fail for each check type
   private readonly logger = new Logger(AllocatorReportChecksService.name);
 
   // prettier-ignore
@@ -25,6 +27,7 @@ export class AllocatorReportChecksService {
   public async storeReportChecks(reportId: string) {
     await this.storeClientMultipleAllocators(reportId);
     await this.storeClientNotEnoughCopies(reportId);
+    await this.storeAllocatorChecksBasedOnClientReportChecks(reportId);
   }
 
   private async storeClientMultipleAllocators(reportId: string) {
@@ -150,5 +153,74 @@ export class AllocatorReportChecksService {
 
   private _clients(n: number): string {
     return n === 0 ? 'No clients' : n === 1 ? '1 client' : `${n} clients`;
+  }
+
+  public async storeAllocatorChecksBasedOnClientReportChecks(reportId: string) {
+    const report = await this.prismaService.allocator_report.findFirst({
+      where: {
+        id: reportId,
+      },
+      select: {
+        clients: {
+          select: {
+            client_id: true,
+          },
+        },
+      },
+    });
+
+    const clientsCount = report.clients.length;
+    const clientsIds = report.clients.map((client) => client.client_id);
+
+    const allFailedChecksForLatestReport = await Promise.all(
+      clientsIds.map((clientId) =>
+        this.prismaService.client_report.findFirst({
+          where: {
+            OR: [{ client: clientId }, { client_address: clientId }],
+          },
+          include: {
+            check_results: {
+              where: { result: false }, // filters only failed checks in the client report
+              select: {
+                check: true,
+                result: true,
+                metadata: true,
+              },
+            },
+          },
+          orderBy: { create_date: 'desc' },
+        }),
+      ),
+    );
+
+    const allFailedChecksResult = allFailedChecksForLatestReport.flatMap(
+      (x) => x.check_results,
+    );
+
+    const groupedFailChecks = groupBy(allFailedChecksResult, (x) => x.check);
+
+    const moreThanAllowedThresholdChecks = Object.entries(
+      groupedFailChecks,
+    ).filter(([, results]) => {
+      return (
+        (results.length / clientsCount) * 100 >
+        this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS
+      );
+    });
+
+    await Promise.all(
+      moreThanAllowedThresholdChecks.map(async ([check]) =>
+        this.prismaService.allocator_report_check_result.create({
+          data: {
+            allocator_report_id: reportId,
+            check: check as AllocatorReportCheck,
+            result: false,
+            metadata: {
+              msg: `Check failed: >50% of this allocator clients don't meet condition for: ${CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP[check as AllocatorReportCheck]}`,
+            },
+          },
+        }),
+      ),
+    );
   }
 }
