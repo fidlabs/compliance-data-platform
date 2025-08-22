@@ -14,39 +14,39 @@ const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<
   string
 > = {
   [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
-    'CID sharing has been observed',
+    'demonstrate CID sharing.',
   [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
-    'High replica percentage is observed',
+    'have a high replica percentage',
   [ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA]:
-    'Low replica percentage is observed',
+    'have a low replica percentage',
   [ClientReportCheck.INACTIVITY]:
-    'Client has unspent DataCap and was inactive for more than a month',
+    'have unspent DataCap and were inactive for over one month',
   [ClientReportCheck.MULTIPLE_ALLOCATORS]:
-    'Client receiving datacap from more than one allocator',
+    'received DataCap from more than one allocator',
   [ClientReportCheck.NOT_ENOUGH_COPIES]:
-    'Not enough copies of data is observed',
+    'store data with fewer replicas than required',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION]:
-    'All storage providers are located in the same region is observed',
+    'missed the SP location diversity requirement',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED]:
-    'Some declared providers in application files are not actually used',
+    'declared SPs in applications that were not actually used',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION]:
-    'Too much duplicate data is observed',
+    'stored excessive duplicate data',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL]:
-    'Storage provider distribution exceed more than the MAX of total datacap',
+    'have unhealthy SP distribution',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING]:
-    'Storage providers IPNI reporting (1/2) have misreported their data to IPNI',
+    'used SPs that misreported data to IPNI',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING]:
-    'Storage providers IPNI reporting (2/2) have not reported their data to IPNI',
+    'used SPs that did not report data to IPNI',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED]:
-    'Not all actual storage providers are declared in application file',
+    'used undeclared storage providers',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75]:
-    'Storage provider retrievability have retrieval success rate less than 75%',
+    'used SPs with a retrieval success rate below 75%',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO]:
-    'Storage provider retrievability (1/2) have retrieval success rate equal to zero',
+    'used SPs with a retrieval success rate of 0%',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION]:
-    'Storage provider locations have unknown IP location',
+    'used SPs that have an unknown IP location',
   [ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED]:
-    'Unique data set size exceeds declared',
+    'stored unique datasets larger than declared',
 };
 
 @Injectable()
@@ -264,7 +264,7 @@ export class AllocatorReportChecksService {
             check: check as AllocatorReportCheck,
             result: false,
             metadata: {
-              msg: `>${this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS.toString()}% of this allocator's clients don't meet condition for: ${this.getClientReportCheckFailMessage(check as AllocatorReportCheck)}`,
+              msg: `More than ${this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS.toString()}% of clients ${this.getClientReportCheckFailMessage(check as AllocatorReportCheck)}`,
             },
           },
         }),
