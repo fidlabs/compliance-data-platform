@@ -26,9 +26,22 @@ model provider {
 
 model allocator_registry {
   allocator_id      String
-  allocator_address String @unique
+  allocator_address String  @unique
   json_path         String
   registry_info     Json
+  active            Boolean @default(true)
+  program_round     Int?
+
+  @@id([allocator_id])
+}
+
+model allocator_registry_archive {
+  allocator_id      String
+  allocator_address String  @unique
+  json_path         String
+  registry_info     Json
+  active            Boolean @default(true)
+  program_round     Int
 
   @@id([allocator_id])
 }
@@ -490,4 +503,23 @@ enum ClientReportCheck {
 enum AllocatorReportCheck {
   CLIENT_MULTIPLE_ALLOCATORS
   CLIENT_NOT_ENOUGH_COPIES
+  // client reports checks
+  STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED
+  STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED
+  DEAL_DATA_REPLICATION_LOW_REPLICA
+  DEAL_DATA_REPLICATION_HIGH_REPLICA
+  DEAL_DATA_REPLICATION_CID_SHARING
+  MULTIPLE_ALLOCATORS
+  NOT_ENOUGH_COPIES
+  INACTIVITY
+  UNIQ_DATA_SET_SIZE_TO_DECLARED
+  // ----------------------
 }
