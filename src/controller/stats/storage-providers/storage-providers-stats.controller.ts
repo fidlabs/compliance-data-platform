@@ -19,6 +19,7 @@ import {
 } from 'src/service/storage-provider/types.storage-provider';
 import { stringToBool, stringToNumber } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import { DEFAULT_FILPLUS_EDITION_ID } from 'src/utils/filplus-edition';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -34,7 +35,7 @@ export class StorageProvidersAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderClientsWeekly(
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 
@@ -44,7 +45,7 @@ export class StorageProvidersAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 
@@ -56,7 +57,7 @@ export class StorageProvidersAccStatsController {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 
@@ -96,7 +97,7 @@ export class StorageProvidersAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly(
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 }

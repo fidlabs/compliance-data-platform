@@ -12,6 +12,7 @@ import {
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { stringToBool, stringToNumber } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
+import { DEFAULT_FILPLUS_EDITION_ID } from 'src/utils/filplus-edition';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -24,7 +25,7 @@ export class AllocatorsAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getStandardAllocatorClientsWeekly(
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 
@@ -36,7 +37,7 @@ export class AllocatorsAccStatsController {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 
@@ -46,7 +47,7 @@ export class AllocatorsAccStatsController {
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeekResponse> {
     return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
-      stringToNumber(query.roundId),
+      stringToNumber(query.roundId) ?? DEFAULT_FILPLUS_EDITION_ID,
     );
   }
 
