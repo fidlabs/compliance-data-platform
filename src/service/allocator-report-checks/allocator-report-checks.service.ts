@@ -1,11 +1,53 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
-import { AllocatorReportCheck } from 'prisma/generated/client';
+import {
+  AllocatorReportCheck,
+  ClientReportCheck,
+} from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
-import { CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP } from 'src/utils/client-report-check-message-map';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { envNotSet, stringToNumber } from 'src/utils/utils';
+
+const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<
+  keyof typeof ClientReportCheck,
+  string
+> = {
+  [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
+    'demonstrate CID sharing.',
+  [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
+    'have a high replica percentage',
+  [ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA]:
+    'have a low replica percentage',
+  [ClientReportCheck.INACTIVITY]:
+    'have unspent DataCap and were inactive for over one month',
+  [ClientReportCheck.MULTIPLE_ALLOCATORS]:
+    'received DataCap from more than one allocator',
+  [ClientReportCheck.NOT_ENOUGH_COPIES]:
+    'store data with fewer replicas than required',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION]:
+    'of clients missed the SP location diversity requirement',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED]:
+    'declared SPs in applications that were not actually used',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION]:
+    'stored excessive duplicate data',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL]:
+    'have unhealthy SP distribution',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING]:
+    'used SPs that misreported data to IPNI',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING]:
+    'used SPs that did not report data to IPNI',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED]:
+    'used undeclared storage providers',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75]:
+    'used SPs with a retrieval success rate below 75%',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO]:
+    'used SPs with a retrieval success rate of 0%',
+  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION]:
+    'used SPs that have an unknown IP location',
+  [ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED]:
+    'stored unique datasets larger than declared',
+};
 
 @Injectable()
 export class AllocatorReportChecksService {
@@ -28,6 +70,12 @@ export class AllocatorReportChecksService {
     await this.storeClientMultipleAllocators(reportId);
     await this.storeClientNotEnoughCopies(reportId);
     await this.storeAllocatorChecksBasedOnClientReportChecks(reportId);
+  }
+
+  private getClientReportCheckFailMessage(
+    clientReportCheck: AllocatorReportCheck,
+  ) {
+    return CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP[clientReportCheck];
   }
 
   private async storeClientMultipleAllocators(reportId: string) {
@@ -176,7 +224,7 @@ export class AllocatorReportChecksService {
       clientsIds.map((clientId) =>
         this.prismaService.client_report.findFirst({
           where: {
-            OR: [{ client: clientId }, { client_address: clientId }],
+            client: clientId,
           },
           include: {
             check_results: {
@@ -216,7 +264,7 @@ export class AllocatorReportChecksService {
             check: check as AllocatorReportCheck,
             result: false,
             metadata: {
-              msg: `Check failed: >50% of this allocator clients don't meet condition for: ${CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP[check as AllocatorReportCheck]}`,
+              msg: `More than ${this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS.toString()}% of clients ${this.getClientReportCheckFailMessage(check as AllocatorReportCheck)}`,
             },
           },
         }),
