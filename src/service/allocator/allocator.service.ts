@@ -1,5 +1,10 @@
 import { Prisma } from 'prisma/generated/client';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getStandardAllocatorBiggestClientDistributionAcc,
@@ -16,20 +21,25 @@ import {
 import { groupBy } from 'lodash';
 import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
+  AllocatorAuditStatesData,
+  AllocatorAuditOutcome,
   AllocatorComplianceScore,
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
+  AllocatorSpsComplianceWeekResults,
   AllocatorSpsComplianceWeek,
-  AllocatorSpsComplianceWeekResponse,
   AllocatorSpsComplianceWeekSingle,
+  AllocatorAuditTimesByRoundData,
+  AllocatorAuditOutcomesData,
+  AllocatorAuditTimesByMonthData,
 } from './types.allocator';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekFlat,
-  HistogramWeekResponse,
+  HistogramWeek,
   RetrievabilityHistogramWeek,
-  RetrievabilityHistogramWeekResponse,
-  RetrievabilityWeekResponse,
+  RetrievabilityHistogramWeekResults,
+  RetrievabilityWeek,
 } from '../histogram-helper/types.histogram-helper';
 import {
   StorageProviderComplianceMetrics,
@@ -39,7 +49,18 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
-import { lastWeek } from 'src/utils/utils';
+import { arrayAverage, lastWeek, stringToDate } from 'src/utils/utils';
+import { DateTime } from 'luxon';
+import {
+  FilPlusEdition,
+  getCurrentFilPlusEdition,
+  getFilPlusEditionById,
+  getFilPlusEditionByTimestamp,
+} from 'src/utils/filplus-edition';
+import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
+import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
+import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
+import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
 
 @Injectable()
 export class AllocatorService {
@@ -114,32 +135,375 @@ export class AllocatorService {
     });
   }
 
-  public async getDatacapFlowData(
-    returnInactive = true,
-    cutoffDate?: Date,
-  ): Promise<AllocatorDatacapFlowData[]> {
+  public async getAuditTimesByMonthData(
+    filPlusEdition?: FilPlusEdition,
+  ): Promise<AllocatorAuditTimesByMonthData[]> {
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
+      select: {
+        registry_info: true,
+      },
+    });
+
+    let allocatorsAuditsFlat = registryInfo
+      .flatMap((allocator) =>
+        (allocator.registry_info?.['audits'] ?? []).map((audit) => ({
+          ...audit,
+        })),
+      )
+      .filter((a) => stringToDate(a.ended));
+
+    if (filPlusEdition)
+      allocatorsAuditsFlat = allocatorsAuditsFlat.filter(
+        (audit) =>
+          getFilPlusEditionByTimestamp(stringToDate(audit.ended).getTime()) ===
+          filPlusEdition,
+      );
+
+    const allocatorsAuditsByMonth = groupBy(allocatorsAuditsFlat, (audit) => {
+      return stringToDate(audit.ended).toISOString().slice(0, 7);
+    });
+
+    return Object.entries(allocatorsAuditsByMonth)
+      .map(([month, auditsInMonth]) => {
+        const monthAuditTimesSecs = auditsInMonth
+          .map((audit) => {
+            // prettier-ignore
+            return (stringToDate(audit.ended)?.getTime() - stringToDate(audit.started)?.getTime()) / 1000;
+          })
+          .filter(Number.isFinite);
+
+        const monthAllocationTimesSecs = auditsInMonth
+          .map((audit) => {
+            // prettier-ignore
+            return (stringToDate(audit.dc_allocated)?.getTime() - stringToDate(audit.ended)?.getTime()) / 1000;
+          })
+          .filter(Number.isFinite);
+
+        return {
+          month,
+          averageAuditTimeSecs: Math.round(arrayAverage(monthAuditTimesSecs)),
+          // prettier-ignore
+          averageAllocationTimeSecs: Math.round(arrayAverage(monthAllocationTimesSecs),
+          ),
+        };
+      })
+      .sort((a, b) => {
+        return (
+          stringToDate(a.month).getTime() - stringToDate(b.month).getTime()
+        );
+      });
+  }
+
+  public async getAuditTimesByRoundData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditTimesByRoundData> {
+    if (filPlusEdition.id === 5) return edition5AllocatorAuditTimesByRoundData;
+
+    if (filPlusEdition.id !== 6)
+      throw new BadRequestException(
+        `Audit times by round data not available for edition ${filPlusEdition.id}`,
+      );
+
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
+      select: {
+        registry_info: true,
+      },
+    });
+
+    const allocatorsAudits = registryInfo.map(
+      (allocator) => allocator.registry_info?.['audits'] ?? [],
+    );
+
+    const averageAuditTimesSecs: number[] = [];
+    const averageAllocationTimesSecs: number[] = [];
+
+    for (let n = 0; ; ++n) {
+      const nthAudits = allocatorsAudits
+        .map((audits) => audits[n] ?? null)
+        .filter(Boolean);
+
+      if (nthAudits.length === 0) break;
+
+      const nthAuditTimeSecs = nthAudits
+        .map((audit) => {
+          // prettier-ignore
+          return (stringToDate(audit.ended)?.getTime() - stringToDate(audit.started)?.getTime()) / 1000;
+        })
+        .filter(Number.isFinite);
+
+      const nthAllocationTimesSecs = nthAudits
+        .map((audit) => {
+          // prettier-ignore
+          return (stringToDate(audit.dc_allocated)?.getTime() - stringToDate(audit.ended)?.getTime()) / 1000;
+        })
+        .filter(Number.isFinite);
+
+      averageAuditTimesSecs.push(Math.round(arrayAverage(nthAuditTimeSecs)));
+      // prettier-ignore
+      averageAllocationTimesSecs.push(Math.round(arrayAverage(nthAllocationTimesSecs)));
+    }
+
+    return {
+      averageAuditTimesSecs,
+      averageAllocationTimesSecs,
+      averageConversationTimesSecs: null, // conversation times are not available for FilPlus edition 6
+    };
+  }
+
+  private mapAuditOutcome(
+    allocatorId: string,
+    outcome: string,
+    auditIndex: number,
+  ): AllocatorAuditOutcome | null {
+    if (auditIndex === 0) {
+      // first audit outcome should always be GRANTED
+      if (outcome.toUpperCase() !== 'GRANTED') {
+        this.logger.warn(
+          `Allocator ${allocatorId} has first audit with outcome ${outcome} !== GRANTED, please investigate`,
+        );
+      }
+
+      // first datacap is granted without audit
+      return AllocatorAuditOutcome.notAudited;
+    }
+
+    switch (outcome.toUpperCase()) {
+      case 'MATCH':
+      case 'MATCHED':
+      case 'DOUBLE':
+      case 'DOUBLED':
+        return AllocatorAuditOutcome.passed;
+      case 'THROTTLE':
+      case 'THROTTLED':
+        return AllocatorAuditOutcome.passedConditionally;
+      case 'REJECT':
+      case 'REJECTED':
+      case 'FAIL':
+      case 'FAILED':
+        return AllocatorAuditOutcome.failed;
+      case 'GRANTED':
+        // assuming first audit outcome is always GRANTED and this case is handled elsewhere
+        // every other GRANTED outcome is invalid
+        this.logger.warn(
+          `Allocator ${allocatorId} has non-first audit outcome GRANTED, please investigate`,
+        );
+        return AllocatorAuditOutcome.invalid;
+      default:
+        this.logger.warn(
+          `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
+        );
+        return AllocatorAuditOutcome.unknown;
+    }
+  }
+
+  private async _getAuditOutcomesData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditOutcomesData[]> {
+    if (filPlusEdition.id === 5) return edition5AllocatorAuditOutcomesData;
+
+    if (filPlusEdition.id !== 6)
+      throw new BadRequestException(
+        `Audit outcomes data not available for edition ${filPlusEdition.id}`,
+      );
+
+    const registryInfo = await this.prismaService.allocator_registry.findMany({
+      select: {
+        allocator_id: true,
+        registry_info: true,
+      },
+    });
+
+    const firstAuditMonth = new Date(filPlusEdition.start * 1000)
+      .toISOString()
+      .slice(0, 7);
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const result: AllocatorAuditOutcomesData[] = [];
+
+    for (
+      let auditMonth = firstAuditMonth;
+      stringToDate(auditMonth).getTime() <=
+      stringToDate(currentMonth).getTime();
+      auditMonth = DateTime.fromISO(auditMonth)
+        .plus({ month: 1 })
+        .toISODate()
+        .slice(0, 7)
+    ) {
+      const allocatorAuditStatesUpMonth = registryInfo.map((allocator) => {
+        const allocatorAudits =
+          allocator.registry_info?.['audits']?.filter((audit) =>
+            stringToDate(audit.ended),
+          ) ?? [];
+
+        const allocatorAuditsUpToMonth = allocatorAudits
+          .filter((audit) => {
+            return stringToDate(audit.ended) <= stringToDate(auditMonth);
+          })
+          .sort(
+            (a, b) =>
+              stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
+          );
+
+        const lastAllocatorAuditUpToMonth =
+          allocatorAuditsUpToMonth[allocatorAuditsUpToMonth.length - 1];
+
+        return lastAllocatorAuditUpToMonth
+          ? {
+              outcome: this.mapAuditOutcome(
+                allocator.allocator_id,
+                lastAllocatorAuditUpToMonth.outcome,
+                allocatorAuditsUpToMonth.length - 1,
+              ),
+              datacapAmount: lastAllocatorAuditUpToMonth.datacap_amount,
+            }
+          : {
+              outcome: AllocatorAuditOutcome.unknown,
+              datacapAmount: 0,
+            };
+      });
+
+      result.push({
+        month: auditMonth,
+        datacap: allocatorAuditStatesUpMonth.reduce((acc, audit) => {
+          acc[audit.outcome] = (acc[audit.outcome] ?? 0) + audit.datacapAmount;
+          return acc;
+        }, {}),
+        count: allocatorAuditStatesUpMonth.reduce((acc, audit) => {
+          acc[audit.outcome] = (acc[audit.outcome] ?? 0) + 1;
+          return acc;
+        }, {}),
+      });
+    }
+
+    return result;
+  }
+
+  public async getAuditOutcomesData(
+    filPlusEdition?: FilPlusEdition,
+  ): Promise<AllocatorAuditOutcomesData[]> {
+    if (filPlusEdition) return await this._getAuditOutcomesData(filPlusEdition);
+
+    // prettier-ignore
+    return (
+      await this._getAuditOutcomesData(getFilPlusEditionById(5))).concat(
+      await this._getAuditOutcomesData(getFilPlusEditionById(6)),
+    );
+  }
+
+  public async getAuditStatesData(
+    filPlusEdition: FilPlusEdition,
+  ): Promise<AllocatorAuditStatesData[]> {
+    if (filPlusEdition.id === 5) return edition5AllocatorAuditStatesData;
+
+    if (filPlusEdition.id !== 6)
+      throw new BadRequestException(
+        `Audit states data not available for edition ${filPlusEdition.id}`,
+      );
+
     const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorDatacapFlowData(returnInactive, cutoffDate),
+      getAllocatorsFull(false, null, null, null),
     );
 
     const registryInfoMap = await this.getAllocatorRegistryInfoMap();
 
-    return allocators.map((allocator) => {
-      return {
-        metapathwayType:
-          registryInfoMap[allocator.allocatorId]?.registry_info
-            ?.metapathway_type ?? null,
-        applicationAudit:
-          registryInfoMap[
-            allocator.allocatorId
-          ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
-        ...allocator,
-      };
-    });
+    return allocators
+      .map((allocator) => {
+        const allocatorAudits = registryInfoMap[
+          allocator.addressId
+        ]?.registry_info?.audits
+          .filter((audit) => stringToDate(audit.ended))
+          .sort(
+            (a, b) =>
+              stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
+          );
+
+        return {
+          allocatorId: allocator.addressId,
+          allocatorName: allocator.name,
+          audits:
+            allocatorAudits
+              ?.map((audit, i) => {
+                return {
+                  ...audit,
+                  outcome: this.mapAuditOutcome(
+                    allocator.addressId,
+                    audit.outcome,
+                    i,
+                  ),
+                };
+              })
+              ?.slice(1) // skip the first audit, which is always GRANTED
+              ?.filter((audit) => audit.outcome) ?? [],
+        };
+      })
+      .filter((allocator) => allocator.audits?.length > 0);
   }
 
-  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getDatacapFlowData(
+    cutoffDate?: Date,
+  ): Promise<AllocatorDatacapFlowData[]> {
+    const allocators = await this.prismaDmobService.$queryRawTyped(
+      getAllocatorDatacapFlowData(false, cutoffDate),
+    );
+
+    const filPlusEdition = cutoffDate
+      ? getFilPlusEditionByTimestamp(cutoffDate.getTime())
+      : getCurrentFilPlusEdition();
+
+    if (filPlusEdition.id === 5) {
+      const datacapFlowData = edition5AllocatorDatacapFlowData;
+      const allocatorsGroupedById = groupBy(allocators, (a) => a.allocatorId);
+
+      return datacapFlowData
+        .map((allocator) => {
+          return {
+            allocatorId: allocator.allocatorId,
+            allocatorName:
+              allocatorsGroupedById[allocator.allocatorId]?.[0]
+                ?.allocatorName ?? null,
+            datacap:
+              allocatorsGroupedById[allocator.allocatorId]?.[0]?.datacap ??
+              null,
+            pathway: allocator.pathway,
+            typeOfAllocator: allocator.typeOfAllocator,
+            metapathwayType: null,
+            applicationAudit: null,
+          };
+        })
+        .filter((a) => a.datacap !== null);
+    }
+
+    if (filPlusEdition.id === 6) {
+      const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+
+      return allocators
+        .map((allocator) => {
+          return {
+            metapathwayType:
+              registryInfoMap[allocator.allocatorId]?.registry_info
+                ?.metapathway_type ?? null,
+            applicationAudit:
+              registryInfoMap[
+                allocator.allocatorId
+              ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
+            ...allocator,
+            pathway: null,
+            typeOfAllocator: null,
+          };
+        })
+        .filter(
+          (allocator) =>
+            allocator.metapathwayType && allocator.applicationAudit,
+        );
+    }
+
+    throw new BadRequestException(
+      `Datacap flow data not available for edition ${filPlusEdition.id}`,
+    );
+  }
+
+  public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -161,7 +525,7 @@ export class AllocatorService {
   public async getStandardAllocatorRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-  ): Promise<RetrievabilityWeekResponse> {
+  ): Promise<RetrievabilityWeek> {
     const lastWeekAverageRetrievability =
       await this.getWeekAverageStandardAllocatorRetrievability(
         lastWeek(),
@@ -177,9 +541,9 @@ export class AllocatorService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(result, 100);
 
-    return new RetrievabilityWeekResponse(
+    return new RetrievabilityWeek(
       lastWeekAverageRetrievability * 100,
-      new RetrievabilityHistogramWeekResponse(
+      new RetrievabilityHistogramWeekResults(
         await this.getStandardAllocatorCount(openDataOnly),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
@@ -197,8 +561,8 @@ export class AllocatorService {
     );
   }
 
-  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getStandardAllocatorBiggestClientDistributionWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getStandardAllocatorCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -236,7 +600,7 @@ export class AllocatorService {
   public async getWeekStandardAllocatorSpsCompliance(
     week: Date,
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeek> {
+  ): Promise<AllocatorSpsComplianceWeekResults> {
     const weekAverageProvidersRetrievability =
       await this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
@@ -300,7 +664,7 @@ export class AllocatorService {
   // TODO measure and optimize this function
   public async getStandardAllocatorSpsComplianceWeekly(
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<AllocatorSpsComplianceWeekResponse> {
+  ): Promise<AllocatorSpsComplianceWeek> {
     const weeks = await this.storageProviderService.getWeeksTracked();
 
     const lastWeekAverageProviderRetrievability =
@@ -316,7 +680,7 @@ export class AllocatorService {
       ),
     );
 
-    return new AllocatorSpsComplianceWeekResponse(
+    return new AllocatorSpsComplianceWeek(
       spMetricsToCheck,
       lastWeekAverageProviderRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(

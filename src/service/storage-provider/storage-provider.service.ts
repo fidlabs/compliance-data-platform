@@ -12,10 +12,10 @@ import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
   StorageProviderComplianceScoreRange,
-  StorageProviderComplianceWeek,
+  StorageProviderComplianceWeekResults,
   StorageProviderComplianceWeekCount,
   StorageProviderComplianceWeekPercentage,
-  StorageProviderComplianceWeekResponse,
+  StorageProviderComplianceWeek,
   StorageProviderComplianceWeekTotalDatacap,
   StorageProviderWeekly,
   StorageProviderWithIpInfo,
@@ -23,10 +23,10 @@ import {
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeekFlat,
-  HistogramWeekResponse,
+  HistogramWeek,
   RetrievabilityHistogramWeek,
-  RetrievabilityHistogramWeekResponse,
-  RetrievabilityWeekResponse,
+  RetrievabilityHistogramWeekResults,
+  RetrievabilityWeek,
 } from '../histogram-helper/types.histogram-helper';
 import { Cacheable } from 'src/utils/cacheable';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -50,8 +50,8 @@ export class StorageProviderService {
     return await this.prismaService.$queryRawTyped(getProvidersWithIpInfo());
   }
 
-  public async getProviderClientsWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getProviderClientsWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(getProviderClientsWeeklyAcc()),
@@ -59,8 +59,8 @@ export class StorageProviderService {
     );
   }
 
-  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeekResponse> {
-    return new HistogramWeekResponse(
+  public async getProviderBiggestClientDistributionWeekly(): Promise<HistogramWeek> {
+    return new HistogramWeek(
       await this.getProviderCount(),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
@@ -89,7 +89,7 @@ export class StorageProviderService {
   public async getProviderRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-  ): Promise<RetrievabilityWeekResponse> {
+  ): Promise<RetrievabilityWeek> {
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability(
         openDataOnly,
@@ -104,9 +104,9 @@ export class StorageProviderService {
     const weeklyHistogramResult =
       await this.histogramHelper.getWeeklyHistogramResult(result, 100);
 
-    return new RetrievabilityWeekResponse(
+    return new RetrievabilityWeek(
       lastWeekAverageRetrievability * 100,
-      new RetrievabilityHistogramWeekResponse(
+      new RetrievabilityHistogramWeekResults(
         await this.getProviderCount(openDataOnly),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) =>
@@ -137,13 +137,13 @@ export class StorageProviderService {
 
   public async getProviderComplianceWeekly(
     metricsToCheck?: StorageProviderComplianceMetrics,
-  ): Promise<StorageProviderComplianceWeekResponse> {
+  ): Promise<StorageProviderComplianceWeek> {
     const weeks = await this.getWeeksTracked();
 
     const lastWeekAverageRetrievability =
       await this.getLastWeekAverageProviderRetrievability();
 
-    const result: StorageProviderComplianceWeek[] = await Promise.all(
+    const result: StorageProviderComplianceWeekResults[] = await Promise.all(
       weeks.map(async (week) => {
         const weekAverageRetrievability =
           await this.getWeekAverageProviderRetrievability(week);
@@ -175,7 +175,7 @@ export class StorageProviderService {
       }),
     );
 
-    return new StorageProviderComplianceWeekResponse(
+    return new StorageProviderComplianceWeek(
       metricsToCheck,
       lastWeekAverageRetrievability * 100,
       this.histogramHelper.withoutCurrentWeek(

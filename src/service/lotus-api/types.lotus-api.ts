@@ -1,5 +1,3 @@
-// noinspection SpellCheckingInspection,JSUnusedGlobalSymbols
-
 export interface LotusStateVerifiedClientStatusResponse {
   jsonrpc: string;
   result?: string;

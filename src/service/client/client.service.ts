@@ -233,10 +233,10 @@ export class ClientService {
     const getUnitSizeFromJsonInBytes = (key: string): bigint | null => {
       try {
         return parseDataSizeToBytes(info.Datacap?.[key]);
-      } catch (error) {
+      } catch (err) {
         this.logger.warn(
-          `Failed to parse ${key} from bookkeeping info: ${error.message}`,
-          // error.cause?.stack || error.stack,
+          `Failed to parse ${key} from bookkeeping info: ${err.message}`,
+          // err.cause?.stack || err.stack,
         );
 
         return null;

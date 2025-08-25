@@ -74,7 +74,7 @@ export class StorageProviderComplianceWeekCount {
   nonCompliantSps: number;
 }
 
-export class StorageProviderComplianceWeek extends IntersectionType(
+export class StorageProviderComplianceWeekResults extends IntersectionType(
   StorageProviderComplianceWeekCount,
   StorageProviderComplianceWeekTotalDatacap,
 ) {
@@ -127,7 +127,7 @@ export class StorageProviderComplianceMetrics {
   }
 }
 
-export class StorageProviderComplianceWeekResponse {
+export class StorageProviderComplianceWeek {
   @ApiProperty({
     description: 'Storage providers compliance metrics checked',
   })
@@ -139,13 +139,13 @@ export class StorageProviderComplianceWeekResponse {
   })
   averageSuccessRate: number;
 
-  @ApiProperty({ type: StorageProviderComplianceWeek, isArray: true })
-  results: StorageProviderComplianceWeek[];
+  @ApiProperty({ type: StorageProviderComplianceWeekResults, isArray: true })
+  results: StorageProviderComplianceWeekResults[];
 
   constructor(
     metricsChecked: StorageProviderComplianceMetrics,
     averageSuccessRate: number,
-    results: StorageProviderComplianceWeek[],
+    results: StorageProviderComplianceWeekResults[],
   ) {
     this.metricsChecked = metricsChecked;
     this.averageSuccessRate = averageSuccessRate;

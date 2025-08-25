@@ -38,7 +38,7 @@ export class Histogram {
   }
 }
 
-export class HistogramWeek {
+export class HistogramWeekResults {
   @ApiProperty({
     type: String,
     format: 'date-time',
@@ -77,7 +77,7 @@ export class HistogramWeekFlat extends Histogram {
   }
 }
 
-export class RetrievabilityHistogramWeek extends HistogramWeek {
+export class RetrievabilityHistogramWeek extends HistogramWeekResults {
   @ApiProperty({
     description: 'Average retrievability success rate in the week',
   })
@@ -94,7 +94,7 @@ export class RetrievabilityHistogramWeek extends HistogramWeek {
   }
 
   public static of(
-    histogramWeek: HistogramWeek,
+    histogramWeek: HistogramWeekResults,
     averageSuccessRate: number,
   ): RetrievabilityHistogramWeek {
     return new RetrievabilityHistogramWeek(
@@ -106,22 +106,22 @@ export class RetrievabilityHistogramWeek extends HistogramWeek {
   }
 }
 
-export class HistogramWeekResponse {
+export class HistogramWeek {
   @ApiProperty({
     description: 'Total number of allocators / storage providers',
   })
   total: number;
 
-  @ApiProperty({ type: HistogramWeek, isArray: true })
-  results: HistogramWeek[];
+  @ApiProperty({ type: HistogramWeekResults, isArray: true })
+  results: HistogramWeekResults[];
 
-  constructor(total: number, results: HistogramWeek[]) {
+  constructor(total: number, results: HistogramWeekResults[]) {
     this.total = total;
     this.results = results;
   }
 }
 
-export class RetrievabilityHistogramWeekResponse {
+export class RetrievabilityHistogramWeekResults {
   @ApiProperty({
     description: 'Total number of allocators / storage providers',
   })
@@ -136,18 +136,18 @@ export class RetrievabilityHistogramWeekResponse {
   }
 }
 
-export class RetrievabilityWeekResponse {
+export class RetrievabilityWeek {
   @ApiProperty({
     description: 'Last full week average retrievability success rate',
   })
   averageSuccessRate: number;
 
-  @ApiProperty({ type: RetrievabilityHistogramWeekResponse })
-  histogram: RetrievabilityHistogramWeekResponse;
+  @ApiProperty({ type: RetrievabilityHistogramWeekResults })
+  histogram: RetrievabilityHistogramWeekResults;
 
   constructor(
     averageSuccessRate: number,
-    histogram: RetrievabilityHistogramWeekResponse,
+    histogram: RetrievabilityHistogramWeekResults,
   ) {
     this.averageSuccessRate = averageSuccessRate;
     this.histogram = histogram;

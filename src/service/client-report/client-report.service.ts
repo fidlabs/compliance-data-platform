@@ -66,7 +66,7 @@ export class ClientReportService {
     const clientApplicationTimestamp =
       clientData[0].allowanceArray?.[0]?.issueCreateTimestamp;
 
-    const filPlusEditionData = clientApplicationTimestamp
+    const filPlusEdition = clientApplicationTimestamp
       ? getFilPlusEditionByTimestamp(clientApplicationTimestamp)
       : null;
 
@@ -79,9 +79,8 @@ export class ClientReportService {
           await this.clientService.getAverageSecondsToFirstDeal(
             clientData[0].addressId,
           ),
-        low_replica_threshold: filPlusEditionData?.lowReplicaThreshold ?? null,
-        high_replica_threshold:
-          filPlusEditionData?.highReplicaThreshold ?? null,
+        low_replica_threshold: filPlusEdition?.lowReplicaThreshold ?? null,
+        high_replica_threshold: filPlusEdition?.highReplicaThreshold ?? null,
         allocator_required_copies:
           mainAllocatorRegistryInfo?.application.required_replicas,
         allocator_required_sps:

@@ -59,15 +59,6 @@ export class OldDatacapAllocatorBalanceWeek {
   drilldown: OldDatacapAllocatorBalance[];
 }
 
-export class OldDatacapAllocatorBalanceWeekResponse {
-  @ApiProperty({
-    type: OldDatacapAllocatorBalanceWeek,
-    description: 'Allocators datacap balance by week',
-    isArray: true,
-  })
-  results: OldDatacapAllocatorBalanceWeek[];
-}
-
 export class OldDatacapClientBalance {
   @ApiProperty({
     description: 'Client ID',
@@ -127,13 +118,4 @@ export class OldDatacapClientBalanceWeek {
     description: 'Data on specific client',
   })
   drilldown: OldDatacapClientBalance[];
-}
-
-export class OldDatacapClientBalanceWeekResponse {
-  @ApiProperty({
-    type: OldDatacapClientBalanceWeek,
-    description: 'Clients datacap balance by week',
-    isArray: true,
-  })
-  results: OldDatacapClientBalanceWeek[];
 }

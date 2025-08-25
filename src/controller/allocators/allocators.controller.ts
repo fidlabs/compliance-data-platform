@@ -11,12 +11,26 @@ import {
   GetWeekAllocatorsWithSpsComplianceRequestData,
 } from './types.allocators';
 import { Cacheable } from 'src/utils/cacheable';
-import { ControllerBase } from '../base/controller-base';
 import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
+import {
+  AllocatorAuditOutcomesData,
+  AllocatorAuditStatesData,
+  AllocatorAuditTimesByMonthData,
+  AllocatorAuditTimesByRoundData,
+} from 'src/service/allocator/types.allocator';
+import {
+  FilPlusEditionDefaultCurrentRequest,
+  FilPlusEditionRequest,
+} from '../base/types.filplus-edition-controller-base';
+import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
+import {
+  getCurrentFilPlusEdition,
+  getFilPlusEditionByTimestamp,
+} from 'src/utils/filplus-edition';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
-export class AllocatorsController extends ControllerBase {
+export class AllocatorsController extends FilPlusEditionControllerBase {
   private readonly logger = new Logger(AllocatorsController.name);
 
   constructor(
@@ -37,15 +51,85 @@ export class AllocatorsController extends ControllerBase {
   public async getDatacapFlowData(
     @Query() query: GetDatacapFlowDataRequest,
   ): Promise<GetDatacapFlowDataResponse> {
-    const dcFlowData = await this.allocatorService.getDatacapFlowData(
-      stringToBool(query.showInactive) ?? true,
-      stringToDate(query.cutoffDate),
-    );
+    const cutoffDate = stringToDate(query.cutoffDate);
+
+    const dcFlowData =
+      await this.allocatorService.getDatacapFlowData(cutoffDate);
 
     return {
       cutoffDate: stringToDate(query.cutoffDate) ?? new Date(),
+      filPlusEditionId: query.cutoffDate
+        ? getFilPlusEditionByTimestamp(cutoffDate.getTime()).id
+        : getCurrentFilPlusEdition().id,
       data: dcFlowData,
     };
+  }
+
+  @Get('/audit-states')
+  @ApiOperation({
+    summary: 'Get audit states data for allocators',
+  })
+  @ApiOkResponse({
+    description: 'Audit states data for allocators',
+    type: AllocatorAuditStatesData,
+    isArray: true,
+  })
+  public async getAuditStatesData(
+    @Query() query: FilPlusEditionDefaultCurrentRequest,
+  ): Promise<AllocatorAuditStatesData[]> {
+    return await this.allocatorService.getAuditStatesData(
+      this.getFilPlusEditionFromRequest(query) ?? getCurrentFilPlusEdition(),
+    );
+  }
+
+  @Get('/audit-times-by-round')
+  @ApiOperation({
+    summary: 'Get audit times data for allocators by audit round',
+  })
+  @ApiOkResponse({
+    description: 'Audit times data for allocators by audit round',
+    type: AllocatorAuditTimesByRoundData,
+  })
+  public async getAuditTimesByRoundData(
+    @Query() query: FilPlusEditionDefaultCurrentRequest,
+  ): Promise<AllocatorAuditTimesByRoundData> {
+    return await this.allocatorService.getAuditTimesByRoundData(
+      this.getFilPlusEditionFromRequest(query) ?? getCurrentFilPlusEdition(),
+    );
+  }
+
+  @Get('/audit-times-by-month')
+  @ApiOperation({
+    summary: 'Get audit times data for allocators by month',
+  })
+  @ApiOkResponse({
+    description: 'Audit times data for allocators by month',
+    type: AllocatorAuditTimesByMonthData,
+    isArray: true,
+  })
+  public async getAuditTimesByMonthData(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<AllocatorAuditTimesByMonthData[]> {
+    return await this.allocatorService.getAuditTimesByMonthData(
+      this.getFilPlusEditionFromRequest(query),
+    );
+  }
+
+  @Get('/audit-outcomes')
+  @ApiOperation({
+    summary: 'Get audit outcomes data for allocators by month',
+  })
+  @ApiOkResponse({
+    description: 'Audit outcomes data for allocators by month',
+    type: AllocatorAuditOutcomesData,
+    isArray: true,
+  })
+  public async getAuditOutcomesData(
+    @Query() query: FilPlusEditionRequest,
+  ): Promise<AllocatorAuditOutcomesData[]> {
+    return await this.allocatorService.getAuditOutcomesData(
+      this.getFilPlusEditionFromRequest(query),
+    );
   }
 
   @Get()
