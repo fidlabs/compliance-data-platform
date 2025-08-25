@@ -23,7 +23,10 @@ import {
   FilPlusEditionRequest,
 } from '../base/types.filplus-edition-controller-base';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
-import { getCurrentFilPlusEdition } from 'src/utils/filplus-edition';
+import {
+  getCurrentFilPlusEdition,
+  getFilPlusEditionByTimestamp,
+} from 'src/utils/filplus-edition';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -48,12 +51,16 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
   public async getDatacapFlowData(
     @Query() query: GetDatacapFlowDataRequest,
   ): Promise<GetDatacapFlowDataResponse> {
-    const dcFlowData = await this.allocatorService.getDatacapFlowData(
-      stringToDate(query.cutoffDate),
-    );
+    const cutoffDate = stringToDate(query.cutoffDate);
+
+    const dcFlowData =
+      await this.allocatorService.getDatacapFlowData(cutoffDate);
 
     return {
       cutoffDate: stringToDate(query.cutoffDate) ?? new Date(),
+      filPlusEditionId: query.cutoffDate
+        ? getFilPlusEditionByTimestamp(cutoffDate.getTime()).id
+        : getCurrentFilPlusEdition().id,
       data: dcFlowData,
     };
   }
