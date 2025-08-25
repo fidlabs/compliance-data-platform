@@ -3,15 +3,18 @@ import {
   getCurrentFilPlusEdition,
   getFilPlusEditionById,
 } from 'src/utils/filplus-edition';
-import { FilPlusEditionRequest } from './types.filplus-edition-controller-base';
+import {
+  FilPlusEditionDefaultCurrentRequest,
+  FilPlusEditionRequest,
+} from './types.filplus-edition-controller-base';
 import { stringToNumber } from 'src/utils/utils';
 import { BadRequestException } from '@nestjs/common';
 import { ControllerBase } from './controller-base';
 
 export class FilPlusEditionControllerBase extends ControllerBase {
   public getFilPlusEditionFromRequest(
-    query: FilPlusEditionRequest,
-  ): FilPlusEdition {
+    query?: FilPlusEditionRequest | FilPlusEditionDefaultCurrentRequest,
+  ): FilPlusEdition | null {
     if (query?.editionId) {
       try {
         const edition = getFilPlusEditionById(stringToNumber(query.editionId));
@@ -27,7 +30,11 @@ export class FilPlusEditionControllerBase extends ControllerBase {
         throw new BadRequestException(`Invalid editionId: ${query.editionId}`);
       }
     } else {
-      return getCurrentFilPlusEdition();
+      if (query instanceof FilPlusEditionDefaultCurrentRequest) {
+        return getCurrentFilPlusEdition();
+      } else {
+        return null;
+      }
     }
   }
 }

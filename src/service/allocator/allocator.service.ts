@@ -51,7 +51,11 @@ import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
 import { arrayAverage, lastWeek, stringToDate } from 'src/utils/utils';
 import { DateTime } from 'luxon';
-import { FilPlusEdition } from 'src/utils/filplus-edition';
+import {
+  FilPlusEdition,
+  getFilPlusEditionById,
+  getFilPlusEditionByTimestamp,
+} from 'src/utils/filplus-edition';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
@@ -130,25 +134,28 @@ export class AllocatorService {
   }
 
   public async getAuditTimesByMonthData(
-    filPlusEdition: FilPlusEdition,
+    filPlusEdition?: FilPlusEdition,
   ): Promise<AllocatorAuditTimesByMonthData[]> {
-    if (filPlusEdition.id === 5) {
-      throw new BadRequestException('Data not available for edition 5');
-    }
-
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
         registry_info: true,
       },
     });
 
-    const allocatorsAuditsFlat = registryInfo
+    let allocatorsAuditsFlat = registryInfo
       .flatMap((allocator) =>
         (allocator.registry_info?.['audits'] ?? []).map((audit) => ({
           ...audit,
         })),
       )
       .filter((a) => stringToDate(a.ended));
+
+    if (filPlusEdition)
+      allocatorsAuditsFlat = allocatorsAuditsFlat.filter(
+        (audit) =>
+          getFilPlusEditionByTimestamp(stringToDate(audit.ended).getTime()) ===
+          filPlusEdition,
+      );
 
     const allocatorsAuditsByMonth = groupBy(allocatorsAuditsFlat, (audit) => {
       return stringToDate(audit.ended).toISOString().slice(0, 7);
@@ -188,9 +195,12 @@ export class AllocatorService {
   public async getAuditTimesByRoundData(
     filPlusEdition: FilPlusEdition,
   ): Promise<AllocatorAuditTimesByRoundData> {
-    if (filPlusEdition.id === 5) {
-      return edition5AllocatorAuditTimesByRoundData;
-    }
+    if (filPlusEdition.id === 5) return edition5AllocatorAuditTimesByRoundData;
+
+    if (filPlusEdition.id !== 6)
+      throw new BadRequestException(
+        `Audit times by round data not available for edition ${filPlusEdition.id}`,
+      );
 
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
@@ -284,12 +294,15 @@ export class AllocatorService {
     }
   }
 
-  public async getAuditOutcomesData(
+  private async _getAuditOutcomesData(
     filPlusEdition: FilPlusEdition,
   ): Promise<AllocatorAuditOutcomesData[]> {
-    if (filPlusEdition.id === 5) {
-      return edition5AllocatorAuditOutcomesData;
-    }
+    if (filPlusEdition.id === 5) return edition5AllocatorAuditOutcomesData;
+
+    if (filPlusEdition.id !== 6)
+      throw new BadRequestException(
+        `Audit outcomes data not available for edition ${filPlusEdition.id}`,
+      );
 
     const registryInfo = await this.prismaService.allocator_registry.findMany({
       select: {
@@ -363,12 +376,27 @@ export class AllocatorService {
     return result;
   }
 
+  public async getAuditOutcomesData(
+    filPlusEdition?: FilPlusEdition,
+  ): Promise<AllocatorAuditOutcomesData[]> {
+    if (filPlusEdition) return await this._getAuditOutcomesData(filPlusEdition);
+
+    // prettier-ignore
+    return (
+      await this._getAuditOutcomesData(getFilPlusEditionById(5))).concat(
+      await this._getAuditOutcomesData(getFilPlusEditionById(6)),
+    );
+  }
+
   public async getAuditStatesData(
     filPlusEdition: FilPlusEdition,
   ): Promise<AllocatorAuditStatesData[]> {
-    if (filPlusEdition.id === 5) {
-      return edition5AllocatorAuditStatesData;
-    }
+    if (filPlusEdition.id === 5) return edition5AllocatorAuditStatesData;
+
+    if (filPlusEdition.id !== 6)
+      throw new BadRequestException(
+        `Audit states data not available for edition ${filPlusEdition.id}`,
+      );
 
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(false, null, null, null),
@@ -380,10 +408,12 @@ export class AllocatorService {
       .map((allocator) => {
         const allocatorAudits = registryInfoMap[
           allocator.addressId
-        ]?.registry_info?.audits.sort(
-          (a, b) =>
-            stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
-        );
+        ]?.registry_info?.audits
+          .filter((audit) => stringToDate(audit.ended))
+          .sort(
+            (a, b) =>
+              stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
+          );
 
         return {
           allocatorId: allocator.addressId,

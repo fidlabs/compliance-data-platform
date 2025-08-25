@@ -18,8 +18,12 @@ import {
   AllocatorAuditTimesByMonthData,
   AllocatorAuditTimesByRoundData,
 } from 'src/service/allocator/types.allocator';
-import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
+import {
+  FilPlusEditionDefaultCurrentRequest,
+  FilPlusEditionRequest,
+} from '../base/types.filplus-edition-controller-base';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
+import { getCurrentFilPlusEdition } from 'src/utils/filplus-edition';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -64,10 +68,10 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     isArray: true,
   })
   public async getAuditStatesData(
-    @Query() query: FilPlusEditionRequest,
+    @Query() query: FilPlusEditionDefaultCurrentRequest,
   ): Promise<AllocatorAuditStatesData[]> {
     return await this.allocatorService.getAuditStatesData(
-      this.getFilPlusEditionFromRequest(query),
+      this.getFilPlusEditionFromRequest(query) ?? getCurrentFilPlusEdition(),
     );
   }
 
@@ -80,10 +84,10 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     type: AllocatorAuditTimesByRoundData,
   })
   public async getAuditTimesByRoundData(
-    @Query() query: FilPlusEditionRequest,
+    @Query() query: FilPlusEditionDefaultCurrentRequest,
   ): Promise<AllocatorAuditTimesByRoundData> {
     return await this.allocatorService.getAuditTimesByRoundData(
-      this.getFilPlusEditionFromRequest(query),
+      this.getFilPlusEditionFromRequest(query) ?? getCurrentFilPlusEdition(),
     );
   }
 
