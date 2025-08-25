@@ -53,12 +53,14 @@ import { arrayAverage, lastWeek, stringToDate } from 'src/utils/utils';
 import { DateTime } from 'luxon';
 import {
   FilPlusEdition,
+  getCurrentFilPlusEdition,
   getFilPlusEditionById,
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
+import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
 
 @Injectable()
 export class AllocatorService {
@@ -444,24 +446,60 @@ export class AllocatorService {
       getAllocatorDatacapFlowData(false, cutoffDate),
     );
 
-    const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+    const filPlusEdition = cutoffDate
+      ? getFilPlusEditionByTimestamp(cutoffDate.getTime())
+      : getCurrentFilPlusEdition();
 
-    return allocators
-      .map((allocator) => {
-        return {
-          metapathwayType:
-            registryInfoMap[allocator.allocatorId]?.registry_info
-              ?.metapathway_type ?? null,
-          applicationAudit:
-            registryInfoMap[
-              allocator.allocatorId
-            ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
-          ...allocator,
-        };
-      })
-      .filter(
-        (allocator) => allocator.metapathwayType && allocator.applicationAudit,
-      );
+    if (filPlusEdition.id === 5) {
+      const datacapFlowData = edition5AllocatorDatacapFlowData;
+      const allocatorsGroupedById = groupBy(allocators, (a) => a.allocatorId);
+
+      return datacapFlowData
+        .map((allocator) => {
+          return {
+            allocatorId: allocator.allocatorId,
+            allocatorName:
+              allocatorsGroupedById[allocator.allocatorId]?.[0]
+                ?.allocatorName ?? null,
+            datacap:
+              allocatorsGroupedById[allocator.allocatorId]?.[0]?.datacap ??
+              null,
+            pathway: allocator.pathway,
+            typeOfAllocator: allocator.typeOfAllocator,
+            metapathwayType: null,
+            applicationAudit: null,
+          };
+        })
+        .filter((a) => a.datacap !== null);
+    }
+
+    if (filPlusEdition.id === 6) {
+      const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+
+      return allocators
+        .map((allocator) => {
+          return {
+            metapathwayType:
+              registryInfoMap[allocator.allocatorId]?.registry_info
+                ?.metapathway_type ?? null,
+            applicationAudit:
+              registryInfoMap[
+                allocator.allocatorId
+              ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
+            ...allocator,
+            pathway: null,
+            typeOfAllocator: null,
+          };
+        })
+        .filter(
+          (allocator) =>
+            allocator.metapathwayType && allocator.applicationAudit,
+        );
+    }
+
+    throw new BadRequestException(
+      `Datacap flow data not available for edition ${filPlusEdition.id}`,
+    );
   }
 
   public async getStandardAllocatorClientsWeekly(): Promise<HistogramWeek> {

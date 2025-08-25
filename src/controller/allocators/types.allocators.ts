@@ -31,6 +31,12 @@ export class GetDatacapFlowDataResponse {
   cutoffDate: Date;
 
   @ApiProperty({
+    description: 'FilPlus edition ID the data is relevant to',
+    example: 6,
+  })
+  filPlusEditionId: number;
+
+  @ApiProperty({
     isArray: true,
     type: AllocatorDatacapFlowData,
     description: 'Datacap flow data up to the requested date',

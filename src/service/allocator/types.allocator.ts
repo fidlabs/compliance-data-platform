@@ -23,16 +23,28 @@ export class AllocatorDatacapFlowData {
   datacap: bigint;
 
   @ApiProperty({
-    description: 'Allocator metapathway type',
+    description: 'Allocator metapathway type; null for FilPlus edition 5 data',
     nullable: true,
   })
   metapathwayType: string | null;
 
   @ApiProperty({
-    description: 'Allocator application audit',
+    description: 'Allocator application audit; null for FilPlus edition 5 data',
     nullable: true,
   })
   applicationAudit: string | null;
+
+  @ApiProperty({
+    description: 'Allocator pathway type; null for FilPlus edition 6 data',
+    nullable: true,
+  })
+  pathway: string | null;
+
+  @ApiProperty({
+    description: 'Type of allocator; null for FilPlus edition 6 data',
+    nullable: true,
+  })
+  typeOfAllocator: string | null;
 }
 
 export class AllocatorAuditTimesByRoundData {
