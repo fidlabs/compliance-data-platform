@@ -254,7 +254,7 @@ export class AllocatorService {
     allocatorId: string,
     outcome: string,
     auditIndex: number,
-  ): AllocatorAuditOutcome | null {
+  ): AllocatorAuditOutcome {
     if (auditIndex === 0) {
       // first audit outcome should always be GRANTED
       if (outcome.toUpperCase() !== 'GRANTED') {
