@@ -49,7 +49,12 @@ import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
 import { ConfigService } from '@nestjs/config';
-import { arrayAverage, lastWeek, stringToDate } from 'src/utils/utils';
+import {
+  arrayAverage,
+  lastWeek,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 import { DateTime } from 'luxon';
 import {
   FilPlusEdition,
@@ -354,7 +359,10 @@ export class AllocatorService {
                 lastAllocatorAuditUpToMonth.outcome,
                 allocatorAuditsUpToMonth.length - 1,
               ),
-              datacapAmount: lastAllocatorAuditUpToMonth.datacap_amount,
+              datacapAmount:
+                typeof lastAllocatorAuditUpToMonth.datacap_amount === 'string'
+                  ? stringToNumber(lastAllocatorAuditUpToMonth.datacap_amount)
+                  : lastAllocatorAuditUpToMonth.datacap_amount,
             }
           : {
               outcome: AllocatorAuditOutcome.unknown,
