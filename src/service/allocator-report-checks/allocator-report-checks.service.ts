@@ -242,7 +242,7 @@ export class AllocatorReportChecksService {
     );
 
     const allFailedChecksResult = allFailedChecksForLatestReport.flatMap(
-      (x) => x.check_results,
+      (x) => x?.check_results || [],
     );
 
     const groupedFailChecks = groupBy(allFailedChecksResult, (x) => x.check);

@@ -16,7 +16,6 @@ import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
 import { ClientAllocatorDistributionWeeklyAccRunner } from './aggregation/runners/client-allocator-distribution-weekly-acc.runner';
 import { ClientAllocatorDistributionWeeklyRunner } from './aggregation/runners/client-allocator-distribution-weekly.runner';
 import { ClientClaimsHourlyRunner } from './aggregation/runners/client-claims-hourly.runner';
-import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
 import { ClientProviderDistributionWeeklyAccRunner } from './aggregation/runners/client-provider-distribution-weekly-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
@@ -30,7 +29,6 @@ import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-
 import { ProviderIpInfoRunner } from './aggregation/runners/provider-ip-info.runner';
 import { ProviderRetrievabilityDailyBackfillRunner } from './aggregation/runners/provider-retrievability-daily-backfill.runner';
 import { ProviderRetrievabilityDailyRunner } from './aggregation/runners/provider-retrievability-daily.runner';
-import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
 import { ProviderRunner } from './aggregation/runners/provider.runner';
 import { ProvidersWeeklyAccRunner } from './aggregation/runners/providers-weekly-acc.runner';
 import { ProvidersWeeklyRunner } from './aggregation/runners/providers-weekly.runner';
@@ -78,6 +76,9 @@ import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
+import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
+import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
+import { AllocatorScoringService } from './service/allocator-scoring/allocator-scoring.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -165,6 +166,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     ClientReportChecksService,
     AllocatorReportService,
     AllocatorReportChecksService,
+    AllocatorScoringService,
     StorageProviderReportService,
     OldDatacapService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },

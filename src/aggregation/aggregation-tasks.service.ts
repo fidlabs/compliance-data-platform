@@ -202,7 +202,7 @@ export class AggregationTasksService extends HealthIndicator {
           `Error during aggregation job: ${aggregationRunnerName}, execution ${executionNumber}/${maxTries}: ${err.message || err.code || err}`,
         );
 
-        if (executionNumber != maxTries) await sleep(90000); // 90 seconds
+        if (executionNumber !== maxTries) await sleep(90000); // 90 seconds
       }
     }
 
