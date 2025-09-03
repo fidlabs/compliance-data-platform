@@ -8,6 +8,7 @@ import { AllocatorReportChecksService } from '../allocator-report-checks/allocat
 import { EthApiService } from '../eth-api/eth-api.service';
 import { Retryable } from 'src/utils/retryable';
 import { bigIntDiv } from 'src/utils/utils';
+import { AllocatorScoringService } from '../allocator-scoring/allocator-scoring.service';
 
 @Injectable()
 export class AllocatorReportService {
@@ -20,6 +21,7 @@ export class AllocatorReportService {
     private readonly allocatorService: AllocatorService,
     private readonly allocatorReportChecksService: AllocatorReportChecksService,
     private readonly ethApiService: EthApiService,
+    private readonly allocatorScoringService: AllocatorScoringService,
   ) {}
 
   public async generateReport(allocatorIdOrAddress: string) {
@@ -96,6 +98,10 @@ export class AllocatorReportService {
                   client.addressId,
                 );
 
+              const cidSharing = await this.clientService.getCidSharing(
+                client.addressId,
+              );
+
               return {
                 client_id: client.addressId,
                 name: client.name || null,
@@ -115,9 +121,30 @@ export class AllocatorReportService {
                 ),
                 using_client_contract: !!bookkeepingInfo?.clientContractAddress,
                 client_contract_max_deviation: maxDeviation,
+                cid_sharing: {
+                  create: await Promise.all(
+                    cidSharing.map(async (c) => ({
+                      ...c,
+                      other_client_application_url:
+                        this.clientService.getClientApplicationUrl(
+                          (
+                            await this.clientService.getClientData(
+                              c.other_client,
+                            )
+                          )[0],
+                        ),
+                    })),
+                  ),
+                },
                 replica_distribution: {
                   create: replicaDistribution,
                 },
+                expected_size_of_single_dataset:
+                  bookkeepingInfo?.expectedSizeOfSingleDataset,
+                total_uniq_data_set_size: replicaDistribution?.reduce(
+                  (acc, cur) => acc + cur.unique_data_size,
+                  0n,
+                ),
               };
             }),
           ),
@@ -147,6 +174,7 @@ export class AllocatorReportService {
     });
 
     await this.allocatorReportChecksService.storeReportChecks(report.id);
+    await this.allocatorScoringService.storeScoring(report.id);
 
     return this.getReport(report.allocator, report.id);
   }
@@ -228,6 +256,12 @@ export class AllocatorReportService {
                 allocator_report_clientId: true,
               },
             },
+            cid_sharing: {
+              omit: {
+                id: true,
+                allocator_report_clientId: true,
+              },
+            },
           },
         },
         client_allocations: {
@@ -259,6 +293,13 @@ export class AllocatorReportService {
             check: true,
             result: true,
             metadata: true,
+          },
+        },
+        scoring_results: {
+          omit: {
+            id: true,
+            allocator_report_id: true,
+            create_date: true,
           },
         },
       },
