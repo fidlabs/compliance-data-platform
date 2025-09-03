@@ -3,19 +3,9 @@ import { AllocatorDatacapFlowData } from '../types.allocator';
 export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>[] =
   [
     {
-      allocatorId: 'f02849382',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
-    },
-    {
-      allocatorId: 'f03015751',
-      typeOfAllocator: 'Manual',
-      pathway: 'Manual',
-    },
-    {
-      allocatorId: 'f03015757',
-      typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      allocatorId: 'f03019835',
+      typeOfAllocator: 'Automatic',
+      pathway: 'Automatic',
     },
     {
       allocatorId: 'f03019836',
@@ -34,8 +24,8 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03011612',
-      typeOfAllocator: 'Market-based',
-      pathway: 'Market-based',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019912',
@@ -44,28 +34,38 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03014659',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019913',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual',
+    },
+    {
+      allocatorId: 'f03011062',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual',
+    },
+    {
+      allocatorId: 'f03011057',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
       allocatorId: 'f03011025',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03014781',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019839',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019840',
@@ -74,18 +74,23 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03019845',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019921',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03018029',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
+    },
+    {
+      allocatorId: 'f03019847',
+      typeOfAllocator: 'Automatic',
+      pathway: 'Automatic',
     },
     {
       allocatorId: 'f02903211',
@@ -94,28 +99,33 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03012747',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03012741',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
+    },
+    {
+      allocatorId: 'f03018484',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
       allocatorId: 'f03010963',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
       allocatorId: 'f03014641',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
       allocatorId: 'f03019850',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03024159',
@@ -124,28 +134,28 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03019853',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019856',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019831',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03013315',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019261',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019924',
@@ -154,13 +164,13 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03010601',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03012749',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03013312',
@@ -170,12 +180,17 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03010575',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03004870',
-      typeOfAllocator: 'Market-based',
-      pathway: 'Market-based',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
+    },
+    {
+      allocatorId: 'f03018491',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual',
     },
     {
       allocatorId: 'f02871322',
@@ -185,12 +200,12 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03014732',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019858',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03018475',
@@ -200,21 +215,21 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03014594',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03014490',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03012911',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03018494',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
@@ -230,7 +245,7 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03018489',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019927',
@@ -240,7 +255,7 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03019928',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019861',
@@ -249,18 +264,18 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     },
     {
       allocatorId: 'f03019931',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
       allocatorId: 'f03012494',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03014608',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
-      pathway: 'Manual',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019934',
@@ -298,6 +313,11 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
       pathway: 'Manual',
     },
     {
+      allocatorId: 'f03018314',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual',
+    },
+    {
       allocatorId: 'f03018562',
       typeOfAllocator: 'Automatic',
       pathway: 'Automatic',
@@ -310,11 +330,11 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03019866',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019942',
-      typeOfAllocator: 'Manual Pathway MetaAllocator',
+      typeOfAllocator: 'Manual',
       pathway: 'Manual',
     },
     {
@@ -335,7 +355,7 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
     {
       allocatorId: 'f03018530',
       typeOfAllocator: 'Manual',
-      pathway: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
     {
       allocatorId: 'f03019296',
@@ -366,5 +386,45 @@ export const edition5AllocatorDatacapFlowData: Partial<AllocatorDatacapFlowData>
       allocatorId: 'f03019950',
       typeOfAllocator: 'Manual',
       pathway: 'Manual',
+    },
+    {
+      allocatorId: 'f03358620',
+      typeOfAllocator: 'RFA',
+      pathway: 'Manual Pathway MetaAllocator',
+    },
+    {
+      allocatorId: 'f03521515',
+      typeOfAllocator: 'Novel allocator not on RFA',
+      pathway: 'Experimental Pathway MetaAllocator',
+    },
+    {
+      allocatorId: 'f03220716',
+      typeOfAllocator: 'Automated',
+      pathway: 'Automated',
+    },
+    {
+      allocatorId: 'f03136591',
+      typeOfAllocator: 'RFA',
+      pathway: 'RFA',
+    },
+    {
+      allocatorId: 'f02849382',
+      typeOfAllocator: 'Automatic',
+      pathway: 'Automatic',
+    },
+    {
+      allocatorId: 'f03019833',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual',
+    },
+    {
+      allocatorId: 'f03015751',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
+    },
+    {
+      allocatorId: 'f03015757',
+      typeOfAllocator: 'Manual',
+      pathway: 'Manual Pathway MetaAllocator',
     },
   ];
