@@ -339,22 +339,26 @@ model allocator_report {
   required_copies                            String?
   required_sps                               String?
   check_results                              allocator_report_check_result[]
+  scoring_results                            allocator_report_scoring_results[]
 }
 
 model allocator_report_client {
-  id                            String                                         @id @default(uuid()) @db.Uuid
-  allocator_report              allocator_report                               @relation(fields: [allocator_report_id], references: [id])
-  allocator_report_id           String                                         @db.Uuid
-  client_id                     String
-  name                          String?
-  allocators                    String[]                                       @default([])
-  allocations_number            Int
-  total_allocations             BigInt
-  application_url               String?
-  application_timestamp         DateTime?
-  using_client_contract         Boolean?
-  client_contract_max_deviation String?
-  replica_distribution          allocator_report_client_replica_distribution[]
+  id                              String                                         @id @default(uuid()) @db.Uuid
+  allocator_report                allocator_report                               @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id             String                                         @db.Uuid
+  client_id                       String
+  name                            String?
+  allocators                      String[]                                       @default([])
+  allocations_number              Int
+  total_allocations               BigInt
+  application_url                 String?
+  application_timestamp           DateTime?
+  using_client_contract           Boolean?
+  client_contract_max_deviation   String?
+  replica_distribution            allocator_report_client_replica_distribution[]
+  cid_sharing                     allocator_report_client_cid_sharing[]
+  expected_size_of_single_dataset BigInt?
+  total_uniq_data_set_size        BigInt?
 }
 
 model allocator_report_client_replica_distribution {
@@ -365,6 +369,16 @@ model allocator_report_client_replica_distribution {
   percentage                Float
   allocator_report_client   allocator_report_client? @relation(fields: [allocator_report_clientId], references: [id])
   allocator_report_clientId String?                  @db.Uuid
+}
+
+model allocator_report_client_cid_sharing {
+  id                           BigInt                   @id @default(autoincrement())
+  allocator_report_client      allocator_report_client? @relation(fields: [allocator_report_clientId], references: [id])
+  allocator_report_clientId    String?                  @db.Uuid
+  other_client                 String
+  other_client_application_url String?
+  total_deal_size              BigInt
+  unique_cid_count             Int
 }
 
 model allocator_report_client_allocation {
@@ -418,6 +432,24 @@ model allocator_report_check_result {
   metadata            Json?
 
   @@unique([check, allocator_report_id])
+}
+
+model allocator_report_scoring_results {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  create_date         DateTime               @default(now())
+  score               Int
+  metric              AllocatorScoringMetric
+  metric_name         String
+  metric_description  String
+  metric_value        Float
+  metric_average      Float
+  metric_value_min    Float
+  metric_value_max    Float?
+  allocator_report    allocator_report       @relation(fields: [allocator_report_id], references: [id])
+  allocator_report_id String                 @db.Uuid
+  metadata            String[]
+
+  @@unique([metric, allocator_report_id])
 }
 
 model ipni_publisher_advertisement {
@@ -477,6 +509,18 @@ model provider_ip_info {
   city     String?
 
   @@id([provider, date])
+}
+
+enum AllocatorScoringMetric {
+  IPNI_REPORTING
+  HTTP_RETRIEVABILITY
+  URL_FINDER_RETRIEVABILITY
+  CID_SHARING
+  DUPLICATED_DATA
+  UNIQUE_DATA_SET_SIZE
+  EQUALITY_OF_DATACAP_DISTRIBUTION
+  CLIENT_DIVERSITY
+  CLIENT_PREVIOUS_APPLICATIONS
 }
 
 enum ClientReportCheck {

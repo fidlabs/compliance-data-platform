@@ -129,7 +129,8 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
     const paths = response.data
       .filter(
-        (v) => v.name.endsWith('.json') && v.name != 'Allocator JSON SPEC.json',
+        (v) =>
+          v.name.endsWith('.json') && v.name !== 'Allocator JSON SPEC.json',
       )
       .map((v) => v.path);
 
