@@ -46,7 +46,7 @@ export class ProviderRetrievabilityDailyBackfillRunner
     let latestStored = retrievedUtc[0];
     let backfillDate = null;
 
-    while (latestStored != cutoff) {
+    while (latestStored !== cutoff) {
       const next = latestStored.minus({ days: 1 });
 
       if (!retrievedUtc.find((v) => v.equals(next))) {

@@ -808,7 +808,7 @@ export class AllocatorService {
     const info = result.registry_info as Prisma.JsonObject;
     const application = info.application as Prisma.JsonObject;
 
-    const data_types = (application?.data_types as Prisma.JsonArray)?.map((v) =>
+    const dataTypes = (application?.data_types as Prisma.JsonArray)?.map((v) =>
       (v as string).trim(),
     );
 
@@ -822,10 +822,13 @@ export class AllocatorService {
 
     return {
       application: {
-        data_types,
-        audit,
+        data_types: dataTypes,
+        audit: audit,
         required_sps: extractNumericString(application.required_sps),
         required_replicas: extractNumericString(application.required_replicas),
+      },
+      history: {
+        approved: stringToDate(info?.history?.['Approved']),
       },
     };
   }

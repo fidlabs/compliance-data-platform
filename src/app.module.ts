@@ -78,6 +78,9 @@ import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
+import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
+import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
+import { AllocatorScoringService } from './service/allocator-scoring/allocator-scoring.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -165,6 +168,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     ClientReportChecksService,
     AllocatorReportService,
     AllocatorReportChecksService,
+    AllocatorScoringService,
     StorageProviderReportService,
     OldDatacapService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
