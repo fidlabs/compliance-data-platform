@@ -173,11 +173,13 @@ export class ClientService {
 
     return this._mapClientBookkeeping(
       result.bookkeeping_info as Prisma.JsonObject,
+      clientIdOrAddress,
     );
   }
 
   private _mapClientBookkeeping(
     info: Prisma.JsonObject,
+    clientIdOrAddress: string,
   ): ClientBookkeepingInfo {
     const isPublicDataset = ((): boolean | null => {
       try {
@@ -193,7 +195,7 @@ export class ClientService {
         );
       } catch (err) {
         this.logger.warn(
-          `Failed to read public dataset info from bookkeeping info: ${err.message}`,
+          `Failed to read public dataset info from ${clientIdOrAddress} bookkeeping info: ${err.message}`,
           err.cause?.stack || err.stack,
         );
 
@@ -214,7 +216,7 @@ export class ClientService {
         );
       } catch (err) {
         this.logger.warn(
-          `Failed to read sps provided info from bookkeeping info: ${err.message}`,
+          `Failed to read sps provided info from ${clientIdOrAddress} bookkeeping info: ${err.message}`,
           err.cause?.stack || err.stack,
         );
 
@@ -235,7 +237,7 @@ export class ClientService {
         return parseDataSizeToBytes(info.Datacap?.[key]);
       } catch (err) {
         this.logger.warn(
-          `Failed to parse ${key} from bookkeeping info: ${err.message}`,
+          `Failed to parse ${key} from ${clientIdOrAddress} bookkeeping info: ${err.message}`,
           // err.cause?.stack || err.stack,
         );
 
@@ -266,6 +268,7 @@ export class ClientService {
       clientAddress: row.client_address,
       bookkeepingInfo: this._mapClientBookkeeping(
         row.bookkeeping_info as Prisma.JsonObject,
+        row.client_id,
       ),
     }));
   }
