@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { getFilPlusEditionByTimestamp } from 'src/utils/filplus-edition';
+import { Retryable } from 'src/utils/retryable';
 import { AllocatorService } from '../allocator/allocator.service';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
 import { ClientService } from '../client/client.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { Retryable } from 'src/utils/retryable';
-import { getFilPlusEditionByTimestamp } from 'src/utils/filplus-edition';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
+import { StorageProviderUrlFinderService } from '../storage-provider-url-finder/storage-provider-url-finder.service';
 
 @Injectable()
 export class ClientReportService {
@@ -20,6 +21,7 @@ export class ClientReportService {
     private readonly allocatorService: AllocatorService,
     private readonly ethApiService: EthApiService,
     private readonly lotusApiService: LotusApiService,
+    private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
   ) {}
 
   public async generateReport(clientIdOrAddress: string, returnFull = false) {
@@ -28,33 +30,27 @@ export class ClientReportService {
 
     if (!clientData?.length) return null;
 
-    const storageProviderDistribution =
-      await this.storageProviderReportService.getStorageProviderDistribution(
-        clientData[0].addressId,
-      );
-
-    const replicaDistribution =
-      await this.clientService.getReplicationDistribution(
-        clientData[0].addressId,
-      );
-
-    const cidSharing = await this.clientService.getCidSharing(
-      clientData[0].addressId,
-    );
-
     const allocators = clientData.map((c) => c.verifierAddressId);
-
     const mainAllocatorId = // take first non-glif allocator addressId
       allocators?.[0] === GlifAutoVerifiedAllocatorId && allocators?.length > 1
         ? allocators[1]
         : allocators?.[0];
 
-    const mainAllocatorRegistryInfo =
-      await this.allocatorService.getAllocatorRegistryInfo(mainAllocatorId);
-
-    const bookkeepingInfo = await this.clientService.getClientBookkeepingInfo(
-      clientData[0].addressId,
-    );
+    const [
+      storageProviderDistribution,
+      replicaDistribution,
+      cidSharing,
+      mainAllocatorRegistryInfo,
+      bookkeepingInfo,
+    ] = await Promise.all([
+      this.storageProviderReportService.getStorageProviderDistribution(
+        clientData[0].addressId,
+      ),
+      this.clientService.getReplicationDistribution(clientData[0].addressId),
+      this.clientService.getCidSharing(clientData[0].addressId),
+      this.allocatorService.getAllocatorRegistryInfo(mainAllocatorId),
+      this.clientService.getClientBookkeepingInfo(clientData[0].addressId),
+    ]);
 
     const maxDeviation = bookkeepingInfo?.clientContractAddress
       ? await this.ethApiService.getClientContractMaxDeviation(
@@ -69,6 +65,29 @@ export class ClientReportService {
     const filPlusEdition = clientApplicationTimestamp
       ? getFilPlusEditionByTimestamp(clientApplicationTimestamp)
       : null;
+
+    const storageProviderDistributions =
+      (await Promise.all(
+        storageProviderDistribution?.map(async (provider) => {
+          return {
+            ...provider,
+            piece_working_url:
+              await this.storageProviderUrlFinderService.fetchPieceWorkingUrlForClientProvider(
+                clientData[0].addressId,
+                provider.provider,
+              ),
+            declared_in_application_file:
+              bookkeepingInfo?.storageProviderIDsDeclared?.includes(
+                provider.provider,
+              ),
+            ...(provider.location && {
+              location: {
+                create: provider.location,
+              },
+            }),
+          };
+        }),
+      )) ?? [];
 
     const report = await this.prismaService.client_report.create({
       data: {
@@ -112,21 +131,7 @@ export class ClientReportService {
           0n,
         ),
         storage_provider_distribution: {
-          create:
-            storageProviderDistribution?.map((provider) => {
-              return {
-                ...provider,
-                declared_in_application_file:
-                  bookkeepingInfo?.storageProviderIDsDeclared?.includes(
-                    provider.provider,
-                  ),
-                ...(provider.location && {
-                  location: {
-                    create: provider.location,
-                  },
-                }),
-              };
-            }) ?? [],
+          create: storageProviderDistributions,
         },
         replica_distribution: {
           create: replicaDistribution,
