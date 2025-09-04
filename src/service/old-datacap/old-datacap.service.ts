@@ -1,22 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { groupBy } from 'lodash';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   OldDatacapAllocatorBalanceWeek,
   OldDatacapClientBalanceWeek,
 } from './types.old-datacap';
-import { groupBy } from 'lodash';
 
 @Injectable()
 export class OldDatacapService {
   private readonly logger = new Logger(OldDatacapService.name);
-
   constructor(private readonly prismaService: PrismaService) {}
 
   public async getAllocatorBalance(): Promise<
     OldDatacapAllocatorBalanceWeek[]
   > {
-    const aggResults =
-      await this.prismaService.old_datacap_balance_weekly.groupBy({
+    const [aggResults, allRows] = await Promise.all([
+      this.prismaService.old_datacap_balance_weekly.groupBy({
         by: ['week'],
         _count: {
           allocator: true,
@@ -29,10 +28,8 @@ export class OldDatacapService {
         orderBy: {
           week: 'asc',
         },
-      });
-
-    const allRows =
-      await this.prismaService.old_datacap_balance_weekly.findMany({
+      }),
+      this.prismaService.old_datacap_balance_weekly.findMany({
         where: {
           OR: [
             {
@@ -47,7 +44,8 @@ export class OldDatacapService {
             },
           ],
         },
-      });
+      }),
+    ]);
 
     const allocatorData = allRows.map((r) => ({
       week: r.week.toISOString(),
@@ -73,8 +71,8 @@ export class OldDatacapService {
   }
 
   public async getClientBalance(): Promise<OldDatacapClientBalanceWeek[]> {
-    const dbResults =
-      await this.prismaService.old_datacap_client_balance_weekly.groupBy({
+    const [dbResults, allRows] = await Promise.all([
+      this.prismaService.old_datacap_client_balance_weekly.groupBy({
         by: ['week'],
         _count: {
           client: true,
@@ -87,10 +85,8 @@ export class OldDatacapService {
         orderBy: {
           week: 'asc',
         },
-      });
-
-    const allRows =
-      await this.prismaService.old_datacap_client_balance_weekly.findMany({
+      }),
+      this.prismaService.old_datacap_client_balance_weekly.findMany({
         where: {
           OR: [
             {
@@ -105,7 +101,8 @@ export class OldDatacapService {
             },
           ],
         },
-      });
+      }),
+    ]);
 
     const clientData = allRows.map((r) => ({
       week: r.week.toISOString(),

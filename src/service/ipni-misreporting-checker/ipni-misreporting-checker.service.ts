@@ -1,16 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
+import { getIpniReportingWeekly } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
+import { FilPlusEdition } from 'src/utils/filplus-edition';
+import { bigIntToNumber } from 'src/utils/utils';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { LotusStateMinerInfoResponse } from '../lotus-api/types.lotus-api';
+import { StorageProviderService } from '../storage-provider/storage-provider.service';
 import {
   AggregatedProvidersIPNIReportingStatus,
   AggregatedProvidersIPNIReportingStatusWeekly,
   ProviderIPNIReportingStatus,
 } from './types.ipni-misreporting-checker';
-import { StorageProviderIpniReportingStatus } from 'prisma/generated/client';
-import { getIpniReportingWeekly } from 'prisma/generated/client/sql';
-import { StorageProviderService } from '../storage-provider/storage-provider.service';
-import { bigIntToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class IpniMisreportingCheckerService {
@@ -62,9 +63,14 @@ export class IpniMisreportingCheckerService {
     };
   }
 
-  public async getAggregatedProvidersReportingStatusWeekly(): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
+  public async getAggregatedProvidersReportingStatusWeekly(
+    filPlusEditionData: FilPlusEdition | null = null,
+  ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
     const result = await this.prismaService.$queryRawTyped(
-      getIpniReportingWeekly(),
+      getIpniReportingWeekly(
+        filPlusEditionData?.startDate,
+        filPlusEditionData?.endDate,
+      ),
     );
 
     return {

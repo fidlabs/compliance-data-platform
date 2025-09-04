@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createAppAuth } from '@octokit/auth-app';
-import { Octokit } from '@octokit/core';
 import { ConfigService } from '@nestjs/config';
 import {
   HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { AllocatorRegistry } from './types.github-allocator-registry';
+import { createAppAuth } from '@octokit/auth-app';
+import { Octokit } from '@octokit/core';
+import { PrismaService } from 'src/db/prisma.service';
 import { envSet } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
+import { AllocatorRegistry } from './types.github-allocator-registry';
 
 @Injectable()
 export class GitHubAllocatorRegistryService extends HealthIndicator {
@@ -20,6 +21,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
   constructor(
     private readonly configService: ConfigService,
     private readonly allocatorService: AllocatorService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -92,7 +94,9 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     return this.octokit;
   }
 
-  public async fetchAllocatorsRegistry(): Promise<AllocatorRegistry[]> {
+  public async fetchAllocatorsRegistry(
+    gitHubPath: string = 'Allocators',
+  ): Promise<AllocatorRegistry[]> {
     const octokit = await this.getOctokit();
     let response;
 
@@ -106,7 +110,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
             'ALLOCATOR_REGISTRY_REPO_OWNER',
           ),
           repo: this.configService.get<string>('ALLOCATOR_REGISTRY_REPO_NAME'),
-          path: 'Allocators',
+          path: gitHubPath,
           headers: {
             'X-GitHub-Api-Version': '2022-11-28',
           },
@@ -114,9 +118,12 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       )) as any;
     } catch (err) {
       this.healthy = false;
-      throw new Error(`Error fetching allocators registry: ${err.message}`, {
-        cause: err,
-      });
+      throw new Error(
+        `Error fetching allocators registry from path: ${gitHubPath}, error: ${err.message}`,
+        {
+          cause: err,
+        },
+      );
     }
 
     const paths = response.data
@@ -134,7 +141,6 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       } catch (err) {
         this.logger.warn(
           `Error while fetching registry info for ${path}: ${err.message}`,
-          // err.cause?.stack || err.stack,
         );
       }
     }
@@ -196,6 +202,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     // prefer json data over db data
     const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
     const allocatorId = jsonAllocatorId || dbAllocatorId;
+    const isAllocatorRejected = this.checkIfAllocatorIsRejected(jsonData, path);
 
     return !allocatorId
       ? null
@@ -204,6 +211,24 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
           allocator_address: allocatorAddress,
           json_path: path,
           registry_info: jsonData,
+          rejected: isAllocatorRejected,
         };
+  }
+
+  private checkIfAllocatorIsRejected(
+    jsonData: object,
+    allocatorJsonPath: string,
+  ): boolean {
+    let allocatorIsRejected: boolean;
+
+    if (allocatorJsonPath.includes('Allocator_Archive')) {
+      allocatorIsRejected = jsonData['status'] != 'Active';
+    } else {
+      allocatorIsRejected = allocatorJsonPath.match(/^\d{4}\.json$/i) // old schema in current edition
+        ? jsonData['status'] != 'Active'
+        : jsonData['audits']?.some((audit) => audit.outcome === 'REJECTED');
+    }
+
+    return allocatorIsRejected;
   }
 }

@@ -1,4 +1,6 @@
 -- @param {Boolean} $1:openDataOnly
+-- @param {DateTime} $2:startDate
+-- @param {DateTime} $3:endDate
 
 with "open_data_pathway_provider" as (
     select distinct "provider" as "provider"
@@ -12,4 +14,9 @@ from "providers_weekly_acc"
 where (
           $1 = false
               or "provider" in (select "provider" from "open_data_pathway_provider")
-          );
+
+)
+and ($2::date is null or "week" >= $2 )
+and ($3::date is null or "week" <= $3)
+
+    
