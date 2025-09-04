@@ -252,6 +252,7 @@ model client_report_storage_provider_distribution {
   claims_count                           BigInt?
   declared_in_application_file           Boolean?
   retrievability_success_rate_url_finder Float?
+  piece_working_url                      String?
 }
 
 model client_report_storage_provider_distribution_location {

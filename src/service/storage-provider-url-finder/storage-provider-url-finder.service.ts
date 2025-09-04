@@ -1,10 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { lastValueFrom } from 'rxjs';
-import { Cacheable } from 'src/utils/cacheable';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Cacheable } from 'src/utils/cacheable';
 import { Retryable } from 'src/utils/retryable';
-import { PrismaService } from 'src/db/prisma.service';
+import { UrlFinderApiService } from '../url-finder-api/url-finder-api.service';
 
 @Injectable()
 export class StorageProviderUrlFinderService {
@@ -13,7 +12,7 @@ export class StorageProviderUrlFinderService {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly httpService: HttpService,
-    private readonly prismaService: PrismaService,
+    private readonly urlFinderApiService: UrlFinderApiService,
   ) {}
 
   // returns 0 - 1
@@ -55,16 +54,9 @@ export class StorageProviderUrlFinderService {
     storageProviderId: string,
     clientId?: string,
   ) {
-    // this.logger.debug(
-    //   `Fetching URL finder retrievability for ${storageProviderId}${clientId ? '/' + clientId : ''}`,
-    // );
-
-    const endpoint = `https://api.sp-tool.allocator.tech/url/retrievability/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
-
-    const { data } = await lastValueFrom(
-      this.httpService.get(endpoint, { timeout: 90000 }), // 90 seconds
+    return await this.urlFinderApiService.fetchRetrievability(
+      storageProviderId,
+      clientId,
     );
-
-    return data;
   }
 }
