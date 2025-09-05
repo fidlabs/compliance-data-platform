@@ -13,7 +13,6 @@ import { Cacheable } from 'src/utils/cacheable';
 import { FilPlusEdition } from 'src/utils/filplus-edition';
 import { lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
-
 import {
   HistogramWeek,
   HistogramWeekFlat,

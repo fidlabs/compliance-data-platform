@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { getFilPlusEditionByTimestamp } from 'src/utils/filplus-edition';
+import { Retryable } from 'src/utils/retryable';
 import { AllocatorService } from '../allocator/allocator.service';
 import { ClientReportChecksService } from '../client-report-checks/client-report-checks.service';
 import { ClientService } from '../client/client.service';
 import { EthApiService } from '../eth-api/eth-api.service';
 import { LotusApiService } from '../lotus-api/lotus-api.service';
-import { Retryable } from 'src/utils/retryable';
-import { getFilPlusEditionByTimestamp } from 'src/utils/filplus-edition';
 import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 
 @Injectable()
@@ -70,6 +70,23 @@ export class ClientReportService {
       ? getFilPlusEditionByTimestamp(clientApplicationTimestamp)
       : null;
 
+    const enterpriseApplicationAuditOptionsIn6Round = [
+      'Enterprise Data',
+      'Automated',
+      'Faucet',
+      'Market Based',
+    ];
+
+    // check if dataset is public based on filplus edition rules
+    // if filplus edition is 5 use client bookkeeping info
+    // if filplus edition is 6 base on allocator application data types because enterprise allocators have only enterprise clients
+    const isPublicDataset =
+      filPlusEdition?.id === 6
+        ? !mainAllocatorRegistryInfo?.application?.audit?.some((x) =>
+            enterpriseApplicationAuditOptionsIn6Round.includes(x.trim()),
+          )
+        : bookkeepingInfo?.isPublicDataset;
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -90,7 +107,7 @@ export class ClientReportService {
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),
-        is_public_dataset: bookkeepingInfo?.isPublicDataset,
+        is_public_dataset: isPublicDataset,
         using_client_contract: !!bookkeepingInfo?.clientContractAddress,
         storage_provider_ids_declared:
           bookkeepingInfo?.storageProviderIDsDeclared,
