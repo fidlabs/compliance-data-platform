@@ -106,7 +106,31 @@ export function bigIntDiv(
   return result;
 }
 
+export function bigIntSqrt(value: bigint): bigint {
+  if (value < 0n)
+    throw new Error('square root of negative numbers is not supported');
+
+  if (value < 2n) return value;
+
+  let x0 = value / 2n;
+  let x1 = (x0 + value / x0) / 2n;
+
+  while (x1 < x0) {
+    x0 = x1;
+    x1 = (x0 + value / x0) / 2n;
+  }
+
+  return x0;
+}
+
 export function arrayAverage(arr?: number[]): number | null {
   const result = arr?.reduce((acc, val) => acc + val, 0) / arr?.length;
   return Number.isFinite(result) ? result : null;
+}
+
+export function bigIntArrayAverage(arr?: bigint[]): bigint | null {
+  if (!arr?.length) return null;
+
+  const sum = arr.reduce((acc, val) => acc + val, 0n);
+  return sum / BigInt(arr.length);
 }

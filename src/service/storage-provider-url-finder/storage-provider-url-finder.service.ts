@@ -28,15 +28,12 @@ export class StorageProviderUrlFinderService {
         throw new Error(`URL finder returned ${data.result}`);
       }
 
-      // this.logger.debug(
-      //   `Fetched URL finder retrievability for ${storageProviderId}${clientId ? '/' + clientId : ''}: ${data.retrievability_percent}%`,
-      // );
-
       return data.retrievability_percent / 100;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-      this.logger.warn(
-        `Error fetching URL finder retrievability for ${storageProviderId}${clientId ? '/' + clientId : ''}: ${err.message}`,
-      );
+      // this.logger.warn(
+      //   `Error fetching URL finder retrievability for ${storageProviderId}${clientId ? '/' + clientId : ''}: ${err.message}`,
+      // );
 
       return null;
     }
@@ -55,10 +52,6 @@ export class StorageProviderUrlFinderService {
     storageProviderId: string,
     clientId?: string,
   ) {
-    // this.logger.debug(
-    //   `Fetching URL finder retrievability for ${storageProviderId}${clientId ? '/' + clientId : ''}`,
-    // );
-
     const endpoint = `https://api.sp-tool.allocator.tech/url/retrievability/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
 
     const { data } = await lastValueFrom(
