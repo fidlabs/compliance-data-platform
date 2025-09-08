@@ -7,6 +7,7 @@ import {
 import { DateTime } from 'luxon';
 import { bigIntArrayAverage, bigIntDiv, bigIntSqrt } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
+import { filesize } from 'filesize';
 
 @Injectable()
 export class AllocatorScoringService {
@@ -52,14 +53,18 @@ export class AllocatorScoringService {
   private calculateStandardDeviation(values: bigint[]): bigint | null {
     if (!values?.length) return null;
 
-    const mean =
-      values.reduce((acc, val) => acc + val, 0n) / BigInt(values.length);
+    const average = bigIntArrayAverage(values);
 
     const variance =
-      values.reduce((acc, val) => acc + (val - mean) ** 2n, 0n) /
+      values.reduce((acc, val) => acc + (val - average) ** 2n, 0n) /
       BigInt(values.length);
 
     return bigIntSqrt(variance);
+  }
+
+  private convertFilesize(size?: bigint | number | string): string | null {
+    if (size === undefined || size === null) return null;
+    return filesize(size, { base: 2 });
   }
 
   private async storeScore(
@@ -111,7 +116,6 @@ export class AllocatorScoringService {
   }
 
   // TODO open / enterprise wages
-  // TODO convert bytes to PiBs?
 
   private async storeIPNIReportingScore(reportId: string) {
     const ipniOKDatacap =
@@ -154,14 +158,13 @@ export class AllocatorScoringService {
       score = 1;
     }
 
-    // TODO convert bytes to PiBs?
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.IPNI_REPORTING,
       score,
       {
-        'IPNI OK Datacap': ipniOKDatacap.toString(),
-        'Total Datacap': totalDatacap.toString(),
+        'IPNI OK Datacap': this.convertFilesize(ipniOKDatacap),
+        'Total Datacap': this.convertFilesize(totalDatacap),
         'Percentage of IPNI OK datacap': percentageOfIPNIOKDatacap.toString(),
         'Percentage of IPNI OK datacap > 99': '3 points',
         'Percentage of IPNI OK datacap >= 75': '1 point',
@@ -351,11 +354,13 @@ export class AllocatorScoringService {
       score = 1;
     }
 
-    // TODO convert bytes to PiBs?
     await this.storeScore(reportId, AllocatorScoringMetric.CID_SHARING, score, {
-      'Total allocations': allocatorClientsTotalAllocation.toString(),
-      'Allocations with CID sharing':
-        allocatorClientsWithCIDSharingAllocations.toString(),
+      'Total allocations': this.convertFilesize(
+        allocatorClientsTotalAllocation,
+      ),
+      'Allocations with CID sharing': this.convertFilesize(
+        allocatorClientsWithCIDSharingAllocations,
+      ),
       'Percentage of allocations with CID sharing':
         percentageOfCIDSharing.toFixed(2),
       'Percentage of allocations with CID sharing = 0': '2 points',
@@ -400,14 +405,13 @@ export class AllocatorScoringService {
       score = 1;
     }
 
-    // TODO convert bytes to PiBs?
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.DUPLICATED_DATA,
       score,
       {
-        'Total datacap': totalDatacap.toString(),
-        'Duplicated datacap': duplicatedDatacap.toString(),
+        'Total datacap': this.convertFilesize(totalDatacap),
+        'Duplicated datacap': this.convertFilesize(duplicatedDatacap),
         'Percentage of duplicated datacap':
           percentageOfDuplicatedData.toFixed(2),
         'Percentage of duplicated datacap = 0': '2 points',
@@ -449,16 +453,16 @@ export class AllocatorScoringService {
       score = 2;
     }
 
-    // TODO convert bytes to PiBs?
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.UNIQUE_DATA_SET_SIZE,
       score,
       {
         'Total expected size of single data set for all clients':
-          totalClientsExpectedSizeOfSingleDataSet.toString(),
-        'Total unique data set size for all clients':
-          totalClientsUniqDataSetSize.toString(),
+          this.convertFilesize(totalClientsExpectedSizeOfSingleDataSet),
+        'Total unique data set size for all clients': this.convertFilesize(
+          totalClientsUniqDataSetSize,
+        ),
         'Ratio of unique data set size to expected size of single data set':
           ratio.toFixed(2),
         'Ratio >= 100 < 120': '2 points',
@@ -497,15 +501,17 @@ export class AllocatorScoringService {
       score = 1;
     }
 
-    // TODO convert bytes to PiBs?
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.EQUALITY_OF_DATACAP_DISTRIBUTION,
       score,
       {
-        'Average allocation per client': average?.toString(),
-        'Standard deviation of allocations': standardDeviation?.toString(),
-        'Coefficient of variation (%)': coefficientOfVariation?.toFixed(2),
+        'Average allocation per client': this.convertFilesize(average),
+        'Standard deviation of allocations':
+          this.convertFilesize(standardDeviation),
+        'Coefficient of variation (%)': this.convertFilesize(
+          coefficientOfVariation,
+        ),
         'Coefficient of variation < 40': '2 points',
         'Coefficient of variation >= 40 and <= 60': '1 point',
         'Coefficient of variation > 60': '0 points',
