@@ -482,21 +482,35 @@ export class AllocatorService {
     }
 
     if (filPlusEdition.id === 6) {
-      const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+      const registryInfo = await this.prismaService.allocator_registry.findMany(
+        {
+          select: {
+            allocator_id: true,
+            json_path: true,
+            registry_info: true,
+          },
+        },
+      );
 
       return allocators
         .map((allocator) => {
+          const allocatorInfo = registryInfo.find(
+            (info) =>
+              info.allocator_id === allocator.allocatorId ||
+              info.registry_info?.['address'] === allocator.allocatorId,
+          );
+
           return {
             metapathwayType:
-              registryInfoMap[allocator.allocatorId]?.registry_info
-                ?.metapathway_type ?? null,
+              allocatorInfo?.registry_info?.['metapathway_type'] ?? null,
             applicationAudit:
-              registryInfoMap[
-                allocator.allocatorId
-              ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
+              allocatorInfo?.registry_info?.[
+                'application'
+              ]?.audit?.[0]?.trim() ?? null,
             ...allocator,
             pathway: null,
             typeOfAllocator: null,
+            allocatorId: allocatorInfo?.allocator_id || allocator.allocatorId,
           };
         })
         .filter(
