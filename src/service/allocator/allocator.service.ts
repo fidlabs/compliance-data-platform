@@ -1,71 +1,71 @@
-import { Prisma } from 'prisma/generated/client';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   Inject,
   Injectable,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from 'src/db/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { groupBy } from 'lodash';
+import { DateTime } from 'luxon';
+import { Prisma } from 'prisma/generated/client';
 import {
+  getAverageSecondsToFirstDeal,
   getStandardAllocatorBiggestClientDistributionAcc,
-  getStandardAllocatorRetrievabilityAcc,
   getStandardAllocatorClientsWeeklyAcc,
   getStandardAllocatorCount,
+  getStandardAllocatorRetrievabilityAcc,
   getWeekAverageStandardAllocatorRetrievabilityAcc,
-  getAverageSecondsToFirstDeal,
 } from 'prisma/generated/client/sql';
 import {
   getAllocatorDatacapFlowData,
   getAllocatorsFull,
 } from 'prismaDmob/generated/client/sql';
-import { groupBy } from 'lodash';
-import { StorageProviderService } from '../storage-provider/storage-provider.service';
-import {
-  AllocatorAuditStatesData,
-  AllocatorAuditOutcome,
-  AllocatorComplianceScore,
-  AllocatorComplianceScoreRange,
-  AllocatorDatacapFlowData,
-  AllocatorSpsComplianceWeekResults,
-  AllocatorSpsComplianceWeek,
-  AllocatorSpsComplianceWeekSingle,
-  AllocatorAuditTimesByRoundData,
-  AllocatorAuditOutcomesData,
-  AllocatorAuditTimesByMonthData,
-} from './types.allocator';
-import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
-import {
-  HistogramWeekFlat,
-  HistogramWeek,
-  RetrievabilityHistogramWeek,
-  RetrievabilityHistogramWeekResults,
-  RetrievabilityWeek,
-} from '../histogram-helper/types.histogram-helper';
-import {
-  StorageProviderComplianceMetrics,
-  StorageProviderComplianceScore,
-} from '../storage-provider/types.storage-provider';
+import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
-import { ConfigService } from '@nestjs/config';
-import {
-  arrayAverage,
-  lastWeek,
-  stringToDate,
-  stringToNumber,
-} from 'src/utils/utils';
-import { DateTime } from 'luxon';
 import {
   FilPlusEdition,
   getCurrentFilPlusEdition,
   getFilPlusEditionById,
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
+import {
+  arrayAverage,
+  lastWeek,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
+import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
+import {
+  HistogramWeek,
+  HistogramWeekFlat,
+  RetrievabilityHistogramWeek,
+  RetrievabilityHistogramWeekResults,
+  RetrievabilityWeek,
+} from '../histogram-helper/types.histogram-helper';
+import { StorageProviderService } from '../storage-provider/storage-provider.service';
+import {
+  StorageProviderComplianceMetrics,
+  StorageProviderComplianceScore,
+} from '../storage-provider/types.storage-provider';
+import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
-import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
+import {
+  AllocatorAuditOutcome,
+  AllocatorAuditOutcomesData,
+  AllocatorAuditStatesData,
+  AllocatorAuditTimesByMonthData,
+  AllocatorAuditTimesByRoundData,
+  AllocatorComplianceScore,
+  AllocatorComplianceScoreRange,
+  AllocatorDatacapFlowData,
+  AllocatorSpsComplianceWeek,
+  AllocatorSpsComplianceWeekResults,
+  AllocatorSpsComplianceWeekSingle,
+} from './types.allocator';
 
 @Injectable()
 export class AllocatorService {
@@ -450,7 +450,11 @@ export class AllocatorService {
   public async getDatacapFlowData(
     cutoffDate?: Date,
   ): Promise<AllocatorDatacapFlowData[]> {
-    const allocators = await this.prismaDmobService.$queryRawTyped(
+    const allocators: Array<{
+      allocatorId: string;
+      allocatorName: string | null;
+      datacap: bigint | null;
+    }> = await this.prismaDmobService.$queryRawTyped(
       getAllocatorDatacapFlowData(false, cutoffDate),
     );
 
@@ -482,16 +486,35 @@ export class AllocatorService {
     }
 
     if (filPlusEdition.id === 6) {
+      // parse the new faucet allocator, which uses registry info based on old faucet allocator id
+      const faucetAllocator = allocators.find(
+        (allocator) => allocator.allocatorId === 'f03136591',
+      );
+
+      if (faucetAllocator) {
+        allocators.push({
+          allocatorId: 'f03220716',
+          allocatorName: faucetAllocator?.allocatorName,
+          datacap: faucetAllocator?.datacap,
+        });
+      }
+
       const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+
+      const registryInfoMapResult = {
+        ...registryInfoMap,
+        ['f03136591']: registryInfoMap['f03220716'],
+      };
+      // ------
 
       return allocators
         .map((allocator) => {
           return {
             metapathwayType:
-              registryInfoMap[allocator.allocatorId]?.registry_info
+              registryInfoMapResult[allocator.allocatorId]?.registry_info
                 ?.metapathway_type ?? null,
             applicationAudit:
-              registryInfoMap[
+              registryInfoMapResult[
                 allocator.allocatorId
               ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
             ...allocator,
