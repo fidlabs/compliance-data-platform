@@ -253,10 +253,10 @@ export class AllocatorService {
     };
   }
 
-  private mapAuditOutcome(
-    allocatorId: string,
+  public mapAuditOutcome(
     outcome: string,
-    auditIndex: number,
+    allocatorId?: string,
+    auditIndex?: number,
   ): AllocatorAuditOutcome {
     if (auditIndex === 0) {
       // first audit outcome should always be GRANTED
@@ -353,8 +353,8 @@ export class AllocatorService {
         return lastAllocatorAuditUpToMonth
           ? {
               outcome: this.mapAuditOutcome(
-                allocator.allocator_id,
                 lastAllocatorAuditUpToMonth.outcome,
+                allocator.allocator_id,
                 allocatorAuditsUpToMonth.length - 1,
               ),
               datacapAmount:
@@ -432,8 +432,8 @@ export class AllocatorService {
                 return {
                   ...audit,
                   outcome: this.mapAuditOutcome(
-                    allocator.addressId,
                     audit.outcome,
+                    allocator.addressId,
                     i,
                   ),
                 };
@@ -523,7 +523,7 @@ export class AllocatorService {
   }
 
   public async getStandardAllocatorClientsWeekly(
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<HistogramWeek> {
     return new HistogramWeek(
       await this.getStandardAllocatorCount(false, filPlusEditionData),
@@ -541,7 +541,7 @@ export class AllocatorService {
   private async _getStandardAllocatorRetrievability(
     openDataOnly = true,
     httpRetrievability = true,
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
       getStandardAllocatorRetrievabilityAcc(
@@ -557,7 +557,7 @@ export class AllocatorService {
   public async getStandardAllocatorRetrievabilityWeekly(
     openDataOnly = true,
     httpRetrievability = true,
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<RetrievabilityWeek> {
     const [lastWeekAverageRetrievability, standardAllocatorRetrievability] =
       await Promise.all([
@@ -606,7 +606,7 @@ export class AllocatorService {
   }
 
   public async getStandardAllocatorBiggestClientDistributionWeekly(
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<HistogramWeek> {
     return new HistogramWeek(
       await this.getStandardAllocatorCount(false, filPlusEditionData),
@@ -650,7 +650,7 @@ export class AllocatorService {
   public async getWeekStandardAllocatorSpsCompliance(
     week: Date,
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-    editionId: number | null = null,
+    filPlusEditionId?: number,
   ): Promise<AllocatorSpsComplianceWeekResults> {
     const [
       weekAverageProvidersRetrievability,
@@ -661,7 +661,7 @@ export class AllocatorService {
         week,
         true,
         true,
-        editionId,
+        filPlusEditionId,
       ),
       this.storageProviderService.getWeekProviders(week),
       this.getWeekStandardAllocatorsWithClients(week),
@@ -762,7 +762,7 @@ export class AllocatorService {
 
   public async getStandardAllocatorSpsComplianceWeekly(
     spMetricsToCheck?: StorageProviderComplianceMetrics,
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<AllocatorSpsComplianceWeek> {
     const [weeks, lastWeekAverageProviderRetrievability] = await Promise.all([
       this.storageProviderService.getWeeksTracked(
@@ -793,27 +793,10 @@ export class AllocatorService {
     );
   }
 
-  public async getWeekAllocatorTotalDatacap(
-    week: Date,
-    allocatorId: string,
-  ): Promise<bigint> {
-    return (
-      await this.prismaService.allocators_weekly_acc.aggregate({
-        _sum: {
-          total_sum_of_allocations: true,
-        },
-        where: {
-          allocator: allocatorId,
-          week: week,
-        },
-      })
-    )._sum.total_sum_of_allocations;
-  }
-
   // returns the number of standard allocators (not metaallocators)
   public async getStandardAllocatorCount(
     openDataOnly = false,
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
@@ -832,7 +815,7 @@ export class AllocatorService {
     week: Date,
     openDataOnly = true,
     httpRetrievability = true,
-    filPlusEditionId: number | null = null,
+    filPlusEditionId?: number,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(

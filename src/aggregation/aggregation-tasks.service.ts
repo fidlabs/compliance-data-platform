@@ -21,6 +21,7 @@ import { AggregationTable } from './aggregation-table';
 import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { sleep } from 'src/utils/utils';
+import { AllocatorService } from 'src/service/allocator/allocator.service';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -47,6 +48,7 @@ export class AggregationTasksService extends HealthIndicator {
     private readonly allocatorClientBookkeepingService: GitHubAllocatorClientBookkeepingService,
     private readonly storageProviderService: StorageProviderService,
     private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
+    private readonly allocatorService: AllocatorService,
   ) {
     super();
   }
@@ -143,7 +145,7 @@ export class AggregationTasksService extends HealthIndicator {
                   allocatorClientBookkeepingService: this.allocatorClientBookkeepingService,
                   storageProviderService: this.storageProviderService,
                   storageProviderUrlFinderService: this.storageProviderUrlFinderService,
-
+                  allocatorService: this.allocatorService,
                 }),
               aggregationRunnerName,
             );

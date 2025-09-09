@@ -17,11 +17,11 @@ with "active_allocators" as (
 	select * from "active_allocators" where ($3::int is null or "active_allocators"."editionId" = $3)
 ),
 "allocators_with_ratio" as (select "week"                                                as "week",
-                                        "allocator"                                           as "allocator",
-                                        max("sum_of_allocations") / sum("sum_of_allocations") as "biggestToTotalRatio",
-                                        sum("sum_of_allocations")                             as "totalDatacap"
+                                   "allocator"                                           as "allocator",
+                                   max("sum_of_allocations") / sum("sum_of_allocations") as "biggestToTotalRatio",
+                                   sum("sum_of_allocations")                             as "totalDatacap"
                                 from "client_allocator_distribution_weekly_acc"
-                                where 
+                                where
                                     ($1::date is null or "week" >= $1) and ($2::date is null or "week" <= $2)
                                 group by "week", "allocator")
 select "week"                                                 as "week",

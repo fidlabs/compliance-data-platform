@@ -12,6 +12,7 @@ import { LotusApiService } from 'src/service/lotus-api/lotus-api.service';
 import { AggregationTable } from './aggregation-table';
 import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
+import { AllocatorService } from '../service/allocator/allocator.service';
 
 export type AggregationRunnerRunServices = {
   prismaService: PrismaService;
@@ -27,6 +28,7 @@ export type AggregationRunnerRunServices = {
   allocatorClientBookkeepingService?: GitHubAllocatorClientBookkeepingService;
   storageProviderService: StorageProviderService;
   storageProviderUrlFinderService: StorageProviderUrlFinderService;
+  allocatorService: AllocatorService;
 };
 
 export interface AggregationRunner {

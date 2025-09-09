@@ -18,7 +18,8 @@ export class FilPlusEditionControllerBase extends ControllerBase {
         if (edition) {
           return edition;
         } else {
-          throw new Error(`Edition ${query.editionId} not found`);
+          // noinspection ExceptionCaughtLocallyJS
+          throw new Error(`Edition not found`);
         }
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_) {

@@ -36,10 +36,8 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   public async getProviderClientsWeekly(
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeek> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.storageProviderService.getProviderClientsWeekly(
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 
@@ -48,10 +46,8 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   public async getProviderBiggestClientDistributionWeekly(
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeek> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.storageProviderService.getProviderBiggestClientDistributionWeekly(
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 
@@ -60,12 +56,10 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   public async getProviderRetrievabilityWeekly(
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 
@@ -74,12 +68,9 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   public async getProviderComplianceWeekly(
     @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
   ): Promise<StorageProviderComplianceWeek> {
-    const filPlusEditionData =
-      this.getFilPlusEditionFromRequest(spMetricsToCheck);
-
     return await this.storageProviderService.getProviderComplianceWeekly(
       StorageProviderComplianceMetrics.of(spMetricsToCheck),
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(spMetricsToCheck),
     );
   }
 
@@ -108,10 +99,8 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   public async getAggregatedProvidersIPNIReportingStatusWeekly(
     @Query() query: FilPlusEditionRequest,
   ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly(
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 }

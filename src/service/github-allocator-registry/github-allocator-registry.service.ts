@@ -11,6 +11,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import { envSet } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { AllocatorRegistry } from './types.github-allocator-registry';
+import { AllocatorAuditOutcome } from '../allocator/types.allocator';
 
 @Injectable()
 export class GitHubAllocatorRegistryService extends HealthIndicator {
@@ -202,7 +203,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     // prefer json data over db data
     const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
     const allocatorId = jsonAllocatorId || dbAllocatorId;
-    const isAllocatorRejected = this.checkIfAllocatorIsRejected(jsonData, path);
+    const isAllocatorRejected = this.isAllocatorIsRejected(jsonData, path);
 
     return !allocatorId
       ? null
@@ -215,20 +216,20 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
         };
   }
 
-  private checkIfAllocatorIsRejected(
+  private isAllocatorIsRejected(
     jsonData: object,
     allocatorJsonPath: string,
   ): boolean {
-    let allocatorIsRejected: boolean;
-
     if (allocatorJsonPath.includes('Allocator_Archive')) {
-      allocatorIsRejected = jsonData['status'] != 'Active';
+      return jsonData['status'] != 'Active';
     } else {
-      allocatorIsRejected = allocatorJsonPath.match(/^\d{4}\.json$/i) // old schema in current edition
+      return allocatorJsonPath.match(/^\d{4}\.json$/i) // old schema in current edition
         ? jsonData['status'] != 'Active'
-        : jsonData['audits']?.some((audit) => audit.outcome === 'REJECTED');
+        : jsonData['audits']?.some(
+            (audit) =>
+              this.allocatorService.mapAuditOutcome(audit.outcome) ===
+              AllocatorAuditOutcome.failed,
+          );
     }
-
-    return allocatorIsRejected;
   }
 }
