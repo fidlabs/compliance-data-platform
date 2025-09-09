@@ -26,10 +26,8 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   public async getAllocatorClientsWeekly(
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeek> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.allocatorService.getStandardAllocatorClientsWeekly(
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 
@@ -38,12 +36,10 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   public async getAllocatorRetrievabilityWeekly(
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
       stringToBool(query?.httpRetrievability),
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 
@@ -52,10 +48,8 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   public async getAllocatorBiggestClientDistributionWeekly(
     @Query() query: FilPlusEditionRequest,
   ): Promise<HistogramWeek> {
-    const filPlusEditionData = this.getFilPlusEditionFromRequest(query);
-
     return await this.allocatorService.getStandardAllocatorBiggestClientDistributionWeekly(
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(query),
     );
   }
 
@@ -64,12 +58,9 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   public async getAllocatorSpsComplianceWeekly(
     @Query() spMetricsToCheck: StorageProviderComplianceMetricsRequest,
   ): Promise<AllocatorSpsComplianceWeek> {
-    const filPlusEditionData =
-      this.getFilPlusEditionFromRequest(spMetricsToCheck);
-
     return await this.allocatorService.getStandardAllocatorSpsComplianceWeekly(
       StorageProviderComplianceMetrics.of(spMetricsToCheck),
-      filPlusEditionData,
+      this.getFilPlusEditionFromRequest(spMetricsToCheck),
     );
   }
 }

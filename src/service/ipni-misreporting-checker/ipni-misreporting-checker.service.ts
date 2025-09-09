@@ -64,7 +64,7 @@ export class IpniMisreportingCheckerService {
   }
 
   public async getAggregatedProvidersReportingStatusWeekly(
-    filPlusEditionData: FilPlusEdition | null = null,
+    filPlusEditionData?: FilPlusEdition,
   ): Promise<AggregatedProvidersIPNIReportingStatusWeekly> {
     const result = await this.prismaService.$queryRawTyped(
       getIpniReportingWeekly(

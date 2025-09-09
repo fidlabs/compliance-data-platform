@@ -16,7 +16,5 @@ where (
               or "provider" in (select "provider" from "open_data_pathway_provider")
 
 )
-and ($2::date is null or "week" >= $2 )
+and ($2::date is null or "week" >= $2)
 and ($3::date is null or "week" <= $3)
-
-    

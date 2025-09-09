@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FilPlusEditionRequest {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'FilPlus Edition ID to filter by',
     example: '6',
   })

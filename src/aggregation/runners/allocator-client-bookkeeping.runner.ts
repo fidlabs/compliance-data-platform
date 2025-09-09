@@ -5,6 +5,7 @@ import {
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
+import { AllocatorAuditOutcome } from 'src/service/allocator/types.allocator';
 
 export class AllocatorClientBookkeepingRunner implements AggregationRunner {
   private readonly logger = new Logger(AllocatorClientBookkeepingRunner.name);
@@ -13,6 +14,7 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
     prismaService,
     prometheusMetricService,
     allocatorClientBookkeepingService,
+    allocatorService,
   }: AggregationRunnerRunServices): Promise<void> {
     if (!allocatorClientBookkeepingService.isInitialized()) {
       this.logger.warn(
@@ -51,7 +53,9 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
             'https://github.com/',
           ) &&
           !row.registry_info['audits']?.some(
-            (audit) => audit.outcome === 'REJECTED',
+            (audit) =>
+              allocatorService.mapAuditOutcome(audit.outcome) ===
+              AllocatorAuditOutcome.failed,
           ),
       )
       .map((row) => {
