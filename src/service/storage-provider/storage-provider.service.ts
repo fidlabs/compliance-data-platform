@@ -10,7 +10,10 @@ import {
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
-import { FilPlusEdition } from 'src/utils/filplus-edition';
+import {
+  FilPlusEdition,
+  getCurrentFilPlusEdition,
+} from 'src/utils/filplus-edition';
 import { lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
@@ -126,8 +129,11 @@ export class StorageProviderService {
     httpRetrievability = true,
     filPlusEditionData: FilPlusEdition | null,
   ): Promise<RetrievabilityWeek> {
+    const isCurrentFilPlusEdition =
+      filPlusEditionData?.id === getCurrentFilPlusEdition().id;
+
     const lastWeekAverageRetrievability =
-      filPlusEditionData?.isCurrent || !filPlusEditionData
+      isCurrentFilPlusEdition || !filPlusEditionData
         ? await this.getLastWeekAverageProviderRetrievability(
             openDataOnly,
             httpRetrievability,
@@ -186,12 +192,15 @@ export class StorageProviderService {
     metricsToCheck?: StorageProviderComplianceMetrics,
     filPlusEditionData?: FilPlusEdition,
   ): Promise<StorageProviderComplianceWeek> {
+    const isCurrentFilPlusEdition =
+      filPlusEditionData?.id === getCurrentFilPlusEdition().id;
+
     const [weeks, lastWeekAverageRetrievability] = await Promise.all([
       this.getWeeksTracked(
         filPlusEditionData?.startDate,
         filPlusEditionData?.endDate,
       ),
-      filPlusEditionData?.isCurrent
+      isCurrentFilPlusEdition
         ? this.getLastWeekAverageProviderRetrievability(
             true,
             true,
@@ -307,7 +316,7 @@ export class StorageProviderService {
     endWeekDate?: Date,
   ): Promise<Date[]> {
     const fromWeekFilter = startWeekDate ? { gte: startWeekDate } : {};
-    const toWeekFilter = endDWeekDate ? { lte: endDWeekDate } : {};
+    const toWeekFilter = endWeekDate ? { lte: endWeekDate } : {};
 
     return (
       await this.prismaService.providers_weekly_acc.findMany({
