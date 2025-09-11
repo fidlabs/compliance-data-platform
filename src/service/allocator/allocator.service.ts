@@ -316,9 +316,7 @@ export class AllocatorService {
       },
     });
 
-    const firstAuditMonth = new Date(filPlusEdition.start * 1000)
-      .toISOString()
-      .slice(0, 7);
+    const firstAuditMonth = filPlusEdition.startDate.toISOString().slice(0, 7);
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const result: AllocatorAuditOutcomesData[] = [];
@@ -559,9 +557,12 @@ export class AllocatorService {
     httpRetrievability = true,
     filPlusEditionData?: FilPlusEdition,
   ): Promise<RetrievabilityWeek> {
+    const isCurrentFilPlusEdition =
+      filPlusEditionData?.id === getCurrentFilPlusEdition().id;
+
     const [lastWeekAverageRetrievability, standardAllocatorRetrievability] =
       await Promise.all([
-        filPlusEditionData?.isCurrent
+        isCurrentFilPlusEdition
           ? this.getWeekAverageStandardAllocatorRetrievability(
               lastWeek(),
               openDataOnly,
@@ -714,9 +715,9 @@ export class AllocatorService {
     for (const { client, provider } of weekProvidersForClients) {
       if (!clientProviders[client]) {
         clientProviders[client] = [];
-      } else {
-        clientProviders[client].push(provider);
       }
+
+      clientProviders[client].push(provider);
     }
 
     Object.entries(clientsByAllocator).forEach(([allocator, clientList]) => {
@@ -764,12 +765,15 @@ export class AllocatorService {
     spMetricsToCheck?: StorageProviderComplianceMetrics,
     filPlusEditionData?: FilPlusEdition,
   ): Promise<AllocatorSpsComplianceWeek> {
+    const isCurrentFilPlusEdition =
+      filPlusEditionData?.id === getCurrentFilPlusEdition().id;
+
     const [weeks, lastWeekAverageProviderRetrievability] = await Promise.all([
       this.storageProviderService.getWeeksTracked(
         filPlusEditionData?.startDate,
         filPlusEditionData?.endDate,
       ),
-      filPlusEditionData?.isCurrent || filPlusEditionData === null
+      isCurrentFilPlusEdition || filPlusEditionData === null
         ? this.storageProviderService.getLastWeekAverageProviderRetrievability()
         : null,
     ]);
