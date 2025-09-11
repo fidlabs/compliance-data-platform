@@ -69,25 +69,57 @@ export class StorageProviderUrlFinderService {
   }
 
   public async fetchPieceWorkingUrlForClientProvider(
-    clientId: string,
     storageProviderId: string,
+    clientId: string,
   ): Promise<string | null> {
-    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}/${clientId}`;
+    try {
+      const data = await this._fetchPieceWorkingUrlForClientProvider(
+        storageProviderId,
+        clientId,
+      );
 
-    const { data } = await lastValueFrom(
-      this.httpService.get<{ result: string; url: string }>(endpoint, {
-        timeout: 5000,
-      }), // 5 seconds
-    );
+      if (data.result !== 'Success') {
+        this.logger.warn(
+          `No piece working URL found for client ${clientId} and provider ${storageProviderId}`,
+        );
 
-    if (data.result !== 'Success') {
+        return null;
+      }
+
+      return data.url;
+    } catch (err) {
       this.logger.warn(
-        `No piece working URL found for client ${clientId} and provider ${storageProviderId}`,
+        `Error fetching URL finder working URL client ${clientId} and provider ${storageProviderId}: ${err.message}`,
       );
 
       return null;
     }
+  }
 
-    return data.url;
+  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
+  private async _fetchPieceWorkingUrlForClientProvider(
+    storageProviderId: string,
+    clientId?: string,
+  ) {
+    return await this.__fetchPieceWorkingUrlForClientProvider(
+      storageProviderId,
+      clientId,
+    );
+  }
+
+  @Retryable({ retries: 5, delayMin: 3000, delayMax: 6000 }) // 3 - 6 seconds random delay
+  public async __fetchPieceWorkingUrlForClientProvider(
+    storageProviderId: string,
+    clientId: string,
+  ) {
+    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}/${clientId}`;
+
+    const { data } = await lastValueFrom(
+      this.httpService.get<{ result: string; url: string }>(endpoint, {
+        timeout: 90000,
+      }), // 90 seconds
+    );
+
+    return data;
   }
 }
