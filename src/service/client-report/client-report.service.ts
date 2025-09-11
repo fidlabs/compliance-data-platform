@@ -73,8 +73,8 @@ export class ClientReportService {
             ...provider,
             piece_working_url:
               await this.storageProviderUrlFinderService.fetchPieceWorkingUrlForClientProvider(
-                clientData[0].addressId,
                 provider.provider,
+                clientData[0].addressId,
               ),
             declared_in_application_file:
               bookkeepingInfo?.storageProviderIDsDeclared?.includes(
