@@ -1,30 +1,32 @@
+import { DateTime } from 'luxon';
+
 export type FilPlusEdition = {
   id: number;
-  start?: number;
-  end?: number;
+  startDate?: Date;
+  endDate?: Date;
   lowReplicaThreshold: number;
   highReplicaThreshold: number;
 };
 
 // prettier-ignore
 export const filPlusEditions: FilPlusEdition[] = [
-  { id: 4, end: 1709251200, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // < 1 March 2024
-  { id: 5, start: 1709251200, end: 1752192000, lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // 1 March 2024 - 11 July 2025
-  { id: 6, start: 1752192000, lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 11 July 2025
+  { id: 4, endDate: DateTime.fromMillis(1709251200000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 10, }, // < 1 March 2024
+  { id: 5, startDate: DateTime.fromMillis(1709251200000).toUTC().toJSDate(), endDate: DateTime.fromSeconds(1752192000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // 1 March 2024 - 11 July 2025
+  { id: 6, startDate:  DateTime.fromMillis(1752192000000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 11 July 2025
 ];
 
 export const getFilPlusEditionByTimestamp = (
   timestamp: number,
 ): FilPlusEdition => {
-  if (timestamp > 100000000000) {
+  if (timestamp < 100000000000) {
     // assume milliseconds instead of seconds
-    timestamp /= 1000;
+    timestamp *= 1000;
   }
 
   return filPlusEditions.find(
     (edition) =>
-      (!edition.start || edition.start <= timestamp) &&
-      (!edition.end || edition.end > timestamp),
+      (!edition.startDate || edition.startDate.getTime() <= timestamp) &&
+      (!edition.endDate || edition.endDate.getTime() > timestamp),
   );
 };
 
@@ -33,6 +35,5 @@ export const getFilPlusEditionById = (id: number): FilPlusEdition | null => {
 };
 
 export const getCurrentFilPlusEdition = (): FilPlusEdition => {
-  const now = Math.floor(Date.now() / 1000);
-  return getFilPlusEditionByTimestamp(now);
+  return getFilPlusEditionByTimestamp(Date.now());
 };

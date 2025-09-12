@@ -9,6 +9,7 @@ import axios from 'axios';
 import axiosBetterStacktrace from 'axios-better-stacktrace';
 import { AggregationTasksService } from './aggregation/aggregation-tasks.service';
 import { AllocatorClientBookkeepingRunner } from './aggregation/runners/allocator-client-bookkeeping.runner';
+import { AllocatorRegistryArchiveRunner } from './aggregation/runners/allocator-registry-archive.runner';
 import { AllocatorRegistryRunner } from './aggregation/runners/allocator-registry.runner';
 import { AllocatorRunner } from './aggregation/runners/allocator.runner';
 import { AllocatorsWeeklyAccRunner } from './aggregation/runners/allocators-weekly-acc.runner';
@@ -84,6 +85,7 @@ const AGGREGATION_RUNNERS = [
   ProviderUrlFinderRetrievabilityDailyRunner,
   AllocatorClientBookkeepingRunner,
   AllocatorRegistryRunner,
+  AllocatorRegistryArchiveRunner,
   AllocatorRunner,
   ProviderRunner,
   AllocatorsWeeklyAccRunner,

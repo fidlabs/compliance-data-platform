@@ -1,10 +1,11 @@
+import { Logger } from '@nestjs/common';
 import { Prisma } from 'prisma/generated/client';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
-import { Logger } from '@nestjs/common';
+import { AllocatorAuditOutcome } from 'src/service/allocator/types.allocator';
 
 export class AllocatorClientBookkeepingRunner implements AggregationRunner {
   private readonly logger = new Logger(AllocatorClientBookkeepingRunner.name);
@@ -13,6 +14,7 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
     prismaService,
     prometheusMetricService,
     allocatorClientBookkeepingService,
+    allocatorService,
   }: AggregationRunnerRunServices): Promise<void> {
     if (!allocatorClientBookkeepingService.isInitialized()) {
       this.logger.warn(
@@ -45,10 +47,16 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
     });
 
     const bookkeeping_repos = allocators
-      .filter((row) =>
-        row.registry_info['application']['allocation_bookkeeping'].startsWith(
-          'https://github.com/',
-        ),
+      .filter(
+        (row) =>
+          row.registry_info['application']['allocation_bookkeeping'].startsWith(
+            'https://github.com/',
+          ) &&
+          !row.registry_info['audits']?.some(
+            (audit) =>
+              allocatorService.mapAuditOutcome(audit.outcome) ===
+              AllocatorAuditOutcome.failed,
+          ),
       )
       .map((row) => {
         const url = row.registry_info['application']['allocation_bookkeeping'];

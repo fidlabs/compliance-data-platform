@@ -89,6 +89,23 @@ export class ClientReportService {
         }),
       )) ?? [];
 
+    const enterpriseApplicationAuditOptionsIn6Round = [
+      'Enterprise Data',
+      'Automated',
+      'Faucet',
+      'Market Based',
+    ];
+
+    // check if dataset is public based on filplus edition rules
+    // if filplus edition is 5 use client bookkeeping info
+    // if filplus edition is 6 base on allocator application data types because enterprise allocators have only enterprise clients
+    const isPublicDataset =
+      filPlusEdition?.id === 6
+        ? !mainAllocatorRegistryInfo?.application?.audit?.some((x) =>
+            enterpriseApplicationAuditOptionsIn6Round.includes(x.trim()),
+          )
+        : bookkeepingInfo?.isPublicDataset;
+
     const report = await this.prismaService.client_report.create({
       data: {
         client: clientData[0].addressId,
@@ -109,7 +126,7 @@ export class ClientReportService {
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),
-        is_public_dataset: bookkeepingInfo?.isPublicDataset,
+        is_public_dataset: isPublicDataset,
         using_client_contract: !!bookkeepingInfo?.clientContractAddress,
         storage_provider_ids_declared:
           bookkeepingInfo?.storageProviderIDsDeclared,
