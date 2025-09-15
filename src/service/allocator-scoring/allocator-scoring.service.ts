@@ -67,48 +67,63 @@ export class AllocatorScoringService {
     return filesize(size, { base: 2 });
   }
 
+  private async getMetricAverage(
+    metric: AllocatorScoringMetric,
+  ): Promise<number | null> {
+    const result = await this.prismaService.$queryRaw<
+      { avg: number | null }[]
+    >`select avg("t"."metric_value") as "avg"
+      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_results"."metric_value"
+      from "allocator_report"
+               join "allocator_report_scoring_results" on "allocator_report"."id" = "allocator_report_scoring_results"."allocator_report_id"
+      where "allocator_report_scoring_results"."metric"::text = ${metric}
+      order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
+
+    return result[0]?.avg ?? null;
+  }
+
+  private async getMetricMax(
+    metric: AllocatorScoringMetric,
+  ): Promise<number | null> {
+    const result = await this.prismaService.$queryRaw<
+      { max: number | null }[]
+    >`select max("t"."metric_value") as "max"
+      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_results"."metric_value"
+      from "allocator_report"
+               join "allocator_report_scoring_results" on "allocator_report"."id" = "allocator_report_scoring_results"."allocator_report_id"
+      where "allocator_report_scoring_results"."metric"::text = ${metric}
+      order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
+
+    return result[0]?.max ?? null;
+  }
+
   private async storeScore(
     reportId: string,
     metric: AllocatorScoringMetric,
+    metricValue: number,
+    metricValueMin: number | null,
+    metricValueMax: number | null,
     score: number,
+    metricName: string,
+    metricDescription: string,
     metadata?: object,
   ) {
-    // prettier-ignore
-    const metricNames = new Map<AllocatorScoringMetric, string>([
-      [AllocatorScoringMetric.IPNI_REPORTING, 'IPNI reporting'],
-      [AllocatorScoringMetric.HTTP_RETRIEVABILITY, 'HTTP retrievability'],
-      [AllocatorScoringMetric.URL_FINDER_RETRIEVABILITY, 'RPA retrievability'],
-      [AllocatorScoringMetric.CID_SHARING, 'CID sharing'],
-      [AllocatorScoringMetric.DUPLICATED_DATA, 'Duplicated data'],
-      [AllocatorScoringMetric.UNIQUE_DATA_SET_SIZE, 'Unique dataset size'],
-      [AllocatorScoringMetric.EQUALITY_OF_DATACAP_DISTRIBUTION, 'Equality of datacap distribution'],
-      [AllocatorScoringMetric.CLIENT_DIVERSITY, 'Client diversity'],
-      [AllocatorScoringMetric.CLIENT_PREVIOUS_APPLICATIONS, 'Client previous applications'],
-    ]);
-
-    // prettier-ignore
-    const metricDescriptions = new Map<AllocatorScoringMetric, string>([
-      [AllocatorScoringMetric.IPNI_REPORTING, 'Measures if data is correctly reported and indexed in IPNI'],
-      [AllocatorScoringMetric.HTTP_RETRIEVABILITY, 'Measures if data is available to anyone on the network'],
-      [AllocatorScoringMetric.URL_FINDER_RETRIEVABILITY, 'Verifies real retrievability but from known actors'],
-      [AllocatorScoringMetric.CID_SHARING, 'Measures the same CID shared between different clients'],
-      [AllocatorScoringMetric.DUPLICATED_DATA, 'Measures if this the same car file that is sealed on the same SP'],
-      [AllocatorScoringMetric.UNIQUE_DATA_SET_SIZE, 'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)'],
-      [AllocatorScoringMetric.EQUALITY_OF_DATACAP_DISTRIBUTION, 'Measures how is the allocator allocating DC to clients'],
-      [AllocatorScoringMetric.CLIENT_DIVERSITY, 'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating'],
-      [AllocatorScoringMetric.CLIENT_PREVIOUS_APPLICATIONS, 'Measures number of clients that are returning customers'],
-    ]);
-
     await this.prismaService.allocator_report_scoring_results.create({
       data: {
         allocator_report_id: reportId,
         metric: metric,
-        metricName: metricNames.get(metric),
-        metricDescription: metricDescriptions.get(metric),
+        metric_value: metricValue,
+        metric_average: await this.getMetricAverage(metric),
+        metric_value_min: metricValueMin,
+        metric_value_max:
+          metricValueMax ??
+          Math.max(await this.getMetricMax(metric), metricValue),
+        metric_name: metricName,
+        metric_description: metricDescription,
         score: score,
         metadata: metadata
           ? Object.entries(metadata).map(
-              ([key, value]) => `${key}: ${String(value)}`,
+              ([key, value]) => `${key}: ${String(value ?? null)}`,
             )
           : null,
       },
@@ -161,7 +176,12 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.IPNI_REPORTING,
+      percentageOfIPNIOKDatacap,
+      0,
+      100,
       score,
+      'IPNI reporting',
+      'Measures if data is correctly reported and indexed in IPNI',
       {
         'IPNI OK Datacap': this.convertFilesize(ipniOKDatacap),
         'Total Datacap': this.convertFilesize(totalDatacap),
@@ -201,23 +221,19 @@ export class AllocatorScoringService {
       });
 
     const allocatorRetrievability =
-      allAllocatorsRetrievabilities.find(
+      (allAllocatorsRetrievabilities.find(
         (a) => a.allocator === report.allocator,
-      )?.avg_weighted_retrievability_success_rate_http ?? 0;
+      )?.avg_weighted_retrievability_success_rate_http ?? 0) * 100;
 
     const sortedRetrievabilities = allAllocatorsRetrievabilities
       .map((a) => a.avg_weighted_retrievability_success_rate_http || 0)
       .sort((a, b) => a - b);
 
-    const _50thPercentile = this.calculateNthPercentile(
-      sortedRetrievabilities,
-      50,
-    );
+    const _50thPercentile =
+      this.calculateNthPercentile(sortedRetrievabilities, 50) * 100;
 
-    const _75thPercentile = this.calculateNthPercentile(
-      sortedRetrievabilities,
-      75,
-    );
+    const _75thPercentile =
+      this.calculateNthPercentile(sortedRetrievabilities, 75) * 100;
 
     let score = 0;
     if (allocatorRetrievability > _75thPercentile) {
@@ -229,9 +245,14 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.HTTP_RETRIEVABILITY,
+      allocatorRetrievability,
+      0,
+      100,
       score,
+      'HTTP retrievability',
+      'Measures if data is available to anyone on the network',
       {
-        'Allocator retrievability': allocatorRetrievability?.toFixed(2),
+        'Allocator retrievability': allocatorRetrievability.toFixed(2),
         '50th percentile of all allocators retrievabilities':
           _50thPercentile?.toFixed(2),
         '75th percentile of all allocators retrievabilities':
@@ -257,7 +278,7 @@ export class AllocatorScoringService {
 
     const reportCreateDayAgo = DateTime.fromJSDate(report.create_date)
       .startOf('day')
-      .minus({ day: 4 }) // today's data might be incomplete, so we look one day back // TODO
+      .minus({ day: 1 }) // today's data might be incomplete, so we look one day back
       .toJSDate();
 
     const allStorageProvidersRetrievabilities =
@@ -282,27 +303,32 @@ export class AllocatorScoringService {
       .sort((a, b) => a - b);
 
     const _50thPercentile =
-      this.calculateNthPercentile(sortedRetrievabilities, 50) ?? 0;
+      (this.calculateNthPercentile(sortedRetrievabilities, 50) ?? 0) * 100;
 
     const _75thPercentile =
-      this.calculateNthPercentile(sortedRetrievabilities, 75) ?? 0;
+      (this.calculateNthPercentile(sortedRetrievabilities, 75) ?? 0) * 100;
+
+    const allocatorRetrievability =
+      (report.avg_retrievability_success_rate_url_finder ?? 0) * 100;
 
     let score = 0;
-    if (report.avg_retrievability_success_rate_url_finder > _75thPercentile) {
+    if (allocatorRetrievability > _75thPercentile) {
       score = 3;
-    } else if (
-      report.avg_retrievability_success_rate_url_finder > _50thPercentile
-    ) {
+    } else if (allocatorRetrievability > _50thPercentile) {
       score = 1;
     }
 
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.URL_FINDER_RETRIEVABILITY,
+      allocatorRetrievability,
+      0,
+      100,
       score,
+      'RPA retrievability',
+      'Verifies real retrievability but from known actors',
       {
-        'Allocator retrievability':
-          report.avg_retrievability_success_rate_url_finder?.toFixed(2),
+        'Allocator retrievability': allocatorRetrievability?.toFixed(2),
         '50th Percentile': _50thPercentile?.toFixed(2),
         '75th Percentile': _75thPercentile?.toFixed(2),
         'Allocator retrievability > 75th Percentile': '3 points',
@@ -354,19 +380,29 @@ export class AllocatorScoringService {
       score = 1;
     }
 
-    await this.storeScore(reportId, AllocatorScoringMetric.CID_SHARING, score, {
-      'Total allocations': this.convertFilesize(
-        allocatorClientsTotalAllocation,
-      ),
-      'Allocations with CID sharing': this.convertFilesize(
-        allocatorClientsWithCIDSharingAllocations,
-      ),
-      'Percentage of allocations with CID sharing':
-        percentageOfCIDSharing.toFixed(2),
-      'Percentage of allocations with CID sharing = 0': '2 points',
-      'Percentage of allocations with CID sharing > 0 and <= 2': '1 point',
-      'Percentage of allocations with CID sharing > 2': '0 points',
-    });
+    await this.storeScore(
+      reportId,
+      AllocatorScoringMetric.CID_SHARING,
+      percentageOfCIDSharing,
+      0,
+      100,
+      score,
+      'CID sharing',
+      'Measures the same CID shared between different clients',
+      {
+        'Total allocations': this.convertFilesize(
+          allocatorClientsTotalAllocation,
+        ),
+        'Allocations with CID sharing': this.convertFilesize(
+          allocatorClientsWithCIDSharingAllocations,
+        ),
+        'Percentage of allocations with CID sharing':
+          percentageOfCIDSharing.toFixed(2),
+        'Percentage of allocations with CID sharing = 0': '2 points',
+        'Percentage of allocations with CID sharing > 0 and <= 2': '1 point',
+        'Percentage of allocations with CID sharing > 2': '0 points',
+      },
+    );
   }
 
   private async storeDuplicatedDataScore(reportId: string) {
@@ -408,7 +444,12 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.DUPLICATED_DATA,
+      percentageOfDuplicatedData,
+      0,
+      100,
       score,
+      'Duplicated data',
+      'Measures if this the same car file that is sealed on the same SP',
       {
         'Total datacap': this.convertFilesize(totalDatacap),
         'Duplicated datacap': this.convertFilesize(duplicatedDatacap),
@@ -456,7 +497,12 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.UNIQUE_DATA_SET_SIZE,
+      ratio,
+      0,
+      null,
       score,
+      'Unique dataset size',
+      'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)',
       {
         'Total expected size of single data set for all clients':
           this.convertFilesize(totalClientsExpectedSizeOfSingleDataSet),
@@ -465,7 +511,7 @@ export class AllocatorScoringService {
         ),
         'Ratio of unique data set size to expected size of single data set':
           ratio.toFixed(2),
-        'Ratio >= 100 < 120': '2 points',
+        'Ratio >= 100 and < 120': '2 points',
         'Ratio < 100': '1 point',
         'Ratio > 120': '0 points',
       },
@@ -504,14 +550,17 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.EQUALITY_OF_DATACAP_DISTRIBUTION,
+      coefficientOfVariation,
+      0,
+      null,
       score,
+      'Equality of datacap distribution',
+      'Measures how is the allocator allocating datacap to clients',
       {
         'Average allocation per client': this.convertFilesize(average),
         'Standard deviation of allocations':
           this.convertFilesize(standardDeviation),
-        'Coefficient of variation (%)': this.convertFilesize(
-          coefficientOfVariation,
-        ),
+        'Coefficient of variation (%)': coefficientOfVariation.toFixed(2),
         'Coefficient of variation < 40': '2 points',
         'Coefficient of variation >= 40 and <= 60': '1 point',
         'Coefficient of variation > 60': '0 points',
@@ -555,7 +604,12 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.CLIENT_DIVERSITY,
+      clientDiversityRatio,
+      0,
+      null,
       score,
+      'Client diversity',
+      'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating',
       {
         'Number of clients': report.clients_number,
         'Months of operation': monthsOfOperation?.toFixed(2),
@@ -599,7 +653,12 @@ export class AllocatorScoringService {
     await this.storeScore(
       reportId,
       AllocatorScoringMetric.CLIENT_PREVIOUS_APPLICATIONS,
+      returningClientsPercentage,
+      0,
+      100,
       score,
+      'Client previous applications',
+      'Measures number of clients that are returning customers',
       {
         'Number of returning clients': returningClients,
         'Total number of clients': totalClients,

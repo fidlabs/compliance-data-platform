@@ -5,10 +5,16 @@ CREATE TYPE "AllocatorScoringMetric" AS ENUM ('IPNI_REPORTING', 'HTTP_RETRIEVABI
 CREATE TABLE "allocator_report_scoring_results" (
     "id" UUID NOT NULL,
     "create_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "score" BOOLEAN,
+    "score" INTEGER NOT NULL,
     "metric" "AllocatorScoringMetric" NOT NULL,
+    "metric_name" TEXT NOT NULL,
+    "metric_description" TEXT NOT NULL,
+    "metric_value" DOUBLE PRECISION NOT NULL,
+    "metric_average" DOUBLE PRECISION NOT NULL,
+    "metric_value_min" DOUBLE PRECISION NOT NULL,
+    "metric_value_max" DOUBLE PRECISION,
     "allocator_report_id" UUID NOT NULL,
-    "metadata" JSONB,
+    "metadata" TEXT[],
 
     CONSTRAINT "allocator_report_scoring_results_pkey" PRIMARY KEY ("id")
 );
