@@ -43,7 +43,6 @@ export class StorageProviderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly histogramHelper: HistogramHelperService,
-
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
