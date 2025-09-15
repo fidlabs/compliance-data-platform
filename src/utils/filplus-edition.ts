@@ -11,15 +11,15 @@ export type FilPlusEdition = {
 // prettier-ignore
 export const filPlusEditions: FilPlusEdition[] = [
   { id: 4, endDate: DateTime.fromMillis(1709251200000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 10, }, // < 1 March 2024
-  { id: 5, startDate: DateTime.fromMillis(1709251200000).toUTC().toJSDate(), endDate: DateTime.fromSeconds(1752192000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // 1 March 2024 - 11 July 2025
-  { id: 6, startDate:  DateTime.fromMillis(1752192000000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 11 July 2025
+  { id: 5, startDate: DateTime.fromMillis(1709251200000).toUTC().toJSDate(), endDate: DateTime.fromMillis(1752192000000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 10 }, // 1 March 2024 - 11 July 2025
+  { id: 6, startDate: DateTime.fromMillis(1752192000000).toUTC().toJSDate(), lowReplicaThreshold: 4, highReplicaThreshold: 8 }, // >= 11 July 2025
 ];
 
 export const getFilPlusEditionByTimestamp = (
   timestamp: number,
 ): FilPlusEdition => {
   if (timestamp < 100000000000) {
-    // assume milliseconds instead of seconds
+    // assume seconds instead of milliseconds
     timestamp *= 1000;
   }
 
