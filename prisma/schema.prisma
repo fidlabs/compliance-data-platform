@@ -442,7 +442,7 @@ model allocator_report_scoring_results {
   metric_name         String
   metric_description  String
   metric_value        Float
-  metric_average      Float
+  metric_average      Float?
   metric_value_min    Float
   metric_value_max    Float?
   allocator_report    allocator_report       @relation(fields: [allocator_report_id], references: [id])

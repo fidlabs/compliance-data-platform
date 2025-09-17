@@ -206,7 +206,7 @@ export class AllocatorScoringService {
 
     const reportCreateWeekAgo = DateTime.fromJSDate(report.create_date)
       .startOf('week')
-      .minus({ weeks: 2 }) // no data is available for the current week, so we look one week back // TODO
+      .minus({ weeks: 1 }) // no data is available for the current week, so we look one week back
       .toJSDate();
 
     const allAllocatorsRetrievabilities =
