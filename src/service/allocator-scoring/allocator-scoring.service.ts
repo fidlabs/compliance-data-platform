@@ -106,6 +106,7 @@ export class AllocatorScoringService {
     score: number,
     metricName: string,
     metricDescription: string,
+    metricUnit: string | null,
     metadata?: object,
   ) {
     await this.prismaService.allocator_report_scoring_results.create({
@@ -120,6 +121,7 @@ export class AllocatorScoringService {
           Math.max(await this.getMetricMax(metric), metricValue),
         metric_name: metricName,
         metric_description: metricDescription,
+        metric_unit: metricUnit,
         score: score,
         metadata: metadata
           ? Object.entries(metadata).map(
@@ -182,6 +184,7 @@ export class AllocatorScoringService {
       score,
       'IPNI reporting',
       'Measures if data is correctly reported and indexed in IPNI',
+      '%',
       {
         'IPNI OK Datacap': this.convertFilesize(ipniOKDatacap),
         'Total Datacap': this.convertFilesize(totalDatacap),
@@ -251,6 +254,7 @@ export class AllocatorScoringService {
       score,
       'HTTP retrievability',
       'Measures if data is available to anyone on the network',
+      '%',
       {
         'Allocator retrievability': allocatorRetrievability.toFixed(2),
         '50th percentile of all allocators retrievabilities':
@@ -327,6 +331,7 @@ export class AllocatorScoringService {
       score,
       'RPA retrievability',
       'Verifies real retrievability but from known actors',
+      '%',
       {
         'Allocator retrievability': allocatorRetrievability?.toFixed(2),
         '50th Percentile': _50thPercentile?.toFixed(2),
@@ -389,6 +394,7 @@ export class AllocatorScoringService {
       score,
       'CID sharing',
       'Measures the same CID shared between different clients',
+      '%',
       {
         'Total allocations': this.convertFilesize(
           allocatorClientsTotalAllocation,
@@ -450,6 +456,7 @@ export class AllocatorScoringService {
       score,
       'Duplicated data',
       'Measures if this the same car file that is sealed on the same SP',
+      '%',
       {
         'Total datacap': this.convertFilesize(totalDatacap),
         'Duplicated datacap': this.convertFilesize(duplicatedDatacap),
@@ -503,6 +510,7 @@ export class AllocatorScoringService {
       score,
       'Unique dataset size',
       'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)',
+      null,
       {
         'Total expected size of single data set for all clients':
           this.convertFilesize(totalClientsExpectedSizeOfSingleDataSet),
@@ -556,6 +564,7 @@ export class AllocatorScoringService {
       score,
       'Equality of datacap distribution',
       'Measures how is the allocator allocating datacap to clients',
+      '%',
       {
         'Average allocation per client': this.convertFilesize(average),
         'Standard deviation of allocations':
@@ -610,6 +619,7 @@ export class AllocatorScoringService {
       score,
       'Client diversity',
       'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating',
+      null,
       {
         'Number of clients': report.clients_number,
         'Months of operation': monthsOfOperation?.toFixed(2),
@@ -659,6 +669,7 @@ export class AllocatorScoringService {
       score,
       'Client previous applications',
       'Measures number of clients that are returning customers',
+      '%',
       {
         'Number of returning clients': returningClients,
         'Total number of clients': totalClients,
