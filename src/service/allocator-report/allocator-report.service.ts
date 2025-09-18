@@ -301,6 +301,14 @@ export class AllocatorReportService {
             allocator_report_id: true,
             create_date: true,
           },
+          include: {
+            ranges: {
+              omit: {
+                id: true,
+                scoring_result_id: true,
+              },
+            },
+          },
         },
       },
       orderBy: {

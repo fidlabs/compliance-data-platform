@@ -13,6 +13,8 @@ import { filesize } from 'filesize';
 export class AllocatorScoringService {
   private readonly logger = new Logger(AllocatorScoringService.name);
 
+  // TODO return  max total score
+
   constructor(
     private readonly prismaService: PrismaService,
     private readonly allocatorService: AllocatorService,
@@ -73,10 +75,10 @@ export class AllocatorScoringService {
     const result = await this.prismaService.$queryRaw<
       { avg: number | null }[]
     >`select avg("t"."metric_value") as "avg"
-      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_results"."metric_value"
+      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_result"."metric_value"
       from "allocator_report"
-               join "allocator_report_scoring_results" on "allocator_report"."id" = "allocator_report_scoring_results"."allocator_report_id"
-      where "allocator_report_scoring_results"."metric"::text = ${metric}
+               join "allocator_report_scoring_result" on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
+      where "allocator_report_scoring_result"."metric"::text = ${metric}
       order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
 
     return result[0]?.avg ?? null;
@@ -88,13 +90,26 @@ export class AllocatorScoringService {
     const result = await this.prismaService.$queryRaw<
       { max: number | null }[]
     >`select max("t"."metric_value") as "max"
-      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_results"."metric_value"
+      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_result"."metric_value"
       from "allocator_report"
-               join "allocator_report_scoring_results" on "allocator_report"."id" = "allocator_report_scoring_results"."allocator_report_id"
-      where "allocator_report_scoring_results"."metric"::text = ${metric}
+               join "allocator_report_scoring_result" on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
+      where "allocator_report_scoring_result"."metric"::text = ${metric}
       order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
 
     return result[0]?.max ?? null;
+  }
+
+  private async getTotalScoreAverage(): Promise<number | null> {
+    const result = await this.prismaService.$queryRaw<
+      { avg: number | null }[]
+    >`select avg("t"."total_score") as "avg"
+      from (select sum("allocator_report_scoring_result"."score") as "total_score"
+      from "allocator_report"
+               join "allocator_report_scoring_result" on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
+      group by "allocator_report"."allocator", "allocator_report"."create_date"
+      order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
+
+    return result[0]?.avg ?? null;
   }
 
   private async storeScore(
@@ -107,9 +122,14 @@ export class AllocatorScoringService {
     metricName: string,
     metricDescription: string,
     metricUnit: string | null,
+    scoreRanges: {
+      metricValueMin: number | null;
+      metricValueMax: number | null;
+      score: number;
+    }[],
     metadata?: object,
   ) {
-    await this.prismaService.allocator_report_scoring_results.create({
+    await this.prismaService.allocator_report_scoring_result.create({
       data: {
         allocator_report_id: reportId,
         metric: metric,
@@ -123,6 +143,13 @@ export class AllocatorScoringService {
         metric_description: metricDescription,
         metric_unit: metricUnit,
         score: score,
+        ranges: {
+          create: scoreRanges.map((range) => ({
+            metric_value_min: range.metricValueMin,
+            metric_value_max: range.metricValueMax,
+            score: range.score,
+          })),
+        },
         metadata: metadata
           ? Object.entries(metadata).map(
               ([key, value]) => `${key}: ${String(value ?? null)}`,
@@ -185,6 +212,11 @@ export class AllocatorScoringService {
       'IPNI reporting',
       'Measures if data is correctly reported and indexed in IPNI',
       '%',
+      [
+        { metricValueMin: 0, metricValueMax: 75, score: 0 },
+        { metricValueMin: 75, metricValueMax: 99, score: 1 },
+        { metricValueMin: 99, metricValueMax: 100, score: 3 },
+      ],
       {
         'IPNI OK Datacap': this.convertFilesize(ipniOKDatacap),
         'Total Datacap': this.convertFilesize(totalDatacap),
@@ -197,6 +229,7 @@ export class AllocatorScoringService {
   }
 
   private async storeHttpRetrievabilityScore(reportId: string) {
+    // TODO use only open data
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
         id: reportId,
@@ -255,6 +288,12 @@ export class AllocatorScoringService {
       'HTTP retrievability',
       'Measures if data is available to anyone on the network',
       '%',
+      // prettier-ignore
+      [
+        { metricValueMin: 0, metricValueMax: _50thPercentile, score: 0 },
+        { metricValueMin: _50thPercentile, metricValueMax: _75thPercentile, score: 1 },
+        { metricValueMin: _75thPercentile, metricValueMax: 100, score: 3 },
+      ],
       {
         'Allocator retrievability': allocatorRetrievability.toFixed(2),
         '50th percentile of all allocators retrievabilities':
@@ -332,6 +371,12 @@ export class AllocatorScoringService {
       'RPA retrievability',
       'Verifies real retrievability but from known actors',
       '%',
+      // prettier-ignore
+      [
+        { metricValueMin: 0, metricValueMax: _50thPercentile, score: 0 },
+        { metricValueMin: _50thPercentile, metricValueMax: _75thPercentile, score: 1 },
+        { metricValueMin: _75thPercentile, metricValueMax: 100, score: 3 },
+      ],
       {
         'Allocator retrievability': allocatorRetrievability?.toFixed(2),
         '50th Percentile': _50thPercentile?.toFixed(2),
@@ -395,6 +440,11 @@ export class AllocatorScoringService {
       'CID sharing',
       'Measures the same CID shared between different clients',
       '%',
+      [
+        { metricValueMin: 0, metricValueMax: 0, score: 2 },
+        { metricValueMin: 0, metricValueMax: 2, score: 1 },
+        { metricValueMin: 2, metricValueMax: 100, score: 0 },
+      ],
       {
         'Total allocations': this.convertFilesize(
           allocatorClientsTotalAllocation,
@@ -440,10 +490,7 @@ export class AllocatorScoringService {
     let score = 0;
     if (percentageOfDuplicatedData === 0) {
       score = 2;
-    } else if (
-      percentageOfDuplicatedData > 0 &&
-      percentageOfDuplicatedData <= 10
-    ) {
+    } else if (percentageOfDuplicatedData <= 10) {
       score = 1;
     }
 
@@ -457,6 +504,11 @@ export class AllocatorScoringService {
       'Duplicated data',
       'Measures if this the same car file that is sealed on the same SP',
       '%',
+      [
+        { metricValueMin: 0, metricValueMax: 0, score: 2 },
+        { metricValueMin: 0, metricValueMax: 10, score: 1 },
+        { metricValueMin: 10, metricValueMax: 100, score: 0 },
+      ],
       {
         'Total datacap': this.convertFilesize(totalDatacap),
         'Duplicated datacap': this.convertFilesize(duplicatedDatacap),
@@ -511,6 +563,11 @@ export class AllocatorScoringService {
       'Unique dataset size',
       'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)',
       null,
+      [
+        { metricValueMin: 0, metricValueMax: 100, score: 1 },
+        { metricValueMin: 100, metricValueMax: 120, score: 2 },
+        { metricValueMin: 120, metricValueMax: null, score: 0 },
+      ],
       {
         'Total expected size of single data set for all clients':
           this.convertFilesize(totalClientsExpectedSizeOfSingleDataSet),
@@ -565,6 +622,11 @@ export class AllocatorScoringService {
       'Equality of datacap distribution',
       'Measures how is the allocator allocating datacap to clients',
       '%',
+      [
+        { metricValueMin: 0, metricValueMax: 40, score: 2 },
+        { metricValueMin: 40, metricValueMax: 60, score: 1 },
+        { metricValueMin: 60, metricValueMax: null, score: 0 },
+      ],
       {
         'Average allocation per client': this.convertFilesize(average),
         'Standard deviation of allocations':
@@ -620,6 +682,11 @@ export class AllocatorScoringService {
       'Client diversity',
       'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating',
       null,
+      [
+        { metricValueMin: 0.6, metricValueMax: null, score: 2 },
+        { metricValueMin: 0.4, metricValueMax: 0.6, score: 1 },
+        { metricValueMin: 0, metricValueMax: 0.4, score: 0 },
+      ],
       {
         'Number of clients': report.clients_number,
         'Months of operation': monthsOfOperation?.toFixed(2),
@@ -670,6 +737,11 @@ export class AllocatorScoringService {
       'Client previous applications',
       'Measures number of clients that are returning customers',
       '%',
+      [
+        { metricValueMin: 75, metricValueMax: 100, score: 2 },
+        { metricValueMin: 60, metricValueMax: 75, score: 1 },
+        { metricValueMin: 0, metricValueMax: 60, score: 0 },
+      ],
       {
         'Number of returning clients': returningClients,
         'Total number of clients': totalClients,
