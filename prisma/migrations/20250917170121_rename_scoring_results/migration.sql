@@ -1,0 +1,1 @@
+ALTER TABLE allocator_report_scoring_results RENAME TO allocator_report_scoring_result;
