@@ -13,8 +13,6 @@ import { filesize } from 'filesize';
 export class AllocatorScoringService {
   private readonly logger = new Logger(AllocatorScoringService.name);
 
-  // TODO return  max total score
-
   constructor(
     private readonly prismaService: PrismaService,
     private readonly allocatorService: AllocatorService,
@@ -30,6 +28,22 @@ export class AllocatorScoringService {
     await this.storeEqualityOfDatacapDistribution(reportId);
     await this.storeClientDiversityScore(reportId);
     await this.storeClientPreviousApplicationsScore(reportId);
+  }
+
+  public async getTotalScoreAverage(): Promise<number | null> {
+    const result = await this.prismaService.$queryRaw<
+      { avg: number | null }[]
+    >`select avg("total_score") as "avg"
+      from (select distinct on ("ar"."allocator") "ar"."allocator",
+                                                  sum("arsr"."score") as "total_score"
+            from "allocator_report" "ar"
+                   join "allocator_report_scoring_result" "arsr"
+                        on "ar"."id" = "arsr"."allocator_report_id"
+            group by "ar"."allocator", "ar"."create_date"
+            order by "ar"."allocator", "ar"."create_date" desc) "t";
+    `;
+
+    return result[0]?.avg ?? null;
   }
 
   private calculateNthPercentile(
@@ -74,12 +88,16 @@ export class AllocatorScoringService {
   ): Promise<number | null> {
     const result = await this.prismaService.$queryRaw<
       { avg: number | null }[]
-    >`select avg("t"."metric_value") as "avg"
-      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_result"."metric_value"
-      from "allocator_report"
-               join "allocator_report_scoring_result" on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
-      where "allocator_report_scoring_result"."metric"::text = ${metric}
-      order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
+    >`select avg("metric_value") as "avg"
+      from (select distinct on ("ar"."allocator") "ar"."allocator",
+                                                  "arsr"."metric_value"
+            from "allocator_report" "ar"
+                   join "allocator_report_scoring_result" "arsr"
+                        on "ar"."id" = "arsr"."allocator_report_id"
+            where "arsr"."metric"::text = ${metric}
+            group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
+            order by "ar"."allocator", "ar"."create_date" desc) "t";
+    `;
 
     return result[0]?.avg ?? null;
   }
@@ -89,27 +107,17 @@ export class AllocatorScoringService {
   ): Promise<number | null> {
     const result = await this.prismaService.$queryRaw<
       { max: number | null }[]
-    >`select max("t"."metric_value") as "max"
-      from (select distinct on ("allocator_report"."allocator") "allocator_report_scoring_result"."metric_value"
-      from "allocator_report"
-               join "allocator_report_scoring_result" on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
-      where "allocator_report_scoring_result"."metric"::text = ${metric}
-      order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
+    >`select max("metric_value") as "max"
+      from (select distinct on ("ar"."allocator") "ar"."allocator",
+                                                  "arsr"."metric_value"
+            from "allocator_report" "ar"
+                   join "allocator_report_scoring_result" "arsr"
+                        on "ar"."id" = "arsr"."allocator_report_id"
+            where "arsr"."metric"::text = ${metric}
+            group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
+            order by "ar"."allocator", "ar"."create_date" desc) "t";`;
 
     return result[0]?.max ?? null;
-  }
-
-  private async getTotalScoreAverage(): Promise<number | null> {
-    const result = await this.prismaService.$queryRaw<
-      { avg: number | null }[]
-    >`select avg("t"."total_score") as "avg"
-      from (select sum("allocator_report_scoring_result"."score") as "total_score"
-      from "allocator_report"
-               join "allocator_report_scoring_result" on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
-      group by "allocator_report"."allocator", "allocator_report"."create_date"
-      order by "allocator_report"."allocator", "allocator_report"."create_date" desc) as "t";`;
-
-    return result[0]?.avg ?? null;
   }
 
   private async storeScore(
