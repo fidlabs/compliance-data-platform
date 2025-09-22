@@ -340,6 +340,7 @@ model allocator_report {
   required_sps                               String?
   check_results                              allocator_report_check_result[]
   scoring_results                            allocator_report_scoring_result[]
+  all_allocators_score_avg                   Float?
 }
 
 model allocator_report_client {
