@@ -74,6 +74,8 @@ export class AllocatorReportService {
         audit: allocatorInfo?.application.audit ?? [],
         required_copies: allocatorInfo?.application.required_replicas,
         required_sps: allocatorInfo?.application.required_sps,
+        all_allocators_score_avg:
+          await this.allocatorScoringService.getTotalScoreAverage(),
         clients: {
           create: await Promise.all(
             verifiedClients.map(async (client) => {
