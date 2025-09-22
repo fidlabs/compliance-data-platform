@@ -138,6 +138,26 @@ export class AllocatorService {
     });
   }
 
+  public async isAllocatorOpenData(
+    allocatorIdOrAddress: string,
+  ): Promise<boolean | null> {
+    const registryInfo =
+      await this.getAllocatorRegistryInfo(allocatorIdOrAddress);
+
+    const enterpriseApplicationAuditOptions = [
+      'Enterprise Data',
+      'Automated',
+      'Faucet',
+      'Market Based',
+    ];
+
+    if (!registryInfo) return null;
+
+    return !registryInfo?.application?.audit?.some((v) =>
+      enterpriseApplicationAuditOptions.includes(v.trim()),
+    );
+  }
+
   public async getAuditTimesByMonthData(
     filPlusEdition?: FilPlusEdition,
   ): Promise<AllocatorAuditTimesByMonthData[]> {
@@ -866,6 +886,7 @@ export class AllocatorService {
     });
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocatorRegistryInfo(allocatorIdOrAddress: string) {
     const result = await this.prismaService.allocator_registry.findFirst({
       where: {
