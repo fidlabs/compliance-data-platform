@@ -19,18 +19,37 @@ export class AllocatorScoringService {
   ) {}
 
   public async storeScoring(reportId: string) {
-    await this.storeIPNIReportingScore(reportId);
-    await this.storeHttpRetrievabilityScore(reportId);
-    await this.storeUrlFinderRetrievabilityScore(reportId);
-    await this.storeCIDSharingScore(reportId);
-    await this.storeDuplicatedDataScore(reportId);
-    await this.storeUniqueDataSetSizeScore(reportId);
-    await this.storeEqualityOfDatacapDistribution(reportId);
-    await this.storeClientDiversityScore(reportId);
-    await this.storeClientPreviousApplicationsScore(reportId);
+    const report = await this.prismaService.allocator_report.findUnique({
+      where: {
+        id: reportId,
+      },
+    });
+
+    const isOpenData = await this.allocatorService.isAllocatorOpenData(
+      report.allocator,
+    );
+
+    if (isOpenData === null) {
+      this.logger.warn(
+        `Skipping scoring calculations for round 5 ${report.allocator}`,
+      );
+
+      return;
+    }
+
+    await this.storeIPNIReportingScore(report, isOpenData);
+    await this.storeHttpRetrievabilityScore(report, isOpenData);
+    await this.storeUrlFinderRetrievabilityScore(report, isOpenData);
+    await this.storeCIDSharingScore(report, isOpenData);
+    await this.storeDuplicatedDataScore(report, isOpenData);
+    await this.storeUniqueDataSetSizeScore(report, isOpenData);
+    await this.storeEqualityOfDatacapDistribution(report, isOpenData);
+    await this.storeClientDiversityScore(report, isOpenData);
+    await this.storeClientPreviousApplicationsScore(report, isOpenData);
   }
 
   public async getTotalScoreAverage(): Promise<number | null> {
+    // TODO get only open / enterprise data?
     const result = await this.prismaService.$queryRaw<
       { avg: number | null }[]
     >`select avg("total_score") as "avg"
@@ -127,6 +146,9 @@ export class AllocatorScoringService {
     metricValueMin: number | null,
     metricValueMax: number | null,
     score: number,
+    openDataScoreWeight: number,
+    enterpriseScoreWeight: number,
+    isOpenData: boolean,
     metricName: string,
     metricDescription: string,
     metricUnit: string | null,
@@ -137,6 +159,17 @@ export class AllocatorScoringService {
     }[],
     metadata?: object,
   ) {
+    metadata = {
+      ...metadata,
+      'Open data score weight': openDataScoreWeight,
+      'Enterprise score weight': enterpriseScoreWeight,
+      'Type of allocator': isOpenData ? 'Open data' : 'Enterprise',
+    };
+
+    const scoreWeight = isOpenData
+      ? openDataScoreWeight
+      : enterpriseScoreWeight;
+
     await this.prismaService.allocator_report_scoring_result.create({
       data: {
         allocator_report_id: reportId,
@@ -150,12 +183,12 @@ export class AllocatorScoringService {
         metric_name: metricName,
         metric_description: metricDescription,
         metric_unit: metricUnit,
-        score: score,
+        score: score * scoreWeight,
         ranges: {
           create: scoreRanges.map((range) => ({
             metric_value_min: range.metricValueMin,
             metric_value_max: range.metricValueMax,
-            score: range.score,
+            score: range.score * scoreWeight,
           })),
         },
         metadata: metadata
@@ -167,9 +200,10 @@ export class AllocatorScoringService {
     });
   }
 
-  // TODO open / enterprise wages
+  private async storeIPNIReportingScore(report, isOpenData: boolean) {
+    const openDataScoreWeight = 3;
+    const enterpriseScoreWeight = 0;
 
-  private async storeIPNIReportingScore(reportId: string) {
     const ipniOKDatacap =
       (
         await this.prismaService.allocator_report_storage_provider_distribution.aggregate(
@@ -178,7 +212,7 @@ export class AllocatorScoringService {
               total_deal_size: true,
             },
             where: {
-              allocator_report_id: reportId,
+              allocator_report_id: report.id,
               ipni_reporting_status: StorageProviderIpniReportingStatus.OK,
             },
           },
@@ -193,7 +227,7 @@ export class AllocatorScoringService {
               total_deal_size: true,
             },
             where: {
-              allocator_report_id: reportId,
+              allocator_report_id: report.id,
             },
           },
         )
@@ -211,12 +245,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.IPNI_REPORTING,
       percentageOfIPNIOKDatacap,
       0,
       100,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'IPNI reporting',
       'Measures if data is correctly reported and indexed in IPNI',
       '%',
@@ -236,17 +273,11 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeHttpRetrievabilityScore(reportId: string) {
+  private async storeHttpRetrievabilityScore(report, isOpenData: boolean) {
     // TODO use only open data
-    const report = await this.prismaService.allocator_report.findFirst({
-      where: {
-        id: reportId,
-      },
-      select: {
-        create_date: true,
-        allocator: true,
-      },
-    });
+
+    const openDataScoreWeight = 1;
+    const enterpriseScoreWeight = 1;
 
     const reportCreateWeekAgo = DateTime.fromJSDate(report.create_date)
       .startOf('week')
@@ -287,12 +318,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.HTTP_RETRIEVABILITY,
       allocatorRetrievability,
       0,
       100,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'HTTP retrievability',
       'Measures if data is available to anyone on the network',
       '%',
@@ -315,17 +349,9 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeUrlFinderRetrievabilityScore(reportId: string) {
-    const report = await this.prismaService.allocator_report.findFirst({
-      where: {
-        id: reportId,
-      },
-      select: {
-        create_date: true,
-        allocator: true,
-        avg_retrievability_success_rate_url_finder: true,
-      },
-    });
+  private async storeUrlFinderRetrievabilityScore(report, isOpenData: boolean) {
+    const openDataScoreWeight = 5;
+    const enterpriseScoreWeight = 0;
 
     const reportCreateDayAgo = DateTime.fromJSDate(report.create_date)
       .startOf('day')
@@ -370,12 +396,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.URL_FINDER_RETRIEVABILITY,
       allocatorRetrievability,
       0,
       100,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'RPA retrievability',
       'Verifies real retrievability but from known actors',
       '%',
@@ -396,11 +425,14 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeCIDSharingScore(reportId: string) {
+  private async storeCIDSharingScore(report, isOpenData: boolean) {
+    const openDataScoreWeight = 3;
+    const enterpriseScoreWeight = 3;
+
     const allocatorClients =
       await this.prismaService.allocator_report_client.findMany({
         where: {
-          allocator_report_id: reportId,
+          allocator_report_id: report.id,
         },
         include: {
           cid_sharing: true,
@@ -439,12 +471,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.CID_SHARING,
       percentageOfCIDSharing,
       0,
       100,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'CID sharing',
       'Measures the same CID shared between different clients',
       '%',
@@ -469,12 +504,15 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeDuplicatedDataScore(reportId: string) {
+  private async storeDuplicatedDataScore(report, isOpenData: boolean) {
+    const openDataScoreWeight = 2;
+    const enterpriseScoreWeight = 2;
+
     const providerDistribution =
       await this.prismaService.allocator_report_storage_provider_distribution.findMany(
         {
           where: {
-            allocator_report_id: reportId,
+            allocator_report_id: report.id,
           },
         },
       );
@@ -503,12 +541,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.DUPLICATED_DATA,
       percentageOfDuplicatedData,
       0,
       100,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'Duplicated data',
       'Measures if this the same car file that is sealed on the same SP',
       '%',
@@ -529,11 +570,14 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeUniqueDataSetSizeScore(reportId: string) {
+  private async storeUniqueDataSetSizeScore(report, isOpenData: boolean) {
+    const openDataScoreWeight = 1;
+    const enterpriseScoreWeight = 1;
+
     const allocatorClients =
       await this.prismaService.allocator_report_client.findMany({
         where: {
-          allocator_report_id: reportId,
+          allocator_report_id: report.id,
         },
       });
 
@@ -562,12 +606,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.UNIQUE_DATA_SET_SIZE,
       ratio,
       0,
       null,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'Unique dataset size',
       'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)',
       null,
@@ -591,11 +638,17 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeEqualityOfDatacapDistribution(reportId: string) {
+  private async storeEqualityOfDatacapDistribution(
+    report,
+    isOpenData: boolean,
+  ) {
+    const openDataScoreWeight = 2;
+    const enterpriseScoreWeight = 2;
+
     const allocatorClients =
       await this.prismaService.allocator_report_client.findMany({
         where: {
-          allocator_report_id: reportId,
+          allocator_report_id: report.id,
         },
       });
 
@@ -621,12 +674,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.EQUALITY_OF_DATACAP_DISTRIBUTION,
       coefficientOfVariation,
       0,
       null,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'Equality of datacap distribution',
       'Measures how is the allocator allocating datacap to clients',
       '%',
@@ -647,16 +703,9 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeClientDiversityScore(reportId: string) {
-    const report = await this.prismaService.allocator_report.findFirst({
-      where: {
-        id: reportId,
-      },
-      select: {
-        allocator: true,
-        clients_number: true,
-      },
-    });
+  private async storeClientDiversityScore(report, isOpenData: boolean) {
+    const openDataScoreWeight = 2;
+    const enterpriseScoreWeight = 2;
 
     const allocatorApplicationApprovedDate = (
       await this.allocatorService.getAllocatorRegistryInfo(report.allocator)
@@ -681,12 +730,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.CLIENT_DIVERSITY,
       clientDiversityRatio,
       0,
       null,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'Client diversity',
       'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating',
       null,
@@ -707,11 +759,17 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeClientPreviousApplicationsScore(reportId: string) {
+  private async storeClientPreviousApplicationsScore(
+    report,
+    isOpenData: boolean,
+  ) {
+    const openDataScoreWeight = 1;
+    const enterpriseScoreWeight = 1;
+
     const allocatorClients =
       await this.prismaService.allocator_report_client.findMany({
         where: {
-          allocator_report_id: reportId,
+          allocator_report_id: report.id,
         },
         select: {
           allocations_number: true,
@@ -736,12 +794,15 @@ export class AllocatorScoringService {
     }
 
     await this.storeScore(
-      reportId,
+      report.id,
       AllocatorScoringMetric.CLIENT_PREVIOUS_APPLICATIONS,
       returningClientsPercentage,
       0,
       100,
       score,
+      openDataScoreWeight,
+      enterpriseScoreWeight,
+      isOpenData,
       'Client previous applications',
       'Measures number of clients that are returning customers',
       '%',
