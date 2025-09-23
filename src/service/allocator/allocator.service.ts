@@ -140,9 +140,9 @@ export class AllocatorService {
 
   public async isAllocatorOpenData(
     allocatorIdOrAddress: string,
+    registryInfo?: any,
   ): Promise<boolean | null> {
-    const registryInfo =
-      await this.getAllocatorRegistryInfo(allocatorIdOrAddress);
+    registryInfo ??= await this.getAllocatorRegistryInfo(allocatorIdOrAddress);
 
     const enterpriseApplicationAuditOptions = [
       'Enterprise Data',

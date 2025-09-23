@@ -1,13 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   AllocatorScoringMetric,
   StorageProviderIpniReportingStatus,
 } from 'prisma/generated/client';
 import { DateTime } from 'luxon';
-import { bigIntArrayAverage, bigIntDiv, bigIntSqrt } from 'src/utils/utils';
+import {
+  arrayAverage,
+  bigIntArrayAverage,
+  bigIntDiv,
+  bigIntSqrt,
+} from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { filesize } from 'filesize';
+import { Cacheable } from 'src/utils/cacheable';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class AllocatorScoringService {
@@ -16,6 +23,7 @@ export class AllocatorScoringService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly allocatorService: AllocatorService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   public async storeScoring(reportId: string) {
@@ -48,21 +56,39 @@ export class AllocatorScoringService {
     await this.storeClientPreviousApplicationsScore(report, isOpenData);
   }
 
-  public async getTotalScoreAverage(): Promise<number | null> {
-    // TODO get only open / enterprise data?
-    const result = await this.prismaService.$queryRaw<
-      { avg: number | null }[]
-    >`select avg("total_score") as "avg"
-      from (select distinct on ("ar"."allocator") "ar"."allocator",
-                                                  sum("arsr"."score") as "total_score"
-            from "allocator_report" "ar"
-                   join "allocator_report_scoring_result" "arsr"
-                        on "ar"."id" = "arsr"."allocator_report_id"
-            group by "ar"."allocator", "ar"."create_date"
-            order by "ar"."allocator", "ar"."create_date" desc) "t";
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getTotalScoreAverage(
+    isOpenData: boolean | null,
+  ): Promise<number | null> {
+    if (isOpenData === null) return null;
+
+    const latestScores = await this.prismaService.$queryRaw<
+      { total_score: number; allocator: string }[]
+    >`select distinct on ("ar"."allocator") "ar"."allocator",
+                                            sum("arsr"."score")::int as "total_score"
+      from "allocator_report" "ar"
+               join "allocator_report_scoring_result" "arsr"
+                    on "ar"."id" = "arsr"."allocator_report_id"
+      group by "ar"."allocator", "ar"."create_date"
+      order by "ar"."allocator", "ar"."create_date" desc
     `;
 
-    return result[0]?.avg ?? null;
+    const registryInfoMap =
+      await this.allocatorService.getAllocatorRegistryInfoMap();
+
+    const scores = latestScores
+      .filter(async (score) => {
+        return (
+          isOpenData ===
+          (await this.allocatorService.isAllocatorOpenData(
+            score.allocator,
+            registryInfoMap[score.allocator],
+          ))
+        );
+      })
+      .map((score) => score.total_score);
+
+    return arrayAverage(scores);
   }
 
   private calculateNthPercentile(
@@ -107,12 +133,12 @@ export class AllocatorScoringService {
   ): Promise<number | null> {
     const result = await this.prismaService.$queryRaw<
       { avg: number | null }[]
-    >`select avg("metric_value") as "avg"
+    >`select avg("metric_value")::int as "avg"
       from (select distinct on ("ar"."allocator") "ar"."allocator",
                                                   "arsr"."metric_value"
             from "allocator_report" "ar"
-                   join "allocator_report_scoring_result" "arsr"
-                        on "ar"."id" = "arsr"."allocator_report_id"
+                     join "allocator_report_scoring_result" "arsr"
+                          on "ar"."id" = "arsr"."allocator_report_id"
             where "arsr"."metric"::text = ${metric}
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";
@@ -126,12 +152,12 @@ export class AllocatorScoringService {
   ): Promise<number | null> {
     const result = await this.prismaService.$queryRaw<
       { max: number | null }[]
-    >`select max("metric_value") as "max"
+    >`select max("metric_value")::int as "max"
       from (select distinct on ("ar"."allocator") "ar"."allocator",
                                                   "arsr"."metric_value"
             from "allocator_report" "ar"
-                   join "allocator_report_scoring_result" "arsr"
-                        on "ar"."id" = "arsr"."allocator_report_id"
+                     join "allocator_report_scoring_result" "arsr"
+                          on "ar"."id" = "arsr"."allocator_report_id"
             where "arsr"."metric"::text = ${metric}
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";`;
@@ -159,16 +185,18 @@ export class AllocatorScoringService {
     }[],
     metadata?: object,
   ) {
+    const scoreWeight = isOpenData
+      ? openDataScoreWeight
+      : enterpriseScoreWeight;
+
+    if (!scoreWeight) return;
+
     metadata = {
       ...metadata,
       'Open data score weight': openDataScoreWeight,
       'Enterprise score weight': enterpriseScoreWeight,
       'Type of allocator': isOpenData ? 'Open data' : 'Enterprise',
     };
-
-    const scoreWeight = isOpenData
-      ? openDataScoreWeight
-      : enterpriseScoreWeight;
 
     await this.prismaService.allocator_report_scoring_result.create({
       data: {
@@ -274,8 +302,6 @@ export class AllocatorScoringService {
   }
 
   private async storeHttpRetrievabilityScore(report, isOpenData: boolean) {
-    // TODO use only open data
-
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
