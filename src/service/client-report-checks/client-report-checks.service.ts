@@ -108,7 +108,7 @@ export class ClientReportChecksService {
     ).days;
 
     const checkPassed =
-      timeSinceLastDatacap < 30 || !available_datacap || inactivityPeriod < 30;
+      timeSinceLastDatacap < 60 || !available_datacap || inactivityPeriod < 60;
 
     await this.prismaService.client_report_check_result.create({
       data: {
@@ -120,8 +120,8 @@ export class ClientReportChecksService {
           available_datacap: available_datacap?.toString() ?? null,
           time_since_last_datacap_days: timeSinceLastDatacap.toFixed(2),
           msg: checkPassed
-            ? `Client was active in last month or spent all its DataCap`
-            : `Client has unspent DataCap and was inactive for more than a month`,
+            ? `Client was active in last 60 days or spent all its DataCap`
+            : `Client has unspent DataCap and was inactive for more than a 2 months`,
         },
       },
     });

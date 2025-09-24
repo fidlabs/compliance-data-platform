@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
+import { DateTime } from 'luxon';
 import {
   AllocatorReportCheck,
   ClientReportCheck,
@@ -225,6 +226,9 @@ export class AllocatorReportChecksService {
         this.prismaService.client_report.findFirst({
           where: {
             client: clientId,
+            last_datacap_spent: {
+              gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
+            },
           },
           include: {
             check_results: {
@@ -264,7 +268,7 @@ export class AllocatorReportChecksService {
             check: check as AllocatorReportCheck,
             result: false,
             metadata: {
-              msg: `More than ${this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS.toString()}% of clients ${this.getClientReportCheckFailMessage(check as AllocatorReportCheck)}`,
+              msg: `More than ${this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS.toString()}% of active clients ${this.getClientReportCheckFailMessage(check as AllocatorReportCheck)}`,
             },
           },
         }),
