@@ -63,7 +63,8 @@ export class ClientReportChecksService {
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
     await this.storeProvidersInSameLocation(reportId);
-    await this.storeProvidersRetrievability(reportId);
+    await this.storeProvidersHttpRetrievability(reportId);
+    await this.storeProvidersUrlFinderRetrievability(reportId);
     await this.storeProvidersIPNIMisreporting(reportId);
     await this.storeProvidersIPNINotReporting(reportId);
     await this.storeProvidersDeclaredNotUsed(reportId);
@@ -378,7 +379,7 @@ export class ClientReportChecksService {
     });
   }
 
-  private async storeProvidersRetrievability(reportId: bigint) {
+  private async storeProvidersHttpRetrievability(reportId: bigint) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
         {
@@ -389,48 +390,110 @@ export class ClientReportChecksService {
       );
 
     {
-      const zeroRetrievabilityProviders = providerDistribution
+      const zeroHttpRetrievabilityProviders = providerDistribution
         .filter((p) => !p.retrievability_success_rate_http)
         .map((p) => p.provider);
 
-      const checkPassed = zeroRetrievabilityProviders.length === 0;
+      const httpCheckPassed = zeroHttpRetrievabilityProviders.length === 0;
 
       await this.prismaService.client_report_check_result.create({
         data: {
           client_report_id: reportId,
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
-          result: checkPassed,
+          result: httpCheckPassed,
           metadata: {
-            violating_ids: zeroRetrievabilityProviders,
+            violating_ids: zeroHttpRetrievabilityProviders,
             max_zero_retrievability_providers: 0,
-            msg: checkPassed
-              ? `Storage provider retrievability looks healthy (1/2)`
-              : `${this._storageProviders(zeroRetrievabilityProviders.length)} have retrieval success rate equal to zero`,
+            msg: httpCheckPassed
+              ? `Storage provider HTTP retrievability looks healthy (1/2)`
+              : `${this._storageProviders(zeroHttpRetrievabilityProviders.length)} have HTTP retrieval success rate equal to zero`,
           },
         },
       });
     }
 
     {
-      const lessThan75RetrievabilityProviders = providerDistribution
+      const lessThan75HttpRetrievabilityProviders = providerDistribution
         .filter((p) => (p.retrievability_success_rate_http ?? 0) < 0.75)
         .map((p) => p.provider);
 
-      const checkPassed = lessThan75RetrievabilityProviders.length === 0;
+      const httpCheckPassed =
+        lessThan75HttpRetrievabilityProviders.length === 0;
 
       await this.prismaService.client_report_check_result.create({
         data: {
           client_report_id: reportId,
           check:
             ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
-          result: checkPassed,
+          result: httpCheckPassed,
           metadata: {
-            violating_ids: lessThan75RetrievabilityProviders,
+            violating_ids: lessThan75HttpRetrievabilityProviders,
             max_less_than_75_retrievability_providers: 0,
-            msg: checkPassed
-              ? 'Storage provider retrievability looks healthy'
-              : `${this._storageProviders(lessThan75RetrievabilityProviders.length)} have retrieval success rate less than 75%`,
+            msg: httpCheckPassed
+              ? `Storage provider HTTP retrievability looks healthy`
+              : `${this._storageProviders(lessThan75HttpRetrievabilityProviders.length)} have HTTP retrieval success rate less than 75%`,
+          },
+        },
+      });
+    }
+  }
+
+  private async storeProvidersUrlFinderRetrievability(reportId: bigint) {
+    const providerDistribution =
+      await this.prismaService.client_report_storage_provider_distribution.findMany(
+        {
+          where: {
+            client_report_id: reportId,
+          },
+        },
+      );
+
+    {
+      const zeroUrlFinderRetrievabilityProviders = providerDistribution
+        .filter((p) => !p.retrievability_success_rate_url_finder)
+        .map((p) => p.provider);
+
+      const urlFinderCheckPassed =
+        zeroUrlFinderRetrievabilityProviders.length === 0;
+
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
+          result: urlFinderCheckPassed,
+          metadata: {
+            violating_ids: zeroUrlFinderRetrievabilityProviders,
+            max_zero_retrievability_providers: 0,
+            msg: urlFinderCheckPassed
+              ? `Storage provider RPA retrievability looks healthy (1/2)`
+              : `${this._storageProviders(zeroUrlFinderRetrievabilityProviders.length)} have RPA retrieval success rate equal to zero`,
+          },
+        },
+      });
+    }
+
+    {
+      const lessThan75UrlFinderRetrievabilityProviders = providerDistribution
+        .filter((p) => (p.retrievability_success_rate_url_finder ?? 0) < 0.75)
+        .map((p) => p.provider);
+
+      const urlFinderCheckPassed =
+        lessThan75UrlFinderRetrievabilityProviders.length === 0;
+
+      await this.prismaService.client_report_check_result.create({
+        data: {
+          client_report_id: reportId,
+          check:
+            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
+          result: urlFinderCheckPassed,
+          metadata: {
+            violating_ids: lessThan75UrlFinderRetrievabilityProviders,
+            max_less_than_75_retrievability_providers: 0,
+            msg: urlFinderCheckPassed
+              ? `Storage provider RPA retrievability looks healthy`
+              : `${this._storageProviders(lessThan75UrlFinderRetrievabilityProviders.length)} have RPA retrieval success rate less than 75%`,
           },
         },
       });
