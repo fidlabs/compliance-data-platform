@@ -234,10 +234,10 @@ export class ClientReportService {
           },
         },
         check_results: {
-          select: {
-            check: true,
-            result: true,
-            metadata: true,
+          omit: {
+            id: true,
+            create_date: true,
+            client_report_id: true,
           },
         },
       },
