@@ -295,10 +295,10 @@ export class AllocatorReportService {
           },
         },
         check_results: {
-          select: {
-            check: true,
-            result: true,
-            metadata: true,
+          omit: {
+            id: true,
+            create_date: true,
+            allocator_report_id: true,
           },
         },
         scoring_results: {
