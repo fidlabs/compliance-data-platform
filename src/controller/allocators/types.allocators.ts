@@ -3,14 +3,17 @@ import {
   ApiPropertyOptional,
   IntersectionType,
 } from '@nestjs/swagger';
-import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import {
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
 } from 'src/service/allocator/types.allocator';
 import { stringifiedBool } from 'src/utils/utils';
-import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
+import {
+  PaginationInfoRequest,
+  PaginationSortingInfoRequest,
+} from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
+import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
 export class GetDatacapFlowDataRequest {
   @ApiPropertyOptional({
@@ -107,4 +110,18 @@ export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(
     enum: AllocatorComplianceScoreRange,
   })
   complianceScore?: AllocatorComplianceScoreRange;
+}
+
+export class GetAllocatorReportRequest {
+  @ApiPropertyOptional({
+    description:
+      'Pagination info for client report, about clients; default is no pagination',
+  })
+  client?: PaginationInfoRequest;
+
+  @ApiPropertyOptional({
+    description:
+      'Pagination info for client report, about storage providers; default is no pagination',
+  })
+  provider?: PaginationInfoRequest;
 }
