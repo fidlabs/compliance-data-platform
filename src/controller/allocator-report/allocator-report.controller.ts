@@ -1,3 +1,4 @@
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   Controller,
   Get,
@@ -8,6 +9,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -15,16 +17,19 @@ import {
   ApiOperation,
 } from '@nestjs/swagger';
 import { AllocatorReportService } from 'src/service/allocator-report/allocator-report.service';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { GetAllocatorReportRequest } from '../allocators/types.allocators';
+import { ControllerBase } from '../base/controller-base';
 
 @Controller('allocator-report')
-export class AllocatorReportController {
+export class AllocatorReportController extends ControllerBase {
   private readonly logger = new Logger(AllocatorReportController.name);
 
   constructor(
     private readonly allocatorReportService: AllocatorReportService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) {
+    super();
+  }
 
   @Get(':allocator')
   @ApiOperation({
@@ -46,11 +51,46 @@ export class AllocatorReportController {
     description: 'Allocator compliance report',
     type: null,
   })
-  public async getAllocatorReport(@Param('allocator') allocator: string) {
-    const report = await this.allocatorReportService.getLatestReport(allocator);
+  public async getAllocatorReport(
+    @Param('allocator') allocator: string,
+    @Query() query: GetAllocatorReportRequest,
+  ) {
+    query.client = query.client ?? { page: '1', limit: '100' };
+    query.provider = query.provider ?? { page: '1', limit: '100' };
+
+    const paginationInfoClient = this.validatePaginationInfo(query.client);
+    const paginationInfoProvider = this.validatePaginationInfo(query.provider);
+
+    const report = await this.allocatorReportService.getLatestReport(
+      allocator,
+      paginationInfoClient,
+      paginationInfoProvider,
+    );
 
     if (!report) throw new NotFoundException();
-    return report;
+
+    return {
+      ...report,
+      clients: this.withPaginationInfo(
+        {
+          count: report.clients?.length,
+          data: this.paginated(this.sorted(report.clients), query.client),
+        },
+        query.client,
+        report.clients_total,
+      ),
+      storage_provider_distribution: this.withPaginationInfo(
+        {
+          count: report.storage_provider_distribution?.length,
+          data: this.paginated(
+            this.sorted(report.storage_provider_distribution),
+            query.provider,
+          ),
+        },
+        query.provider,
+        report.storage_provider_distribution_total,
+      ),
+    };
   }
 
   @Get(':allocator/:id')
@@ -70,11 +110,44 @@ export class AllocatorReportController {
       }),
     )
     id: string,
+    @Query() query: GetAllocatorReportRequest,
   ) {
-    const report = await this.allocatorReportService.getReport(allocator, id);
+    query.client = query.client ?? { page: '1', limit: '100' };
+    query.provider = query.provider ?? { page: '1', limit: '100' };
+
+    const paginationInfoClient = this.validatePaginationInfo(query.client);
+    const paginationInfoProvider = this.validatePaginationInfo(query.provider);
+
+    const report = await this.allocatorReportService.getReport(
+      allocator,
+      id,
+      paginationInfoClient,
+      paginationInfoProvider,
+    );
 
     if (!report) throw new NotFoundException();
-    return report;
+    return {
+      ...report,
+      clients: this.withPaginationInfo(
+        {
+          count: report.clients?.length,
+          data: this.paginated(this.sorted(report.clients), query.client),
+        },
+        query.client,
+        report.clients_total,
+      ),
+      storage_provider_distribution: this.withPaginationInfo(
+        {
+          count: report.storage_provider_distribution?.length,
+          data: this.paginated(
+            this.sorted(report.storage_provider_distribution),
+            query.provider,
+          ),
+        },
+        query.provider,
+        report.storage_provider_distribution_total,
+      ),
+    };
   }
 
   @Post(':allocator')
