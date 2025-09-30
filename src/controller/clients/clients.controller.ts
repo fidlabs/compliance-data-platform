@@ -12,13 +12,13 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
+import { bigIntDiv } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   GetClientLatestClaimRequest,
   GetClientLatestClaimResponse,
   GetClientStorageProvidersResponse,
 } from './types.clients';
-import { bigIntDiv } from 'src/utils/utils';
 
 @Controller('clients')
 export class ClientsController extends ControllerBase {
@@ -92,6 +92,7 @@ export class ClientsController extends ControllerBase {
   ): Promise<GetClientLatestClaimResponse> {
     query.page = query.page ?? '1';
     query.limit = query.limit ?? '15';
+
     const paginationInfo = this.validatePaginationInfo(query);
 
     const skip = (paginationInfo.page - 1) * paginationInfo.limit;
@@ -112,10 +113,10 @@ export class ClientsController extends ControllerBase {
         : query.filter;
 
       where = {
-        providerId: {
-          contains: providerIdPrefix,
-          mode: 'insensitive',
-        },
+        OR: [
+          { providerId: { contains: providerIdPrefix, mode: 'insensitive' } },
+          { pieceCid: { contains: query.filter, mode: 'insensitive' } },
+        ],
       };
 
       whereHourly = {
@@ -126,33 +127,47 @@ export class ClientsController extends ControllerBase {
       };
     }
 
-    const [unifiedVerifiedDeal, unifiedVerifiedDealHourly] = await Promise.all([
-      this.prismaDmobService.unified_verified_deal.findMany({
-        select: {
-          id: true,
-          dealId: true,
-          clientId: true,
-          type: true,
-          providerId: true,
-          pieceCid: true,
-          pieceSize: true,
-          createdAt: true,
-        },
-        where: {
-          clientId: clientIdPrefix,
-          ...where,
-        },
-        orderBy: [
-          {
-            [sort]: order,
+    const [
+      [unifiedVerifiedDeal, totalSumOfDdoPieceSize, totalSumOfNonDdoPieceSize],
+      unifiedVerifiedDealHourly,
+    ] = await Promise.all([
+      this.prismaDmobService.$transaction([
+        this.prismaDmobService.unified_verified_deal.findMany({
+          select: {
+            id: true,
+            dealId: true,
+            clientId: true,
+            type: true,
+            providerId: true,
+            pieceCid: true,
+            pieceSize: true,
+            createdAt: true,
           },
-          {
-            id: order, // a secondary sort for the same e.g. createdAt
+          where: {
+            clientId: clientIdPrefix,
+            ...where,
           },
-        ],
-        skip,
-        take,
-      }),
+          orderBy: [{ [sort]: order }, { id: order }], // a secondary sort for the same e.g. createdAt
+          skip,
+          take,
+        }),
+        this.prismaDmobService.unified_verified_deal.aggregate({
+          where: {
+            dealId: 0, // DDO deals
+            clientId: clientIdPrefix,
+            ...where,
+          },
+          _sum: { pieceSize: true },
+        }),
+        this.prismaDmobService.unified_verified_deal.aggregate({
+          where: {
+            dealId: { not: 0 }, // non-DDO deals
+            clientId: clientIdPrefix,
+            ...where,
+          },
+          _sum: { pieceSize: true },
+        }),
+      ]),
       this.prismaService.unified_verified_deal_hourly.findMany({
         where: {
           client: clientId,
@@ -169,6 +184,10 @@ export class ClientsController extends ControllerBase {
 
     return this.withPaginationInfo(
       {
+        totalSumOfDdoPieceSize:
+          totalSumOfDdoPieceSize._sum.pieceSize?.toString() ?? '0',
+        totalSumOfNonDdoPieceSize:
+          totalSumOfNonDdoPieceSize._sum.pieceSize?.toString() ?? '0',
         count: clientClaims.length,
         data: clientClaims,
       },

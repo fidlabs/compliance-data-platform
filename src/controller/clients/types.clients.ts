@@ -36,7 +36,7 @@ export class GetClientStorageProvidersResponse {
 
 export class GetClientLatestClaimRequest extends PaginationSortingInfoRequest {
   @ApiPropertyOptional({
-    description: 'Storage provider ID to filter by',
+    description: 'Storage provider ID or piece CID to filter by',
   })
   filter?: string;
 }
@@ -87,4 +87,14 @@ export class GetClientLatestClaimResponse {
     description: 'Number of returned claims',
   })
   count: number;
+
+  @ApiProperty({
+    description: 'Total sum of DDO piece sizes in bytes',
+  })
+  totalSumOfDdoPieceSize: string;
+
+  @ApiProperty({
+    description: 'Total sum of non-DDO piece sizes in bytes',
+  })
+  totalSumOfNonDdoPieceSize: string;
 }
