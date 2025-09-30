@@ -461,7 +461,7 @@ export class ClientReportChecksService {
         data: {
           client_report_id: reportId,
           check:
-            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
+            ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_ZERO,
           result: urlFinderCheckPassed,
           metadata: {
             violating_ids: zeroUrlFinderRetrievabilityProviders,
@@ -486,7 +486,7 @@ export class ClientReportChecksService {
         data: {
           client_report_id: reportId,
           check:
-            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
+            ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_75,
           result: urlFinderCheckPassed,
           metadata: {
             violating_ids: lessThan75UrlFinderRetrievabilityProviders,
