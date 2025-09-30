@@ -41,9 +41,13 @@ const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED]:
     'used undeclared storage providers',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75]:
-    'used SPs with a retrieval success rate below 75%',
+    'used SPs with a HTTP retrieval success rate below 75%',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO]:
-    'used SPs with a retrieval success rate of 0%',
+    'used SPs with a HTTP retrieval success rate of 0%',
+  [ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_75]:
+    'used SPs with a RPA retrieval success rate below 75%',
+  [ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_ZERO]:
+    'used SPs with a RPA retrieval success rate of 0%',
   [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION]:
     'used SPs that have an unknown IP location',
   [ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED]:
