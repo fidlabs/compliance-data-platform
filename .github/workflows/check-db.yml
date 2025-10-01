@@ -33,7 +33,7 @@ jobs:
       DMOB_DATABASE_URL: postgres://postgres:postgres@localhost:5433/postgres
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
