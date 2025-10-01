@@ -55,11 +55,18 @@ export class AllocatorReportController extends ControllerBase {
     @Param('allocator') allocator: string,
     @Query() query: GetAllocatorReportRequest,
   ) {
-    query.client = query.client ?? { page: '1', limit: '100' };
-    query.provider = query.provider ?? { page: '1', limit: '100' };
+    const clientPagination = {
+      limit: query.clientPaginationLimit,
+      page: query.clientPaginationPage,
+    };
+    const providerPagination = {
+      limit: query.providerPaginationLimit,
+      page: query.providerPaginationPage,
+    };
 
-    const paginationInfoClient = this.validatePaginationInfo(query.client);
-    const paginationInfoProvider = this.validatePaginationInfo(query.provider);
+    const paginationInfoClient = this.validatePaginationInfo(clientPagination);
+    const paginationInfoProvider =
+      this.validatePaginationInfo(providerPagination);
 
     const report = await this.allocatorReportService.getLatestReport(
       allocator,
@@ -74,9 +81,9 @@ export class AllocatorReportController extends ControllerBase {
       clients: this.withPaginationInfo(
         {
           count: report.clients?.length,
-          data: this.paginated(this.sorted(report.clients), query.client),
+          data: this.paginated(this.sorted(report.clients), clientPagination),
         },
-        query.client,
+        clientPagination,
         report.clients_total,
       ),
       storage_provider_distribution: this.withPaginationInfo(
@@ -84,10 +91,10 @@ export class AllocatorReportController extends ControllerBase {
           count: report.storage_provider_distribution?.length,
           data: this.paginated(
             this.sorted(report.storage_provider_distribution),
-            query.provider,
+            providerPagination,
           ),
         },
-        query.provider,
+        providerPagination,
         report.storage_provider_distribution_total,
       ),
     };
@@ -112,11 +119,23 @@ export class AllocatorReportController extends ControllerBase {
     id: string,
     @Query() query: GetAllocatorReportRequest,
   ) {
-    query.client = query.client ?? { page: '1', limit: '100' };
-    query.provider = query.provider ?? { page: '1', limit: '100' };
+    query.clientPaginationLimit ??= '100';
+    query.clientPaginationPage ??= '1';
+    query.providerPaginationLimit ??= '100';
+    query.providerPaginationPage ??= '1';
 
-    const paginationInfoClient = this.validatePaginationInfo(query.client);
-    const paginationInfoProvider = this.validatePaginationInfo(query.provider);
+    const clientPagination = {
+      limit: query.clientPaginationLimit,
+      page: query.clientPaginationPage,
+    };
+    const providerPagination = {
+      limit: query.providerPaginationLimit,
+      page: query.providerPaginationPage,
+    };
+
+    const paginationInfoClient = this.validatePaginationInfo(clientPagination);
+    const paginationInfoProvider =
+      this.validatePaginationInfo(providerPagination);
 
     const report = await this.allocatorReportService.getReport(
       allocator,
@@ -131,9 +150,9 @@ export class AllocatorReportController extends ControllerBase {
       clients: this.withPaginationInfo(
         {
           count: report.clients?.length,
-          data: this.paginated(this.sorted(report.clients), query.client),
+          data: this.paginated(this.sorted(report.clients), clientPagination),
         },
-        query.client,
+        clientPagination,
         report.clients_total,
       ),
       storage_provider_distribution: this.withPaginationInfo(
@@ -141,10 +160,10 @@ export class AllocatorReportController extends ControllerBase {
           count: report.storage_provider_distribution?.length,
           data: this.paginated(
             this.sorted(report.storage_provider_distribution),
-            query.provider,
+            providerPagination,
           ),
         },
-        query.provider,
+        providerPagination,
         report.storage_provider_distribution_total,
       ),
     };
