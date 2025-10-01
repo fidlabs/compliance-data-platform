@@ -8,10 +8,7 @@ import {
   AllocatorDatacapFlowData,
 } from 'src/service/allocator/types.allocator';
 import { stringifiedBool } from 'src/utils/utils';
-import {
-  PaginationInfoRequest,
-  PaginationSortingInfoRequest,
-} from '../base/types.controller-base';
+import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
@@ -114,14 +111,22 @@ export class GetWeekAllocatorsWithSpsComplianceRequest extends IntersectionType(
 
 export class GetAllocatorReportRequest {
   @ApiPropertyOptional({
-    description:
-      'Pagination info for client report, about clients; default is no pagination',
+    description: 'Page number, starts from 1; default is no pagination',
   })
-  client?: PaginationInfoRequest;
+  clientPaginationPage?: string;
 
   @ApiPropertyOptional({
-    description:
-      'Pagination info for client report, about storage providers; default is no pagination',
+    description: 'Number of items per page; default is no pagination',
   })
-  provider?: PaginationInfoRequest;
+  clientPaginationLimit?: string;
+
+  @ApiPropertyOptional({
+    description: 'Page number, starts from 1; default is no pagination',
+  })
+  providerPaginationPage?: string;
+
+  @ApiPropertyOptional({
+    description: 'Number of items per page; default is no pagination',
+  })
+  providerPaginationLimit?: string;
 }
