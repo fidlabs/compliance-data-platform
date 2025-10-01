@@ -54,8 +54,10 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
           ) &&
           !row.registry_info['audits']?.some(
             (audit) =>
-              allocatorService.mapAuditOutcome(audit.outcome) ===
-              AllocatorAuditOutcome.failed,
+              allocatorService.mapAuditOutcome(
+                audit.outcome,
+                row.allocator_id,
+              ) === AllocatorAuditOutcome.failed,
           ),
       )
       .map((row) => {

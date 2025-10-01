@@ -296,25 +296,31 @@ export class AllocatorService {
       case 'DOUBLE':
       case 'DOUBLED':
         return AllocatorAuditOutcome.passed;
+
       case 'THROTTLE':
       case 'THROTTLED':
         return AllocatorAuditOutcome.passedConditionally;
+
       case 'REJECT':
       case 'REJECTED':
       case 'FAIL':
       case 'FAILED':
         return AllocatorAuditOutcome.failed;
+
       case 'GRANTED':
-        // assuming first audit outcome is always GRANTED and this case is handled elsewhere
-        // every other GRANTED outcome is invalid
+        // assuming first audit outcome is always GRANTED, every other GRANTED outcome is invalid
+        if (!auditIndex) return AllocatorAuditOutcome.notAudited;
+
         this.logger.warn(
           `Allocator ${allocatorId} has non-first audit outcome GRANTED, please investigate`,
         );
+
         return AllocatorAuditOutcome.invalid;
       default:
         this.logger.warn(
           `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
         );
+
         return AllocatorAuditOutcome.unknown;
     }
   }
