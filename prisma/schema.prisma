@@ -360,6 +360,8 @@ model allocator_report_client {
   cid_sharing                     allocator_report_client_cid_sharing[]
   expected_size_of_single_dataset BigInt?
   total_uniq_data_set_size        BigInt?
+  last_datacap_spent              DateTime?
+  last_datacap_received           DateTime?
 }
 
 model allocator_report_client_replica_distribution {
