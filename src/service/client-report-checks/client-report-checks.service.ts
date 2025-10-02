@@ -204,10 +204,10 @@ export class ClientReportChecksService {
     const providersExceedingMaxDuplication = providerDistribution
       .filter(
         (provider) =>
-          ((provider.total_deal_size - provider.unique_data_size) * 10000n) /
-            provider.total_deal_size /
-            100n >
-          this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE,
+          bigIntDiv(
+            (provider.total_deal_size - provider.unique_data_size) * 100n,
+            provider.total_deal_size,
+          ) > this.CLIENT_REPORT_MAX_DUPLICATION_PERCENTAGE,
       )
       .map((provider) => provider.provider);
 
@@ -431,7 +431,7 @@ export class ClientReportChecksService {
             violating_ids: lessThan75HttpRetrievabilityProviders,
             max_less_than_75_retrievability_providers: 0,
             msg: httpCheckPassed
-              ? `Storage provider HTTP retrievability looks healthy`
+              ? `Storage provider HTTP retrievability looks healthy (2/2)`
               : `${this._storageProviders(lessThan75HttpRetrievabilityProviders.length)} have HTTP retrieval success rate less than 75%`,
           },
         },
@@ -492,7 +492,7 @@ export class ClientReportChecksService {
             violating_ids: lessThan75UrlFinderRetrievabilityProviders,
             max_less_than_75_retrievability_providers: 0,
             msg: urlFinderCheckPassed
-              ? `Storage provider RPA retrievability looks healthy`
+              ? `Storage provider RPA retrievability looks healthy (2/2)`
               : `${this._storageProviders(lessThan75UrlFinderRetrievabilityProviders.length)} have RPA retrieval success rate less than 75%`,
           },
         },

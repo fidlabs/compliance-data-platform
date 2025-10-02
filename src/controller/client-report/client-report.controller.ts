@@ -17,7 +17,7 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
-import { CACHE_MANAGER, CacheKey, Cache } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller('client-report')
@@ -49,7 +49,6 @@ export class ClientReportController {
   }
 
   @Get(':client/latest')
-  @CacheKey('client-report-latest')
   @ApiOperation({
     summary: 'Get latest client compliance report',
   })
@@ -101,7 +100,7 @@ export class ClientReportController {
     if (!report) throw new NotFoundException();
 
     // invalidate the cache for the latest report
-    await this.cacheManager.del('client-report-latest');
+    await this.cacheManager.del(`/client-report/${client}/latest`);
 
     return report;
   }

@@ -138,6 +138,26 @@ export class AllocatorService {
     });
   }
 
+  public async isAllocatorOpenData(
+    allocatorIdOrAddress: string,
+    registryInfo?: any,
+  ): Promise<boolean | null> {
+    registryInfo ??= await this.getAllocatorRegistryInfo(allocatorIdOrAddress);
+
+    const enterpriseApplicationAuditOptions = [
+      'Enterprise Data',
+      'Automated',
+      'Faucet',
+      'Market Based',
+    ];
+
+    if (!registryInfo) return null;
+
+    return !registryInfo?.application?.audit?.some((v) =>
+      enterpriseApplicationAuditOptions.includes(v.trim()),
+    );
+  }
+
   public async getAuditTimesByMonthData(
     filPlusEdition?: FilPlusEdition,
   ): Promise<AllocatorAuditTimesByMonthData[]> {
@@ -276,25 +296,31 @@ export class AllocatorService {
       case 'DOUBLE':
       case 'DOUBLED':
         return AllocatorAuditOutcome.passed;
+
       case 'THROTTLE':
       case 'THROTTLED':
         return AllocatorAuditOutcome.passedConditionally;
+
       case 'REJECT':
       case 'REJECTED':
       case 'FAIL':
       case 'FAILED':
         return AllocatorAuditOutcome.failed;
+
       case 'GRANTED':
-        // assuming first audit outcome is always GRANTED and this case is handled elsewhere
-        // every other GRANTED outcome is invalid
+        // assuming first audit outcome is always GRANTED, every other GRANTED outcome is invalid
+        if (!auditIndex) return AllocatorAuditOutcome.notAudited;
+
         this.logger.warn(
           `Allocator ${allocatorId} has non-first audit outcome GRANTED, please investigate`,
         );
+
         return AllocatorAuditOutcome.invalid;
       default:
         this.logger.warn(
           `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
         );
+
         return AllocatorAuditOutcome.unknown;
     }
   }
@@ -866,6 +892,7 @@ export class AllocatorService {
     });
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocatorRegistryInfo(allocatorIdOrAddress: string) {
     const result = await this.prismaService.allocator_registry.findFirst({
       where: {
@@ -885,7 +912,7 @@ export class AllocatorService {
     const info = result.registry_info as Prisma.JsonObject;
     const application = info.application as Prisma.JsonObject;
 
-    const data_types = (application?.data_types as Prisma.JsonArray)?.map((v) =>
+    const dataTypes = (application?.data_types as Prisma.JsonArray)?.map((v) =>
       (v as string).trim(),
     );
 
@@ -899,10 +926,14 @@ export class AllocatorService {
 
     return {
       application: {
-        data_types,
-        audit,
+        data_types: dataTypes,
+        audit: audit,
         required_sps: extractNumericString(application.required_sps),
         required_replicas: extractNumericString(application.required_replicas),
+      },
+      audits: info?.audits ?? [],
+      history: {
+        approved: stringToDate(info?.history?.['Approved']),
       },
     };
   }

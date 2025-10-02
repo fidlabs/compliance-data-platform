@@ -129,7 +129,8 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
     const paths = response.data
       .filter(
-        (v) => v.name.endsWith('.json') && v.name != 'Allocator JSON SPEC.json',
+        (v) =>
+          v.name.endsWith('.json') && v.name !== 'Allocator JSON SPEC.json',
       )
       .map((v) => v.path);
 
@@ -203,7 +204,11 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
     // prefer json data over db data
     const allocatorAddress = jsonAllocatorAddress || dbAllocatorAddress;
     const allocatorId = jsonAllocatorId || dbAllocatorId;
-    const isAllocatorRejected = this.isAllocatorIsRejected(jsonData, path);
+    const isAllocatorRejected = this.isAllocatorRejected(
+      allocatorId,
+      jsonData,
+      path,
+    );
 
     return !allocatorId
       ? null
@@ -216,7 +221,8 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
         };
   }
 
-  private isAllocatorIsRejected(
+  private isAllocatorRejected(
+    allocatorId: string,
     jsonData: object,
     allocatorJsonPath: string,
   ): boolean {
@@ -227,8 +233,10 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
         ? jsonData['status'] != 'Active'
         : jsonData['audits']?.some(
             (audit) =>
-              this.allocatorService.mapAuditOutcome(audit.outcome) ===
-              AllocatorAuditOutcome.failed,
+              this.allocatorService.mapAuditOutcome(
+                audit.outcome,
+                allocatorId,
+              ) === AllocatorAuditOutcome.failed,
           );
     }
   }
