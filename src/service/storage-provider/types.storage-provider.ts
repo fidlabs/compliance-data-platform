@@ -179,6 +179,7 @@ export class StorageProviderWithIpInfo {
 }
 
 export class StorageProviderWeekly {
+  avg_retrievability_success_rate_url_finder: number;
   avg_retrievability_success_rate: number;
   avg_retrievability_success_rate_http: number;
   num_of_clients: number;
