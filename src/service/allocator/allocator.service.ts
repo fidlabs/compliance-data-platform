@@ -931,6 +931,7 @@ export class AllocatorService {
         required_sps: extractNumericString(application.required_sps),
         required_replicas: extractNumericString(application.required_replicas),
       },
+      audits: info?.audits ?? [],
       history: {
         approved: stringToDate(info?.history?.['Approved']),
       },

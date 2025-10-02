@@ -127,6 +127,14 @@ export class AllocatorReportService {
                 ),
                 using_client_contract: !!bookkeepingInfo?.clientContractAddress,
                 client_contract_max_deviation: maxDeviation,
+                last_datacap_spent:
+                  await this.clientService.getLastDatacapSpent(
+                    client.addressId,
+                  ),
+                last_datacap_received:
+                  await this.clientService.getLastDatacapReceived(
+                    client.addressId,
+                  ),
                 cid_sharing: {
                   create: await Promise.all(
                     cidSharing.map(async (c) => ({
