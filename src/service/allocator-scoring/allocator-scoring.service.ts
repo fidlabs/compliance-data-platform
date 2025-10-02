@@ -10,6 +10,7 @@ import {
   bigIntArrayAverage,
   bigIntDiv,
   bigIntSqrt,
+  stringToDate,
 } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { filesize } from 'filesize';
@@ -111,7 +112,19 @@ export class AllocatorScoringService {
     }
   }
 
-  private calculateStandardDeviation(values: bigint[]): bigint | null {
+  private standardDeviation(values: number[]): number | null {
+    if (!values?.length) return null;
+
+    const average = arrayAverage(values);
+
+    const variance =
+      values.reduce((acc, val) => acc + (val - average) ** 2, 0) /
+      values.length;
+
+    return Math.sqrt(variance);
+  }
+
+  private bigIntStandardDeviation(values: bigint[]): bigint | null {
     if (!values?.length) return null;
 
     const average = bigIntArrayAverage(values);
@@ -133,7 +146,7 @@ export class AllocatorScoringService {
   ): Promise<number | null> {
     const result = await this.prismaService.$queryRaw<
       { avg: number | null }[]
-    >`select avg("metric_value")::int as "avg"
+    >`select avg("metric_value")::float as "avg"
       from (select distinct on ("ar"."allocator") "ar"."allocator",
                                                   "arsr"."metric_value"
             from "allocator_report" "ar"
@@ -152,7 +165,7 @@ export class AllocatorScoringService {
   ): Promise<number | null> {
     const result = await this.prismaService.$queryRaw<
       { max: number | null }[]
-    >`select max("metric_value")::int as "max"
+    >`select max("metric_value")::float as "max"
       from (select distinct on ("ar"."allocator") "ar"."allocator",
                                                   "arsr"."metric_value"
             from "allocator_report" "ar"
@@ -459,6 +472,9 @@ export class AllocatorScoringService {
       await this.prismaService.allocator_report_client.findMany({
         where: {
           allocator_report_id: report.id,
+          last_datacap_spent: {
+            gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
+          },
         },
         include: {
           cid_sharing: true,
@@ -604,6 +620,9 @@ export class AllocatorScoringService {
       await this.prismaService.allocator_report_client.findMany({
         where: {
           allocator_report_id: report.id,
+          last_datacap_spent: {
+            gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
+          },
         },
       });
 
@@ -650,9 +669,9 @@ export class AllocatorScoringService {
         { metricValueMin: 120, metricValueMax: null, score: 0 },
       ],
       {
-        'Total expected size of single data set for all clients':
+        'Total expected size of single data set for active clients':
           this.convertFilesize(totalClientsExpectedSizeOfSingleDataSet),
-        'Total unique data set size for all clients': this.convertFilesize(
+        'Total unique data set size for active clients': this.convertFilesize(
           totalClientsUniqDataSetSize,
         ),
         'Ratio of unique data set size to expected size of single data set':
@@ -675,6 +694,9 @@ export class AllocatorScoringService {
       await this.prismaService.allocator_report_client.findMany({
         where: {
           allocator_report_id: report.id,
+          last_datacap_spent: {
+            gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
+          },
         },
       });
 
@@ -682,27 +704,42 @@ export class AllocatorScoringService {
       (client) => client.total_allocations,
     );
 
-    const average = bigIntArrayAverage(allocatorClientsAllocations);
-    const standardDeviation = this.calculateStandardDeviation(
-      allocatorClientsAllocations,
+    const totalAllocations = allocatorClientsAllocations.reduce(
+      (acc, val) => acc + val,
+      0n,
     );
 
-    const coefficientOfVariation =
-      !average || !standardDeviation
-        ? 0
-        : bigIntDiv(standardDeviation * 100n, average);
+    const activeClients = BigInt(allocatorClientsAllocations.length);
+
+    const equalityRatioForEachClient = allocatorClientsAllocations.map(
+      (allocation) =>
+        !totalAllocations
+          ? 0
+          : bigIntDiv(allocation * activeClients, totalAllocations),
+    );
+
+    const standardDeviation =
+      this.standardDeviation(equalityRatioForEachClient) ?? 0;
 
     let score = 0;
-    if (coefficientOfVariation < 40) {
+    if (standardDeviation >= 0.9 && standardDeviation <= 1.1) {
+      score = 3;
+    } else if (
+      (standardDeviation >= 0.7 && standardDeviation < 0.9) ||
+      (standardDeviation > 1.1 && standardDeviation <= 1.3)
+    ) {
       score = 2;
-    } else if (coefficientOfVariation <= 60) {
+    } else if (
+      (standardDeviation >= 0.5 && standardDeviation < 0.7) ||
+      (standardDeviation > 1.3 && standardDeviation <= 1.5)
+    ) {
       score = 1;
     }
 
     await this.storeScore(
       report.id,
       AllocatorScoringMetric.EQUALITY_OF_DATACAP_DISTRIBUTION,
-      coefficientOfVariation,
+      standardDeviation,
       0,
       null,
       score,
@@ -711,20 +748,25 @@ export class AllocatorScoringService {
       isOpenData,
       'Equality of datacap distribution',
       'Measures how is the allocator allocating datacap to clients',
-      '%',
+      null,
       [
-        { metricValueMin: 0, metricValueMax: 40, score: 2 },
-        { metricValueMin: 40, metricValueMax: 60, score: 1 },
-        { metricValueMin: 60, metricValueMax: null, score: 0 },
+        { metricValueMin: 0.9, metricValueMax: 1.1, score: 3 },
+        { metricValueMin: 0.7, metricValueMax: 0.9, score: 2 },
+        { metricValueMin: 1.1, metricValueMax: 1.3, score: 2 },
+        { metricValueMin: 0.5, metricValueMax: 0.7, score: 1 },
+        { metricValueMin: 1.3, metricValueMax: 1.5, score: 1 },
+        { metricValueMin: 0, metricValueMax: 0.5, score: 0 },
+        { metricValueMin: 1.5, metricValueMax: null, score: 0 },
       ],
+      // prettier-ignore
       {
-        'Average allocation per client': this.convertFilesize(average),
-        'Standard deviation of allocations':
-          this.convertFilesize(standardDeviation),
-        'Coefficient of variation (%)': coefficientOfVariation.toFixed(2),
-        'Coefficient of variation < 40': '2 points',
-        'Coefficient of variation >= 40 and <= 60': '1 point',
-        'Coefficient of variation > 60': '0 points',
+        'Total allocations': this.convertFilesize(totalAllocations),
+        'Number of active clients': activeClients,
+        'Standard deviation of equality ratio': standardDeviation.toFixed(2),
+        'Standard deviation >= 0.9 and <= 1.1': '3 points',
+        'Standard deviation (>= 0.7 and < 0.9) or (> 1.1 and <= 1.3)': '2 points',
+        'Standard deviation (>= 0.5 and < 0.7) or (> 1.3 and <= 1.5)': '1 point',
+        'Standard deviation < 0.5 or > 1.5': '0 points',
       },
     );
   }
@@ -733,13 +775,13 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
-    const allocatorApplicationApprovedDate = (
+    const allocatorFirstAuditDate = (
       await this.allocatorService.getAllocatorRegistryInfo(report.allocator)
-    )?.history?.approved;
+    )?.audits?.[0]?.ended;
 
-    const monthsOfOperation = allocatorApplicationApprovedDate
+    const monthsOfOperation = allocatorFirstAuditDate
       ? DateTime.now().diff(
-          DateTime.fromJSDate(allocatorApplicationApprovedDate),
+          DateTime.fromJSDate(stringToDate(allocatorFirstAuditDate)),
           'months',
         ).months
       : null;
