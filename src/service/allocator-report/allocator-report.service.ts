@@ -1,13 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
+import { PaginationInfo } from 'src/controller/base/types.controller-base';
 import { PrismaService } from 'src/db/prisma.service';
-import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
-import { ClientService } from '../client/client.service';
-import { AllocatorService } from '../allocator/allocator.service';
-import { ClientWithAllowance } from '../client/types.client';
-import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
-import { EthApiService } from '../eth-api/eth-api.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Retryable } from 'src/utils/retryable';
 import { bigIntDiv } from 'src/utils/utils';
+import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
+import { AllocatorService } from '../allocator/allocator.service';
+import { ClientService } from '../client/client.service';
+import { ClientWithAllowance } from '../client/types.client';
+import { EthApiService } from '../eth-api/eth-api.service';
+import { StorageProviderReportService } from '../storage-provider-report/storage-provider-report.service';
 
 @Injectable()
 export class AllocatorReportService {
@@ -20,6 +23,7 @@ export class AllocatorReportService {
     private readonly allocatorService: AllocatorService,
     private readonly allocatorReportChecksService: AllocatorReportChecksService,
     private readonly ethApiService: EthApiService,
+    private readonly prismaDmobService: PrismaDmobService,
   ) {}
 
   public async generateReport(allocatorIdOrAddress: string) {
@@ -28,8 +32,39 @@ export class AllocatorReportService {
 
     if (!allocatorData) return null;
 
+    let verifiedAllMetaallocatorClients = [];
+
+    // get all clients of the allocators belonging to the metaallocator
+    if (allocatorData.isMetaAllocator) {
+      const metaallocatorDetails = await this.prismaDmobService.$queryRawTyped(
+        getAllocatorsFull(false, true, allocatorData.addressId, null),
+      );
+
+      if (!metaallocatorDetails.length) {
+        this.logger.error(
+          `Metaallocator details not found for ${allocatorData.addressId}, please investigate`,
+        );
+
+        return null;
+      }
+
+      const metaallocatorAllocators = Object.values(
+        metaallocatorDetails[0].allocatorsUsingMetaallocator,
+      );
+
+      verifiedAllMetaallocatorClients = (
+        await Promise.all(
+          metaallocatorAllocators.map((allocator) =>
+            this.clientService.getClientsByAllocator(allocator.addressId),
+          ),
+        )
+      ).flat();
+    }
+
     const [verifiedClients, allocatorInfo] = await Promise.all([
-      this.clientService.getClientsByAllocator(allocatorData.addressId),
+      allocatorData.isMetaAllocator
+        ? verifiedAllMetaallocatorClients
+        : this.clientService.getClientsByAllocator(allocatorData.addressId),
       this.allocatorService.getAllocatorRegistryInfo(allocatorData.addressId),
     ]);
 
@@ -196,12 +231,26 @@ export class AllocatorReportService {
     });
   }
 
-  public async getLatestReport(allocatorIdOrAddress: string) {
-    return this.getReport(allocatorIdOrAddress);
+  public async getLatestReport(
+    allocatorIdOrAddress: string,
+    clientPagination?: PaginationInfo,
+    providerPagination?: PaginationInfo,
+  ) {
+    return this.getReport(
+      allocatorIdOrAddress,
+      null,
+      clientPagination,
+      providerPagination,
+    );
   }
 
   @Retryable({ retries: 3, delay: 5000 }) // 5 seconds
-  public async getReport(allocatorIdOrAddress: string, id?: string) {
+  public async getReport(
+    allocatorIdOrAddress: string,
+    id?: string,
+    clientPagination?: PaginationInfo,
+    providerPagination?: PaginationInfo,
+  ) {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
         OR: [
@@ -229,6 +278,8 @@ export class AllocatorReportService {
               },
             },
           },
+          take: clientPagination?.limit,
+          skip: (clientPagination?.page - 1) * clientPagination?.limit,
         },
         client_allocations: {
           omit: {
@@ -253,6 +304,8 @@ export class AllocatorReportService {
           orderBy: {
             perc_of_total_datacap: 'desc',
           },
+          take: providerPagination?.limit,
+          skip: (providerPagination?.page - 1) * providerPagination?.limit,
         },
         check_results: {
           select: {
@@ -267,6 +320,19 @@ export class AllocatorReportService {
       },
     });
 
+    const [reportClientsTotal, reportStorageProviderTotal] = await Promise.all([
+      this.prismaService.allocator_report_client.count({
+        where: {
+          allocator_report_id: report?.id,
+        },
+      }),
+      this.prismaService.allocator_report_storage_provider_distribution.count({
+        where: {
+          allocator_report_id: report?.id,
+        },
+      }),
+    ]);
+
     return (
       report && {
         ...report,
@@ -280,6 +346,8 @@ export class AllocatorReportService {
             })),
         })),
         client_allocations: undefined,
+        clients_total: reportClientsTotal,
+        storage_provider_distribution_total: reportStorageProviderTotal,
       }
     );
   }

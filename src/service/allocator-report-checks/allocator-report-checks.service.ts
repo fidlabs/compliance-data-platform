@@ -253,7 +253,7 @@ export class AllocatorReportChecksService {
       (x) => x?.check_results || [],
     );
 
-    const groupedFailChecks = groupBy(allFailedChecksResult, (x) => x.check);
+    const groupedFailChecks = groupBy(allFailedChecksResult, (x) => x?.check);
 
     const moreThanAllowedThresholdChecks = Object.entries(
       groupedFailChecks,
