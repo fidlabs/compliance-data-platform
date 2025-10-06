@@ -204,6 +204,7 @@ export class ClientReportChecksService {
     const providersExceedingMaxDuplication = providerDistribution
       .filter(
         (provider) =>
+          provider.total_deal_size &&
           bigIntDiv(
             (provider.total_deal_size - provider.unique_data_size) * 100n,
             provider.total_deal_size,

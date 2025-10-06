@@ -90,8 +90,9 @@ export class AllocatorReportController {
 
     if (!report) throw new NotFoundException();
 
-    // invalidate the cache for the latest report
+    // invalidate the cache
     await this.cacheManager.del(`/allocator-report/${allocator}/latest`);
+    await this.cacheManager.del(`/allocator-report/${allocator}`);
 
     return report;
   }

@@ -5,13 +5,7 @@ import {
   StorageProviderIpniReportingStatus,
 } from 'prisma/generated/client';
 import { DateTime } from 'luxon';
-import {
-  arrayAverage,
-  bigIntArrayAverage,
-  bigIntDiv,
-  bigIntSqrt,
-  stringToDate,
-} from 'src/utils/utils';
+import { arrayAverage, bigIntDiv, stringToDate } from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { filesize } from 'filesize';
 import { Cacheable } from 'src/utils/cacheable';
@@ -40,7 +34,7 @@ export class AllocatorScoringService {
 
     if (isOpenData === null) {
       this.logger.warn(
-        `Skipping scoring calculations for round 5 ${report.allocator}`,
+        `Skipping scoring calculations for round != 6 ${report.allocator}`,
       );
 
       return;
@@ -77,16 +71,19 @@ export class AllocatorScoringService {
     const registryInfoMap =
       await this.allocatorService.getAllocatorRegistryInfoMap();
 
-    const scores = latestScores
-      .filter(async (score) => {
-        return (
-          isOpenData ===
-          (await this.allocatorService.isAllocatorOpenData(
+    const filterResults = await Promise.all(
+      latestScores.map((score) =>
+        this.allocatorService
+          .isAllocatorOpenData(
             score.allocator,
             registryInfoMap[score.allocator],
-          ))
-        );
-      })
+          )
+          .then((result) => isOpenData === result),
+      ),
+    );
+
+    const scores = latestScores
+      .filter((_, idx) => filterResults[idx])
       .map((score) => score.total_score);
 
     return arrayAverage(scores);
@@ -122,18 +119,6 @@ export class AllocatorScoringService {
       values.length;
 
     return Math.sqrt(variance);
-  }
-
-  private bigIntStandardDeviation(values: bigint[]): bigint | null {
-    if (!values?.length) return null;
-
-    const average = bigIntArrayAverage(values);
-
-    const variance =
-      values.reduce((acc, val) => acc + (val - average) ** 2n, 0n) /
-      BigInt(values.length);
-
-    return bigIntSqrt(variance);
   }
 
   private convertFilesize(size?: bigint | number | string): string | null {
@@ -245,38 +230,36 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 3;
     const enterpriseScoreWeight = 0;
 
-    const ipniOKDatacap =
-      (
-        await this.prismaService.allocator_report_storage_provider_distribution.aggregate(
-          {
-            _sum: {
-              total_deal_size: true,
-            },
-            where: {
-              allocator_report_id: report.id,
-              ipni_reporting_status: StorageProviderIpniReportingStatus.OK,
-            },
+    const [_ipniOKDatacap, _totalDatacap] = await Promise.all([
+      this.prismaService.allocator_report_storage_provider_distribution.aggregate(
+        {
+          _sum: {
+            total_deal_size: true,
           },
-        )
-      )._sum.total_deal_size || 0n;
-
-    const totalDatacap =
-      (
-        await this.prismaService.allocator_report_storage_provider_distribution.aggregate(
-          {
-            _sum: {
-              total_deal_size: true,
-            },
-            where: {
-              allocator_report_id: report.id,
-            },
+          where: {
+            allocator_report_id: report.id,
+            ipni_reporting_status: StorageProviderIpniReportingStatus.OK,
           },
-        )
-      )._sum.total_deal_size || 0n;
+        },
+      ),
+      this.prismaService.allocator_report_storage_provider_distribution.aggregate(
+        {
+          _sum: {
+            total_deal_size: true,
+          },
+          where: {
+            allocator_report_id: report.id,
+          },
+        },
+      ),
+    ]);
 
-    const percentageOfIPNIOKDatacap = !totalDatacap
-      ? 0
-      : bigIntDiv(ipniOKDatacap * 100n, totalDatacap);
+    const ipniOKDatacap = _ipniOKDatacap._sum.total_deal_size || 0n;
+    const totalDatacap = _totalDatacap._sum.total_deal_size || 0n;
+
+    const percentageOfIPNIOKDatacap = totalDatacap
+      ? bigIntDiv(ipniOKDatacap * 100n, totalDatacap)
+      : 0;
 
     let score = 0;
     if (percentageOfIPNIOKDatacap > 99) {
@@ -498,12 +481,12 @@ export class AllocatorScoringService {
       0n,
     );
 
-    const percentageOfCIDSharing = !allocatorClientsTotalAllocation
-      ? 0
-      : bigIntDiv(
+    const percentageOfCIDSharing = allocatorClientsTotalAllocation
+      ? bigIntDiv(
           allocatorClientsWithCIDSharingAllocations * 100n,
           allocatorClientsTotalAllocation,
-        );
+        )
+      : 0;
 
     let score = 0;
     if (percentageOfCIDSharing === 0) {
@@ -571,9 +554,9 @@ export class AllocatorScoringService {
       0n,
     );
 
-    const percentageOfDuplicatedData = !totalDatacap
-      ? 0
-      : bigIntDiv(duplicatedDatacap * 100n, totalDatacap);
+    const percentageOfDuplicatedData = totalDatacap
+      ? bigIntDiv(duplicatedDatacap * 100n, totalDatacap)
+      : 0;
 
     let score = 0;
     if (percentageOfDuplicatedData === 0) {
@@ -593,7 +576,7 @@ export class AllocatorScoringService {
       enterpriseScoreWeight,
       isOpenData,
       'Duplicated data',
-      'Measures if this the same car file that is sealed on the same SP',
+      'Measures if this is the same car file that is sealed on the same SP',
       '%',
       [
         { metricValueMin: 0, metricValueMax: 0, score: 2 },
@@ -636,12 +619,12 @@ export class AllocatorScoringService {
       0n,
     );
 
-    const ratio = !totalClientsExpectedSizeOfSingleDataSet
-      ? 0
-      : bigIntDiv(
+    const ratio = totalClientsExpectedSizeOfSingleDataSet
+      ? bigIntDiv(
           totalClientsUniqDataSetSize * 100n,
           totalClientsExpectedSizeOfSingleDataSet,
-        );
+        )
+      : 0;
 
     let score = 0;
     if (ratio < 100) {
@@ -713,9 +696,9 @@ export class AllocatorScoringService {
 
     const equalityRatioForEachClient = allocatorClientsAllocations.map(
       (allocation) =>
-        !totalAllocations
-          ? 0
-          : bigIntDiv(allocation * activeClients, totalAllocations),
+        totalAllocations
+          ? bigIntDiv(allocation * activeClients, totalAllocations)
+          : 0,
     );
 
     const standardDeviation =
@@ -850,9 +833,9 @@ export class AllocatorScoringService {
 
     const totalClients = allocatorClients.length;
 
-    const returningClientsPercentage = !totalClients
-      ? 0
-      : (returningClients / totalClients) * 100;
+    const returningClientsPercentage = totalClients
+      ? (returningClients / totalClients) * 100
+      : 0;
 
     let score = 0;
     if (returningClientsPercentage > 75) {
