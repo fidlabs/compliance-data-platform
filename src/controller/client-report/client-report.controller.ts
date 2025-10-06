@@ -99,8 +99,9 @@ export class ClientReportController {
     const report = await this.clientReportsService.generateReport(client);
     if (!report) throw new NotFoundException();
 
-    // invalidate the cache for the latest report
+    // invalidate the cache
     await this.cacheManager.del(`/client-report/${client}/latest`);
+    await this.cacheManager.del(`/client-report/${client}`);
 
     return report;
   }
