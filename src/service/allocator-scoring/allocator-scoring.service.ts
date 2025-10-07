@@ -51,13 +51,8 @@ export class AllocatorScoringService {
     await this.storeClientPreviousApplicationsScore(report, isOpenData);
   }
 
-  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getTotalScoreAverage(
-    isOpenData: boolean | null,
-  ): Promise<number | null> {
-    if (isOpenData === null) return null;
-
-    const latestScores = await this.prismaService.$queryRaw<
+  public async getLatestScores() {
+    return await this.prismaService.$queryRaw<
       { total_score: number; allocator: string }[]
     >`select distinct on ("ar"."allocator") "ar"."allocator",
                                             sum("arsr"."score")::int as "total_score"
@@ -67,6 +62,15 @@ export class AllocatorScoringService {
       group by "ar"."allocator", "ar"."create_date"
       order by "ar"."allocator", "ar"."create_date" desc
     `;
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getTotalScoreAverage(
+    isOpenData: boolean | null,
+  ): Promise<number | null> {
+    if (isOpenData === null) return null;
+
+    const latestScores = await this.getLatestScores();
 
     const registryInfoMap =
       await this.allocatorService.getAllocatorRegistryInfoMap();
