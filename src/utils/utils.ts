@@ -110,3 +110,8 @@ export function arrayAverage(arr?: number[]): number | null {
   const result = arr?.reduce((acc, val) => acc + val, 0) / arr?.length;
   return Number.isFinite(result) ? result : null;
 }
+
+export type DatabasePaginationQuery = {
+  take?: number;
+  skip?: number;
+};
