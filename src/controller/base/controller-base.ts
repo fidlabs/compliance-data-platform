@@ -6,7 +6,7 @@ import {
   PaginationInfoResponse,
   SortingInfoRequest,
 } from './types.controller-base';
-import { stringToNumber } from 'src/utils/utils';
+import { DatabasePaginationQuery, stringToNumber } from 'src/utils/utils';
 
 export class ControllerBase {
   public withPaginationInfo<T>(
@@ -127,6 +127,20 @@ export class ControllerBase {
       order: sortingInfo.order ?? 'asc',
     };
   }
+
+  protected validateQueryPagination = (
+    paginationInfo?: PaginationInfo,
+  ): DatabasePaginationQuery => {
+    const take =
+      paginationInfo?.limit && paginationInfo.limit > 0
+        ? paginationInfo.limit
+        : undefined;
+    if (!take) return { take: undefined, skip: undefined };
+
+    const page =
+      paginationInfo?.page && paginationInfo.page > 0 ? paginationInfo.page : 1;
+    return { take, skip: (page - 1) * take };
+  };
 
   protected validatePaginationInfo(
     paginationInfo?: PaginationInfoRequest,

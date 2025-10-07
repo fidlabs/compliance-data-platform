@@ -66,10 +66,20 @@ export class AllocatorReportController extends ControllerBase {
       page: query.providerPaginationPage,
     };
 
+    const clientPaginationInfo = this.validatePaginationInfo(clientPagination);
+    const providerPaginationInfo =
+      this.validatePaginationInfo(providerPagination);
+
+    const clientPaginationQuery =
+      this.validateQueryPagination(clientPaginationInfo);
+    const providerPaginationQuery = this.validateQueryPagination(
+      providerPaginationInfo,
+    );
+
     const report = await this.allocatorReportService.getLatestReport(
       allocator,
-      this.validatePaginationInfo(clientPagination),
-      this.validatePaginationInfo(providerPagination),
+      clientPaginationQuery,
+      providerPaginationQuery,
     );
 
     return this.paginatedReport(report, clientPagination, providerPagination);
@@ -104,11 +114,21 @@ export class AllocatorReportController extends ControllerBase {
       page: query.providerPaginationPage,
     };
 
+    const clientPaginationInfo = this.validatePaginationInfo(clientPagination);
+    const providerPaginationInfo =
+      this.validatePaginationInfo(providerPagination);
+
+    const clientPaginationQuery =
+      this.validateQueryPagination(clientPaginationInfo);
+    const providerPaginationQuery = this.validateQueryPagination(
+      providerPaginationInfo,
+    );
+
     const report = await this.allocatorReportService.getReport(
       allocator,
       id,
-      this.validatePaginationInfo(clientPagination),
-      this.validatePaginationInfo(providerPagination),
+      clientPaginationQuery,
+      providerPaginationQuery,
     );
 
     return this.paginatedReport(report, clientPagination, providerPagination);

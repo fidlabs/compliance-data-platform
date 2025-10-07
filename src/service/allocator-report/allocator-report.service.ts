@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { getAllocatorsFull } from 'prismaDmob/generated/client/sql';
-import { PaginationInfo } from 'src/controller/base/types.controller-base';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Retryable } from 'src/utils/retryable';
-import { bigIntDiv } from 'src/utils/utils';
+import { bigIntDiv, DatabasePaginationQuery } from 'src/utils/utils';
 import { AllocatorReportChecksService } from '../allocator-report-checks/allocator-report-checks.service';
 import { AllocatorScoringService } from '../allocator-scoring/allocator-scoring.service';
 import { AllocatorService } from '../allocator/allocator.service';
@@ -275,8 +274,8 @@ export class AllocatorReportService {
 
   public async getLatestReport(
     allocatorIdOrAddress: string,
-    clientPagination?: PaginationInfo,
-    providerPagination?: PaginationInfo,
+    clientPagination?: DatabasePaginationQuery,
+    providerPagination?: DatabasePaginationQuery,
   ) {
     return this.getReport(
       allocatorIdOrAddress,
@@ -290,8 +289,8 @@ export class AllocatorReportService {
   public async getReport(
     allocatorIdOrAddress: string,
     id?: string,
-    clientPagination?: PaginationInfo,
-    providerPagination?: PaginationInfo,
+    clientPagination?: DatabasePaginationQuery,
+    providerPagination?: DatabasePaginationQuery,
   ) {
     const report = await this.prismaService.allocator_report.findFirst({
       where: {
@@ -326,8 +325,7 @@ export class AllocatorReportService {
               },
             },
           },
-          take: clientPagination?.limit,
-          skip: (clientPagination?.page - 1) * clientPagination?.limit,
+          ...clientPagination,
         },
         client_allocations: {
           omit: {
@@ -352,8 +350,7 @@ export class AllocatorReportService {
           orderBy: {
             perc_of_total_datacap: 'desc',
           },
-          take: providerPagination?.limit,
-          skip: (providerPagination?.page - 1) * providerPagination?.limit,
+          ...providerPagination,
         },
         check_results: {
           omit: {
