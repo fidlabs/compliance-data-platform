@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AllocatorReportCheck" ADD VALUE 'MANUAL_ALLOCATION_SCHEDULE';
