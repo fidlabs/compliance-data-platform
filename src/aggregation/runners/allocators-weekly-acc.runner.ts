@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { QueryIterablePool } from 'pg-iterator';
+import { getAllocatorRetrievabilityWeekly } from 'prisma/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
@@ -14,6 +15,7 @@ class AllocatorWeekly {
   total_sum_of_allocations: bigint | null;
   avg_weighted_retrievability_success_rate: number | null;
   avg_weighted_retrievability_success_rate_http: number | null;
+  avg_weighted_retrievability_success_rate_url_finder: number | null;
 }
 
 export class AllocatorsWeeklyAccRunner implements AggregationRunner {
@@ -39,35 +41,9 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
           AllocatorsWeeklyAccRunner.name,
         );
 
-        const i = queryIterablePool.query(`with
-                             allocator_retrievability as (
-                                 select
-                                     week,
-                                     allocator,
-                                     sum(cpdwa.total_deal_size*coalesce(avg_retrievability_success_rate, 0))/sum(cpdwa.total_deal_size) as avg_weighted_retrievability_success_rate,
-                                     sum(cpdwa.total_deal_size*coalesce(avg_retrievability_success_rate_http, 0))/sum(cpdwa.total_deal_size) as avg_weighted_retrievability_success_rate_http
-                                 from client_allocator_distribution_weekly_acc
-                                          inner join client_provider_distribution_weekly_acc as cpdwa
-                                                     using (client, week)
-                                          left join providers_weekly using (provider, week)
-                                 group by
-                                     week,
-                                     allocator
-                             )
-                         select
-                             week,
-                             allocator,
-                             count(*)::int as num_of_clients,
-                             max(sum_of_allocations)::bigint as biggest_client_sum_of_allocations,
-                             sum(sum_of_allocations)::bigint as total_sum_of_allocations,
-                             max(coalesce(avg_weighted_retrievability_success_rate, 0)) as avg_weighted_retrievability_success_rate,
-                             max(coalesce(avg_weighted_retrievability_success_rate_http, 0)) as avg_weighted_retrievability_success_rate_http
-                         from client_allocator_distribution_weekly_acc
-                                  left join allocator_retrievability
-                                            using (week, allocator)
-                         group by
-                             week,
-                             allocator;`);
+        const query = getAllocatorRetrievabilityWeekly().sql;
+
+        const i = queryIterablePool.query(query);
 
         const data: AllocatorWeekly[] = [];
 
@@ -86,6 +62,8 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
               rowResult.avg_weighted_retrievability_success_rate,
             avg_weighted_retrievability_success_rate_http:
               rowResult.avg_weighted_retrievability_success_rate_http,
+            avg_weighted_retrievability_success_rate_url_finder:
+              rowResult.avg_weighted_retrievability_success_rate_url_finder,
           });
 
           if (data.length === 5000) {

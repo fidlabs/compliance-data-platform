@@ -25,6 +25,7 @@ export class ProvidersWeeklyRunner implements AggregationRunner {
     const result = await prismaService.$queryRawTyped(getProvidersWeekly());
 
     getDataEndTimerMetric();
+
     const data = result.map((row) => ({
       week: row.week,
       provider: row.provider,
@@ -34,6 +35,8 @@ export class ProvidersWeeklyRunner implements AggregationRunner {
       avg_retrievability_success_rate: row.avg_retrievability_success_rate,
       avg_retrievability_success_rate_http:
         row.avg_retrievability_success_rate_http,
+      avg_retrievability_success_rate_url_finder:
+        row.avg_retrievability_success_rate_url_finder,
     }));
 
     const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(

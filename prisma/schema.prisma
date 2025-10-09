@@ -138,13 +138,14 @@ model client_replica_distribution {
 }
 
 model providers_weekly {
-  week                                 DateTime
-  provider                             String
-  num_of_clients                       Int
-  biggest_client_total_deal_size       BigInt
-  total_deal_size                      BigInt
-  avg_retrievability_success_rate      Float
-  avg_retrievability_success_rate_http Float?
+  week                                       DateTime
+  provider                                   String
+  num_of_clients                             Int
+  biggest_client_total_deal_size             BigInt
+  total_deal_size                            BigInt
+  avg_retrievability_success_rate            Float
+  avg_retrievability_success_rate_http       Float?
+  avg_retrievability_success_rate_url_finder Float?
 
   @@id([week, provider])
 }
@@ -190,25 +191,27 @@ model client_provider_distribution_weekly_acc {
 }
 
 model providers_weekly_acc {
-  week                                 DateTime
-  provider                             String
-  num_of_clients                       Int
-  biggest_client_total_deal_size       BigInt
-  total_deal_size                      BigInt
-  avg_retrievability_success_rate      Float
-  avg_retrievability_success_rate_http Float?
+  week                                       DateTime
+  provider                                   String
+  num_of_clients                             Int
+  biggest_client_total_deal_size             BigInt
+  total_deal_size                            BigInt
+  avg_retrievability_success_rate            Float
+  avg_retrievability_success_rate_http       Float?
+  avg_retrievability_success_rate_url_finder Float?
 
   @@id([week, provider])
 }
 
 model allocators_weekly_acc {
-  week                                          DateTime
-  allocator                                     String
-  num_of_clients                                Int
-  biggest_client_sum_of_allocations             BigInt
-  total_sum_of_allocations                      BigInt
-  avg_weighted_retrievability_success_rate      Float
-  avg_weighted_retrievability_success_rate_http Float?
+  week                                                DateTime
+  allocator                                           String
+  num_of_clients                                      Int
+  biggest_client_sum_of_allocations                   BigInt
+  total_sum_of_allocations                            BigInt
+  avg_weighted_retrievability_success_rate            Float
+  avg_weighted_retrievability_success_rate_http       Float?
+  avg_weighted_retrievability_success_rate_url_finder Float?
 
   @@id([week, allocator])
 }

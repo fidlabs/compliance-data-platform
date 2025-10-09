@@ -38,7 +38,7 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   ): Promise<RetrievabilityWeek> {
     return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
       stringToBool(query?.openDataOnly),
-      stringToBool(query?.httpRetrievability),
+      query?.retrievabilityType,
       this.getFilPlusEditionFromRequest(query),
     );
   }
