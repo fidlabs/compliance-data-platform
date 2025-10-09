@@ -51,22 +51,35 @@ export class AllocatorScoringService {
     await this.storeClientPreviousApplicationsScore(report, isOpenData);
   }
 
+  public async getLatestScores() {
+    return await this.prismaService.$queryRaw<
+      { total_score: number; max_possible_score: number; allocator: string }[]
+    >`with "max_ranges" as (select "scoring_result_id", max("score") as "max_score"
+                            from "allocator_report_scoring_result_range"
+                            group by "scoring_result_id"),
+           "latest_reports" as (select distinct on ("allocator") "id" as "report_id",
+                                                                 "allocator"
+                                from "allocator_report"
+                                order by "allocator", "create_date" desc)
+      select "ar"."allocator",
+             sum("arsr"."score")::int                as "total_score",
+             sum(coalesce("mr"."max_score", 0))::int as "max_possible_score"
+      from "latest_reports" "ar"
+             join "allocator_report_scoring_result" "arsr"
+                  on "ar"."report_id" = "arsr"."allocator_report_id"
+             left join "max_ranges" "mr"
+                       on "arsr"."id" = "mr"."scoring_result_id"
+      group by "ar"."allocator";
+    `;
+  }
+
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getTotalScoreAverage(
     isOpenData: boolean | null,
   ): Promise<number | null> {
     if (isOpenData === null) return null;
 
-    const latestScores = await this.prismaService.$queryRaw<
-      { total_score: number; allocator: string }[]
-    >`select distinct on ("ar"."allocator") "ar"."allocator",
-                                            sum("arsr"."score")::int as "total_score"
-      from "allocator_report" "ar"
-               join "allocator_report_scoring_result" "arsr"
-                    on "ar"."id" = "arsr"."allocator_report_id"
-      group by "ar"."allocator", "ar"."create_date"
-      order by "ar"."allocator", "ar"."create_date" desc
-    `;
+    const latestScores = await this.getLatestScores();
 
     const registryInfoMap =
       await this.allocatorService.getAllocatorRegistryInfoMap();
@@ -135,8 +148,8 @@ export class AllocatorScoringService {
       from (select distinct on ("ar"."allocator") "ar"."allocator",
                                                   "arsr"."metric_value"
             from "allocator_report" "ar"
-                     join "allocator_report_scoring_result" "arsr"
-                          on "ar"."id" = "arsr"."allocator_report_id"
+                   join "allocator_report_scoring_result" "arsr"
+                        on "ar"."id" = "arsr"."allocator_report_id"
             where "arsr"."metric"::text = ${metric}
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";
@@ -154,8 +167,8 @@ export class AllocatorScoringService {
       from (select distinct on ("ar"."allocator") "ar"."allocator",
                                                   "arsr"."metric_value"
             from "allocator_report" "ar"
-                     join "allocator_report_scoring_result" "arsr"
-                          on "ar"."id" = "arsr"."allocator_report_id"
+                   join "allocator_report_scoring_result" "arsr"
+                        on "ar"."id" = "arsr"."allocator_report_id"
             where "arsr"."metric"::text = ${metric}
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";`;
