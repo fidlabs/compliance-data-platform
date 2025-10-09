@@ -38,6 +38,18 @@ export class GetAllocatorsLatestScoresRankingResponse {
   totalScore: number;
 
   @ApiProperty({
+    description:
+      'Maximum possible score of the allocator from the latest report',
+  })
+  maxPossibleScore: number;
+
+  @ApiProperty({
+    description:
+      'Percentage of the total score over the maximum possible score',
+  })
+  scorePercentage: string;
+
+  @ApiProperty({
     enum: AllocatorsScoringSystemRankingDataType,
     description: 'Type of data allocator is using',
   })

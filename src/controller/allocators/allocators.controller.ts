@@ -14,7 +14,12 @@ import {
   getCurrentFilPlusEdition,
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
-import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
+import {
+  lastWeek,
+  stringToBool,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
 import {
   AllocatorsScoringSystemRankingDataType,
@@ -83,6 +88,11 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           await this.allocatorService.getAllocatorData(allocator.allocator)
         ).name,
         totalScore: allocator.total_score,
+        maxPossibleScore: allocator.max_possible_score,
+        scorePercentage: (
+          (allocator.total_score / allocator.max_possible_score) *
+          100
+        ).toFixed(2),
         dataType: (await this.allocatorService.isAllocatorOpenData(
           allocator.allocator,
           registryInfoMap[allocator.allocator]?.registry_info,
@@ -92,7 +102,10 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       })),
     );
 
-    return result.sort((a, b) => b.totalScore - a.totalScore);
+    return result.sort(
+      (a, b) =>
+        stringToNumber(b.scorePercentage) - stringToNumber(a.scorePercentage),
+    );
   }
 
   @Get('/latest-scores')
