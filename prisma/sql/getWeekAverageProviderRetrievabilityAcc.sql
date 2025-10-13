@@ -33,11 +33,18 @@ with "active_allocators" as (
             "bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
         ) = 'yes'
 )
-select case
-        when $2 = 'http' then avg("avg_retrievability_success_rate_http")
-        when $2 = 'urlFinder' then avg("avg_retrievability_success_rate_url_finder")
-        else avg("avg_retrievability_success_rate")
-    end as "average"
+select avg("avg_retrievability_success_rate_http") filter (
+        where $2 = 'http'
+            or $2 is null
+    ) as "http",
+    avg("avg_retrievability_success_rate_url_finder") filter (
+        where $2 = 'urlFinder'
+            or $2 is null
+    ) as "urlFinder",
+    avg("avg_retrievability_success_rate") filter (
+        where ($2 not in ('http', 'urlFinder'))
+            or $2 is null
+    ) as "spark"
 from "providers_weekly_acc"
 where (
         $1 = false
