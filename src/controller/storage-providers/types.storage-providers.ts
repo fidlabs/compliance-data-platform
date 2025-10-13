@@ -3,6 +3,7 @@ import { StorageProviderComplianceScoreRange } from 'src/service/storage-provide
 import { stringifiedBool } from 'src/utils/utils';
 import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
+import { RetrievabilityType } from '../stats/allocators/types.allocator-stats';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
@@ -10,7 +11,7 @@ export class StorageProviderComplianceMetricsRequest extends FilPlusEditionReque
       'Set to false to disable retrievability compliance metric check; default is true',
     type: Boolean,
   })
-  retrievability?: stringifiedBool;
+  retrievabilityType?: RetrievabilityType;
 
   @ApiPropertyOptional({
     description:
@@ -27,15 +28,14 @@ export class StorageProviderComplianceMetricsRequest extends FilPlusEditionReque
   totalDealSize?: stringifiedBool;
 
   constructor(
-    retrievability: stringifiedBool = 'true',
     numberOfClients: stringifiedBool = 'true',
     totalDealSize: stringifiedBool = 'true',
+    retrievabilityType?: RetrievabilityType,
   ) {
     super();
-
-    this.retrievability = retrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
+    this.retrievabilityType = retrievabilityType;
   }
 }
 
