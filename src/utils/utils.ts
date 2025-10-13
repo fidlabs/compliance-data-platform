@@ -115,3 +115,9 @@ export type DatabasePaginationQuery = {
   take?: number;
   skip?: number;
 };
+
+export type AverageRetrievabilityType = {
+  http?: number;
+  urlFinder?: number;
+  spark?: number;
+};

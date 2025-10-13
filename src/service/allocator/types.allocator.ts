@@ -246,9 +246,15 @@ export class AllocatorSpsComplianceWeekResults {
 
   @ApiProperty({
     description:
-      'Average storage providers retrievability success rate in the week',
+      'Average storage providers HTTP retrievability success rate in the week',
   })
-  averageSuccessRate: number;
+  averageHttpSuccessRate: number;
+
+  @ApiProperty({
+    description:
+      'Average storage providers URL Finder retrievability success rate in the week',
+  })
+  averageUrlFinderSuccessRate: number;
 
   @ApiProperty({ type: AllocatorSpsComplianceWeekSingle, isArray: true })
   allocators: AllocatorSpsComplianceWeekSingle[];
@@ -262,20 +268,28 @@ export class AllocatorSpsComplianceWeek {
 
   @ApiProperty({
     description:
-      'Last full week average storage providers retrievability success rate',
+      'Last full week average storage providers HTTP retrievability success rate',
   })
-  averageSuccessRate: number;
+  averageHttpSuccessRate: number;
+
+  @ApiProperty({
+    description:
+      'Last full week average storage providers URL Finder retrievability success rate',
+  })
+  averageUrlFinderSuccessRate: number;
 
   @ApiProperty({ type: AllocatorSpsComplianceWeekResults, isArray: true })
   results: AllocatorSpsComplianceWeekResults[];
 
   constructor(
     metricsChecked: StorageProviderComplianceMetrics,
-    averageSuccessRate: number,
+    averageHttpSuccessRate: number,
+    averageUrlFinderSuccessRate: number,
     results: AllocatorSpsComplianceWeekResults[],
   ) {
     this.metricsChecked = metricsChecked;
-    this.averageSuccessRate = averageSuccessRate;
+    this.averageHttpSuccessRate = averageHttpSuccessRate;
+    this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
     this.results = results;
   }
 }

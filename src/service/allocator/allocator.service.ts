@@ -38,7 +38,7 @@ import {
 } from './types.allocator';
 
 import { FilPlusEdition } from 'src/utils/filplus-edition';
-import { lastWeek } from 'src/utils/utils';
+import { AverageRetrievabilityType, lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeek,
@@ -668,23 +668,30 @@ export class AllocatorService {
       );
 
     return new RetrievabilityWeek(
-      lastWeekAverageRetrievability
-        ? lastWeekAverageRetrievability * 100
+      lastWeekAverageRetrievability?.http
+        ? lastWeekAverageRetrievability.http * 100
+        : null,
+      lastWeekAverageRetrievability?.urlFinder
+        ? lastWeekAverageRetrievability.urlFinder * 100
         : null,
       new RetrievabilityHistogramWeekResults(
         await this.getStandardAllocatorCount(openDataOnly, filPlusEditionData),
         await Promise.all(
-          weeklyHistogramResult.map(async (histogramWeek) =>
-            RetrievabilityHistogramWeek.of(
-              histogramWeek,
-              (await this.getWeekAverageStandardAllocatorRetrievability(
+          weeklyHistogramResult.map(async (histogramWeek) => {
+            const retrievability =
+              await this.getWeekAverageStandardAllocatorRetrievability(
                 histogramWeek.week,
                 openDataOnly,
                 retrievabilityType,
                 filPlusEditionData?.id,
-              )) * 100,
-            ),
-          ),
+              );
+
+            return RetrievabilityHistogramWeek.of(
+              histogramWeek,
+              retrievability.http ? retrievability.http * 100 : null,
+              retrievability.urlFinder ? retrievability.urlFinder * 100 : null,
+            );
+          }),
         ),
       ),
     );
@@ -839,7 +846,9 @@ export class AllocatorService {
 
     return {
       week: week,
-      averageSuccessRate: weekAverageProvidersRetrievability * 100,
+      averageHttpSuccessRate: weekAverageProvidersRetrievability?.http * 100,
+      averageUrlFinderSuccessRate:
+        weekAverageProvidersRetrievability?.urlFinder * 100,
       total: weekAllocators.length,
       allocators: weekAllocators,
     };
@@ -874,7 +883,8 @@ export class AllocatorService {
 
     return new AllocatorSpsComplianceWeek(
       spMetricsToCheck,
-      lastWeekAverageProviderRetrievability * 100,
+      lastWeekAverageProviderRetrievability.http * 100,
+      lastWeekAverageProviderRetrievability.urlFinder * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),
       ),
@@ -898,13 +908,12 @@ export class AllocatorService {
     )[0].count;
   }
 
-  // returns 0 - 1
   public async getWeekAverageStandardAllocatorRetrievability(
     week: Date,
     openDataOnly = true,
     retrievabilityType?: RetrievabilityType,
     filPlusEditionId?: number,
-  ): Promise<number> {
+  ): Promise<AverageRetrievabilityType> {
     return (
       await this.prismaService.$queryRawTyped(
         getWeekAverageStandardAllocatorRetrievabilityAcc(
@@ -914,7 +923,7 @@ export class AllocatorService {
           filPlusEditionId,
         ),
       )
-    )[0].average;
+    )[0];
   }
 
   // assuming client_allocator_distribution_weekly table doesn't contain metaallocators
