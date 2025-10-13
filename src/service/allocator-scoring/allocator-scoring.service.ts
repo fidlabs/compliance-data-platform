@@ -80,26 +80,23 @@ export class AllocatorScoringService {
     if (isOpenData === null) return null;
 
     const latestScores = await this.getLatestScores();
+    const wantedDataTypeScores: number[] = [];
 
     const registryInfoMap =
       await this.allocatorService.getAllocatorRegistryInfoMap();
 
-    const filterResults = await Promise.all(
-      latestScores.map((score) =>
-        this.allocatorService
-          .isAllocatorOpenData(
-            score.allocator,
-            registryInfoMap[score.allocator],
-          )
-          .then((result) => isOpenData === result),
-      ),
-    );
+    for (const score of latestScores) {
+      if (
+        (await this.allocatorService.isAllocatorOpenData(
+          score.allocator,
+          registryInfoMap[score.allocator]?.registry_info,
+        )) === isOpenData
+      ) {
+        wantedDataTypeScores.push(score.total_score);
+      }
+    }
 
-    const scores = latestScores
-      .filter((_, idx) => filterResults[idx])
-      .map((score) => score.total_score);
-
-    return arrayAverage(scores);
+    return arrayAverage(wantedDataTypeScores);
   }
 
   private calculateNthPercentile(
@@ -150,7 +147,9 @@ export class AllocatorScoringService {
             from "allocator_report" "ar"
                    join "allocator_report_scoring_result" "arsr"
                         on "ar"."id" = "arsr"."allocator_report_id"
+                   join "allocator" on "ar"."allocator" = "allocator"."id"
             where "arsr"."metric"::text = ${metric}
+            and "allocator"."is_metaallocator" = false
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";
     `;
@@ -169,7 +168,9 @@ export class AllocatorScoringService {
             from "allocator_report" "ar"
                    join "allocator_report_scoring_result" "arsr"
                         on "ar"."id" = "arsr"."allocator_report_id"
+                   join "allocator" on "ar"."allocator" = "allocator"."id"        
             where "arsr"."metric"::text = ${metric}
+            and "allocator"."is_metaallocator" = false
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";`;
 
