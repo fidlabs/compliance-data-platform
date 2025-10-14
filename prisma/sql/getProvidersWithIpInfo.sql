@@ -1,13 +1,23 @@
-with "latest_updates" as (select "provider",
-                                 max("date") as "date"
-                          from "provider_ip_info"
-                          group by "provider")
-
-select "provider",
-       "lat",
-       "long",
-       "country",
-       "region",
-       "city"
-from "provider_ip_info"
-         inner join "latest_updates" using ("provider", "date");
+WITH
+  "latest_updates" AS (
+    SELECT
+      "provider",
+      max("date") AS "date"
+    FROM
+      "provider_ip_info"
+    GROUP BY
+      "provider"
+  )
+SELECT
+  "provider",
+  "lat",
+  "long",
+  "country",
+  "region",
+  "city"
+FROM
+  "provider_ip_info"
+  INNER JOIN "latest_updates" USING (
+    "provider",
+    "date"
+  );

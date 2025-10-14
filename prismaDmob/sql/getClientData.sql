@@ -1,25 +1,38 @@
 -- @param {String} $1:clientIdOrAddress
-
-select "verified_client"."addressId"         as "addressId",
-       "verified_client"."address"           as "address",
-       "verified_client"."name"              as "name",
-       "verified_client"."orgName"           as "orgName",
-       "verified_client"."verifierAddressId" as "verifierAddressId",
-       coalesce(
-                       jsonb_agg(
-                       jsonb_build_object(
-                               'addressId', "verified_client_allowance"."addressId",
-                               'verifierAddressId', "verified_client_allowance"."verifierAddressId",
-                               'allowance', "verified_client_allowance"."allowance",
-                               'auditTrail', "verified_client_allowance"."auditTrail",
-                               'issueCreateTimestamp', "verified_client_allowance"."issueCreateTimestamp",
-                               'createMessageTimestamp', "verified_client_allowance"."createMessageTimestamp"
-                       )
-                               ), '[]'::jsonb
-       ) as "_allowanceArray"
-from "verified_client"
-         left join "verified_client_allowance"
-                   on "verified_client"."addressId" = "verified_client_allowance"."addressId"
-where upper("verified_client"."address") = upper($1)
-   or upper("verified_client"."addressId") = upper($1)
-group by "verified_client"."id";
+SELECT
+  "verified_client"."addressId" AS "addressId",
+  "verified_client"."address" AS "address",
+  "verified_client"."name" AS "name",
+  "verified_client"."orgName" AS "orgName",
+  "verified_client"."verifierAddressId" AS "verifierAddressId",
+  coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'addressId',
+        "verified_client_allowance"."addressId",
+        'verifierAddressId',
+        "verified_client_allowance"."verifierAddressId",
+        'allowance',
+        "verified_client_allowance"."allowance",
+        'auditTrail',
+        "verified_client_allowance"."auditTrail",
+        'issueCreateTimestamp',
+        "verified_client_allowance"."issueCreateTimestamp",
+        'createMessageTimestamp',
+        "verified_client_allowance"."createMessageTimestamp"
+      )
+    ),
+    '[]'::jsonb
+  ) AS "_allowanceArray"
+FROM
+  "verified_client"
+  LEFT JOIN "verified_client_allowance" ON "verified_client"."addressId" = "verified_client_allowance"."addressId"
+WHERE
+  upper(
+    "verified_client"."address"
+  ) = upper($1)
+  OR upper(
+    "verified_client"."addressId"
+  ) = upper($1)
+GROUP BY
+  "verified_client"."id";

@@ -1,8 +1,21 @@
-select date_trunc('week', to_timestamp("height" * 30 + 1598306400)) as "week",
-       "addressId"                                                  as "client",
-       "verifierAddressId"                                          as "allocator",
-       count(*)::int                                                as "num_of_allocations",
-       sum("allowance")::bigint                                     as "sum_of_allocations"
-from "verified_client_allowance"
-where "height" >= 3698160 -- current fil+ edition start
-group by "week", "client", "allocator";
+SELECT
+  date_trunc(
+    'week',
+    to_timestamp(
+      "height" * 30 + 1598306400
+    )
+  ) AS "week",
+  "addressId" AS "client",
+  "verifierAddressId" AS "allocator",
+  count(*)::int AS "num_of_allocations",
+  sum(
+    "allowance"
+  )::bigint AS "sum_of_allocations"
+FROM
+  "verified_client_allowance"
+WHERE
+  "height" >= 3698160 -- current fil+ edition start
+GROUP BY
+  "week",
+  "client",
+  "allocator";

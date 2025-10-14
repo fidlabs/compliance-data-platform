@@ -1,5 +1,7 @@
-select "addressId"       as "id",
-       "address"         as "address",
-       "isMetaAllocator" as "is_metaallocator",
-       "isVirtual"       as "is_virtual"
-from "verifier";
+SELECT
+  "addressId" AS "id",
+  "address" AS "address",
+  "isMetaAllocator" AS "is_metaallocator",
+  "isVirtual" AS "is_virtual"
+FROM
+  "verifier";
