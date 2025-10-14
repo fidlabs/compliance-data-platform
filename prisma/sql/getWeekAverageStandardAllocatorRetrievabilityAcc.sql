@@ -2,66 +2,99 @@
 -- @param {String} $2:retrievabilityType
 -- @param {DateTime} $3:week
 -- @param {Int} $4:editionId
-with "active_allocators" as (
-    select "allocator_id",
-        "registry_info",
-        6 as "editionId"
-    from "allocator_registry"
-    where "rejected" = false
+WITH
+  "active_allocators" AS (
+    SELECT
+      "allocator_id",
+      "registry_info",
+      6 AS "editionId"
+    FROM
+      "allocator_registry"
+    WHERE
+      "rejected" = FALSE
     UNION ALL
-    select "allocator_id",
-        "registry_info",
-        5 as "editionId"
-    from "allocator_registry_archive"
-    where "rejected" = false
-),
-"active_in_edition" as (
-    select *
-    from "active_allocators"
-    where (
-            $4::int is null
-            or "active_allocators"."editionId" = $4
-        )
-),
-"open_data_pathway_allocators" as (
+    SELECT
+      "allocator_id",
+      "registry_info",
+      5 AS "editionId"
+    FROM
+      "allocator_registry_archive"
+    WHERE
+      "rejected" = FALSE
+  ),
+  "active_in_edition" AS (
+    SELECT
+      *
+    FROM
+      "active_allocators"
+    WHERE
+      (
+        $4::int IS NULL
+        OR "active_allocators"."editionId" = $4
+      )
+  ),
+  "open_data_pathway_allocators" AS (
     -- edition 5: open by bookkeeping
-    select distinct "allocator_client_bookkeeping"."allocator_id"
-    from "allocator_client_bookkeeping"
-        join "active_in_edition" on "allocator_client_bookkeeping"."allocator_id" = "active_in_edition"."allocator_id"
-    where "active_in_edition"."editionId" = 5
-        and lower(
-            "allocator_client_bookkeeping"."bookkeeping_info"::jsonb->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
-        ) in ('[x] i confirm', 'yes')
-    union
+    SELECT DISTINCT
+      "allocator_client_bookkeeping"."allocator_id"
+    FROM
+      "allocator_client_bookkeeping"
+      JOIN "active_in_edition" ON "allocator_client_bookkeeping"."allocator_id" = "active_in_edition"."allocator_id"
+    WHERE
+      "active_in_edition"."editionId" = 5
+      AND lower(
+        "allocator_client_bookkeeping"."bookkeeping_info"::jsonb -> 'Project' ->> 'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
+      ) IN (
+        '[x] i confirm',
+        'yes'
+      )
+    UNION
     -- edition 6: open = not enterprise, automated, faucet, market based
-    select distinct "active_in_edition"."allocator_id"
-    from "active_in_edition"
-    where "active_in_edition"."editionId" = 6
-        and not (
-            (
-                "active_in_edition"."registry_info"::jsonb->'application'->'audit'
-            ) ?| array ['Enterprise Data', 'Automated', 'Faucet', 'Market Based']
-        )
-)
-select case
-        when $2 = 'http' then avg("avg_weighted_retrievability_success_rate_http")
-        when $2 = 'urlFinder' then avg(
-            "avg_weighted_retrievability_success_rate_url_finder"
-        )
-        else avg("avg_weighted_retrievability_success_rate")
-    end as "average"
-from "allocators_weekly_acc"
-    left join "allocator" on "allocators_weekly_acc"."allocator" = "allocator"."id"
-    join "active_in_edition" on "active_in_edition"."allocator_id" = "allocator"."id"
-where (
-        $1 = false
-        or "allocator" in (
-            select "allocator_id"
-            from "open_data_pathway_allocators"
-        )
+    SELECT DISTINCT
+      "active_in_edition"."allocator_id"
+    FROM
+      "active_in_edition"
+    WHERE
+      "active_in_edition"."editionId" = 6
+      AND NOT (
+        (
+          "active_in_edition"."registry_info"::jsonb -> 'application' -> 'audit'
+        ) ?| ARRAY[
+          'Enterprise Data',
+          'Automated',
+          'Faucet',
+          'Market Based'
+        ]
+      )
+  )
+SELECT
+  CASE
+    WHEN $2 = 'http' THEN avg(
+      "avg_weighted_retrievability_success_rate_http"
     )
-    and (
-        "is_metaallocator" = false
-        or "is_metaallocator" is null
+    WHEN $2 = 'urlFinder' THEN avg(
+      "avg_weighted_retrievability_success_rate_url_finder"
     )
-    and "week" = $3::timestamp;
+    ELSE avg(
+      "avg_weighted_retrievability_success_rate"
+    )
+  END AS "average"
+FROM
+  "allocators_weekly_acc"
+  LEFT JOIN "allocator" ON "allocators_weekly_acc"."allocator" = "allocator"."id"
+  JOIN "active_in_edition" ON "active_in_edition"."allocator_id" = "allocator"."id"
+WHERE
+  (
+    $1 = FALSE
+    OR "allocator" IN (
+      SELECT
+        "allocator_id"
+      FROM
+        "open_data_pathway_allocators"
+    )
+  )
+  AND (
+    "is_metaallocator" = FALSE
+    OR "is_metaallocator" IS NULL
+  )
+  AND "week" = $3::timestamp;

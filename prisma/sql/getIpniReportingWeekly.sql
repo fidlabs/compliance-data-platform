@@ -1,19 +1,37 @@
 -- @param {DateTime} $1:startDate
 -- @param {DateTime} $2:endDate
-
-with "with_week" as (select "date",
-                            "ok",
-                            "misreporting",
-                            "not_reporting",
-                            "total",
-                            date_trunc('week', "date") as "week"
-                    from "ipni_reporting_daily"
-                    where ($1::date is null or "date" >= $1) and ($2::date is null or "date" <= $2)
-)
-select distinct on ("week") "week",
-                            "ok",
-                            "not_reporting",
-                            "misreporting",
-                            "total"
-from "with_week"
-order by "week", "date" desc;
+WITH
+  "with_week" AS (
+    SELECT
+      "date",
+      "ok",
+      "misreporting",
+      "not_reporting",
+      "total",
+      date_trunc(
+        'week',
+        "date"
+      ) AS "week"
+    FROM
+      "ipni_reporting_daily"
+    WHERE
+      (
+        $1::date IS NULL
+        OR "date" >= $1
+      )
+      AND (
+        $2::date IS NULL
+        OR "date" <= $2
+      )
+  )
+SELECT DISTINCT
+  ON ("week") "week",
+  "ok",
+  "not_reporting",
+  "misreporting",
+  "total"
+FROM
+  "with_week"
+ORDER BY
+  "week",
+  "date" DESC;

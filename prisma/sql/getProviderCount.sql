@@ -1,20 +1,42 @@
 -- @param {Boolean} $1:openDataOnly
 -- @param {DateTime} $2:startDate
 -- @param {DateTime} $3:endDate
-
-with "open_data_pathway_provider" as (
-    select distinct "provider" as "provider"
-    from "allocator_client_bookkeeping"
-       join "client_provider_distribution" on "allocator_client_bookkeeping"."client_id" = "client_provider_distribution"."client"
-    where lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = '[x] i confirm'
-       or lower("bookkeeping_info"::"jsonb"->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)') = 'yes'
-)
-select count(distinct "provider")::int as "count"
-from "providers_weekly_acc"
-where (
-          $1 = false
-              or "provider" in (select "provider" from "open_data_pathway_provider")
-
-)
-and ($2::date is null or "week" >= $2)
-and ($3::date is null or "week" <= $3)
+WITH
+  "open_data_pathway_provider" AS (
+    SELECT DISTINCT
+      "provider" AS "provider"
+    FROM
+      "allocator_client_bookkeeping"
+      JOIN "client_provider_distribution" ON "allocator_client_bookkeeping"."client_id" = "client_provider_distribution"."client"
+    WHERE
+      lower(
+        "bookkeeping_info"::"jsonb" -> 'Project' ->> 'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
+      ) = '[x] i confirm'
+      OR lower(
+        "bookkeeping_info"::"jsonb" -> 'Project' ->> 'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
+      ) = 'yes'
+  )
+SELECT
+  count(
+    DISTINCT "provider"
+  )::int AS "count"
+FROM
+  "providers_weekly_acc"
+WHERE
+  (
+    $1 = FALSE
+    OR "provider" IN (
+      SELECT
+        "provider"
+      FROM
+        "open_data_pathway_provider"
+    )
+  )
+  AND (
+    $2::date IS NULL
+    OR "week" >= $2
+  )
+  AND (
+    $3::date IS NULL
+    OR "week" <= $3
+  )

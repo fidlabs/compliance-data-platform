@@ -1,17 +1,46 @@
 -- @param {DateTime} $1:startDate
 -- @param {DateTime} $2:endDate
-
-with "clients_per_provider" as (select "week"                   as "week",
-                                       count(distinct "client") as "clientsCount",
-                                       sum("total_deal_size")   as "totalDatacap"
-                                from "client_provider_distribution_weekly_acc"
-                                WHERE ($1::date is null or "week" >= $1) and ($2::date is null or "week" <= $2)
-                                group by "provider", "week")
-select "week"                      as "week",
-       ("clientsCount" - 1)::int   as "valueFromExclusive",
-       "clientsCount"::int         as "valueToInclusive",
-       count(*)::int               as "count",
-       sum("totalDatacap")::bigint as "totalDatacap"
-from "clients_per_provider"
-group by "valueFromExclusive", "valueToInclusive", "week"
-order by "week", "valueFromExclusive";
+WITH
+  "clients_per_provider" AS (
+    SELECT
+      "week" AS "week",
+      count(
+        DISTINCT "client"
+      ) AS "clientsCount",
+      sum(
+        "total_deal_size"
+      ) AS "totalDatacap"
+    FROM
+      "client_provider_distribution_weekly_acc"
+    WHERE
+      (
+        $1::date IS NULL
+        OR "week" >= $1
+      )
+      AND (
+        $2::date IS NULL
+        OR "week" <= $2
+      )
+    GROUP BY
+      "provider",
+      "week"
+  )
+SELECT
+  "week" AS "week",
+  (
+    "clientsCount" - 1
+  )::int AS "valueFromExclusive",
+  "clientsCount"::int AS "valueToInclusive",
+  count(*)::int AS "count",
+  sum(
+    "totalDatacap"
+  )::bigint AS "totalDatacap"
+FROM
+  "clients_per_provider"
+GROUP BY
+  "valueFromExclusive",
+  "valueToInclusive",
+  "week"
+ORDER BY
+  "week",
+  "valueFromExclusive";
