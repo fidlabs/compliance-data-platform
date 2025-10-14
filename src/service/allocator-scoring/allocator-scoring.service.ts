@@ -26,6 +26,20 @@ export class AllocatorScoringService {
       where: {
         id: reportId,
       },
+      include: {
+        clients: {
+          include: {
+            replica_distribution: true,
+            cid_sharing: true,
+          },
+        },
+        client_allocations: true,
+        storage_provider_distribution: {
+          include: {
+            location: true,
+          },
+        },
+      },
     });
 
     const isOpenData = await this.allocatorService.isAllocatorOpenData(

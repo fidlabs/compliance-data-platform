@@ -10,50 +10,6 @@ import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { envNotSet, stringToNumber } from 'src/utils/utils';
 
-const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<
-  keyof typeof ClientReportCheck,
-  string
-> = {
-  [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
-    'demonstrate CID sharing.',
-  [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
-    'have a high replica percentage',
-  [ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA]:
-    'have a low replica percentage',
-  [ClientReportCheck.INACTIVITY]:
-    'have unspent DataCap and were inactive for over one month',
-  [ClientReportCheck.MULTIPLE_ALLOCATORS]:
-    'received DataCap from more than one allocator',
-  [ClientReportCheck.NOT_ENOUGH_COPIES]:
-    'store data with fewer replicas than required',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION]:
-    'missed the SP location diversity requirement',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED]:
-    'declared SPs in applications that were not actually used',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION]:
-    'stored excessive duplicate data',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL]:
-    'have unhealthy SP distribution',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING]:
-    'used SPs that misreported data to IPNI',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING]:
-    'used SPs that did not report data to IPNI',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED]:
-    'used undeclared storage providers',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75]:
-    'used SPs with a HTTP retrieval success rate below 75%',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO]:
-    'used SPs with a HTTP retrieval success rate of 0%',
-  [ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_75]:
-    'used SPs with a RPA retrieval success rate below 75%',
-  [ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_ZERO]:
-    'used SPs with a RPA retrieval success rate of 0%',
-  [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION]:
-    'used SPs that have an unknown IP location',
-  [ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED]:
-    'stored unique datasets larger than declared',
-};
-
 @Injectable()
 export class AllocatorReportChecksService {
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
@@ -72,32 +28,79 @@ export class AllocatorReportChecksService {
   }
 
   public async storeReportChecks(reportId: string) {
-    await this.storeClientMultipleAllocators(reportId);
-    await this.storeClientNotEnoughCopies(reportId);
-    await this.storeAllocatorChecksBasedOnClientReportChecks(reportId);
-  }
-
-  private getClientReportCheckFailMessage(
-    clientReportCheck: AllocatorReportCheck,
-  ) {
-    return CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP[clientReportCheck];
-  }
-
-  private async storeClientMultipleAllocators(reportId: string) {
-    const report = await this.prismaService.allocator_report.findFirst({
+    const report = await this.prismaService.allocator_report.findUnique({
       where: {
         id: reportId,
       },
-      select: {
+      include: {
         clients: {
-          select: {
-            client_id: true,
-            allocators: true,
+          include: {
+            replica_distribution: true,
+            cid_sharing: true,
+          },
+        },
+        client_allocations: true,
+        storage_provider_distribution: {
+          include: {
+            location: true,
           },
         },
       },
     });
 
+    await this.storeClientMultipleAllocators(report);
+    await this.storeClientNotEnoughCopies(report);
+    await this.storeAllocatorChecksBasedOnClientReportChecks(report);
+  }
+
+  private getClientReportCheckFailMessage(
+    clientReportCheck: ClientReportCheck,
+  ) {
+    const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP = {
+      [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
+        'demonstrate CID sharing.',
+      [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
+        'have a high replica percentage',
+      [ClientReportCheck.DEAL_DATA_REPLICATION_LOW_REPLICA]:
+        'have a low replica percentage',
+      [ClientReportCheck.INACTIVITY]:
+        'have unspent DataCap and were inactive for over one month',
+      [ClientReportCheck.MULTIPLE_ALLOCATORS]:
+        'received DataCap from more than one allocator',
+      [ClientReportCheck.NOT_ENOUGH_COPIES]:
+        'store data with fewer replicas than required',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION]:
+        'missed the SP location diversity requirement',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_DECLARED_NOT_USED]:
+        'declared SPs in applications that were not actually used',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_MAX_DUPLICATION]:
+        'stored excessive duplicate data',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL]:
+        'have unhealthy SP distribution',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_MISREPORTING]:
+        'used SPs that misreported data to IPNI',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_IPNI_NOT_REPORTING]:
+        'used SPs that did not report data to IPNI',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_NOT_DECLARED]:
+        'used undeclared storage providers',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75]:
+        'used SPs with a HTTP retrieval success rate below 75%',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO]:
+        'used SPs with a HTTP retrieval success rate of 0%',
+      [ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_75]:
+        'used SPs with a RPA retrieval success rate below 75%',
+      [ClientReportCheck.STORAGE_PROVIDER_URL_FINDER_RETRIEVABILITY_ZERO]:
+        'used SPs with a RPA retrieval success rate of 0%',
+      [ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_UNKNOWN_LOCATION]:
+        'used SPs that have an unknown IP location',
+      [ClientReportCheck.UNIQ_DATA_SET_SIZE_TO_DECLARED]:
+        'stored unique datasets larger than declared',
+    };
+
+    return CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP[clientReportCheck];
+  }
+
+  private async storeClientMultipleAllocators(report: any) {
     const clientsUsingMultipleAllocators = report.clients
       .filter(
         (client) =>
@@ -112,7 +115,7 @@ export class AllocatorReportChecksService {
 
     await this.prismaService.allocator_report_check_result.create({
       data: {
-        allocator_report_id: reportId,
+        allocator_report_id: report.id,
         check: AllocatorReportCheck.CLIENT_MULTIPLE_ALLOCATORS,
         result: checkPassed,
         metadata: {
@@ -126,7 +129,7 @@ export class AllocatorReportChecksService {
     });
   }
 
-  private async storeClientNotEnoughCopies(reportId: string) {
+  private async storeClientNotEnoughCopies(report: any) {
     if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES)) {
       this.logger.warn(
         `CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES env is not set; skipping check`,
@@ -135,25 +138,10 @@ export class AllocatorReportChecksService {
       return;
     }
 
-    const report = await this.prismaService.allocator_report.findFirst({
-      where: {
-        id: reportId,
-      },
-      select: {
-        required_copies: true,
-        clients: {
-          select: {
-            client_id: true,
-            replica_distribution: true,
-          },
-        },
-      },
-    });
-
     if (!report.required_copies) {
       await this.prismaService.allocator_report_check_result.create({
         data: {
-          allocator_report_id: reportId,
+          allocator_report_id: report.id,
           check: AllocatorReportCheck.CLIENT_NOT_ENOUGH_COPIES,
           result: true,
           metadata: {
@@ -187,7 +175,7 @@ export class AllocatorReportChecksService {
 
       await this.prismaService.allocator_report_check_result.create({
         data: {
-          allocator_report_id: reportId,
+          allocator_report_id: report.id,
           check: AllocatorReportCheck.CLIENT_NOT_ENOUGH_COPIES,
           result: checkPassed,
           metadata: {
@@ -208,75 +196,55 @@ export class AllocatorReportChecksService {
     return n === 0 ? 'No clients' : n === 1 ? '1 client' : `${n} clients`;
   }
 
-  public async storeAllocatorChecksBasedOnClientReportChecks(reportId: string) {
-    const report = await this.prismaService.allocator_report.findFirst({
-      where: {
-        id: reportId,
-      },
-      select: {
-        clients: {
-          select: {
-            client_id: true,
-          },
-        },
-      },
-    });
-
-    const clientsCount = report.clients.length;
-    const clientsIds = report.clients.map((client) => client.client_id);
-
-    const allFailedChecksForLatestReport = await Promise.all(
-      clientsIds.map((clientId) =>
-        this.prismaService.client_report.findFirst({
-          where: {
-            client: clientId,
-            last_datacap_spent: {
-              gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
-            },
-          },
-          include: {
-            check_results: {
-              where: { result: false }, // filters only failed checks in the client report
-              select: {
-                check: true,
-                result: true,
-                metadata: true,
+  public async storeAllocatorChecksBasedOnClientReportChecks(report: any) {
+    const allocatorClientsChecks = (
+      await Promise.all(
+        report.clients.map((client) =>
+          this.prismaService.client_report.findFirst({
+            where: {
+              client: client.client_id,
+              last_datacap_spent: {
+                gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
               },
             },
-          },
-          orderBy: { create_date: 'desc' },
-        }),
-      ),
+            include: {
+              check_results: true,
+            },
+            orderBy: { create_date: 'desc' },
+          }),
+        ),
+      )
+    ).filter(Boolean);
+
+    const groupedClientsChecks = groupBy(
+      allocatorClientsChecks.flatMap((x) => x?.check_results || []),
+      (x) => x?.check,
     );
-
-    const allFailedChecksResult = allFailedChecksForLatestReport.flatMap(
-      (x) => x?.check_results || [],
-    );
-
-    const groupedFailChecks = groupBy(allFailedChecksResult, (x) => x?.check);
-
-    const moreThanAllowedThresholdChecks = Object.entries(
-      groupedFailChecks,
-    ).filter(([, results]) => {
-      return (
-        (results.length / clientsCount) * 100 >
-        this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS
-      );
-    });
 
     await Promise.all(
-      moreThanAllowedThresholdChecks.map(([check]) =>
-        this.prismaService.allocator_report_check_result.create({
+      Object.entries(ClientReportCheck).map(([check]) => {
+        const failedChecks =
+          groupedClientsChecks[check]?.filter((x) => x.result === false) ?? [];
+
+        const failedChecksPercentage = groupedClientsChecks[check]
+          ? (failedChecks.length / groupedClientsChecks[check].length) * 100
+          : 0;
+
+        const checkPassed =
+          failedChecksPercentage <=
+          this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS;
+
+        return this.prismaService.allocator_report_check_result.create({
           data: {
-            allocator_report_id: reportId,
+            allocator_report_id: report.id,
             check: check as AllocatorReportCheck,
-            result: false,
+            result: checkPassed,
             metadata: {
-              msg: `More than ${this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS.toString()}% of active clients ${this.getClientReportCheckFailMessage(check as AllocatorReportCheck)}`,
+              msg: `${failedChecksPercentage.toFixed(2)}% of active clients ${this.getClientReportCheckFailMessage(check as ClientReportCheck)}`,
             },
           },
-        }),
-      ),
+        });
+      }),
     );
   }
 }
