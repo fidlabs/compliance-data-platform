@@ -15,7 +15,7 @@ import {
   FilPlusEdition,
   getCurrentFilPlusEdition,
 } from 'src/utils/filplus-edition';
-import { lastWeek } from 'src/utils/utils';
+import { AverageRetrievabilityType, lastWeek } from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeek,
@@ -126,8 +126,8 @@ export class StorageProviderService {
 
   public async getProviderRetrievabilityWeekly(
     openDataOnly = true,
-    retrievabilityType: RetrievabilityType,
     filPlusEditionData: FilPlusEdition | null,
+    retrievabilityType?: RetrievabilityType,
   ): Promise<RetrievabilityWeek> {
     const isCurrentFilPlusEdition =
       filPlusEditionData?.id === getCurrentFilPlusEdition().id;
@@ -151,7 +151,12 @@ export class StorageProviderService {
       await this.histogramHelper.getWeeklyHistogramResult(result, 100);
 
     return new RetrievabilityWeek(
-      lastWeekAverageRetrievability * 100,
+      lastWeekAverageRetrievability.http
+        ? lastWeekAverageRetrievability.http * 100
+        : null,
+      lastWeekAverageRetrievability.urlFinder
+        ? lastWeekAverageRetrievability.urlFinder * 100
+        : null,
       new RetrievabilityHistogramWeekResults(
         await this.getProviderCount(
           openDataOnly,
@@ -159,17 +164,21 @@ export class StorageProviderService {
           filPlusEditionData?.endDate,
         ),
         await Promise.all(
-          weeklyHistogramResult.map(async (histogramWeek) =>
-            RetrievabilityHistogramWeek.of(
-              histogramWeek,
-              (await this.getWeekAverageProviderRetrievability(
+          weeklyHistogramResult.map(async (histogramWeek) => {
+            const retrievability =
+              await this.getWeekAverageProviderRetrievability(
                 histogramWeek.week,
                 openDataOnly,
                 retrievabilityType,
                 filPlusEditionData?.id,
-              )) * 100,
-            ),
-          ),
+              );
+
+            return RetrievabilityHistogramWeek.of(
+              histogramWeek,
+              retrievability.http ? retrievability.http * 100 : null,
+              retrievability.urlFinder ? retrievability.urlFinder * 100 : null,
+            );
+          }),
         ),
       ),
     );
@@ -179,7 +188,7 @@ export class StorageProviderService {
     openDataOnly = true,
     retrievabilityType?: RetrievabilityType,
     filPlusEditionId?: number,
-  ): Promise<number> {
+  ): Promise<AverageRetrievabilityType> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
       openDataOnly,
@@ -200,10 +209,10 @@ export class StorageProviderService {
         filPlusEditionData?.startDate,
         filPlusEditionData?.endDate,
       ),
-      isCurrentFilPlusEdition
+      isCurrentFilPlusEdition || !filPlusEditionData
         ? this.getLastWeekAverageProviderRetrievability(
             true,
-            RetrievabilityType.http,
+            metricsToCheck?.retrievabilityType,
             filPlusEditionData?.id,
           )
         : null,
@@ -215,7 +224,7 @@ export class StorageProviderService {
           await this.getWeekAverageProviderRetrievability(
             week,
             true,
-            RetrievabilityType.http,
+            metricsToCheck?.retrievabilityType,
             filPlusEditionData?.id,
           );
 
@@ -235,7 +244,12 @@ export class StorageProviderService {
 
         return {
           week: week,
-          averageSuccessRate: weekAverageRetrievability * 100,
+          averageHttpSuccessRate: weekAverageRetrievability.http
+            ? weekAverageRetrievability.http * 100
+            : null,
+          averageUrlFinderSuccessRate: weekAverageRetrievability.urlFinder
+            ? weekAverageRetrievability.urlFinder * 100
+            : null,
           totalSps: weekProviders.length,
           ...this.getProviderComplianceWeekCountAndDatacap(
             weekProvidersCompliance,
@@ -248,7 +262,8 @@ export class StorageProviderService {
 
     return new StorageProviderComplianceWeek(
       metricsToCheck,
-      lastWeekAverageRetrievability * 100,
+      lastWeekAverageRetrievability.http * 100,
+      lastWeekAverageRetrievability.urlFinder * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(result),
       ),
@@ -343,7 +358,7 @@ export class StorageProviderService {
     openDataOnly = true,
     retrievabilityType?: RetrievabilityType,
     filPlusEditionId?: number,
-  ): Promise<number> {
+  ): Promise<AverageRetrievabilityType> {
     return (
       await this.prismaService.$queryRawTyped(
         getWeekAverageProviderRetrievabilityAcc(
@@ -353,24 +368,35 @@ export class StorageProviderService {
           filPlusEditionId,
         ),
       )
-    )[0].average;
+    )[0];
   }
 
   public calculateProviderComplianceScore(
     providerWeekly: StorageProviderWeekly,
-    weekAverageHttpRetrievability: number,
+    weekAverageRetrievability: AverageRetrievabilityType,
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): StorageProviderComplianceScore {
     let complianceScore = 0;
 
-    // Question - do we make a cutoff date for this? (like use normal rate
-    // till 25w4 and http rate after that)?
+    // when http retrievability is checked
     if (
-      !metricsToCheck?.retrievability ||
+      metricsToCheck?.retrievabilityType === RetrievabilityType.http &&
+      weekAverageRetrievability.http &&
       providerWeekly.avg_retrievability_success_rate_http >
-        weekAverageHttpRetrievability
-    )
+        weekAverageRetrievability.http
+    ) {
       complianceScore++;
+    }
+
+    // when rpa retrievability is checked
+    if (
+      metricsToCheck?.retrievabilityType === RetrievabilityType.urlFinder &&
+      weekAverageRetrievability.urlFinder &&
+      providerWeekly.avg_retrievability_success_rate_url_finder >
+        weekAverageRetrievability.urlFinder
+    ) {
+      complianceScore++;
+    }
 
     if (!metricsToCheck?.numberOfClients || providerWeekly.num_of_clients > 3)
       complianceScore++;

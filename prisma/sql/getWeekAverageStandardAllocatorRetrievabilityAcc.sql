@@ -43,13 +43,20 @@ with "active_allocators" as (
             ) ?| array ['Enterprise Data', 'Automated', 'Faucet', 'Market Based']
         )
 )
-select case
-        when $2 = 'http' then avg("avg_weighted_retrievability_success_rate_http")
-        when $2 = 'urlFinder' then avg(
-            "avg_weighted_retrievability_success_rate_url_finder"
-        )
-        else avg("avg_weighted_retrievability_success_rate")
-    end as "average"
+select avg("avg_weighted_retrievability_success_rate_http") filter (
+        where $2 = 'http'
+            or $2 is null
+    ) as "http",
+    avg(
+        "avg_weighted_retrievability_success_rate_url_finder"
+    ) filter (
+        where $2 = 'urlFinder'
+            or $2 is null
+    ) as "urlFinder",
+    avg("avg_weighted_retrievability_success_rate") filter (
+        where ($2 not in ('http', 'urlFinder'))
+            or $2 is null
+    ) as "spark"
 from "allocators_weekly_acc"
     left join "allocator" on "allocators_weekly_acc"."allocator" = "allocator"."id"
     join "active_in_edition" on "active_in_edition"."allocator_id" = "allocator"."id"

@@ -79,29 +79,38 @@ export class HistogramWeekFlat extends Histogram {
 
 export class RetrievabilityHistogramWeek extends HistogramWeekResults {
   @ApiProperty({
-    description: 'Average retrievability success rate in the week',
+    description: 'Average HTTP retrievability success rate in the week',
   })
-  averageSuccessRate: number;
+  averageHttpSuccessRate: number;
+
+  @ApiProperty({
+    description: 'Average URL Finder retrievability success rate in the week',
+  })
+  averageUrlFinderSuccessRate: number;
 
   constructor(
     week: Date,
     total: number,
     results: Histogram[],
-    averageSuccessRate: number,
+    averageHttpSuccessRate: number,
+    averageUrlFinderSuccessRate: number,
   ) {
     super(week, total, results);
-    this.averageSuccessRate = averageSuccessRate;
+    this.averageHttpSuccessRate = averageHttpSuccessRate;
+    this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
   }
 
   public static of(
     histogramWeek: HistogramWeekResults,
-    averageSuccessRate: number,
+    averageHttpSuccessRate: number,
+    averageUrlFinderSuccessRate: number,
   ): RetrievabilityHistogramWeek {
     return new RetrievabilityHistogramWeek(
       histogramWeek.week,
       histogramWeek.total,
       histogramWeek.results,
-      averageSuccessRate,
+      averageHttpSuccessRate,
+      averageUrlFinderSuccessRate,
     );
   }
 }
@@ -138,19 +147,28 @@ export class RetrievabilityHistogramWeekResults {
 
 export class RetrievabilityWeek {
   @ApiProperty({
-    description: 'Last full week average retrievability success rate',
+    description: 'Last full week average HTTP retrievability success rate',
     nullable: true,
   })
-  averageSuccessRate: number | null;
+  averageHttpSuccessRate: number | null;
+
+  @ApiProperty({
+    description:
+      'Last full week average URL Finder retrievability success rate',
+    nullable: true,
+  })
+  averageUrlFinderSuccessRate: number | null;
 
   @ApiProperty({ type: RetrievabilityHistogramWeekResults })
   histogram: RetrievabilityHistogramWeekResults;
 
   constructor(
-    averageSuccessRate: number,
+    averageHttpSuccessRate: number | null,
+    averageUrlFinderSuccessRate: number | null,
     histogram: RetrievabilityHistogramWeekResults,
   ) {
-    this.averageSuccessRate = averageSuccessRate;
+    this.averageHttpSuccessRate = averageHttpSuccessRate;
+    this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
     this.histogram = histogram;
   }
 }

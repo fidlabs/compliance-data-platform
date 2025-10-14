@@ -1,5 +1,6 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
+import { RetrievabilityType } from 'src/controller/stats/allocators/types.allocator-stats';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { stringToBool } from 'src/utils/utils';
 
@@ -93,14 +94,20 @@ export class StorageProviderComplianceWeekResults extends IntersectionType(
 
   @ApiProperty({
     description:
-      'Average storage providers retrievability success rate in the week',
+      'Average storage providers HTTP retrievability success rate in the week',
   })
-  averageSuccessRate: number;
+  averageHttpSuccessRate: number;
+
+  @ApiProperty({
+    description:
+      'Average storage providers Url Finder retrievability success rate in the week',
+  })
+  averageUrlFinderSuccessRate: number;
 }
 
 export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   @ApiProperty()
-  retrievability: boolean;
+  retrievabilityType?: RetrievabilityType;
 
   @ApiProperty()
   numberOfClients: boolean;
@@ -109,21 +116,21 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   totalDealSize: boolean;
 
   constructor(
-    retrievability = true,
     numberOfClients = true,
     totalDealSize = true,
+    retrievabilityType = null,
   ) {
     super();
-    this.retrievability = retrievability;
+    this.retrievabilityType = retrievabilityType;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
   }
 
   public static of(metrics: StorageProviderComplianceMetricsRequest) {
     return new StorageProviderComplianceMetrics(
-      stringToBool(metrics.retrievability) ?? true,
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
+      metrics.retrievabilityType,
     );
   }
 }
@@ -136,20 +143,28 @@ export class StorageProviderComplianceWeek {
 
   @ApiProperty({
     description:
-      'Last full week average storage providers retrievability success rate',
+      'Last full week average storage providers HTTP retrievability success rate',
   })
-  averageSuccessRate: number;
+  averageHttpSuccessRate: number;
+
+  @ApiProperty({
+    description:
+      'Last full week average storage providers URL Finder retrievability success rate',
+  })
+  averageUrlFinderSuccessRate: number;
 
   @ApiProperty({ type: StorageProviderComplianceWeekResults, isArray: true })
   results: StorageProviderComplianceWeekResults[];
 
   constructor(
     metricsChecked: StorageProviderComplianceMetrics,
-    averageSuccessRate: number,
+    averageHttpSuccessRate: number,
+    averageUrlFinderSuccessRate: number,
     results: StorageProviderComplianceWeekResults[],
   ) {
     this.metricsChecked = metricsChecked;
-    this.averageSuccessRate = averageSuccessRate;
+    this.averageHttpSuccessRate = averageHttpSuccessRate;
+    this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
     this.results = results;
   }
 }
