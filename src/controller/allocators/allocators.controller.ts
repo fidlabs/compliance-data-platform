@@ -14,16 +14,25 @@ import {
   getCurrentFilPlusEdition,
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
-import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
+import {
+  lastWeek,
+  stringToBool,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
 import {
+  AllocatorsScoringSystemRankingDataType,
   GetAllocatorsRequest,
+  GetAllocatorsLatestScoresRankingRequest,
+  GetAllocatorsLatestScoresRankingResponse,
   GetDatacapFlowDataRequest,
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
 } from './types.allocators';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
+import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -33,6 +42,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly allocatorService: AllocatorService,
+    private readonly allocatorScoringService: AllocatorScoringService,
   ) {
     super();
   }
@@ -60,6 +70,59 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
         : getCurrentFilPlusEdition().id,
       data: dcFlowData,
     };
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 60 * 4 }) // 4 hours
+  private async _getAllocatorsLatestScoresRanking(): Promise<
+    GetAllocatorsLatestScoresRankingResponse[]
+  > {
+    const latestScores = await this.allocatorScoringService.getLatestScores();
+
+    const registryInfoMap =
+      await this.allocatorService.getAllocatorRegistryInfoMap();
+
+    const result = await Promise.all(
+      latestScores.map(async (allocator) => ({
+        allocatorId: allocator.allocator,
+        allocatorName: (
+          await this.allocatorService.getAllocatorData(allocator.allocator)
+        ).name,
+        totalScore: allocator.total_score,
+        maxPossibleScore: allocator.max_possible_score,
+        scorePercentage: (
+          (allocator.total_score / allocator.max_possible_score) *
+          100
+        ).toFixed(2),
+        dataType: (await this.allocatorService.isAllocatorOpenData(
+          allocator.allocator,
+          registryInfoMap[allocator.allocator]?.registry_info,
+        ))
+          ? AllocatorsScoringSystemRankingDataType.openData
+          : AllocatorsScoringSystemRankingDataType.enterprise,
+      })),
+    );
+
+    return result.sort(
+      (a, b) =>
+        stringToNumber(b.scorePercentage) - stringToNumber(a.scorePercentage),
+    );
+  }
+
+  @Get('/latest-scores')
+  @ApiOperation({
+    summary: 'Get allocators latest scores ranking',
+  })
+  @ApiOkResponse({
+    description: 'Allocators latest scores ranking',
+    type: GetAllocatorsLatestScoresRankingResponse,
+    isArray: true,
+  })
+  public async getAllocatorsLatestScoresRanking(
+    @Query() query: GetAllocatorsLatestScoresRankingRequest,
+  ): Promise<GetAllocatorsLatestScoresRankingResponse[]> {
+    return (await this._getAllocatorsLatestScoresRanking()).filter(
+      (item) => !query.dataType || item.dataType === query.dataType,
+    );
   }
 
   @Get('/audit-states')

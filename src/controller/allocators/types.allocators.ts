@@ -12,6 +12,50 @@ import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
+export enum AllocatorsScoringSystemRankingDataType {
+  openData = 'openData',
+  enterprise = 'enterprise',
+}
+
+export class GetAllocatorsLatestScoresRankingRequest {
+  @ApiPropertyOptional({
+    enum: AllocatorsScoringSystemRankingDataType,
+    description: 'Type of data to use for ranking; default is all data',
+  })
+  dataType?: AllocatorsScoringSystemRankingDataType;
+}
+
+export class GetAllocatorsLatestScoresRankingResponse {
+  @ApiProperty({ description: 'Allocator ID' })
+  allocatorId: string;
+
+  @ApiProperty({ description: 'Allocator name' })
+  allocatorName: string;
+
+  @ApiProperty({
+    description: 'Total score of the allocator from the latest report',
+  })
+  totalScore: number;
+
+  @ApiProperty({
+    description:
+      'Maximum possible score of the allocator from the latest report',
+  })
+  maxPossibleScore: number;
+
+  @ApiProperty({
+    description:
+      'Percentage of the total score over the maximum possible score',
+  })
+  scorePercentage: string;
+
+  @ApiProperty({
+    enum: AllocatorsScoringSystemRankingDataType,
+    description: 'Type of data allocator is using',
+  })
+  dataType: AllocatorsScoringSystemRankingDataType;
+}
+
 export class GetDatacapFlowDataRequest {
   @ApiPropertyOptional({
     description:
