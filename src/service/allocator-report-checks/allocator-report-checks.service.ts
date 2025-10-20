@@ -8,7 +8,9 @@ import {
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
+import { getFilPlusEditionById } from 'src/utils/filplus-edition';
 import { envNotSet, stringToNumber } from 'src/utils/utils';
+import { ClientService } from '../client/client.service';
 
 const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<
   keyof typeof ClientReportCheck,
@@ -54,6 +56,18 @@ const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<
     'stored unique datasets larger than declared',
 };
 
+type ClientAllocations = {
+  clientId: string;
+  allocations: {
+    id: string;
+    allocatorReportId: string;
+    clientId: string;
+    allocation: bigint;
+    timestamp: Date;
+  }[];
+  totalRequestedAmount: bigint;
+};
+
 @Injectable()
 export class AllocatorReportChecksService {
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
@@ -64,6 +78,7 @@ export class AllocatorReportChecksService {
   constructor(
     configService: ConfigService,
     private readonly prismaService: PrismaService,
+    private readonly clientService: ClientService,
   ) {
     this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES =
       configService.get<number>(
@@ -75,6 +90,7 @@ export class AllocatorReportChecksService {
     await this.storeClientMultipleAllocators(reportId);
     await this.storeClientNotEnoughCopies(reportId);
     await this.storeAllocatorChecksBasedOnClientReportChecks(reportId);
+    await this.storeAllocatorTrancheScheduleCheck(reportId);
   }
 
   private getClientReportCheckFailMessage(
@@ -278,5 +294,136 @@ export class AllocatorReportChecksService {
         }),
       ),
     );
+  }
+
+  public async storeAllocatorTrancheScheduleCheck(reportId: string) {
+    const allocatorReport = await this.prismaService.allocator_report.findFirst(
+      {
+        where: {
+          id: reportId,
+        },
+        include: {
+          client_allocations: {
+            omit: {
+              id: true,
+              allocator_report_id: true,
+            },
+            where: {
+              timestamp: {
+                gte: getFilPlusEditionById(6)?.startDate, // filter only allocations started from fil+ edition 6
+              },
+            },
+            orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }], // important! order by timestamp asc to get allocations in the order they were given
+          },
+          clients: {
+            where: {
+              last_datacap_spent: {
+                gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only "active" clients - spent datacap in the last 60 days
+              },
+            },
+          },
+        },
+      },
+    );
+
+    const validatedAllocator = await this.prismaService.$queryRaw<
+      {
+        allocator_id: string;
+        is_metaallocator: boolean;
+        registry_info: string;
+      }[]
+    >`select 
+          "allocator_registry"."allocator_id"  as "allocator_id",
+          "allocator"."is_metaallocator"       as "is_metaallocator",
+          "allocator_registry"."registry_info" as "registry_info"
+        from "allocator" 
+          left join "allocator_registry" on "allocator"."id" = "allocator_registry"."allocator_id" 
+        where 
+          "allocator"."id"::text = ${allocatorReport.allocator}
+            and "allocator"."is_metaallocator" = false
+            and lower("allocator_registry"."registry_info"::"jsonb"->'application'->>'tranche_schedule') = 'i will use the standard allocation tranche schedule';
+      `;
+
+    if (!validatedAllocator?.[0] || !allocatorReport.client_allocations.length)
+      return; // skip check for: non-manual tranche schedule allocators, metaallocators and when there are no allocations
+
+    const clientsAllocations = groupBy(
+      allocatorReport.client_allocations,
+      (a) => a.client_id,
+    );
+
+    const clientAllocationToVerify: ClientAllocations[] = await Promise.all(
+      Object.keys(clientsAllocations).map(async (clientId) => {
+        return {
+          clientId: clientId,
+          allocations: clientsAllocations[clientId].map((allocation) => {
+            return {
+              id: allocation.id,
+              allocatorReportId: allocation.allocator_report_id,
+              clientId: allocation.client_id,
+              allocation: allocation.allocation,
+              timestamp: allocation.timestamp,
+            };
+          }),
+          totalRequestedAmount:
+            (await this.clientService.getClientBookkeepingInfo(clientId))
+              ?.totalRequestedAmount || 0n,
+        };
+      }),
+    );
+
+    const verifiedClientAllocations = clientAllocationToVerify.map((client) =>
+      this.validateAllocations(client),
+    );
+
+    const invalidAllocations = verifiedClientAllocations.filter(
+      (result) => !result.isValid,
+    );
+
+    const checkPassed = invalidAllocations.length === 0;
+
+    await this.prismaService.allocator_report_check_result.create({
+      data: {
+        allocator_report_id: reportId,
+        check: AllocatorReportCheck.MANUAL_ALLOCATION_SCHEDULE,
+        result: checkPassed,
+        metadata: {
+          msg: checkPassed
+            ? 'All active clients receive allocations according to the tranche schedule'
+            : `${invalidAllocations.length} of ${verifiedClientAllocations.length} active clients did not receive allocations according to the tranche schedule`,
+        },
+      },
+    });
+  }
+
+  private validateAllocations(clientAllocations: ClientAllocations): {
+    clientId: string;
+    isValid: boolean;
+  } {
+    const { clientId, allocations, totalRequestedAmount } = clientAllocations;
+    let isValid = true;
+
+    for (let i = 0; i < allocations.length; i++) {
+      const { allocation } = allocations[i];
+      const prev = i > 0 ? allocations[i - 1] : null;
+
+      const maxPercentForAllocation = [5n, 10n, 15n, 20n][i] ?? 25n;
+
+      const trancheThresholdValue =
+        (totalRequestedAmount * BigInt(maxPercentForAllocation)) / 100n;
+
+      if (allocation > trancheThresholdValue) {
+        isValid = false;
+        break;
+      }
+
+      // check 2x increase from previous allocation
+      if (prev && allocation > prev.allocation * 2n) {
+        isValid = false;
+        break;
+      }
+    }
+
+    return { clientId, isValid };
   }
 }
