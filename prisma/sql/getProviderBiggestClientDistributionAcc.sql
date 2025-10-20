@@ -8,6 +8,7 @@ with "providers_with_ratio" as (select "week"                                   
                                 from "client_provider_distribution_weekly_acc"
                                 where ($1::date is null or "week" >= $1) and ($2::date is null or "week" <= $2)
                                 group by "provider", "week")
+--
 select "week"                                                 as "week",
        100 * ceil("biggestToTotalRatio"::float * 20) / 20 - 5 as "valueFromExclusive",
        100 * ceil("biggestToTotalRatio"::float * 20) / 20     as "valueToInclusive",

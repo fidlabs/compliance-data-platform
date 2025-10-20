@@ -8,8 +8,8 @@ with "with_week" as (select "date",
                             "total",
                             date_trunc('week', "date") as "week"
                     from "ipni_reporting_daily"
-                    where ($1::date is null or "date" >= $1) and ($2::date is null or "date" <= $2)
-)
+                    where ($1::date is null or "date" >= $1) and ($2::date is null or "date" <= $2))
+--
 select distinct on ("week") "week",
                             "ok",
                             "not_reporting",
