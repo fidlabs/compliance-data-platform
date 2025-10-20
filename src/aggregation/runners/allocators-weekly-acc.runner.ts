@@ -41,16 +41,16 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
           AllocatorsWeeklyAccRunner.name,
         );
 
-        const query = getAllocatorRetrievabilityWeekly().sql;
-
-        const i = queryIterablePool.query(query);
+        const result = queryIterablePool.query(
+          getAllocatorRetrievabilityWeekly().sql,
+        );
 
         const data: AllocatorWeekly[] = [];
 
         let isFirstInsert = true;
         let storeDataEndTimerMetric;
 
-        for await (const rowResult of i) {
+        for await (const rowResult of result) {
           data.push({
             week: rowResult.week,
             allocator: rowResult.allocator,
