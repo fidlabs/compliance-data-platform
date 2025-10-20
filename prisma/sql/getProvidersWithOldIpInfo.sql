@@ -4,7 +4,7 @@ with "providers" as (select distinct "provider"
      "latest_updates" as (select "provider", max("date") as "latest_update"
                           from "provider_ip_info"
                           group by "provider")
-
+--
 select "provider"
 from "providers"
          left join "latest_updates" using ("provider")

@@ -7,6 +7,7 @@ with "clients_per_provider" as (select "week"                   as "week",
                                 from "client_provider_distribution_weekly_acc"
                                 WHERE ($1::date is null or "week" >= $1) and ($2::date is null or "week" <= $2)
                                 group by "provider", "week")
+--
 select "week"                      as "week",
        ("clientsCount" - 1)::int   as "valueFromExclusive",
        "clientsCount"::int         as "valueToInclusive",
