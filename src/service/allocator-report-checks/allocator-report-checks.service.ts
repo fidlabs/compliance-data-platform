@@ -8,7 +8,7 @@ import {
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
-import { filPlusEditions } from 'src/utils/filplus-edition';
+import { getFilPlusEditionById } from 'src/utils/filplus-edition';
 import { envNotSet, stringToNumber } from 'src/utils/utils';
 import { ClientService } from '../client/client.service';
 
@@ -393,7 +393,7 @@ export class AllocatorReportChecksService {
             },
             where: {
               timestamp: {
-                gte: filPlusEditions.find((x) => x.id === 6)?.startDate, // filter only allocations started from Fil+ edition 6
+                gte: getFilPlusEditionById(6)?.startDate, // filter only allocations started from fil+ edition 6
               },
             },
             orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }], // important! order by timestamp asc to get allocations in the order they were given
@@ -416,15 +416,15 @@ export class AllocatorReportChecksService {
         registry_info: string;
       }[]
     >`select 
-          "allocator_registry"."allocator_id" as "allocator_id",
-          "allocator"."is_metaallocator" as "is_metaallocator",
+          "allocator_registry"."allocator_id"  as "allocator_id",
+          "allocator"."is_metaallocator"       as "is_metaallocator",
           "allocator_registry"."registry_info" as "registry_info"
         from "allocator" 
           left join "allocator_registry" on "allocator"."id" = "allocator_registry"."allocator_id" 
         where 
-          "allocator"."id"::text = ${allocatorReport.allocator} and 
-          "allocator"."is_metaallocator" = false and
-          lower("allocator_registry"."registry_info"::"jsonb"->'application'->>'tranche_schedule') = 'i will use the standard allocation tranche schedule';
+          "allocator"."id"::text = ${allocatorReport.allocator}
+            and "allocator"."is_metaallocator" = false
+            and lower("allocator_registry"."registry_info"::"jsonb"->'application'->>'tranche_schedule') = 'i will use the standard allocation tranche schedule';
       `;
 
     if (!validatedAllocator?.[0] || !allocatorReport.client_allocations.length)
@@ -438,7 +438,7 @@ export class AllocatorReportChecksService {
     const clientAllocationToVerify: ClientAllocations[] = await Promise.all(
       Object.keys(clientsAllocations).map(async (clientId) => {
         return {
-          clientId,
+          clientId: clientId,
           allocations: clientsAllocations[clientId].map((allocation) => {
             return {
               id: allocation.id,
@@ -479,35 +479,21 @@ export class AllocatorReportChecksService {
     });
   }
 
-  private validateAllocations(client: ClientAllocations) {
-    const { clientId, allocations, totalRequestedAmount } = client;
+  private validateAllocations(clientAllocations: ClientAllocations): {
+    clientId: string;
+    isValid: boolean;
+  } {
+    const { clientId, allocations, totalRequestedAmount } = clientAllocations;
     let isValid = true;
 
     for (let i = 0; i < allocations.length; i++) {
       const { allocation } = allocations[i];
       const prev = i > 0 ? allocations[i - 1] : null;
 
-      let maxPercent: bigint;
-      switch (i) {
-        case 0:
-          maxPercent = 5n;
-          break; // 5%
-        case 1:
-          maxPercent = 10n;
-          break; // 10%
-        case 2:
-          maxPercent = 15n;
-          break; // 15%
-        case 3:
-          maxPercent = 20n;
-          break; // 20%
-        default:
-          maxPercent = 25n;
-          break; // 25% for 5+
-      }
+      const maxPercentForAllocation = [5n, 10n, 15n, 20n][i] ?? 25n;
 
       const trancheThresholdValue =
-        (totalRequestedAmount * BigInt(maxPercent)) / 100n;
+        (totalRequestedAmount * BigInt(maxPercentForAllocation)) / 100n;
 
       if (allocation > trancheThresholdValue) {
         isValid = false;
