@@ -4,12 +4,12 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                               current_timestamp,
                               '1 week'::interval
                       ) as "dates"),
-
+--
      "old_allocators_weekly" as (select distinct "weeks"."week",
                                                  "old_datacap_balance_nv22"."allocator"
                                  from "weeks",
                                       "old_datacap_balance_nv22"),
-
+--
      "old_dc_balance" as (select "old_allocators_weekly"."week",
                                  "old_allocators_weekly"."allocator",
                                  greatest(
@@ -23,7 +23,7 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                           from "old_allocators_weekly"
                                    inner join "old_datacap_balance_nv22" using ("allocator")
                                    left join "allocators_weekly_acc" using ("week", "allocator"))
-
+--
 select "week",
        "allocator",
        "old_dc_balance",

@@ -4,13 +4,13 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                               current_timestamp,
                               '1 week'::interval
                       ) as "dates"),
-
+--
      "base_balance" as (select "week",
                                "client",
                                "old_dc_balance"
                         from "weeks",
                              "old_datacap_client_balance_nv22"),
-
+--
      "dc_usage" as (select "week",
                            "client",
                            "allocator",
@@ -18,7 +18,7 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                            sum("sum_of_allocations") over (partition by "allocator" order by "week" asc, "client" asc) as "total_used_by_allocator"
                     from "client_allocator_distribution_weekly"
                     order by "week"),
-
+--
      "remaining_old_dc" as (select "dc_usage"."week",
                                    "dc_usage"."client",
                                    "dc_usage"."sum_of_allocations",
@@ -26,7 +26,7 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                             from "dc_usage"
                                      inner join "old_datacap_balance_nv22"
                                                 using ("allocator")),
-
+--
      "old_dc_allocations" as (select "week",
                                      "client",
                                      sum(greatest(
@@ -39,13 +39,13 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                               from "remaining_old_dc"
                               group by "week",
                                        "client"),
-
+--
      "weekly_claims" as (select "client",
                                 date_trunc('week', "hour") as "week",
                                 sum("total_deal_size")     as "total_claims"
                          from "client_claims_hourly"
                          group by "client", "week"),
-
+--
      "old_dc_balance" as (select "week",
                                  "client",
                                  "total_claims",
@@ -60,7 +60,7 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                                    full join "base_balance" using ("week", "client")
                                    left join "weekly_claims" using ("week", "client")
                           window "w" as (partition by "client" order by "week")),
-
+--
      "balance_and_claims" as (select "week",
                                      "client",
                                      "old_dc_balance"::bigint,
@@ -75,7 +75,7 @@ with "weeks" as (select date_trunc('week', "dates") as "week"
                                              0
                                      )::bigint as "claims"
                               from "old_dc_balance")
-
+--
 select "week",
        "client",
        "allocations",
