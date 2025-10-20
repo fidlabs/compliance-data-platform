@@ -177,3 +177,92 @@ export class GetAllocatorReportChecksDetailsResponse {
   })
   results: AllocatorReportChecksDetails[];
 }
+
+export class AllocatorReportChecksSummaryByCheckDataAllocator {
+  @ApiProperty({ description: 'Allocator ID' })
+  allocatorId: string;
+
+  @ApiProperty({
+    description: 'Total datacap of the allocator at a given time',
+    format: 'int64',
+    example: '42',
+    nullable: true,
+  })
+  totalDatacap: string | null;
+}
+
+export class AllocatorReportChecksSummaryByCheckData {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'Date of the summary; ISO format',
+  })
+  date: Date;
+
+  @ApiProperty({
+    description:
+      'Unique allocators that failed the check; check is considered failed if it failed in any report in a given time period',
+  })
+  failedAllocators: AllocatorReportChecksSummaryByCheckDataAllocator;
+
+  @ApiProperty({
+    description:
+      'Unique allocators that passed the check; check is considered passed if it passed in all reports in a given time period',
+  })
+  passedAllocators: AllocatorReportChecksSummaryByCheckDataAllocator;
+
+  @ApiProperty({
+    description: 'Number of unique allocators that failed the check',
+  })
+  checkFailedAllocatorsCount: number;
+
+  @ApiProperty({
+    description: 'Number of unique allocators that passed the check',
+  })
+  checkPassedAllocatorsCount: number;
+
+  @ApiProperty({
+    description: 'Total datacap of unique allocators that failed the check',
+    format: 'int64',
+    example: '42',
+  })
+  checkFailedAllocatorsDatacap: string;
+
+  @ApiProperty({
+    description: 'Total datacap of unique allocators that passed the check',
+    format: 'int64',
+    example: '42',
+  })
+  checkPassedAllocatorsDatacap: string;
+}
+
+export class GetAllocatorReportChecksSummaryByCheckResponse {
+  @ApiProperty({
+    description: 'Check type',
+    enum: AllocatorReportCheck,
+  })
+  check: AllocatorReportCheck;
+
+  @ApiProperty({ description: 'Check name' })
+  checkName: string;
+
+  @ApiProperty({ description: 'Check description' })
+  checkDescription: string;
+
+  @ApiProperty({
+    description: 'List of summary data grouped by week/month',
+    type: AllocatorReportChecksSummaryByCheckData,
+    isArray: true,
+  })
+  data: AllocatorReportChecksSummaryByCheckData[];
+}
+
+export class GetAllocatorReportChecksSummaryByCheckRequest {
+  @ApiPropertyOptional({
+    description: 'Group by week or month; default is week',
+    enum: ['week', 'month'],
+    example: 'week',
+  })
+  groupBy?: 'week' | 'month';
+}

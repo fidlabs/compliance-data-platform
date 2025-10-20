@@ -433,6 +433,8 @@ model allocator_report_check_result {
   create_date         DateTime             @default(now())
   result              Boolean?
   check               AllocatorReportCheck
+  check_name          String?
+  check_description   String?
   allocator_report    allocator_report     @relation(fields: [allocator_report_id], references: [id])
   allocator_report_id String               @db.Uuid
   metadata            Json?
@@ -565,6 +567,7 @@ enum ClientReportCheck {
 enum AllocatorReportCheck {
   CLIENT_MULTIPLE_ALLOCATORS
   CLIENT_NOT_ENOUGH_COPIES
+
   // client reports checks
   STORAGE_PROVIDER_DISTRIBUTION_ALL_LOCATED_IN_THE_SAME_REGION
   STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_EXCEED_PROVIDER_DEAL
@@ -585,5 +588,4 @@ enum AllocatorReportCheck {
   NOT_ENOUGH_COPIES
   INACTIVITY
   UNIQ_DATA_SET_SIZE_TO_DECLARED
-  // ----------------------
 }

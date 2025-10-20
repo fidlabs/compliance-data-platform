@@ -1,4 +1,11 @@
-import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  Query,
+} from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
@@ -7,11 +14,14 @@ import {
   GetAllocatorReportChecksDetailsRequest,
   GetAllocatorReportChecksDailyResponse,
   GetAllocatorReportChecksDetailsResponse,
+  GetAllocatorReportChecksSummaryByCheckResponse,
+  GetAllocatorReportChecksSummaryByCheckRequest,
 } from './types.report-checks';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   getAllocatorReportChecksDaily,
   getAllocatorReportChecksDetails,
+  getAllocatorReportChecksSummaryByCheck,
   getAllocatorReportChecksWeekly,
 } from 'prisma/generated/client/sql';
 import { lastWeek, stringToDate, yesterday } from 'src/utils/utils';
@@ -32,6 +42,7 @@ export class ReportChecksController {
   @ApiOkResponse({
     type: ReportChecksWeek,
     isArray: true,
+    description: 'List of weekly report checks summary',
   })
   public async getAllocatorReportChecksWeekly(): Promise<ReportChecksWeek[]> {
     return this.prismaService.$queryRawTyped(getAllocatorReportChecksWeekly());
@@ -43,6 +54,7 @@ export class ReportChecksController {
   })
   @ApiOkResponse({
     type: GetAllocatorReportChecksDailyResponse,
+    description: 'Daily report checks summary for the given week',
   })
   public async getAllocatorReportChecksDaily(
     @Query() query: GetAllocatorReportChecksDailyRequest,
@@ -63,6 +75,7 @@ export class ReportChecksController {
   })
   @ApiOkResponse({
     type: GetAllocatorReportChecksDetailsResponse,
+    description: 'Details of failed report checks for the given day',
   })
   public async getAllocatorReportChecksDetails(
     @Query() query: GetAllocatorReportChecksDetailsRequest,
@@ -80,5 +93,36 @@ export class ReportChecksController {
         failedChecks: r.failedChecks as [],
       })),
     };
+  }
+
+  @Get('/allocator/summary-by-check')
+  @ApiOperation({
+    summary:
+      'Get summary of allocator report checks grouped by check and week/month',
+  })
+  @ApiOkResponse({
+    type: GetAllocatorReportChecksSummaryByCheckResponse,
+    isArray: true,
+    description: 'Summary of report checks grouped by check',
+  })
+  public async getAllocatorReportChecksSummaryByCheck(
+    @Query() query: GetAllocatorReportChecksSummaryByCheckRequest,
+  ): Promise<GetAllocatorReportChecksSummaryByCheckResponse[]> {
+    query.groupBy ??= 'week';
+
+    if (query.groupBy && !['week', 'month'].includes(query.groupBy)) {
+      throw new BadRequestException(
+        `Invalid groupBy value: ${query.groupBy}, must be 'week' or 'month'`,
+      );
+    }
+
+    return (
+      await this.prismaService.$queryRawTyped(
+        getAllocatorReportChecksSummaryByCheck(query.groupBy),
+      )
+    ).map((r) => ({
+      ...r,
+      data: r.data as [],
+    }));
   }
 }
