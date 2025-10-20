@@ -5,7 +5,12 @@ import {
   StorageProviderIpniReportingStatus,
 } from 'prisma/generated/client';
 import { DateTime } from 'luxon';
-import { arrayAverage, bigIntDiv, stringToDate } from 'src/utils/utils';
+import {
+  arrayAverage,
+  bigIntDiv,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 import { AllocatorService } from '../allocator/allocator.service';
 import { filesize } from 'filesize';
 import { Cacheable } from 'src/utils/cacheable';
@@ -163,7 +168,7 @@ export class AllocatorScoringService {
                         on "ar"."id" = "arsr"."allocator_report_id"
                    join "allocator" on "ar"."allocator" = "allocator"."id"
             where "arsr"."metric"::text = ${metric}
-            and "allocator"."is_metaallocator" = false
+              and "allocator"."is_metaallocator" = false
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";
     `;
@@ -182,9 +187,9 @@ export class AllocatorScoringService {
             from "allocator_report" "ar"
                    join "allocator_report_scoring_result" "arsr"
                         on "ar"."id" = "arsr"."allocator_report_id"
-                   join "allocator" on "ar"."allocator" = "allocator"."id"        
+                   join "allocator" on "ar"."allocator" = "allocator"."id"
             where "arsr"."metric"::text = ${metric}
-            and "allocator"."is_metaallocator" = false
+              and "allocator"."is_metaallocator" = false
             group by "ar"."allocator", "ar"."create_date", "arsr"."metric_value"
             order by "ar"."allocator", "ar"."create_date" desc) "t";`;
 
@@ -204,6 +209,7 @@ export class AllocatorScoringService {
     metricName: string,
     metricDescription: string,
     metricUnit: string | null,
+    metricAverage: number | null,
     scoreRanges: {
       metricValueMin: number | null;
       metricValueMax: number | null;
@@ -224,12 +230,14 @@ export class AllocatorScoringService {
       'Type of allocator': isOpenData ? 'Open data' : 'Enterprise',
     };
 
+    metricAverage ??= await this.getMetricAverage(metric);
+
     await this.prismaService.allocator_report_scoring_result.create({
       data: {
         allocator_report_id: reportId,
         metric: metric,
         metric_value: metricValue,
-        metric_average: await this.getMetricAverage(metric),
+        metric_average: metricAverage,
         metric_value_min: metricValueMin,
         metric_value_max:
           metricValueMax ??
@@ -309,6 +317,7 @@ export class AllocatorScoringService {
       'IPNI reporting',
       'Measures if data is correctly reported and indexed in IPNI',
       '%',
+      null,
       [
         { metricValueMin: 0, metricValueMax: 75, score: 0 },
         { metricValueMin: 75, metricValueMax: 99, score: 1 },
@@ -317,7 +326,8 @@ export class AllocatorScoringService {
       {
         'IPNI OK Datacap': this.convertFilesize(ipniOKDatacap),
         'Total Datacap': this.convertFilesize(totalDatacap),
-        'Percentage of IPNI OK datacap': percentageOfIPNIOKDatacap.toString(),
+        'Percentage of IPNI OK datacap':
+          percentageOfIPNIOKDatacap.toString() + '%',
         'Percentage of IPNI OK datacap > 99': '3 points',
         'Percentage of IPNI OK datacap >= 75': '1 point',
         'Percentage of IPNI OK datacap < 75': '0 points',
@@ -329,29 +339,21 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
-    const reportCreateWeekAgo = DateTime.fromJSDate(report.create_date)
-      .startOf('week')
-      .minus({ weeks: 1 }) // no data is available for the current week, so we look one week back
-      .toJSDate();
-
-    const allAllocatorsRetrievabilities =
-      await this.prismaService.allocators_weekly_acc.findMany({
-        where: {
-          week: reportCreateWeekAgo,
-        },
-        select: {
-          allocator: true,
-          avg_weighted_retrievability_success_rate_http: true,
-        },
-      });
-
-    const allocatorRetrievability =
-      (allAllocatorsRetrievabilities.find(
-        (a) => a.allocator === report.allocator,
-      )?.avg_weighted_retrievability_success_rate_http ?? 0) * 100;
+    const allAllocatorsRetrievabilities = await this.prismaService.$queryRaw<
+      {
+        success_rate: number;
+      }[]
+    >`
+      select distinct on ("ar"."allocator")
+             coalesce("ar"."avg_retrievability_success_rate_http", 0) as "success_rate"
+      from "allocator_report" "ar"
+             join "allocator" on "ar"."allocator" = "allocator"."id"
+        and "allocator"."is_metaallocator" = false
+      group by "ar"."allocator", "ar"."create_date", "ar"."avg_retrievability_success_rate_http"
+      order by "ar"."allocator", "ar"."create_date" desc;`;
 
     const sortedRetrievabilities = allAllocatorsRetrievabilities
-      .map((a) => a.avg_weighted_retrievability_success_rate_http || 0)
+      .map((a) => a.success_rate || 0)
       .sort((a, b) => a - b);
 
     const _50thPercentile =
@@ -359,6 +361,9 @@ export class AllocatorScoringService {
 
     const _75thPercentile =
       this.calculateNthPercentile(sortedRetrievabilities, 75) * 100;
+
+    const allocatorRetrievability =
+      (report.avg_retrievability_success_rate_http ?? 0) * 100;
 
     let score = 0;
     if (allocatorRetrievability > _75thPercentile) {
@@ -380,6 +385,7 @@ export class AllocatorScoringService {
       'HTTP retrievability',
       'Measures if data is available to anyone on the network',
       '%',
+      stringToNumber(arrayAverage(sortedRetrievabilities).toFixed(4)) * 100,
       // prettier-ignore
       [
         { metricValueMin: 0, metricValueMax: _50thPercentile, score: 0 },
@@ -387,11 +393,11 @@ export class AllocatorScoringService {
         { metricValueMin: _75thPercentile, metricValueMax: 100, score: 3 },
       ],
       {
-        'Allocator retrievability': allocatorRetrievability.toFixed(2),
+        'Allocator retrievability': allocatorRetrievability?.toFixed(2) + '%',
         '50th percentile of all allocators retrievabilities':
-          _50thPercentile?.toFixed(2),
+          _50thPercentile?.toFixed(2) + '%',
         '75th percentile of all allocators retrievabilities':
-          _75thPercentile?.toFixed(2),
+          _75thPercentile?.toFixed(2) + '%',
         'Allocator retrievability > 75th percentile': '3 points',
         'Allocator retrievability > 50th percentile': '1 point',
         'Allocator retrievability <= 50th percentile': '0 points',
@@ -403,29 +409,20 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 5;
     const enterpriseScoreWeight = 0;
 
-    const reportCreateDayAgo = DateTime.fromJSDate(report.create_date)
-      .startOf('day')
-      .minus({ day: 1 }) // today's data might be incomplete, so we look one day back
-      .toJSDate();
+    const allAllocatorsRetrievabilities = await this.prismaService.$queryRaw<
+      {
+        success_rate: number;
+      }[]
+    >`
+      select distinct on ("ar"."allocator")
+             coalesce("ar"."avg_retrievability_success_rate_url_finder", 0) as "success_rate"
+      from "allocator_report" "ar"
+             join "allocator" on "ar"."allocator" = "allocator"."id"
+        and "allocator"."is_metaallocator" = false
+      group by "ar"."allocator", "ar"."create_date", "ar"."avg_retrievability_success_rate_url_finder"
+      order by "ar"."allocator", "ar"."create_date" desc;`;
 
-    const allStorageProvidersRetrievabilities =
-      await this.prismaService.provider_url_finder_retrievability_daily.findMany(
-        {
-          where: {
-            date: {
-              gte: reportCreateDayAgo,
-              lt: DateTime.fromJSDate(reportCreateDayAgo)
-                .plus({ days: 1 })
-                .toJSDate(),
-            },
-          },
-          select: {
-            success_rate: true,
-          },
-        },
-      );
-
-    const sortedRetrievabilities = allStorageProvidersRetrievabilities
+    const sortedRetrievabilities = allAllocatorsRetrievabilities
       .map((a) => a.success_rate || 0)
       .sort((a, b) => a - b);
 
@@ -458,6 +455,7 @@ export class AllocatorScoringService {
       'RPA retrievability',
       'Verifies real retrievability but from known actors',
       '%',
+      stringToNumber(arrayAverage(sortedRetrievabilities).toFixed(4)) * 100,
       // prettier-ignore
       [
         { metricValueMin: 0, metricValueMax: _50thPercentile, score: 0 },
@@ -465,12 +463,15 @@ export class AllocatorScoringService {
         { metricValueMin: _75thPercentile, metricValueMax: 100, score: 3 },
       ],
       {
-        'Allocator retrievability': allocatorRetrievability?.toFixed(2),
-        '50th Percentile': _50thPercentile?.toFixed(2),
-        '75th Percentile': _75thPercentile?.toFixed(2),
-        'Allocator retrievability > 75th Percentile': '3 points',
-        'Allocator retrievability > 50th Percentile': '1 point',
-        'Allocator retrievability <= 50th Percentile': '0 points',
+        'Allocator RPA retrievability':
+          allocatorRetrievability?.toFixed(2) + '%',
+        '50th Percentile of all allocators RPA retrievabilities':
+          _50thPercentile?.toFixed(2) + '%',
+        '75th Percentile of all allocators RPA retrievabilities':
+          _75thPercentile?.toFixed(2) + '%',
+        'Allocator RPA retrievability > 75th Percentile': '3 points',
+        'Allocator RPA retrievability > 50th Percentile': '1 point',
+        'Allocator RPA retrievability <= 50th Percentile': '0 points',
       },
     );
   }
@@ -536,6 +537,7 @@ export class AllocatorScoringService {
       'CID sharing',
       'Measures the same CID shared between different clients',
       '%',
+      null,
       [
         { metricValueMin: 0, metricValueMax: 0, score: 2 },
         { metricValueMin: 0, metricValueMax: 2, score: 1 },
@@ -549,7 +551,7 @@ export class AllocatorScoringService {
           allocatorClientsWithCIDSharingAllocations,
         ),
         'Percentage of allocations with CID sharing':
-          percentageOfCIDSharing.toFixed(2),
+          percentageOfCIDSharing.toFixed(2) + '%',
         'Percentage of allocations with CID sharing = 0': '2 points',
         'Percentage of allocations with CID sharing > 0 and <= 2': '1 point',
         'Percentage of allocations with CID sharing > 2': '0 points',
@@ -606,6 +608,7 @@ export class AllocatorScoringService {
       'Duplicated data',
       'Measures if this is the same car file that is sealed on the same SP',
       '%',
+      null,
       [
         { metricValueMin: 0, metricValueMax: 0, score: 2 },
         { metricValueMin: 0, metricValueMax: 10, score: 1 },
@@ -615,7 +618,7 @@ export class AllocatorScoringService {
         'Total datacap': this.convertFilesize(totalDatacap),
         'Duplicated datacap': this.convertFilesize(duplicatedDatacap),
         'Percentage of duplicated datacap':
-          percentageOfDuplicatedData.toFixed(2),
+          percentageOfDuplicatedData.toFixed(2) + '%',
         'Percentage of duplicated datacap = 0': '2 points',
         'Percentage of duplicated datacap > 0 and <= 10': '1 point',
         'Percentage of duplicated datacap > 10': '0 points',
@@ -673,6 +676,7 @@ export class AllocatorScoringService {
       isOpenData,
       'Unique dataset size',
       'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)',
+      null,
       null,
       [
         { metricValueMin: 0, metricValueMax: 100, score: 1 },
@@ -760,6 +764,7 @@ export class AllocatorScoringService {
       'Equality of datacap distribution',
       'Measures how is the allocator allocating datacap to clients',
       null,
+      null,
       [
         { metricValueMin: 0.9, metricValueMax: 1.1, score: 3 },
         { metricValueMin: 0.7, metricValueMax: 0.9, score: 2 },
@@ -820,6 +825,7 @@ export class AllocatorScoringService {
       isOpenData,
       'Client diversity',
       'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating',
+      null,
       null,
       [
         { metricValueMin: 0.6, metricValueMax: null, score: 2 },
@@ -885,6 +891,7 @@ export class AllocatorScoringService {
       'Client previous applications',
       'Measures number of clients that are returning customers',
       '%',
+      null,
       [
         { metricValueMin: 75, metricValueMax: 100, score: 2 },
         { metricValueMin: 60, metricValueMax: 75, score: 1 },
@@ -894,7 +901,7 @@ export class AllocatorScoringService {
         'Number of returning clients': returningClients,
         'Total number of clients': totalClients,
         'Percentage of returning clients':
-          returningClientsPercentage.toFixed(2),
+          returningClientsPercentage.toFixed(2) + '%',
         'Percentage of returning clients > 75': '2 points',
         'Percentage of returning clients >= 60': '1 point',
         'Percentage of returning clients < 60': '0 points',

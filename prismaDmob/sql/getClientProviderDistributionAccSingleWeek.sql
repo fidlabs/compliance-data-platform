@@ -15,5 +15,3 @@ select "client"                       as "client",
        sum("piece_size")::bigint      as "unique_data_size"
 from "miner_pieces"
 group by "client", "provider";
-
-

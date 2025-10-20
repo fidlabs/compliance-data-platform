@@ -27,5 +27,4 @@ select "week" as "week",
     max(coalesce("success_rate_url_finder", 0)) as "avg_retrievability_success_rate_url_finder"
 from "client_provider_distribution_weekly_acc"
     left join "provider_retrievability_weekly" as "prw" using ("week", "provider")
-group by "week",
-    "provider";
+group by "week", "provider";

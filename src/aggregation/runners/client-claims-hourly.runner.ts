@@ -28,12 +28,14 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
           total_deal_size: bigint | null;
         }>(postgresService.pool);
 
-        const i = queryIterablePool.query(`select client,
-                                                hour,
-                                                sum(total_deal_size)::bigint as total_deal_size
-                                         from unified_verified_deal_hourly
-                                         group by client,
-                                                  hour;`);
+        const i = queryIterablePool.query(
+          `select "client",
+                  "hour",
+                  sum("total_deal_size")::bigint as "total_deal_size"
+           from "unified_verified_deal_hourly"
+           group by "client",
+                    "hour";`,
+        );
 
         const data: {
           client: string;
