@@ -16,6 +16,7 @@ import { filesize } from 'filesize';
 import { Cacheable } from 'src/utils/cacheable';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
+import { getAllocatorLatestScores } from 'prisma/generated/client/sql';
 
 @Injectable()
 export class AllocatorScoringService {
@@ -71,50 +72,19 @@ export class AllocatorScoringService {
     await this.storeClientPreviousApplicationsScore(report, allocatorDataType);
   }
 
-  public async getLatestScores() {
-    return await this.prismaService.$queryRaw<
-      { total_score: number; max_possible_score: number; allocator: string }[]
-    >`with "max_ranges" as (select "scoring_result_id", max("score") as "max_score"
-                            from "allocator_report_scoring_result_range"
-                            group by "scoring_result_id"),
-           "latest_reports" as (select distinct on ("allocator") "id" as "report_id",
-                                                                 "allocator"
-                                from "allocator_report"
-                                order by "allocator", "create_date" desc)
-      select "ar"."allocator",
-             sum("arsr"."score")::int                as "total_score",
-             sum(coalesce("mr"."max_score", 0))::int as "max_possible_score"
-      from "latest_reports" "ar"
-             join "allocator_report_scoring_result" "arsr"
-                  on "ar"."report_id" = "arsr"."allocator_report_id"
-             left join "max_ranges" "mr"
-                       on "arsr"."id" = "mr"."scoring_result_id"
-      group by "ar"."allocator";
-    `;
+  public async getLatestScores(dataType?: AllocatorDataType) {
+    return await this.prismaService.$queryRawTyped(
+      getAllocatorLatestScores(dataType),
+    );
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getTotalScoreAverage(
     dataType: AllocatorDataType,
   ): Promise<number | null> {
-    const latestScores = await this.getLatestScores();
-    const wantedDataTypeScores: number[] = [];
+    const latestScores = await this.getLatestScores(dataType);
 
-    const registryInfoMap =
-      await this.allocatorService.getAllocatorRegistryInfoMap();
-
-    for (const score of latestScores) {
-      if (
-        (await this.allocatorService.getAllocatorDataType(
-          score.allocator,
-          registryInfoMap[score.allocator]?.registry_info,
-        )) === dataType
-      ) {
-        wantedDataTypeScores.push(score.total_score);
-      }
-    }
-
-    return arrayAverage(wantedDataTypeScores);
+    return arrayAverage(latestScores.map((s) => s.totalScore));
   }
 
   private calculateNthPercentile(
