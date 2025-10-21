@@ -65,6 +65,7 @@ import { edition5AllocatorAuditOutcomesData } from './resources/edition5Allocato
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
 import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
+import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
 
 @Injectable()
 export class AllocatorService {
@@ -96,11 +97,30 @@ export class AllocatorService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getAllocatorRegistryArchiveInfoMap() {
+    const registryInfo =
+      await this.prismaService.allocator_registry_archive.findMany({
+        select: {
+          allocator_id: true,
+          json_path: true,
+          registry_info: true,
+        },
+      });
+
+    return registryInfo.reduce((acc, v) => {
+      acc[v.allocator_id] = v;
+      return acc;
+    }, {});
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getAllocators(
     returnInactive = true,
     isMetaallocator?: boolean,
     filter?: string,
     usingMetaallocatorId?: string,
+    dataType?: AllocatorDataType,
+    filPlusEdition?: FilPlusEdition,
   ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
       getAllocatorsFull(
@@ -121,28 +141,63 @@ export class AllocatorService {
 
     const registryRepoUrlBase = `https://github.com/${registryRepoOwner}/${registryRepoName}/blob/main`;
     const registryInfoMap = await this.getAllocatorRegistryInfoMap();
+    const registryArchiveInfoMap =
+      await this.getAllocatorRegistryArchiveInfoMap();
 
-    return allocators.map((allocator) => {
-      const path = registryInfoMap[allocator.addressId]?.json_path;
+    let result = await Promise.all(
+      allocators.map(async (allocator) => {
+        const path = registryInfoMap[allocator.addressId]?.json_path;
 
-      return {
-        applicationJsonUrl: path ? `${registryRepoUrlBase}/${path}` : null,
-        metapathwayType:
-          registryInfoMap[allocator.addressId]?.registry_info
-            ?.metapathway_type ?? null,
-        applicationAudit:
-          registryInfoMap[
-            allocator.addressId
-          ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
-        ...allocator,
-      };
-    });
+        return {
+          applicationJsonUrl: path ? `${registryRepoUrlBase}/${path}` : null,
+          metapathwayType:
+            registryInfoMap[allocator.addressId]?.registry_info
+              ?.metapathway_type ?? null,
+          applicationAudit:
+            registryInfoMap[
+              allocator.addressId
+            ]?.registry_info?.application?.audit?.[0]?.trim() ?? null,
+          dataType: await this.getAllocatorDataType(
+            allocator.addressId,
+            registryInfoMap[allocator.addressId]?.registry_info,
+          ),
+          ...allocator,
+        };
+      }),
+    );
+
+    if (dataType) result = result.filter((item) => item.dataType === dataType);
+
+    if (filPlusEdition) {
+      if (filPlusEdition?.id === 6)
+        result = result.filter((item) => registryInfoMap[item.addressId]);
+      else if (filPlusEdition?.id === 5)
+        result = result.filter(
+          (item) => registryArchiveInfoMap[item.addressId],
+        );
+      else
+        throw new BadRequestException(
+          `Allocators data not available for edition ${filPlusEdition.id}`,
+        );
+    }
+
+    return result;
   }
 
   public async isAllocatorOpenData(
     allocatorIdOrAddress: string,
     registryInfo?: any,
-  ): Promise<boolean | null> {
+  ): Promise<boolean> {
+    return (
+      (await this.getAllocatorDataType(allocatorIdOrAddress, registryInfo)) ===
+      AllocatorDataType.openData
+    );
+  }
+
+  public async getAllocatorDataType(
+    allocatorIdOrAddress: string,
+    registryInfo?: any,
+  ): Promise<AllocatorDataType | null> {
     registryInfo ??= await this.getAllocatorRegistryInfo(allocatorIdOrAddress);
 
     const enterpriseApplicationAuditOptions = [
@@ -154,9 +209,11 @@ export class AllocatorService {
 
     if (!registryInfo) return null;
 
-    return !registryInfo?.application?.audit?.some((v) =>
+    return registryInfo?.application?.audit?.some((v) =>
       enterpriseApplicationAuditOptions.includes(v.trim()),
-    );
+    )
+      ? AllocatorDataType.enterprise
+      : AllocatorDataType.openData;
   }
 
   public async getAuditTimesByMonthData(
