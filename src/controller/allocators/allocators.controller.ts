@@ -22,7 +22,6 @@ import {
 } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
 import {
-  AllocatorsScoringSystemRankingDataType,
   GetAllocatorsRequest,
   GetAllocatorsLatestScoresRankingRequest,
   GetAllocatorsLatestScoresRankingResponse,
@@ -93,12 +92,10 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           (allocator.total_score / allocator.max_possible_score) *
           100
         ).toFixed(2),
-        dataType: (await this.allocatorService.isAllocatorOpenData(
+        dataType: await this.allocatorService.getAllocatorDataType(
           allocator.allocator,
           registryInfoMap[allocator.allocator]?.registry_info,
-        ))
-          ? AllocatorsScoringSystemRankingDataType.openData
-          : AllocatorsScoringSystemRankingDataType.enterprise,
+        ),
       })),
     );
 
@@ -206,6 +203,8 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       stringToBool(query.isMetaallocator),
       query.filter,
       query.usingMetaallocator,
+      query.dataType,
+      this.getFilPlusEditionFromRequest(query),
     );
 
     return this.withPaginationInfo(

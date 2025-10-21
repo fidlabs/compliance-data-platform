@@ -12,17 +12,17 @@ import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
-export enum AllocatorsScoringSystemRankingDataType {
+export enum AllocatorDataType {
   openData = 'openData',
   enterprise = 'enterprise',
 }
 
 export class GetAllocatorsLatestScoresRankingRequest {
   @ApiPropertyOptional({
-    enum: AllocatorsScoringSystemRankingDataType,
+    enum: AllocatorDataType,
     description: 'Type of data to use for ranking; default is all data',
   })
-  dataType?: AllocatorsScoringSystemRankingDataType;
+  dataType?: AllocatorDataType;
 }
 
 export class GetAllocatorsLatestScoresRankingResponse {
@@ -50,10 +50,10 @@ export class GetAllocatorsLatestScoresRankingResponse {
   scorePercentage: string;
 
   @ApiProperty({
-    enum: AllocatorsScoringSystemRankingDataType,
+    enum: AllocatorDataType,
     description: 'Type of data allocator is using',
   })
-  dataType: AllocatorsScoringSystemRankingDataType;
+  dataType: AllocatorDataType;
 }
 
 export class GetDatacapFlowDataRequest {
@@ -118,6 +118,12 @@ export class GetAllocatorsRequest extends IntersectionType(
     type: Boolean,
   })
   isMetaallocator?: stringifiedBool;
+
+  @ApiPropertyOptional({
+    enum: AllocatorDataType,
+    description: 'Type of data to filter by; default is all data',
+  })
+  dataType?: AllocatorDataType;
 }
 
 export class GetWeekAllocatorsWithSpsComplianceRequestData extends IntersectionType(

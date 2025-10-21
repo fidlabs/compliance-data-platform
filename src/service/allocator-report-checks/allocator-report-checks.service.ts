@@ -215,7 +215,7 @@ export class AllocatorReportChecksService {
     return CLIENT_REPORT_CHECK_DESCRIPTION[clientReportCheck];
   }
 
-  private async storeClientMultipleAllocators(report: any) {
+  private async storeClientMultipleAllocators(report) {
     const clientsUsingMultipleAllocators = report.clients
       .filter(
         (client) =>
@@ -244,7 +244,7 @@ export class AllocatorReportChecksService {
     );
   }
 
-  private async storeClientNotEnoughCopies(report: any) {
+  private async storeClientNotEnoughCopies(report) {
     if (envNotSet(this.CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES)) {
       this.logger.warn(
         `CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES env is not set; skipping check`,
@@ -311,7 +311,7 @@ export class AllocatorReportChecksService {
     return n === 0 ? 'No clients' : n === 1 ? '1 client' : `${n} clients`;
   }
 
-  public async storeAllocatorChecksBasedOnClientReportChecks(report: any) {
+  public async storeAllocatorChecksBasedOnClientReportChecks(report) {
     const allocatorClientsChecks = (
       await Promise.all(
         report.clients.map((client) =>

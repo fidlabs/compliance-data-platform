@@ -15,6 +15,7 @@ import { AllocatorService } from '../allocator/allocator.service';
 import { filesize } from 'filesize';
 import { Cacheable } from 'src/utils/cacheable';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
 
 @Injectable()
 export class AllocatorScoringService {
@@ -47,11 +48,11 @@ export class AllocatorScoringService {
       },
     });
 
-    const isOpenData = await this.allocatorService.isAllocatorOpenData(
+    const allocatorDataType = await this.allocatorService.getAllocatorDataType(
       report.allocator,
     );
 
-    if (isOpenData === null) {
+    if (!allocatorDataType) {
       this.logger.warn(
         `Skipping scoring calculations for round != 6 ${report.allocator}`,
       );
@@ -59,15 +60,15 @@ export class AllocatorScoringService {
       return;
     }
 
-    await this.storeIPNIReportingScore(report, isOpenData);
-    await this.storeHttpRetrievabilityScore(report, isOpenData);
-    await this.storeUrlFinderRetrievabilityScore(report, isOpenData);
-    await this.storeCIDSharingScore(report, isOpenData);
-    await this.storeDuplicatedDataScore(report, isOpenData);
-    await this.storeUniqueDataSetSizeScore(report, isOpenData);
-    await this.storeEqualityOfDatacapDistribution(report, isOpenData);
-    await this.storeClientDiversityScore(report, isOpenData);
-    await this.storeClientPreviousApplicationsScore(report, isOpenData);
+    await this.storeIPNIReportingScore(report, allocatorDataType);
+    await this.storeHttpRetrievabilityScore(report, allocatorDataType);
+    await this.storeUrlFinderRetrievabilityScore(report, allocatorDataType);
+    await this.storeCIDSharingScore(report, allocatorDataType);
+    await this.storeDuplicatedDataScore(report, allocatorDataType);
+    await this.storeUniqueDataSetSizeScore(report, allocatorDataType);
+    await this.storeEqualityOfDatacapDistribution(report, allocatorDataType);
+    await this.storeClientDiversityScore(report, allocatorDataType);
+    await this.storeClientPreviousApplicationsScore(report, allocatorDataType);
   }
 
   public async getLatestScores() {
@@ -94,10 +95,8 @@ export class AllocatorScoringService {
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getTotalScoreAverage(
-    isOpenData: boolean | null,
+    dataType: AllocatorDataType,
   ): Promise<number | null> {
-    if (isOpenData === null) return null;
-
     const latestScores = await this.getLatestScores();
     const wantedDataTypeScores: number[] = [];
 
@@ -106,10 +105,10 @@ export class AllocatorScoringService {
 
     for (const score of latestScores) {
       if (
-        (await this.allocatorService.isAllocatorOpenData(
+        (await this.allocatorService.getAllocatorDataType(
           score.allocator,
           registryInfoMap[score.allocator]?.registry_info,
-        )) === isOpenData
+        )) === dataType
       ) {
         wantedDataTypeScores.push(score.total_score);
       }
@@ -205,7 +204,7 @@ export class AllocatorScoringService {
     score: number,
     openDataScoreWeight: number,
     enterpriseScoreWeight: number,
-    isOpenData: boolean,
+    dataType: AllocatorDataType,
     metricName: string,
     metricDescription: string,
     metricUnit: string | null,
@@ -217,6 +216,8 @@ export class AllocatorScoringService {
     }[],
     metadata?: object,
   ) {
+    const isOpenData = dataType === AllocatorDataType.openData;
+
     const scoreWeight = isOpenData
       ? openDataScoreWeight
       : enterpriseScoreWeight;
@@ -262,7 +263,7 @@ export class AllocatorScoringService {
     });
   }
 
-  private async storeIPNIReportingScore(report, isOpenData: boolean) {
+  private async storeIPNIReportingScore(report, dataType: AllocatorDataType) {
     const openDataScoreWeight = 3;
     const enterpriseScoreWeight = 0;
 
@@ -313,7 +314,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'IPNI reporting',
       'Measures if data is correctly reported and indexed in IPNI',
       '%',
@@ -335,7 +336,10 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeHttpRetrievabilityScore(report, isOpenData: boolean) {
+  private async storeHttpRetrievabilityScore(
+    report,
+    dataType: AllocatorDataType,
+  ) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
@@ -381,7 +385,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'HTTP retrievability',
       'Measures if data is available to anyone on the network',
       '%',
@@ -405,7 +409,10 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeUrlFinderRetrievabilityScore(report, isOpenData: boolean) {
+  private async storeUrlFinderRetrievabilityScore(
+    report,
+    dataType: AllocatorDataType,
+  ) {
     const openDataScoreWeight = 5;
     const enterpriseScoreWeight = 0;
 
@@ -451,7 +458,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'RPA retrievability',
       'Verifies real retrievability but from known actors',
       '%',
@@ -476,7 +483,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeCIDSharingScore(report, isOpenData: boolean) {
+  private async storeCIDSharingScore(report, dataType: AllocatorDataType) {
     const openDataScoreWeight = 3;
     const enterpriseScoreWeight = 3;
 
@@ -533,7 +540,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'CID sharing',
       'Measures the same CID shared between different clients',
       '%',
@@ -559,7 +566,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeDuplicatedDataScore(report, isOpenData: boolean) {
+  private async storeDuplicatedDataScore(report, dataType: AllocatorDataType) {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
@@ -604,7 +611,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'Duplicated data',
       'Measures if this is the same car file that is sealed on the same SP',
       '%',
@@ -626,7 +633,10 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeUniqueDataSetSizeScore(report, isOpenData: boolean) {
+  private async storeUniqueDataSetSizeScore(
+    report,
+    dataType: AllocatorDataType,
+  ) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
@@ -673,7 +683,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'Unique dataset size',
       'Compares the actual unique data to what was declared by the client in their application (size of the one copy of the data set)',
       null,
@@ -700,7 +710,7 @@ export class AllocatorScoringService {
 
   private async storeEqualityOfDatacapDistribution(
     report,
-    isOpenData: boolean,
+    dataType: AllocatorDataType,
   ) {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
@@ -760,7 +770,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'Equality of datacap distribution',
       'Measures how is the allocator allocating datacap to clients',
       null,
@@ -787,7 +797,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeClientDiversityScore(report, isOpenData: boolean) {
+  private async storeClientDiversityScore(report, dataType: AllocatorDataType) {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
@@ -822,7 +832,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'Client diversity',
       'Measures how many clients is an allocator working with, based on the number of months the allocator has been operating',
       null,
@@ -846,7 +856,7 @@ export class AllocatorScoringService {
 
   private async storeClientPreviousApplicationsScore(
     report,
-    isOpenData: boolean,
+    dataType: AllocatorDataType,
   ) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
@@ -887,7 +897,7 @@ export class AllocatorScoringService {
       score,
       openDataScoreWeight,
       enterpriseScoreWeight,
-      isOpenData,
+      dataType,
       'Client previous applications',
       'Measures number of clients that are returning customers',
       '%',

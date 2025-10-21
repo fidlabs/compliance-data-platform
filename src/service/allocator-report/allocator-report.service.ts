@@ -110,7 +110,7 @@ export class AllocatorReportService {
         required_sps: allocatorInfo?.application.required_sps,
         all_allocators_score_avg:
           await this.allocatorScoringService.getTotalScoreAverage(
-            await this.allocatorService.isAllocatorOpenData(
+            await this.allocatorService.getAllocatorDataType(
               allocatorData.addressId,
             ),
           ),
