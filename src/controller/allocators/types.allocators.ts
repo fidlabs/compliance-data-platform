@@ -180,3 +180,5 @@ export class GetAllocatorReportRequest {
   })
   providerPaginationLimit?: string;
 }
+
+export class GetAllocatorVerifiedClientsRequest extends PaginationSortingInfoRequest {}
