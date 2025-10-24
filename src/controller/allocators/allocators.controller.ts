@@ -34,6 +34,7 @@ import {
   stringToNumber,
 } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
+import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
   DashboardStatistic,
   DashboardStatisticValue,
@@ -344,6 +345,30 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       },
       query,
       allocators.length,
+    );
+  }
+
+  @Get('/verified-clients/:allocatorId')
+  @ApiOperation({
+    summary: 'Get paginated list of verified clients for allocator',
+  })
+  @ApiOkResponse({
+    description: 'Paginated list of verified clients for allocator',
+    type: null,
+  })
+  public async getVerifiedClientsByAllocator(
+    @Param('allocatorId') allocatorId: string,
+    @Query() query: GetAllocatorVerifiedClientsRequest,
+  ) {
+    const verifiedClients =
+      await this.allocatorService.getVerifiedClientsByAllocator(allocatorId);
+
+    return this.withPaginationInfo(
+      {
+        data: this.paginated(this.sorted(verifiedClients, query), query),
+      },
+      query,
+      verifiedClients.length,
     );
   }
 
