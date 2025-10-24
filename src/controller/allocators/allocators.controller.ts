@@ -1,5 +1,5 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import {
@@ -18,6 +18,7 @@ import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
 import {
   GetAllocatorsRequest,
+  GetAllocatorVerifiedClientsRequest,
   GetDatacapFlowDataRequest,
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
@@ -229,6 +230,30 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       },
       query,
       allocators.length,
+    );
+  }
+
+  @Get('/verified-clients/:allocatorId')
+  @ApiOperation({
+    summary: 'Get paginated list of verified clients for allocator',
+  })
+  @ApiOkResponse({
+    description: 'Paginated list of verified clients for allocator',
+    type: null,
+  })
+  public async getVerifiedClientsByAllocator(
+    @Param('allocatorId') allocatorId: string,
+    @Query() query: GetAllocatorVerifiedClientsRequest,
+  ) {
+    const verifiedClients =
+      await this.allocatorService.getVerifiedClientsByAllocator(allocatorId);
+
+    return this.withPaginationInfo(
+      {
+        data: this.paginated(this.sorted(verifiedClients, query), query),
+      },
+      query,
+      verifiedClients.length,
     );
   }
 }
