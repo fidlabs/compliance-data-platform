@@ -412,3 +412,5 @@ export class AllocatorsDashboardStatistic extends DashboardStatistic {
 export class GetAllocatorsStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}
+
+export class GetAllocatorVerifiedClientsRequest extends PaginationSortingInfoRequest {}
