@@ -5,16 +5,20 @@ import {
   OldDatacapAllocatorBalanceWeek,
   OldDatacapClientBalanceWeek,
 } from './types.old-datacap';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 
 @Injectable()
 export class OldDatacapService {
   private readonly logger = new Logger(OldDatacapService.name);
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly prismaDmobService: PrismaDmobService,
+  ) {}
 
   public async getAllocatorBalance(): Promise<
     OldDatacapAllocatorBalanceWeek[]
   > {
-    const [aggResults, allRows] = await Promise.all([
+    const [aggResults, allRows, allocators] = await Promise.all([
       this.prismaService.old_datacap_balance_weekly.groupBy({
         by: ['week'],
         _count: {
@@ -45,6 +49,7 @@ export class OldDatacapService {
           ],
         },
       }),
+      this.prismaService.allocator.findMany(),
     ]);
 
     const allocatorData = allRows.map((r) => ({
@@ -55,6 +60,7 @@ export class OldDatacapService {
     }));
 
     const byWeek = groupBy(allocatorData, (row) => row.week);
+    const allocatorsGrouped = groupBy(allocators, (a) => a.id);
 
     return aggResults.map((r) => ({
       week: r.week,
@@ -64,6 +70,8 @@ export class OldDatacapService {
       drilldown:
         byWeek[r.week.toISOString()].map((v) => ({
           allocator: v.allocator,
+          allocatorName:
+            allocatorsGrouped[v.allocator]?.[0]?.name?.trim() || null,
           oldDatacap: v.oldDatacap,
           allocations: v.allocations,
         })) ?? [],
@@ -71,7 +79,7 @@ export class OldDatacapService {
   }
 
   public async getClientBalance(): Promise<OldDatacapClientBalanceWeek[]> {
-    const [dbResults, allRows] = await Promise.all([
+    const [dbResults, allRows, clients] = await Promise.all([
       this.prismaService.old_datacap_client_balance_weekly.groupBy({
         by: ['week'],
         _count: {
@@ -102,6 +110,7 @@ export class OldDatacapService {
           ],
         },
       }),
+      this.prismaDmobService.verified_client.findMany(),
     ]);
 
     const clientData = allRows.map((r) => ({
@@ -112,6 +121,7 @@ export class OldDatacapService {
     }));
 
     const byWeek = groupBy(clientData, (row) => row.week);
+    const clientsGrouped = groupBy(clients, (c) => c.addressId);
 
     return dbResults.map((r) => ({
       week: r.week,
@@ -121,6 +131,7 @@ export class OldDatacapService {
       drilldown:
         byWeek[r.week.toISOString()].map((v) => ({
           client: v.client,
+          clientName: clientsGrouped[v.client]?.[0]?.name?.trim() || null,
           oldDatacap: v.oldDatacap,
           claims: v.claims,
         })) ?? [],

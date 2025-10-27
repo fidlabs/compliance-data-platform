@@ -12,6 +12,7 @@ datasource db {
 model allocator {
   id               String  @id
   address          String  @unique
+  name             String?
   is_virtual       Boolean
   is_metaallocator Boolean
 }
