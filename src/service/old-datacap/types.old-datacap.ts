@@ -5,6 +5,12 @@ export class OldDatacapAllocatorBalance {
   allocator: string;
 
   @ApiProperty({
+    description: 'Allocator name',
+    nullable: true,
+  })
+  allocatorName: string | null;
+
+  @ApiProperty({
     description: 'Old datacap owned by the allocator',
     type: String,
     format: 'int64',
@@ -64,6 +70,12 @@ export class OldDatacapClientBalance {
     description: 'Client ID',
   })
   client: string;
+
+  @ApiProperty({
+    description: 'Client name',
+    nullable: true,
+  })
+  clientName: string | null;
 
   @ApiProperty({
     description: 'Old datacap owned by the client',
