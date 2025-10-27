@@ -5,11 +5,51 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                       from "allocator_report_scoring_result_range"
                       group by "scoring_result_id"),
 --
-     "latest_reports" as (select distinct on ("allocator") "id"        as "report_id",
-                                                           "allocator" as "allocator",
-                                                           "name"      as "name"
-                          from "allocator_report"
-                          order by "allocator", "create_date" desc),
+     "reports_with_offset" as (select "allocator_report"."id"                             as "report_id",
+                                      "allocator_report"."allocator"                      as "allocatorId",
+                                      sum("allocator_report_scoring_result"."score")::int as "totalScore",
+                                      sum(coalesce("max_ranges"."max_score", 0))::int     as "maxPossibleScore",
+                                      "allocator_report"."name"                           as "allocatorName",
+                                      "allocator_report"."create_date"                    as "create_date"
+                               from "allocator_report"
+                                        join "allocator_report_scoring_result"
+                                             on "allocator_report"."id" = "allocator_report_scoring_result"."allocator_report_id"
+                                        left join "max_ranges"
+                                                  on "allocator_report_scoring_result"."id" = "max_ranges"."scoring_result_id"
+                               group by "allocator_report"."id", "allocator_report"."allocator", "allocator_report"."create_date"),
+--
+     "_latest_reports" as (select distinct on ("allocatorId") *
+                           from "reports_with_offset"
+                           where "reports_with_offset"."create_date" <= now()
+                           order by "reports_with_offset"."allocatorId", "reports_with_offset"."create_date" desc),
+--
+     "latest_reports" as (select *,
+                                 case
+                                     when "_latest_reports"."maxPossibleScore" = 0 then 100
+                                     else 100 * "_latest_reports"."totalScore"::float / "_latest_reports"."maxPossibleScore"::float end as "_scorePercentage"
+                          from "_latest_reports"),
+--
+     "_week_ago_reports" as (select distinct on ("allocatorId") *
+                             from "reports_with_offset"
+                             where "reports_with_offset"."create_date" <= now() - interval '7 days'
+                             order by "reports_with_offset"."allocatorId", "reports_with_offset"."create_date" desc),
+--
+     "week_ago_reports" as (select *,
+                                   case
+                                       when "_week_ago_reports"."maxPossibleScore" = 0 then 100
+                                       else 100 * "_week_ago_reports"."totalScore"::float / "_week_ago_reports"."maxPossibleScore"::float end as "_scorePercentage"
+                            from "_week_ago_reports"),
+--
+     "_month_ago_reports" as (select distinct on ("allocatorId") *
+                             from "reports_with_offset"
+                             where "reports_with_offset"."create_date" <= now() - interval '30 days'
+                             order by "reports_with_offset"."allocatorId", "reports_with_offset"."create_date" desc),
+--
+     "month_ago_reports" as (select *,
+                                   case
+                                       when "_month_ago_reports"."maxPossibleScore" = 0 then 100
+                                       else 100 * "_month_ago_reports"."totalScore"::float / "_month_ago_reports"."maxPossibleScore"::float end as "_scorePercentage"
+                            from "_month_ago_reports"),
 --
      "active_allocators" as (select "allocator_id"  as "allocator_id",
                                     "registry_info" as "registry_info",
@@ -47,32 +87,25 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                        "allocator_client_bookkeeping"."bookkeeping_info"::jsonb->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
                ) in ('[x] i confirm', 'yes')),
 --
-     "_result" as (select "latest_reports"."allocator"                        as "allocatorId",
-                          "latest_reports"."name"                             as "allocatorName",
-                          sum("allocator_report_scoring_result"."score")::int as "totalScore",
-                          sum(coalesce("max_ranges"."max_score", 0))::int     as "maxPossibleScore",
-                          case
-                              when "allocator" in (select "allocator_id" from "open_data_pathway_allocators") then 'openData'
-                              else 'enterprise' end                           as "dataType"
-                   from "latest_reports"
-                            join "allocator_report_scoring_result"
-                                 on "latest_reports"."report_id" = "allocator_report_scoring_result"."allocator_report_id"
-                            left join "max_ranges"
-                                      on "allocator_report_scoring_result"."id" = "max_ranges"."scoring_result_id"
-                   group by "latest_reports"."allocator", "latest_reports"."name"),
---
-     "result" as (select *,
+     "result" as (select "latest_reports"."allocatorId"                                           as "allocatorId",
+                         "latest_reports"."allocatorName"                                         as "allocatorName",
+                         "latest_reports"."totalScore"                                            as "totalScore",
+                         "latest_reports"."maxPossibleScore"                                      as "maxPossibleScore",
+                         to_char("latest_reports"."_scorePercentage", 'FM999.00')                 as "scorePercentage",
                          case
-                             when "_result"."maxPossibleScore" = 0 then 100
-                             else 100 * "_result"."totalScore"::float / "_result"."maxPossibleScore"::float end as "_scorePercentage"
-                  from "_result"
-                  where ($1::text is null or "_result"."dataType" = $1::text))
+                             when "week_ago_reports"."_scorePercentage" is null then null
+                             else to_char("week_ago_reports"."_scorePercentage", 'FM999.00') end  as "weekAgoScorePercentage",
+                         case
+                             when "month_ago_reports"."_scorePercentage" is null then null
+                             else to_char("month_ago_reports"."_scorePercentage", 'FM999.00') end as "monthAgoScorePercentage",
+                         case
+                             when "latest_reports"."allocatorId" in (select "allocator_id" from "open_data_pathway_allocators") then 'openData'
+                             else 'enterprise' end                                                as "dataType"
+                  from "latest_reports"
+                           left join "week_ago_reports" on "latest_reports"."allocatorId" = "week_ago_reports"."allocatorId"
+                           left join "month_ago_reports" on "latest_reports"."allocatorId" = "month_ago_reports"."allocatorId")
 --
-select "result"."allocatorId"                           as "allocatorId",
-       "result"."allocatorName"                         as "allocatorName",
-       "result"."totalScore"                            as "totalScore",
-       "result"."maxPossibleScore"                      as "maxPossibleScore",
-       "result"."dataType"                              as "dataType",
-       to_char("result"."_scorePercentage", 'FM999.00') as "scorePercentage"
+select *
 from "result"
-order by "result"."_scorePercentage" desc;
+where ($1::text is null or "result"."dataType" = $1::text)
+order by "result"."scorePercentage" desc, "result"."allocatorId";
