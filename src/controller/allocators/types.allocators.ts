@@ -50,6 +50,20 @@ export class GetAllocatorsLatestScoresRankingResponse {
   scorePercentage: string;
 
   @ApiProperty({
+    description:
+      'Percentage of the total score over the maximum possible score one week ago; null if week ago data is not available',
+    nullable: true,
+  })
+  weekAgoScorePercentage: string | null;
+
+  @ApiProperty({
+    description:
+      'Percentage of the total score over the maximum possible score one month ago; null if month ago data is not available',
+    nullable: true,
+  })
+  monthAgoScorePercentage: string | null;
+
+  @ApiProperty({
     enum: AllocatorDataType,
     description: 'Type of data allocator is using',
   })
