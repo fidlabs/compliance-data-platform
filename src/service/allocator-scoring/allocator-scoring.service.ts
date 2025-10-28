@@ -269,9 +269,9 @@ export class AllocatorScoringService {
       : 0;
 
     let score = 0;
-    if (percentageOfIPNIOKDatacap > 99) {
+    if (percentageOfIPNIOKDatacap > 55) {
       score = 3;
-    } else if (percentageOfIPNIOKDatacap >= 75) {
+    } else if (percentageOfIPNIOKDatacap >= 50) {
       score = 1;
     }
 
@@ -290,18 +290,18 @@ export class AllocatorScoringService {
       '%',
       null,
       [
-        { metricValueMin: 0, metricValueMax: 75, score: 0 },
-        { metricValueMin: 75, metricValueMax: 99, score: 1 },
-        { metricValueMin: 99, metricValueMax: 100, score: 3 },
+        { metricValueMin: 0, metricValueMax: 50, score: 0 },
+        { metricValueMin: 50, metricValueMax: 55, score: 1 },
+        { metricValueMin: 55, metricValueMax: 100, score: 3 },
       ],
       {
         'IPNI OK Datacap': this.convertFilesize(ipniOKDatacap),
         'Total Datacap': this.convertFilesize(totalDatacap),
         'Percentage of IPNI OK datacap':
           percentageOfIPNIOKDatacap.toString() + '%',
-        'Percentage of IPNI OK datacap > 99': '3 points',
-        'Percentage of IPNI OK datacap >= 75': '1 point',
-        'Percentage of IPNI OK datacap < 75': '0 points',
+        'Percentage of IPNI OK datacap > 55': '3 points',
+        'Percentage of IPNI OK datacap >= 50': '1 point',
+        'Percentage of IPNI OK datacap < 50': '0 points',
       },
     );
   }
@@ -406,16 +406,16 @@ export class AllocatorScoringService {
     const _50thPercentile =
       (this.calculateNthPercentile(sortedRetrievabilities, 50) ?? 0) * 100;
 
-    const _75thPercentile =
-      (this.calculateNthPercentile(sortedRetrievabilities, 75) ?? 0) * 100;
+    const _25thPercentile =
+      (this.calculateNthPercentile(sortedRetrievabilities, 25) ?? 0) * 100;
 
     const allocatorRetrievability =
       (report.avg_retrievability_success_rate_url_finder ?? 0) * 100;
 
     let score = 0;
-    if (allocatorRetrievability > _75thPercentile) {
+    if (allocatorRetrievability > _50thPercentile) {
       score = 3;
-    } else if (allocatorRetrievability > _50thPercentile) {
+    } else if (allocatorRetrievability > _25thPercentile) {
       score = 1;
     }
 
@@ -435,20 +435,20 @@ export class AllocatorScoringService {
       stringToNumber(arrayAverage(sortedRetrievabilities).toFixed(4)) * 100,
       // prettier-ignore
       [
-        { metricValueMin: 0, metricValueMax: _50thPercentile, score: 0 },
-        { metricValueMin: _50thPercentile, metricValueMax: _75thPercentile, score: 1 },
-        { metricValueMin: _75thPercentile, metricValueMax: 100, score: 3 },
+        { metricValueMin: 0, metricValueMax: _25thPercentile, score: 0 },
+        { metricValueMin: _25thPercentile, metricValueMax: _50thPercentile, score: 1 },
+        { metricValueMin: _50thPercentile, metricValueMax: 100, score: 3 },
       ],
       {
         'Allocator RPA retrievability':
           allocatorRetrievability?.toFixed(2) + '%',
+        '25th Percentile of all allocators RPA retrievabilities':
+          _25thPercentile?.toFixed(2) + '%',
         '50th Percentile of all allocators RPA retrievabilities':
           _50thPercentile?.toFixed(2) + '%',
-        '75th Percentile of all allocators RPA retrievabilities':
-          _75thPercentile?.toFixed(2) + '%',
-        'Allocator RPA retrievability > 75th Percentile': '3 points',
-        'Allocator RPA retrievability > 50th Percentile': '1 point',
-        'Allocator RPA retrievability <= 50th Percentile': '0 points',
+        'Allocator RPA retrievability > 50th Percentile': '3 points',
+        'Allocator RPA retrievability > 25th Percentile': '1 point',
+        'Allocator RPA retrievability <= 25th Percentile': '0 points',
       },
     );
   }
