@@ -151,10 +151,10 @@ export class StorageProviderService {
       await this.histogramHelper.getWeeklyHistogramResult(result, 100);
 
     return new RetrievabilityWeek(
-      lastWeekAverageRetrievability.http
+      lastWeekAverageRetrievability?.http
         ? lastWeekAverageRetrievability.http * 100
         : null,
-      lastWeekAverageRetrievability.urlFinder
+      lastWeekAverageRetrievability?.urlFinder
         ? lastWeekAverageRetrievability.urlFinder * 100
         : null,
       new RetrievabilityHistogramWeekResults(
@@ -262,8 +262,8 @@ export class StorageProviderService {
 
     return new StorageProviderComplianceWeek(
       metricsToCheck,
-      lastWeekAverageRetrievability.http * 100,
-      lastWeekAverageRetrievability.urlFinder * 100,
+      lastWeekAverageRetrievability?.http * 100,
+      lastWeekAverageRetrievability?.urlFinder * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(result),
       ),

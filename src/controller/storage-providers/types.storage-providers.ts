@@ -7,9 +7,8 @@ import { RetrievabilityType } from '../stats/allocators/types.allocator-stats';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
-    description:
-      'Set to false to disable retrievability compliance metric check; default is true',
-    type: Boolean,
+    description: 'Flag to filter by retrievability type',
+    enum: RetrievabilityType,
   })
   retrievabilityType?: RetrievabilityType;
 
