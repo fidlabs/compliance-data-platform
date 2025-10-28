@@ -867,7 +867,11 @@ export class AllocatorService {
         filPlusEditionData?.endDate,
       ),
       isCurrentFilPlusEdition || filPlusEditionData === null
-        ? this.storageProviderService.getLastWeekAverageProviderRetrievability()
+        ? this.storageProviderService.getLastWeekAverageProviderRetrievability(
+            true,
+            spMetricsToCheck?.retrievabilityType,
+            filPlusEditionData?.id,
+          )
         : null,
     ]);
 
@@ -883,8 +887,8 @@ export class AllocatorService {
 
     return new AllocatorSpsComplianceWeek(
       spMetricsToCheck,
-      lastWeekAverageProviderRetrievability.http * 100,
-      lastWeekAverageProviderRetrievability.urlFinder * 100,
+      lastWeekAverageProviderRetrievability?.http * 100,
+      lastWeekAverageProviderRetrievability?.urlFinder * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),
       ),
