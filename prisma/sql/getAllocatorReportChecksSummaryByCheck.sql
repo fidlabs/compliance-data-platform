@@ -9,7 +9,7 @@ with "check_name_description" as (select "check"             as "check",
                                   group by "check", "check_name", "check_description"),
 --
      "checks_by_date" as (select "allocator_report_check_result"."check"               as "check",
-                                 date_trunc($1, "allocator_report"."create_date")  as "date",
+                                 date_trunc($1, "allocator_report"."create_date")      as "date",
                                  "allocator_report"."allocator"                        as "allocatorId",
                                  bool_and("allocator_report_check_result"."result")    as "all_passed",
                                  bool_or(not "allocator_report_check_result"."result") as "any_failed",
@@ -73,7 +73,7 @@ select "check"            as "check",
        "checkDescription" as "checkDescription",
        jsonb_agg(
                jsonb_build_object(
-                       'date', "date",
+                       'date', to_char("date" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                        'checkPassedAllocatorsCount', "checkPassedAllocatorsCount",
                        'checkFailedAllocatorsCount', "checkFailedAllocatorsCount",
                        'checkPassedAllocatorsDatacap', coalesce("checkPassedAllocatorsDatacap", '0'),

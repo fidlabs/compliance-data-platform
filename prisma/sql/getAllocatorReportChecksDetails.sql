@@ -8,12 +8,12 @@ with "today" as (select "report"."allocator"                                    
                                         jsonb_agg(
                                         distinct jsonb_build_object(
                                                 'reportId', "check_result"."allocator_report_id",
-                                                'reportCreateDate', "report"."create_date",
+                                                'reportCreateDate', to_char("report"."create_date" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                                                 'check', "check_result"."check",
                                                 'checkMsg', "check_result"."metadata"::jsonb -> 'msg',
-                                                'firstSeen', coalesce("check_history"."firstSeen", "report"."create_date"),
-                                                'lastSeen', "check_history"."lastSeen",
-                                                'lastPassed', "check_history"."lastPassed",
+                                                'firstSeen', to_char(coalesce("check_history"."firstSeen", "report"."create_date") at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                                                'lastSeen', to_char("check_history"."lastSeen" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                                                'lastPassed', to_char("check_history"."lastPassed" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
                                                 'isNewWeekly', coalesce("check_history"."lastSeen" < "report"."create_date" - interval '7 days', true),
                                                 'isNewDaily', coalesce("check_history"."lastSeen" < "report"."create_date" - interval '36 hours', true)
                                                  )
