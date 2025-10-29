@@ -1,6 +1,5 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
-import { RetrievabilityType } from 'src/controller/stats/allocators/types.allocator-stats';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { stringToBool } from 'src/utils/utils';
 
@@ -107,7 +106,10 @@ export class StorageProviderComplianceWeekResults extends IntersectionType(
 
 export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   @ApiProperty()
-  retrievabilityType?: RetrievabilityType;
+  httpRetrievability: boolean;
+
+  @ApiProperty()
+  urlFinderRetrievability: boolean;
 
   @ApiProperty()
   numberOfClients: boolean;
@@ -118,10 +120,12 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   constructor(
     numberOfClients = true,
     totalDealSize = true,
-    retrievabilityType = null,
+    httpRetrievability = true,
+    urlFinderRetrievability = true,
   ) {
     super();
-    this.retrievabilityType = retrievabilityType;
+    this.urlFinderRetrievability = urlFinderRetrievability;
+    this.httpRetrievability = httpRetrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
   }
@@ -130,7 +134,8 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
     return new StorageProviderComplianceMetrics(
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
-      metrics.retrievabilityType,
+      stringToBool(metrics.httpRetrievability) ?? true,
+      stringToBool(metrics.urlFinderRetrievability) ?? true,
     );
   }
 }
