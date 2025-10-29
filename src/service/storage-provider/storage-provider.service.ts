@@ -132,11 +132,20 @@ export class StorageProviderService {
     const isCurrentFilPlusEdition =
       filPlusEditionData?.id === getCurrentFilPlusEdition().id;
 
+    const httpRetrievability = retrievabilityType
+      ? retrievabilityType === RetrievabilityType.http
+      : undefined;
+    const urlFinderRetrievability = retrievabilityType
+      ? retrievabilityType === RetrievabilityType.urlFinder
+      : undefined;
+
     const lastWeekAverageRetrievability =
       isCurrentFilPlusEdition || !filPlusEditionData
         ? await this.getLastWeekAverageProviderRetrievability(
             openDataOnly,
-            retrievabilityType,
+            filPlusEditionData?.id,
+            httpRetrievability,
+            urlFinderRetrievability,
           )
         : null;
 
@@ -169,7 +178,8 @@ export class StorageProviderService {
               await this.getWeekAverageProviderRetrievability(
                 histogramWeek.week,
                 openDataOnly,
-                retrievabilityType,
+                httpRetrievability,
+                urlFinderRetrievability,
                 filPlusEditionData?.id,
               );
 
@@ -186,13 +196,15 @@ export class StorageProviderService {
 
   public getLastWeekAverageProviderRetrievability(
     openDataOnly = true,
-    retrievabilityType?: RetrievabilityType,
     filPlusEditionId?: number,
+    httpRetrievability?: boolean,
+    urlFinderRetrievability?: boolean,
   ): Promise<AverageRetrievabilityType> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
       openDataOnly,
-      retrievabilityType,
+      httpRetrievability,
+      urlFinderRetrievability,
       filPlusEditionId,
     );
   }
@@ -212,8 +224,9 @@ export class StorageProviderService {
       isCurrentFilPlusEdition || !filPlusEditionData
         ? this.getLastWeekAverageProviderRetrievability(
             true,
-            metricsToCheck?.retrievabilityType,
             filPlusEditionData?.id,
+            metricsToCheck?.httpRetrievability,
+            metricsToCheck?.urlFinderRetrievability,
           )
         : null,
     ]);
@@ -224,7 +237,8 @@ export class StorageProviderService {
           await this.getWeekAverageProviderRetrievability(
             week,
             true,
-            metricsToCheck?.retrievabilityType,
+            metricsToCheck?.httpRetrievability,
+            metricsToCheck?.urlFinderRetrievability,
             filPlusEditionData?.id,
           );
 
@@ -356,14 +370,16 @@ export class StorageProviderService {
   public async getWeekAverageProviderRetrievability(
     week: Date,
     openDataOnly = true,
-    retrievabilityType?: RetrievabilityType,
+    httpRetrievability = true,
+    urlFinderRetrievability = true,
     filPlusEditionId?: number,
   ): Promise<AverageRetrievabilityType> {
     return (
       await this.prismaService.$queryRawTyped(
         getWeekAverageProviderRetrievabilityAcc(
           openDataOnly,
-          retrievabilityType,
+          httpRetrievability,
+          urlFinderRetrievability,
           week,
           filPlusEditionId,
         ),
@@ -380,20 +396,22 @@ export class StorageProviderService {
 
     // when http retrievability is checked
     if (
-      metricsToCheck?.retrievabilityType === RetrievabilityType.http &&
-      weekAverageRetrievability.http &&
-      providerWeekly.avg_retrievability_success_rate_http >
-        weekAverageRetrievability.http
+      !metricsToCheck?.httpRetrievability ||
+      (metricsToCheck?.httpRetrievability &&
+        weekAverageRetrievability.http &&
+        providerWeekly.avg_retrievability_success_rate_http >
+          weekAverageRetrievability.http)
     ) {
       complianceScore++;
     }
 
     // when rpa retrievability is checked
     if (
-      metricsToCheck?.retrievabilityType === RetrievabilityType.urlFinder &&
-      weekAverageRetrievability.urlFinder &&
-      providerWeekly.avg_retrievability_success_rate_url_finder >
-        weekAverageRetrievability.urlFinder
+      !metricsToCheck?.urlFinderRetrievability ||
+      (metricsToCheck?.urlFinderRetrievability &&
+        weekAverageRetrievability.urlFinder &&
+        providerWeekly.avg_retrievability_success_rate_url_finder >
+          weekAverageRetrievability.urlFinder)
     ) {
       complianceScore++;
     }
@@ -411,7 +429,7 @@ export class StorageProviderService {
     return {
       provider: providerWeekly.provider,
       complianceScore:
-        complianceScore === 3
+        complianceScore === 4
           ? StorageProviderComplianceScoreRange.Compliant
           : complianceScore === 0
             ? StorageProviderComplianceScoreRange.NonCompliant

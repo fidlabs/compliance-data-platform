@@ -3,14 +3,19 @@ import { StorageProviderComplianceScoreRange } from 'src/service/storage-provide
 import { stringifiedBool } from 'src/utils/utils';
 import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
-import { RetrievabilityType } from '../stats/allocators/types.allocator-stats';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
-    description: 'Flag to filter by retrievability type',
-    enum: RetrievabilityType,
+    description: 'Flag to filter by HTTP retrievability type',
+    type: Boolean,
   })
-  retrievabilityType?: RetrievabilityType;
+  httpRetrievability: stringifiedBool;
+
+  @ApiPropertyOptional({
+    description: 'Flag to filter by URL finder retrievability',
+    type: Boolean,
+  })
+  urlFinderRetrievability: stringifiedBool;
 
   @ApiPropertyOptional({
     description:
@@ -29,12 +34,14 @@ export class StorageProviderComplianceMetricsRequest extends FilPlusEditionReque
   constructor(
     numberOfClients: stringifiedBool = 'true',
     totalDealSize: stringifiedBool = 'true',
-    retrievabilityType?: RetrievabilityType,
+    httpRetrievability: stringifiedBool = 'true',
+    urlFinderRetrievability: stringifiedBool = 'true',
   ) {
     super();
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
-    this.retrievabilityType = retrievabilityType;
+    this.httpRetrievability = httpRetrievability;
+    this.urlFinderRetrievability = urlFinderRetrievability;
   }
 }
 
