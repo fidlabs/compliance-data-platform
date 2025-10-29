@@ -66,7 +66,7 @@ export class AllocatorReportChecksService {
     await this.storeClientMultipleAllocators(report);
     await this.storeClientNotEnoughCopies(report);
     await this.storeAllocatorChecksBasedOnClientReportChecks(report);
-    await this.storeAllocatorTrancheScheduleCheck(reportId);
+    await this.storeAllocatorTrancheScheduleCheck(report);
   }
 
   private async storeCheck(
@@ -93,7 +93,7 @@ export class AllocatorReportChecksService {
     clientReportCheck: ClientReportCheck,
   ) {
     // prettier-ignore
-    const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP = {
+    const CLIENT_REPORT_CHECK_FAIL_MESSAGE_MAP: Record<(typeof ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING)[number], string> = {
       [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
         'of active clients demonstrate CID sharing',
       [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
@@ -139,7 +139,7 @@ export class AllocatorReportChecksService {
 
   private getClientReportCheckName(clientReportCheck: ClientReportCheck) {
     // prettier-ignore
-    const CLIENT_REPORT_CHECK_NAME = {
+    const CLIENT_REPORT_CHECK_NAME: Record<(typeof ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING)[number], string> = {
       [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
         'Client CID sharing',
       [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
@@ -187,7 +187,7 @@ export class AllocatorReportChecksService {
     clientReportCheck: ClientReportCheck,
   ) {
     // prettier-ignore
-    const CLIENT_REPORT_CHECK_DESCRIPTION = {
+    const CLIENT_REPORT_CHECK_DESCRIPTION: Record<(typeof ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING)[number], string> = {
       [ClientReportCheck.DEAL_DATA_REPLICATION_CID_SHARING]:
         'Check that clients do not demonstrate CID sharing',
       [ClientReportCheck.DEAL_DATA_REPLICATION_HIGH_REPLICA]:
@@ -408,35 +408,29 @@ export class AllocatorReportChecksService {
     );
   }
 
-  public async storeAllocatorTrancheScheduleCheck(reportId: string) {
-    const allocatorReport = await this.prismaService.allocator_report.findFirst(
-      {
-        where: {
-          id: reportId,
-        },
-        include: {
-          client_allocations: {
-            omit: {
-              id: true,
-              allocator_report_id: true,
+  public async storeAllocatorTrancheScheduleCheck(_report) {
+    const report = await this.prismaService.allocator_report.findFirst({
+      where: {
+        id: _report.id,
+      },
+      include: {
+        client_allocations: {
+          where: {
+            timestamp: {
+              gte: getFilPlusEditionById(6)?.startDate, // filter only allocations started from fil+ edition 6
             },
-            where: {
-              timestamp: {
-                gte: getFilPlusEditionById(6)?.startDate, // filter only allocations started from fil+ edition 6
-              },
-            },
-            orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }], // important! order by timestamp asc to get allocations in the order they were given
           },
-          clients: {
-            where: {
-              last_datacap_spent: {
-                gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only "active" clients - spent datacap in the last 60 days
-              },
+          orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }], // important! order by timestamp asc to get allocations in the order they were given
+        },
+        clients: {
+          where: {
+            last_datacap_spent: {
+              gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only "active" clients - spent datacap in the last 60 days
             },
           },
         },
       },
-    );
+    });
 
     const validatedAllocator = await this.prismaService.$queryRaw<
       {
@@ -451,16 +445,15 @@ export class AllocatorReportChecksService {
         from "allocator" 
           left join "allocator_registry" on "allocator"."id" = "allocator_registry"."allocator_id" 
         where 
-          "allocator"."id"::text = ${allocatorReport.allocator}
+          "allocator"."id"::text = ${report.allocator}
             and "allocator"."is_metaallocator" = false
             and lower("allocator_registry"."registry_info"::"jsonb"->'application'->>'tranche_schedule') = 'i will use the standard allocation tranche schedule';
       `;
 
-    if (!validatedAllocator?.[0] || !allocatorReport.client_allocations.length)
-      return; // skip check for: non-manual tranche schedule allocators, metaallocators and when there are no allocations
+    if (!validatedAllocator?.[0] || !report.client_allocations.length) return; // skip check for: non-manual tranche schedule allocators, metaallocators and when there are no allocations
 
     const clientsAllocations = groupBy(
-      allocatorReport.client_allocations,
+      report.client_allocations,
       (a) => a.client_id,
     );
 
@@ -494,16 +487,18 @@ export class AllocatorReportChecksService {
 
     const checkPassed = invalidAllocations.length === 0;
 
-    await this.prismaService.allocator_report_check_result.create({
-      data: {
-        allocator_report_id: reportId,
-        check: AllocatorReportCheck.MANUAL_ALLOCATION_SCHEDULE,
-        result: checkPassed,
-        metadata: {
-          msg: `${((invalidAllocations.length / verifiedClientAllocations.length) * 100).toFixed(2)}% of active clients did not receive allocations according to the tranche schedule`,
-        },
+    await this.storeCheck(
+      report.id,
+      AllocatorReportCheck.MANUAL_ALLOCATION_SCHEDULE,
+      'Manual allocation tranche schedule',
+      'Check that client allocations follow the manual tranche schedule rules',
+      checkPassed,
+      {
+        max_clients_with_invalid_allocations: 0,
+        violating_ids: invalidAllocations.map((a) => a.clientId),
+        msg: `${((invalidAllocations.length / verifiedClientAllocations.length) * 100).toFixed(2)}% of active clients did not receive allocations according to the tranche schedule`,
       },
-    });
+    );
   }
 
   private validateAllocations(clientAllocations: ClientAllocations): {
