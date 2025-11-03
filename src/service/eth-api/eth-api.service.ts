@@ -34,4 +34,44 @@ export class EthApiService {
 
     return formatUnits(maxDeviation, 2);
   }
+
+  public async checkAndMapCurioStorageProviderPeerId(
+    spAddress: string,
+  ): Promise<string | null> {
+    const validatedSpAddress = spAddress.startsWith('f')
+      ? spAddress.substring(1)
+      : spAddress;
+
+    const abi = [
+      {
+        name: 'getPeerData',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ internalType: 'uint64', name: 'minerID', type: 'uint64' }],
+        outputs: [
+          {
+            components: [
+              { internalType: 'string', name: 'peerID', type: 'string' },
+              { internalType: 'bytes', name: 'signature', type: 'bytes' },
+            ],
+            internalType: 'struct PeerData',
+            name: '',
+            type: 'tuple',
+          },
+        ],
+      },
+    ];
+
+    const peerData: {
+      peerID: string;
+      signature: string;
+    } = (await this.client.readContract({
+      address: '0x14183aD016Ddc83D638425D6328009aa390339Ce', // Curio's contract address
+      abi,
+      functionName: 'getPeerData',
+      args: [BigInt(validatedSpAddress)],
+    })) as { peerID: string; signature: string };
+
+    return peerData.peerID || null;
+  }
 }
