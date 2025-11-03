@@ -566,9 +566,9 @@ export class AllocatorScoringService {
       : 0;
 
     let score = 0;
-    if (percentageOfDuplicatedData === 0) {
+    if (percentageOfDuplicatedData <= 0.25) {
       score = 2;
-    } else if (percentageOfDuplicatedData <= 10) {
+    } else if (percentageOfDuplicatedData <= 5) {
       score = 1;
     }
 
@@ -587,18 +587,18 @@ export class AllocatorScoringService {
       '%',
       null,
       [
-        { metricValueMin: 0, metricValueMax: 0, score: 2 },
-        { metricValueMin: 0, metricValueMax: 10, score: 1 },
-        { metricValueMin: 10, metricValueMax: 100, score: 0 },
+        { metricValueMin: 0, metricValueMax: 0.25, score: 2 },
+        { metricValueMin: 0.25, metricValueMax: 5, score: 1 },
+        { metricValueMin: 5, metricValueMax: 100, score: 0 },
       ],
       {
         'Total datacap': this.convertFilesize(totalDatacap),
         'Duplicated datacap': this.convertFilesize(duplicatedDatacap),
         'Percentage of duplicated datacap':
           percentageOfDuplicatedData.toFixed(2) + '%',
-        'Percentage of duplicated datacap = 0': '2 points',
-        'Percentage of duplicated datacap > 0 and <= 10': '1 point',
-        'Percentage of duplicated datacap > 10': '0 points',
+        'Percentage of duplicated datacap <= 0.25': '2 points',
+        'Percentage of duplicated datacap <= 5': '1 point',
+        'Percentage of duplicated datacap > 5': '0 points',
       },
     );
   }
