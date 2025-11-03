@@ -1,16 +1,17 @@
+import { HttpService } from '@nestjs/axios';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
+import { PrismaService } from 'src/db/prisma.service';
+import { Cacheable } from 'src/utils/cacheable';
+import { Retryable } from 'src/utils/retryable';
+import { EthApiService } from '../eth-api/eth-api.service';
 import {
   LotusStateLookupIdResponse,
   LotusStateMinerInfoResponse,
   LotusStateVerifiedClientStatusResponse,
 } from './types.lotus-api';
-import { firstValueFrom } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
-import { PrismaService } from 'src/db/prisma.service';
-import { ConfigService } from '@nestjs/config';
-import { Cacheable } from 'src/utils/cacheable';
-import { Retryable } from 'src/utils/retryable';
 
 @Injectable()
 export class LotusApiService {
@@ -21,6 +22,7 @@ export class LotusApiService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
+    private readonly ethApiService: EthApiService,
   ) {}
 
   public async getFilecoinId(address: string): Promise<string | null> {
@@ -86,6 +88,11 @@ export class LotusApiService {
   private async _getMinerInfo(
     storageProviderId: string,
   ): Promise<LotusStateMinerInfoResponse> {
+    const mappedCurioPeerId =
+      await this.ethApiService.checkAndMapCurioStorageProviderPeerId(
+        storageProviderId,
+      );
+
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateMinerInfoResponse>(endpoint, {
@@ -98,7 +105,13 @@ export class LotusApiService {
 
     if (!data?.result) throw new Error(`No data`);
 
-    return data;
+    return {
+      ...data,
+      result: {
+        ...data.result,
+        PeerId: mappedCurioPeerId ?? data.result.PeerId,
+      },
+    };
   }
 
   public async getClientDatacap(clientId: string): Promise<bigint | null> {
