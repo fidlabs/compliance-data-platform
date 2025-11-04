@@ -183,7 +183,7 @@ export class AllocatorReportChecksSummaryByCheckDataAllocator {
   allocatorId: string;
 
   @ApiProperty({
-    description: 'Total datacap of the allocator at a given time',
+    description: 'Total datacap of the allocator at the time of the report',
     format: 'int64',
     example: '42',
     nullable: true,
