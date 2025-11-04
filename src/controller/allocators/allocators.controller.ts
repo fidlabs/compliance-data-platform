@@ -1,5 +1,12 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  Query,
+} from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import {
@@ -14,7 +21,12 @@ import {
   getCurrentFilPlusEdition,
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
-import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
+import {
+  lastWeek,
+  stringToBool,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
 import {
   GetAllocatorsRequest,
@@ -25,9 +37,13 @@ import {
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
   AllocatorDataType,
+  GetAllocatorsScoresSummaryByMetricRequest,
+  GetAllocatorsScoresSummaryByMetricResponse,
 } from './types.allocators';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
+import { PrismaService } from 'src/db/prisma.service';
+import { getAllocatorsScoresSummaryByMetric } from 'prisma/generated/client/sql';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -38,6 +54,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly allocatorService: AllocatorService,
     private readonly allocatorScoringService: AllocatorScoringService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -84,6 +101,43 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     ).map((item) => ({
       ...item,
       dataType: item.dataType as AllocatorDataType,
+    }));
+  }
+
+  @Get('/scores-summary-by-metric')
+  @ApiOperation({
+    summary:
+      'Get summary of allocators scores grouped by metric and week/month',
+  })
+  @ApiOkResponse({
+    description: 'Summary of allocators scores',
+    type: GetAllocatorsScoresSummaryByMetricResponse,
+    isArray: true,
+  })
+  public async getAllocatorsScoresSummaryByMetric(
+    @Query() query: GetAllocatorsScoresSummaryByMetricRequest,
+  ): Promise<GetAllocatorsScoresSummaryByMetricResponse[]> {
+    query.groupBy ??= 'week';
+
+    if (query.groupBy && !['week', 'month'].includes(query.groupBy)) {
+      throw new BadRequestException(
+        `Invalid groupBy value: ${query.groupBy}, must be 'week' or 'month'`,
+      );
+    }
+
+    return (
+      await this.prismaService.$queryRawTyped(
+        getAllocatorsScoresSummaryByMetric(
+          query.groupBy,
+          query.dataType,
+          stringToNumber(query.mediumScoreThreshold),
+          stringToNumber(query.highScoreThreshold),
+          stringToBool(query.includeDetails),
+        ),
+      )
+    ).map((item) => ({
+      ...item,
+      data: item.data as [],
     }));
   }
 

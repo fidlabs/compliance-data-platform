@@ -103,7 +103,7 @@ export class ReportChecksController {
   @ApiOkResponse({
     type: GetAllocatorReportChecksSummaryByCheckResponse,
     isArray: true,
-    description: 'Summary of report checks grouped by check',
+    description: 'Summary of allocator report checks',
   })
   public async getAllocatorReportChecksSummaryByCheck(
     @Query() query: GetAllocatorReportChecksSummaryByCheckRequest,
