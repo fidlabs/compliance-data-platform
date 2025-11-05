@@ -92,6 +92,11 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                          "latest_reports"."totalScore"                                            as "totalScore",
                          "latest_reports"."maxPossibleScore"                                      as "maxPossibleScore",
                          to_char("latest_reports"."_scorePercentage", 'FM999.00')                 as "scorePercentage",
+                         (select "total_sum_of_allocations"
+                                  from "allocators_weekly_acc"
+                                    where "allocators_weekly_acc"."allocator" = "latest_reports"."allocatorId"
+                                  order by "week" desc
+                                  limit 1)                                                        as "totalDatacap",
                          case
                              when "week_ago_reports"."_scorePercentage" is null then null
                              else to_char("week_ago_reports"."_scorePercentage", 'FM999.00') end  as "weekAgoScorePercentage",
