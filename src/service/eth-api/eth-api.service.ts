@@ -1,10 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createPublicClient, http, parseAbi, formatUnits } from 'viem';
 import { filecoin } from 'viem/chains';
 import {
   ethAddressFromDelegated,
   ethAddressFromID,
 } from '@glif/filecoin-address';
+import { Cacheable } from 'src/utils/cacheable';
+import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 
 @Injectable()
 export class EthApiService {
@@ -14,6 +16,9 @@ export class EthApiService {
     transport: http(),
   });
 
+  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+
+  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
   public async getClientContractMaxDeviation(
     fAddress: string, // f4 address
     clientId: string, // f0 address
@@ -35,6 +40,7 @@ export class EthApiService {
     return formatUnits(maxDeviation, 2);
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
   public async checkAndMapCurioStorageProviderPeerId(
     spAddress: string,
   ): Promise<string | null> {
