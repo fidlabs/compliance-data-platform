@@ -247,6 +247,15 @@ export class GetAllocatorsLatestScoresRankingResponse {
     description: 'Type of data allocator is using',
   })
   dataType: AllocatorDataType;
+
+  @ApiProperty({
+    description: 'Total datacap of the allocator',
+    format: 'int64',
+    example: '42',
+    nullable: true,
+    type: String,
+  })
+  totalDatacap: bigint | null;
 }
 
 export class GetDatacapFlowDataRequest {
