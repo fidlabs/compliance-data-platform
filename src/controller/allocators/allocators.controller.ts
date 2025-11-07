@@ -1,6 +1,7 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import {
   AllocatorAuditOutcomesData,
@@ -16,18 +17,18 @@ import {
 } from 'src/utils/filplus-edition';
 import { lastWeek, stringToBool, stringToDate } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
+import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
-  GetAllocatorsRequest,
+  AllocatorDataType,
   GetAllocatorsLatestScoresRankingRequest,
   GetAllocatorsLatestScoresRankingResponse,
+  GetAllocatorsRequest,
+  GetAllocatorVerifiedClientsRequest,
   GetDatacapFlowDataRequest,
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
-  AllocatorDataType,
 } from './types.allocators';
-import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
-import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -256,6 +257,30 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       },
       query,
       allocators.length,
+    );
+  }
+
+  @Get('/verified-clients/:allocatorId')
+  @ApiOperation({
+    summary: 'Get paginated list of verified clients for allocator',
+  })
+  @ApiOkResponse({
+    description: 'Paginated list of verified clients for allocator',
+    type: null,
+  })
+  public async getVerifiedClientsByAllocator(
+    @Param('allocatorId') allocatorId: string,
+    @Query() query: GetAllocatorVerifiedClientsRequest,
+  ) {
+    const verifiedClients =
+      await this.allocatorService.getVerifiedClientsByAllocator(allocatorId);
+
+    return this.withPaginationInfo(
+      {
+        data: this.paginated(this.sorted(verifiedClients, query), query),
+      },
+      query,
+      verifiedClients.length,
     );
   }
 }

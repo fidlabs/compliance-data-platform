@@ -54,6 +54,7 @@ import {
 } from '../storage-provider/types.storage-provider';
 
 import { DateTime } from 'luxon';
+import { getAllocatorVerifiedClients } from 'prismaDmob/generated/client/sql';
 import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
 import { RetrievabilityType } from 'src/controller/stats/allocators/types.allocator-stats';
 import {
@@ -1034,5 +1035,76 @@ export class AllocatorService {
         )
       )?.[0]?.average,
     );
+  }
+
+  public async getVerifiedClientsByAllocator(allocatorId: string) {
+    const twoWeeksAgoTimestamp =
+      Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60;
+
+    const allocatorData = await this.getAllocatorData(allocatorId);
+
+    if (!allocatorData) return null;
+
+    let allocatorVerifiedClients = [];
+
+    // get all clients of the allocators belonging to the metaallocator
+    if (allocatorData.isMetaAllocator) {
+      const metaallocatorDetails = await this.prismaDmobService.$queryRawTyped(
+        getAllocatorsFull(false, true, allocatorData.addressId, null),
+      );
+
+      if (!metaallocatorDetails.length) {
+        this.logger.error(
+          `Metaallocator details not found for ${allocatorData.addressId}, please investigate`,
+        );
+
+        return null;
+      }
+
+      const metaallocatorAllocators = Object.values(
+        metaallocatorDetails[0].allocatorsUsingMetaallocator,
+      ).map((allocator) => allocator.addressId);
+
+      allocatorVerifiedClients = await this.prismaDmobService.$queryRawTyped(
+        getAllocatorVerifiedClients(metaallocatorAllocators),
+      );
+    } else {
+      allocatorVerifiedClients = await this.prismaDmobService.$queryRawTyped(
+        getAllocatorVerifiedClients([allocatorId]),
+      );
+    }
+    const twoWeeksAgoDate = new Date(twoWeeksAgoTimestamp * 1000);
+
+    const dealSumsRaw =
+      await this.prismaService.unified_verified_deal_hourly.findMany({
+        where: {
+          client: {
+            in: allocatorVerifiedClients.map((v) => v.addressId),
+          },
+          hour: {
+            gte: twoWeeksAgoDate,
+          },
+        },
+      });
+
+    const groupByClient = groupBy(dealSumsRaw, (d) => d.client);
+
+    const allocatorClientsWithTotalDealSize = allocatorVerifiedClients.map(
+      (client) => {
+        const clientDeals = groupByClient[client.addressId] ?? [];
+
+        const totalDealSize = clientDeals.reduce(
+          (acc, v) => acc + (v.total_deal_size ?? BigInt(0)),
+          BigInt(0),
+        );
+
+        return {
+          ...client,
+          usedDatacapChange: totalDealSize,
+        };
+      },
+    );
+
+    return allocatorClientsWithTotalDealSize;
   }
 }
