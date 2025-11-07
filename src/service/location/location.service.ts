@@ -1,12 +1,12 @@
+import { HttpService } from '@nestjs/axios';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { resolve4, resolve6 } from 'dns/promises';
 import { Multiaddr } from 'multiaddr';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { Address, IPResponse } from './types.location';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Cacheable } from 'src/utils/cacheable';
+import { Address, IPResponse } from './types.location';
 
 @Injectable()
 export class LocationService {
@@ -34,11 +34,12 @@ export class LocationService {
   }
 
   public extractAddressFromString(multiAddr: string): Address {
-    return this.extractAddress(new Multiaddr(multiAddr));
+    return this.extractAddress(multiAddr);
   }
 
   public extractAddressFromBase64(multiAddr: string): Address {
-    return this.extractAddress(new Multiaddr(Buffer.from(multiAddr, 'base64')));
+    const multiAddrInstance = new Multiaddr(Buffer.from(multiAddr, 'base64'));
+    return this.extractAddress(multiAddrInstance.toString());
   }
 
   @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
@@ -102,18 +103,47 @@ export class LocationService {
     return null;
   }
 
-  private extractAddress(multiaddrInstance: Multiaddr): Address {
+  private extractAddress(multiAddr: string): Address {
+    let finalMultiAddrToParse = multiAddr;
+
     // TODO temporary fix needed because multiaddr library does not support /dns/ prefix
-    if (multiaddrInstance.toString().startsWith('/dns/')) {
-      multiaddrInstance = new Multiaddr(
-        multiaddrInstance.toString().replace('/dns/', '/dns4/'),
-      );
+    if (finalMultiAddrToParse.startsWith('/dns/')) {
+      finalMultiAddrToParse = finalMultiAddrToParse.replace('/dns/', '/dns4/');
     }
+
+    // TODO temporary fix needed because multiaddr library does not support /http-path/ and /ipni-provider/ sections - curio includes this in their multiaddrs
+    if (
+      finalMultiAddrToParse.includes('http-path') &&
+      finalMultiAddrToParse.includes('ipni-provider')
+    ) {
+      // clean up the multiaddr to be parsable by multiaddr library
+      // - decode %2F to /
+      // - remove double // if exists (somehow appears in curio multiaddrs)
+      // - remove /http-path/ and next after that /ipni-provider/ sections
+      const decodedAddress = multiAddr.replaceAll('%2F', '/');
+      const cleanedAddress = decodedAddress.replaceAll('//', '/');
+      let newMultiAddrCurio = cleanedAddress.substring(
+        0,
+        cleanedAddress.indexOf('/http-path'),
+      );
+
+      // Add missing STANDARD parts of multiaddr to curio multiaddr - curio omits tcp/port before http/https
+      if (newMultiAddrCurio.endsWith('https')) {
+        newMultiAddrCurio = newMultiAddrCurio.replace('https', 'tcp/443/https');
+      } else if (newMultiAddrCurio.endsWith('/http')) {
+        newMultiAddrCurio = newMultiAddrCurio.replace('/http', 'tcp/80/http');
+      }
+
+      finalMultiAddrToParse = newMultiAddrCurio;
+    }
+
+    const multiaddrInstance = new Multiaddr(finalMultiAddrToParse);
 
     return {
       address: multiaddrInstance.nodeAddress().address,
       port: multiaddrInstance.nodeAddress().port,
       protocol: multiaddrInstance.protos()[0].name,
+      isHttps: multiaddrInstance.protoNames().includes('https'),
     };
   }
 }
