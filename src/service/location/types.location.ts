@@ -14,4 +14,5 @@ export interface Address {
   address: string;
   port: number;
   protocol: string;
+  isHttps?: boolean;
 }

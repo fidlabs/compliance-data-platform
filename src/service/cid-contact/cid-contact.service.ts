@@ -30,7 +30,7 @@ export class CidContactService {
       ? `${publisherAddress.address}:${publisherAddress.port}`
       : publisherAddress.address;
 
-    return `http://${publisherUrl}`;
+    return `${publisherAddress.isHttps ? 'https' : 'http'}://${publisherUrl}`;
   }
 
   public async getIPNIPublisherAdvertisement(
