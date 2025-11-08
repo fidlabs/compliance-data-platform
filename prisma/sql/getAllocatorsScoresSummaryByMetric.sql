@@ -64,15 +64,18 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                   from "allocator_report"
                                   order by "allocator_id", "date", "allocator_report"."create_date" desc),
 --
-     "report_scores" as (select "latest_reports_by_date"."allocator_id"             as "allocator_id",
-                                "latest_reports_by_date"."data_type"                as "data_type",
-                                "latest_reports_by_date"."report_id"                as "report_id",
-                                "latest_reports_by_date"."date"                     as "date",
-                                "latest_reports_by_date"."create_date"              as "create_date",
-                                "allocator_report_scoring_result"."metric"          as "metric",
-                                "latest_reports_by_date"."total_datacap"            as "total_datacap",
-                                sum("allocator_report_scoring_result"."score")::int as "total_score",
-                                sum(coalesce("max_ranges"."max_score", 0))::int     as "max_possible_score"
+     "report_scores" as (select "latest_reports_by_date"."allocator_id"                as "allocator_id",
+                                "latest_reports_by_date"."data_type"                   as "data_type",
+                                "latest_reports_by_date"."report_id"                   as "report_id",
+                                "latest_reports_by_date"."date"                        as "date",
+                                "latest_reports_by_date"."create_date"                 as "create_date",
+                                "allocator_report_scoring_result"."metric"             as "metric",
+                                "allocator_report_scoring_result"."metric_name"        as "metric_name",
+                                "allocator_report_scoring_result"."metric_description" as "metric_description",
+                                "allocator_report_scoring_result"."metric_unit"        as "metric_unit",
+                                "latest_reports_by_date"."total_datacap"               as "total_datacap",
+                                sum("allocator_report_scoring_result"."score")::int    as "total_score",
+                                sum(coalesce("max_ranges"."max_score", 0))::int        as "max_possible_score"
                          from "latest_reports_by_date"
                                   join "allocator_report_scoring_result"
                                        on "allocator_report_scoring_result"."allocator_report_id" = "latest_reports_by_date"."report_id"
@@ -83,6 +86,9 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                   "latest_reports_by_date"."date",
                                   "latest_reports_by_date"."create_date",
                                   "allocator_report_scoring_result"."metric",
+                                  "allocator_report_scoring_result"."metric_name",
+                                  "allocator_report_scoring_result"."metric_description",
+                                  "allocator_report_scoring_result"."metric_unit",
                                   "latest_reports_by_date"."report_id",
                                   "latest_reports_by_date"."data_type",
                                   "latest_reports_by_date"."total_datacap"),
@@ -98,6 +104,9 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
 --
      "grouped_metrics" as (select "metric"                                                                           as "metric",
                                   "date"                                                                             as "date",
+                                  "metric_name"                                                                      as "metricName",
+                                  "metric_description"                                                               as "metricDescription",
+                                  "metric_unit"                                                                      as "metricUnit",
 
                                   jsonb_agg(
                                   jsonb_build_object(
@@ -114,7 +123,7 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                   ) order by "allocator_id"
                                            ) filter ( where "score_group" = 'high' )                                 as "scoreHighAllocators",
                                   count(*) filter (where "score_group" = 'high')                                     as "scoreHighAllocatorsCount",
-                                  sum("report_score_groups"."total_datacap") filter (where "score_group" = 'high')   as "scoreHighAllocatorsDatacap",
+                                  sum("total_datacap") filter (where "score_group" = 'high')                         as "scoreHighAllocatorsDatacap",
 
                                   jsonb_agg(
                                   jsonb_build_object(
@@ -131,7 +140,7 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                   ) order by "allocator_id"
                                            ) filter ( where "score_group" = 'medium' )                               as "scoreMediumAllocators",
                                   count(*) filter (where "score_group" = 'medium')                                   as "scoreMediumAllocatorsCount",
-                                  sum("report_score_groups"."total_datacap") filter (where "score_group" = 'medium') as "scoreMediumAllocatorsDatacap",
+                                  sum("total_datacap") filter (where "score_group" = 'medium')                       as "scoreMediumAllocatorsDatacap",
 
                                   jsonb_agg(
                                   jsonb_build_object(
@@ -148,28 +157,28 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                   ) order by "allocator_id"
                                            ) filter ( where "score_group" = 'low' )                                  as "scoreLowAllocators",
                                   count(*) filter (where "score_group" = 'low')                                      as "scoreLowAllocatorsCount",
-                                  sum("report_score_groups"."total_datacap") filter (where "score_group" = 'low')    as "scoreLowAllocatorsDatacap"
+                                  sum("total_datacap") filter (where "score_group" = 'low')                          as "scoreLowAllocatorsDatacap"
                            from "report_score_groups"
-                           group by "metric", "date")
+                           group by "metric", "date", "metricName", "metricDescription", "metricUnit")
 --
-select "metric" as "metric",
+select "metric"            as "metric",
+       "metricName"        as "metricName",
+       "metricDescription" as "metricDescription",
+       "metricUnit"        as "metricUnit",
        jsonb_agg(
                jsonb_build_object(
                        'date', to_char("date" at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-
                        'scoreHighAllocatorsCount', "scoreHighAllocatorsCount",
                        'scoreHighAllocators', case when $5 then coalesce("scoreHighAllocators", '[]'::jsonb) end,
                        'scoreHighAllocatorsDatacap', coalesce("scoreHighAllocatorsDatacap"::text, '0'),
-
                        'scoreMediumAllocatorsCount', "scoreMediumAllocatorsCount",
                        'scoreMediumAllocators', case when $5 then coalesce("scoreMediumAllocators", '[]'::jsonb) end,
                        'scoreMediumAllocatorsDatacap', coalesce("scoreMediumAllocatorsDatacap"::text, '0'),
-
                        'scoreLowAllocatorsCount', "scoreLowAllocatorsCount",
                        'scoreLowAllocators', case when $5 then coalesce("scoreLowAllocators", '[]'::jsonb) end,
                        'scoreLowAllocatorsDatacap', coalesce("scoreLowAllocatorsDatacap"::text, '0')
                ) order by "date"
-       )        as "data"
+       )                   as "data"
 from "grouped_metrics"
-group by "metric"
+group by "metric", "metricName", "metricDescription", "metricUnit"
 order by "metric";
