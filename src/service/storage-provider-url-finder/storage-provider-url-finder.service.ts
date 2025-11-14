@@ -65,19 +65,20 @@ export class StorageProviderUrlFinderService {
     return data;
   }
 
-  public async fetchPieceWorkingUrlForClientProvider(
+  public async fetchPieceWorkingUrlForProvider(
     storageProviderId: string,
-    clientId: string,
+    clientId?: string,
   ): Promise<string | null> {
     try {
-      const data = await this._fetchPieceWorkingUrlForClientProvider(
+      const data = await this._fetchPieceWorkingUrlForProvider(
         storageProviderId,
         clientId,
       );
 
       if (data.result !== 'Success') {
         this.logger.warn(
-          `No piece working URL found for client ${clientId} and provider ${storageProviderId}`,
+          `No piece working URL found for provider ${storageProviderId}` +
+            `${clientId ? ' and client ' + clientId : ''}`,
         );
 
         return null;
@@ -86,7 +87,9 @@ export class StorageProviderUrlFinderService {
       return data.url;
     } catch (err) {
       this.logger.warn(
-        `Error fetching URL finder working URL client ${clientId} and provider ${storageProviderId}: ${err.message}`,
+        `Error fetching URL finder working URL for provider ${storageProviderId}` +
+          `${clientId ? ' and client ' + clientId : ''}` +
+          `: ${err.message}`,
       );
 
       return null;
@@ -94,22 +97,22 @@ export class StorageProviderUrlFinderService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
-  private async _fetchPieceWorkingUrlForClientProvider(
+  private async _fetchPieceWorkingUrlForProvider(
     storageProviderId: string,
     clientId?: string,
   ) {
-    return await this.__fetchPieceWorkingUrlForClientProvider(
+    return await this.__fetchPieceWorkingUrlForProvider(
       storageProviderId,
       clientId,
     );
   }
 
   @Retryable({ retries: 5, delayMin: 3000, delayMax: 6000 }) // 3 - 6 seconds random delay
-  public async __fetchPieceWorkingUrlForClientProvider(
+  public async __fetchPieceWorkingUrlForProvider(
     storageProviderId: string,
-    clientId: string,
+    clientId?: string,
   ) {
-    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}/${clientId}`;
+    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
 
     const { data } = await lastValueFrom(
       this.httpService.get<{ result: string; url: string }>(endpoint, {

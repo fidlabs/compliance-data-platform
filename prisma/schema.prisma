@@ -531,6 +531,36 @@ model provider_ip_info {
   @@id([provider, date])
 }
 
+enum StorageProvidersMetricType {
+  TTFB
+}
+
+model storage_provider_sli_metric {
+  id         String                     @id @default(cuid())
+  metricType StorageProvidersMetricType @unique
+
+  name        String?
+  description String?
+  unit        String?
+
+  slis storage_provider_sli[]
+}
+
+model storage_provider_sli {
+  id       String @id @default(cuid())
+  provider String
+
+  metricId String
+  metric   storage_provider_sli_metric @relation(fields: [metricId], references: [id])
+  value    BigInt
+
+  update_date DateTime @default(now())
+
+  @@index([provider])
+  @@index([metricId])
+  @@index([provider, metricId, update_date])
+}
+
 enum AllocatorScoringMetric {
   IPNI_REPORTING
   HTTP_RETRIEVABILITY
