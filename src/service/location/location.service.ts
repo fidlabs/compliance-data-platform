@@ -120,7 +120,7 @@ export class LocationService {
       // - decode %2F to /
       // - remove double // if exists (somehow appears in curio multiaddrs)
       // - remove /http-path/ and next after that /ipni-provider/ sections
-      const decodedAddress = multiAddr.replaceAll('%2F', '/');
+      const decodedAddress = finalMultiAddrToParse.replaceAll('%2F', '/');
       const cleanedAddress = decodedAddress.replaceAll('//', '/');
       let newMultiAddrCurio = cleanedAddress.substring(
         0,
