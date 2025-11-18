@@ -1,6 +1,4 @@
-import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   HealthCheckError,
@@ -9,8 +7,9 @@ import {
 } from '@nestjs/terminus';
 import { groupBy } from 'lodash';
 import { StorageProvidersMetricType } from 'prisma/generated/client';
+import { getStorageProviderRetentionSli } from 'prismaDmob/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
-import { CidContactService } from 'src/service/cid-contact/cid-contact.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
 
 @Injectable()
@@ -23,9 +22,7 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
 
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly cidContactService: CidContactService,
-    private readonly configService: ConfigService,
-    private readonly httpService: HttpService,
+    private readonly prismaDmobService: PrismaDmobService,
     private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
   ) {
     super();
@@ -69,6 +66,18 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
             tested_at: new Date(),
           },
         ];
+
+        const providersList = providersWithSli.map((x) =>
+          x.provider_id.substring(2),
+        );
+
+        const providersRetention: {
+          provider: string;
+          amount_of_terminated_deals: number;
+        }[] = await this.prismaDmobService.$queryRawTyped(
+          getStorageProviderRetentionSli(providersList),
+        );
+
         // await this.storageProviderUrlFinderService.fetchLastSlisForAllProviders();
 
         const metricsForSPs = providersWithSli.map((provider) => ({
@@ -83,6 +92,14 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
               type: StorageProvidersMetricType.TTFB,
               value: 0,
               tested_at: provider.tested_at,
+            },
+            {
+              type: StorageProvidersMetricType.RETENTION,
+              value:
+                providersRetention.find(
+                  (x) => x.provider === provider.provider_id.substring(2),
+                )?.amount_of_terminated_deals || 0,
+              tested_at: new Date(),
             },
           ],
         }));

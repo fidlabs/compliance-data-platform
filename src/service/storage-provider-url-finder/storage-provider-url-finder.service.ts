@@ -99,12 +99,12 @@ export class StorageProviderUrlFinderService {
 
   private getSliMetricName(clientReportCheck: StorageProvidersMetricType) {
     const SLI_METRIC_NAME: Record<
-      | typeof StorageProvidersMetricType.TTFB
-      | typeof StorageProvidersMetricType.RETRIEVABILITY,
+      keyof typeof StorageProvidersMetricType,
       string
     > = {
       [StorageProvidersMetricType.TTFB]: 'TTFB',
       [StorageProvidersMetricType.RETRIEVABILITY]: 'Retrievability',
+      [StorageProvidersMetricType.RETENTION]: 'Retention',
     };
 
     return SLI_METRIC_NAME[clientReportCheck];
@@ -114,12 +114,13 @@ export class StorageProviderUrlFinderService {
     storageProviderMetric: StorageProvidersMetricType,
   ) {
     const SLI_METRIC_DESCRIPTION: Record<
-      | typeof StorageProvidersMetricType.TTFB
-      | typeof StorageProvidersMetricType.RETRIEVABILITY,
+      keyof typeof StorageProvidersMetricType,
       string
     > = {
       [StorageProvidersMetricType.TTFB]: 'Time to first byte (TTFB)',
       [StorageProvidersMetricType.RETRIEVABILITY]: 'Retrievability percentage',
+      [StorageProvidersMetricType.RETENTION]:
+        'Consensus failures of PoRep Interrogating the PDP proofs continuity',
     };
 
     return SLI_METRIC_DESCRIPTION[storageProviderMetric];
@@ -127,12 +128,12 @@ export class StorageProviderUrlFinderService {
 
   private getSliMetricUnit(storageProviderMetric: StorageProvidersMetricType) {
     const SLI_METRIC_UNIT: Record<
-      | typeof StorageProvidersMetricType.TTFB
-      | typeof StorageProvidersMetricType.RETRIEVABILITY,
+      keyof typeof StorageProvidersMetricType,
       string
     > = {
       [StorageProvidersMetricType.TTFB]: 'ms',
       [StorageProvidersMetricType.RETRIEVABILITY]: '%',
+      [StorageProvidersMetricType.RETENTION]: 'qty',
     };
 
     return SLI_METRIC_UNIT[storageProviderMetric];
