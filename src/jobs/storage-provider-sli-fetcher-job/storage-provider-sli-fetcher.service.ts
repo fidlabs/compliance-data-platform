@@ -1,16 +1,16 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { lastValueFrom } from 'rxjs';
+import { groupBy } from 'lodash';
+import { StorageProvidersMetricType } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { CidContactService } from 'src/service/cid-contact/cid-contact.service';
-import { IPNIProvider } from 'src/service/cid-contact/types.cid-contact';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
 
 @Injectable()
@@ -42,7 +42,8 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron('0 23 * * 1,4') // At 23:00 on Monday and Thursday
+  // @Cron('0 23 * * 1,4') // At 23:00 on Monday and Thursday
+  @Cron(CronExpression.EVERY_MINUTE)
   public async runStorageProviderSliFetcherJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
@@ -51,13 +52,64 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
         this.logger.log('Starting Storage Provider SLIs Fetcher job');
         this.healthy = true;
 
-        const slis =
-          await this.storageProviderUrlFinderService.fetchLastSlisForAllProviders();
+        const providersWithSli = [
+          {
+            provider_id: 'f01234',
+            retrievability_percent: 123,
+            tested_at: new Date(),
+          },
+          {
+            provider_id: 'f01235',
+            retrievability_percent: 123456,
+            tested_at: new Date(),
+          },
+          {
+            provider_id: 'f0123556',
+            retrievability_percent: 123456789,
+            tested_at: new Date(),
+          },
+        ];
+        // await this.storageProviderUrlFinderService.fetchLastSlisForAllProviders();
 
-        const storeSliPromises = slis.map((sli) =>
-          this.storageProviderUrlFinderService.storeSliForProvider(sli),
+        const metricsForSPs = providersWithSli.map((provider) => ({
+          providerId: provider.provider_id,
+          metrics: [
+            {
+              type: StorageProvidersMetricType.RETRIEVABILITY,
+              value: provider.retrievability_percent,
+              tested_at: provider.tested_at,
+            },
+            {
+              type: StorageProvidersMetricType.TTFB,
+              value: 0,
+              tested_at: provider.tested_at,
+            },
+          ],
+        }));
+
+        const flattened = metricsForSPs.flatMap((sp) =>
+          sp.metrics.map((m) => ({
+            type: m.type,
+            providerId: sp.providerId,
+            value: m.value,
+            update_date: m.tested_at,
+          })),
         );
-        await Promise.all(storeSliPromises);
+
+        const groupedByMetrics = groupBy(flattened, 'type');
+
+        await Promise.all(
+          Object.keys(groupedByMetrics).map(async (key) => {
+            this.storageProviderUrlFinderService.storeSliMetricForProviders(
+              key as StorageProvidersMetricType,
+              groupedByMetrics[key].map((item) => ({
+                providerId: item.providerId,
+                value: item.value,
+                lastUpdateAt: item.update_date,
+              })),
+            );
+          }),
+        );
 
         this.logger.log(`Finishing Storage Provider SLIs Fetcher job`);
       } catch (err) {
