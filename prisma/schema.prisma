@@ -561,8 +561,8 @@ model storage_provider_sli_metric {
 }
 
 model storage_provider_sli {
-  id       String @id @default(cuid())
-  provider String
+  id         String @id @default(cuid())
+  providerId String
 
   metricId String
   metric   storage_provider_sli_metric @relation(fields: [metricId], references: [id])
@@ -570,9 +570,9 @@ model storage_provider_sli {
 
   update_date DateTime @default(now())
 
-  @@index([provider])
+  @@index([providerId])
   @@index([metricId])
-  @@index([provider, metricId, update_date])
+  @@index([providerId, metricId, update_date])
 }
 
 enum AllocatorScoringMetric {
