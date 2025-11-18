@@ -548,6 +548,7 @@ model provider_ip_info {
 enum StorageProvidersMetricType {
   TTFB
   RETRIEVABILITY
+  RETENTION
 }
 
 model storage_provider_sli_metric {
