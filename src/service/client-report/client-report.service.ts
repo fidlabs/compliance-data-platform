@@ -75,11 +75,12 @@ export class ClientReportService {
         storageProviderDistribution?.map(async (provider) => {
           return {
             ...provider,
-            piece_working_url:
-              await this.storageProviderUrlFinderService.fetchPieceWorkingUrlForClientProvider(
+            piece_working_url: (
+              await this.storageProviderUrlFinderService.fetchLastSlisForProvider(
                 provider.provider,
                 clientData[0].addressId,
-              ),
+              )
+            ).working_url,
             declared_in_application_file:
               bookkeepingInfo?.storageProviderIDsDeclared?.includes(
                 provider.provider,
