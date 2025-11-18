@@ -3,8 +3,8 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { lastValueFrom } from 'rxjs';
-import { Cacheable } from 'src/utils/cacheable';
-import { Retryable } from 'src/utils/retryable';
+import { SliStorageProviderUrlFinder } from './types.storage-provider-url-finder.service';
+import { PrismaService } from 'src/db/prisma.service';
 
 @Injectable()
 export class StorageProviderUrlFinderService {
@@ -15,111 +15,62 @@ export class StorageProviderUrlFinderService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly httpService: HttpService,
     private configService: ConfigService,
+    private readonly prismaService: PrismaService,
   ) {
     this.URL_FINDER_API_URL =
       this.configService.get<string>('URL_FINDER_API_URL');
   }
 
-  // returns 0 - 1
-  public async fetchRetrievability(
-    storageProviderId: string,
-    clientId?: string,
-  ): Promise<number | null> {
-    try {
-      const data = await this._fetchRetrievability(storageProviderId, clientId);
-      if (data.result !== 'Success') {
-        // noinspection ExceptionCaughtLocallyJS
-        throw new Error(`URL finder returned ${data.result}`);
-      }
-
-      return data.retrievability_percent / 100;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-      // this.logger.warn(
-      //   `Error fetching URL finder retrievability for ${storageProviderId}${clientId ? '/' + clientId : ''}: ${err.message}`,
-      // );
-
-      return null;
-    }
-  }
-
-  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
-  private async _fetchRetrievability(
-    storageProviderId: string,
-    clientId?: string,
-  ) {
-    return await this.__fetchRetrievability(storageProviderId, clientId);
-  }
-
-  @Retryable({ retries: 5, delayMin: 3000, delayMax: 6000 }) // 3 - 6 seconds random delay
-  private async __fetchRetrievability(
-    storageProviderId: string,
-    clientId?: string,
-  ) {
-    const endpoint = `${this.URL_FINDER_API_URL}/url/retrievability/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
+  public async fetchLastSlisForAllProviders(): Promise<
+    SliStorageProviderUrlFinder[]
+  > {
+    const endpoint = `${this.URL_FINDER_API_URL}/slis`;
 
     const { data } = await lastValueFrom(
-      this.httpService.get(endpoint, { timeout: 90000 }), // 90 seconds
+      this.httpService.get<SliStorageProviderUrlFinder[]>(endpoint),
     );
 
     return data;
   }
 
-  public async fetchPieceWorkingUrlForProvider(
+  public async fetchLastSlisForProvider(
     storageProviderId: string,
     clientId?: string,
-  ): Promise<string | null> {
-    try {
-      const data = await this._fetchPieceWorkingUrlForProvider(
-        storageProviderId,
-        clientId,
-      );
-
-      if (data.result !== 'Success') {
-        this.logger.warn(
-          `No piece working URL found for provider ${storageProviderId}` +
-            `${clientId ? ' and client ' + clientId : ''}`,
-        );
-
-        return null;
-      }
-
-      return data.url;
-    } catch (err) {
-      this.logger.warn(
-        `Error fetching URL finder working URL for provider ${storageProviderId}` +
-          `${clientId ? ' and client ' + clientId : ''}` +
-          `: ${err.message}`,
-      );
-
-      return null;
-    }
-  }
-
-  @Cacheable({ ttl: 1000 * 60 * 60 * 24 }) // 24 hours
-  private async _fetchPieceWorkingUrlForProvider(
-    storageProviderId: string,
-    clientId?: string,
-  ) {
-    return await this.__fetchPieceWorkingUrlForProvider(
-      storageProviderId,
-      clientId,
-    );
-  }
-
-  @Retryable({ retries: 5, delayMin: 3000, delayMax: 6000 }) // 3 - 6 seconds random delay
-  public async __fetchPieceWorkingUrlForProvider(
-    storageProviderId: string,
-    clientId?: string,
-  ) {
-    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
+  ): Promise<SliStorageProviderUrlFinder> {
+    const endpoint = `${this.URL_FINDER_API_URL}/slis/find/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
 
     const { data } = await lastValueFrom(
-      this.httpService.get<{ result: string; url: string }>(endpoint, {
-        timeout: 90000,
-      }), // 90 seconds
+      this.httpService.get<SliStorageProviderUrlFinder>(endpoint),
     );
 
     return data;
+  }
+
+  public async fetchHistoricalSlisForProvider(
+    storageProviderId: string,
+    clientId?: string,
+    options?: { from: string; to: string },
+  ): Promise<SliStorageProviderUrlFinder[]> {
+    const endpoint = `${this.URL_FINDER_API_URL}/slis/find/${storageProviderId}${clientId ? `/${clientId}` : ''} ${options ? `?from=${options.from}&to=${options.to}` : ''}`;
+
+    const { data } = await lastValueFrom(
+      this.httpService.get<SliStorageProviderUrlFinder[]>(endpoint),
+    );
+
+    return data;
+  }
+
+  public async storeSliForProvider(
+    data: SliStorageProviderUrlFinder,
+  ): Promise<void> {
+    await this.prismaService.storage_provider_sli.create({
+      data: {
+        providerId: data.providerId,
+        working_url: data.working_url,
+        retrievability_percent: data.retrievability_percent,
+
+        tested_at: new Date(data.tested_at),
+      },
+    });
   }
 }
