@@ -57,10 +57,11 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
         _storageProviders.map(async (provider) => {
           return {
             provider: provider.id,
-            success_rate:
-              await storageProviderUrlFinderService.fetchRetrievability(
+            success_rate: (
+              await storageProviderUrlFinderService.fetchLastSlisForProvider(
                 provider.id,
-              ),
+              )
+            ).retrievability_percent,
           };
         }),
       );
