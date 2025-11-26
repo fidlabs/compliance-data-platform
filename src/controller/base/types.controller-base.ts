@@ -1,4 +1,8 @@
-import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  IntersectionType,
+} from '@nestjs/swagger';
 
 export class PaginationInfoRequest {
   @ApiPropertyOptional({
@@ -64,3 +68,59 @@ export class PaginationSortingInfoRequest extends IntersectionType(
   PaginationInfoRequest,
   SortingInfoRequest,
 ) {}
+
+// Dashboard Statistics
+export type DashboardStatisticValueType =
+  (typeof dashboardStatisticValueTypes)[number];
+
+export type DashboardStatisticChangeInterval =
+  (typeof dashboardStatisticChangeIntervals)[number];
+
+const dashboardStatisticValueTypes = ['numeric', 'percentage'] as const;
+const dashboardStatisticChangeIntervals = ['day', 'week', 'month'] as const;
+
+export class DashboardStatisticValue {
+  @ApiProperty({
+    description: 'Value for statistic as number',
+  })
+  value: number;
+
+  @ApiProperty({
+    description: 'Type of statistic value',
+    enumName: 'DashboardStatisticValueType',
+    enum: dashboardStatisticValueTypes,
+  })
+  type: DashboardStatisticValueType;
+}
+
+export class DashboardStatisticChange {
+  @ApiProperty({
+    description: 'Percentage change of given statistic in time',
+  })
+  value: number;
+
+  @ApiProperty({
+    description: 'Interval used to calculate change in time',
+    enumName: 'DashboardStatisticChangeInterval',
+    enum: dashboardStatisticChangeIntervals,
+  })
+  interval: DashboardStatisticChangeInterval;
+}
+
+export class DashboardStatistic {
+  @ApiProperty({ description: 'Statistic title' })
+  title: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional description of a the statistic',
+  })
+  description: string | null;
+
+  @ApiProperty({ description: 'Current value of given statistic' })
+  value: DashboardStatisticValue;
+
+  @ApiPropertyOptional({
+    description: 'Percentage change of given statistic in time',
+  })
+  percentageChange?: DashboardStatisticChange | null;
+}

@@ -2,16 +2,22 @@ import {
   ApiProperty,
   ApiPropertyOptional,
   IntersectionType,
+  PartialType,
+  PickType,
 } from '@nestjs/swagger';
+import { AllocatorScoringMetric } from 'prisma/generated/client';
 import {
   AllocatorComplianceScoreRange,
   AllocatorDatacapFlowData,
 } from 'src/service/allocator/types.allocator';
 import { stringifiedBool } from 'src/utils/utils';
-import { PaginationSortingInfoRequest } from '../base/types.controller-base';
+import {
+  DashboardStatistic,
+  DashboardStatisticChange,
+  PaginationSortingInfoRequest,
+} from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
-import { AllocatorScoringMetric } from 'prisma/generated/client';
 
 export enum AllocatorDataType {
   openData = 'openData',
@@ -382,3 +388,27 @@ export class GetAllocatorReportRequest {
   })
   providerPaginationLimit?: string;
 }
+
+export const allocatorsDashboardStatisticTypes = [
+  'TOTAL_APPROVED_ALLOCATORS',
+  'TOTAL_ACTIVE_ALLOCATORS',
+  'COMPLIANT_ALLOCATORS',
+  'NON_COMPLIANT_ALLOCATORS',
+  'NUMBER_OF_ALERTS',
+] as const;
+
+export type AllocatorsDashboardStatisticType =
+  (typeof allocatorsDashboardStatisticTypes)[number];
+
+export class AllocatorsDashboardStatistic extends DashboardStatistic {
+  @ApiProperty({
+    description: 'Type of allocator dashboard statistic',
+    enumName: 'AllocatorsDashboardStatisticType',
+    enum: allocatorsDashboardStatisticTypes,
+  })
+  type: AllocatorsDashboardStatisticType;
+}
+
+export class AllocatorsDashboardStatisticsParameters extends PartialType(
+  PickType(DashboardStatisticChange, ['interval'] as const),
+) {}
