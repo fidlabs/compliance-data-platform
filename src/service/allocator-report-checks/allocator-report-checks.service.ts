@@ -510,7 +510,7 @@ export class AllocatorReportChecksService {
       getAllocatorsReportChecksCountForDay(date, false),
     );
 
-    return results[0].total_checks_count;
+    return results[0]?.total_checks_count ?? 0;
   }
 
   private validateAllocations(clientAllocations: ClientAllocations): {

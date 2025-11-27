@@ -1099,7 +1099,9 @@ export class AllocatorService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public getCompliantAllocatorsStat(options?: { cutoffDate?: Date }) {
+  public getCompliantAllocatorsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
     const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
 
     return this.getAllocatorsPercentageByScoreRange({
@@ -1111,7 +1113,9 @@ export class AllocatorService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public getNonCompliantAllocatorsStat(options?: { cutoffDate?: Date }) {
+  public getNonCompliantAllocatorsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
     const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
 
     return this.getAllocatorsPercentageByScoreRange({
@@ -1128,7 +1132,7 @@ export class AllocatorService {
     cutoffDate?: Date;
   }): Promise<number> {
     const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
-    const sixtyDaysBefore = DateTime.fromJSDate(cutoffDate).minus({ day: 60 });
+    const sixtyDaysBefore = DateTime.fromJSDate(cutoffDate).minus({ days: 60 });
 
     const activeAllocators =
       await this.prismaService.client_datacap_allocation.groupBy({

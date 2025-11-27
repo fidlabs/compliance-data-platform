@@ -112,7 +112,7 @@ export class DashboardStatistic {
   title: string;
 
   @ApiPropertyOptional({
-    description: 'Optional description of a the statistic',
+    description: 'Optional description of the statistic',
   })
   description: string | null;
 
