@@ -409,6 +409,6 @@ export class AllocatorsDashboardStatistic extends DashboardStatistic {
   type: AllocatorsDashboardStatisticType;
 }
 
-export class AllocatorsDashboardStatisticsParameters extends PartialType(
+export class GetAllocatorsStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}

@@ -502,7 +502,9 @@ export class AllocatorReportChecksService {
     );
   }
 
-  public async getAlertsCount(options?: { date?: Date }): Promise<number> {
+  public async getFailedReportChecksCount(options?: {
+    date?: Date;
+  }): Promise<number> {
     const { date = DateTime.now().toUTC().toJSDate() } = options ?? {};
     const results = await this.prismaService.$queryRawTyped(
       getAllocatorsReportChecksCountForDay(date, false),

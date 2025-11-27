@@ -38,13 +38,13 @@ import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-
 import {
   AllocatorDataType,
   AllocatorsDashboardStatistic,
-  AllocatorsDashboardStatisticsParameters,
   AllocatorsDashboardStatisticType,
   GetAllocatorsLatestScoresRankingRequest,
   GetAllocatorsLatestScoresRankingResponse,
   GetAllocatorsRequest,
   GetAllocatorsScoresSummaryByMetricRequest,
   GetAllocatorsScoresSummaryByMetricResponse,
+  GetAllocatorsStatisticsRequest,
   GetDatacapFlowDataRequest,
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
@@ -352,7 +352,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     type: [AllocatorsDashboardStatistic],
   })
   public async getAllocatorsStatistics(
-    @Query() query: AllocatorsDashboardStatisticsParameters,
+    @Query() query: GetAllocatorsStatisticsRequest,
   ): Promise<AllocatorsDashboardStatistic[]> {
     const { interval = 'day' } = query;
     const cutoffDate = DateTime.now()
@@ -380,8 +380,10 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       this.allocatorService.getCompliantAllocatorsStat({ cutoffDate }),
       this.allocatorService.getNonCompliantAllocatorsStat(),
       this.allocatorService.getNonCompliantAllocatorsStat({ cutoffDate }),
-      this.allocatorReportChecksService.getAlertsCount(),
-      this.allocatorReportChecksService.getAlertsCount({ date: cutoffDate }),
+      this.allocatorReportChecksService.getFailedReportChecksCount(),
+      this.allocatorReportChecksService.getFailedReportChecksCount({
+        date: cutoffDate,
+      }),
     ]);
 
     return [

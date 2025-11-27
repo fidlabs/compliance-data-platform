@@ -1122,13 +1122,8 @@ export class AllocatorService {
     });
   }
 
-  /**
-   * Returns number of Allocators that are considered active based on
-   * if they spent DC in last 60 days
-   *
-   * @param options
-   * @returns {Promise<number>} number of active Allocators
-   */
+  // returns number of Allocators that are considered active based on if they
+  // spent DC in last 60 days
   public async getActiveAllocatorsStat(options?: {
     cutoffDate?: Date;
   }): Promise<number> {
