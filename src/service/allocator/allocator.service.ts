@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
 import { Prisma } from 'prisma/generated/client';
 import {
+  getAllocatorsIdsByScorePercentageThreshold,
   getAverageSecondsToFirstDeal,
   getStandardAllocatorBiggestClientDistributionAcc,
   getStandardAllocatorClientsWeeklyAcc,
@@ -62,13 +63,40 @@ import {
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
 import { arrayAverage, stringToDate, stringToNumber } from 'src/utils/utils';
+import z from 'zod';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
 import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
 
+const registryEntryWithApproveDateSchema = z.object({
+  history: z.object({
+    Approved: z.iso.datetime(),
+  }),
+});
+
+const registryEntriesWithApproveDateMappingSchema = z.preprocess((input) => {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((item) => {
+      const result = registryEntryWithApproveDateSchema.safeParse(item);
+      return result.success ? result.data : null;
+    })
+    .filter(
+      (item): item is z.infer<typeof registryEntryWithApproveDateSchema> => {
+        return item !== null;
+      },
+    );
+}, z.array(registryEntryWithApproveDateSchema));
+
 @Injectable()
 export class AllocatorService {
+  public static readonly COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD = 0.7;
+  public static readonly NON_COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD = 0.45;
+
   private readonly logger = new Logger(AllocatorService.name);
 
   constructor(
@@ -1034,5 +1062,122 @@ export class AllocatorService {
         )
       )?.[0]?.average,
     );
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getApprovedAllocatorsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
+    const rawRegistryResults =
+      await this.prismaService.allocator_registry.findMany({
+        select: {
+          registry_info: true,
+        },
+        where: {
+          registry_info: {
+            path: ['history', 'Approved'],
+            not: '',
+          },
+        },
+      });
+
+    const rawRegistryInfo = rawRegistryResults.map(
+      (item) => item.registry_info,
+    );
+
+    const approvedAllocators =
+      registryEntriesWithApproveDateMappingSchema.parse(rawRegistryInfo);
+
+    // Filter in memory because, there should not be that much allocators and
+    // filtering JSON field by date in Prisma is either PITA or impossible
+    return approvedAllocators.filter((allocator) => {
+      return (
+        new Date(allocator.history.Approved).valueOf() < cutoffDate.valueOf()
+      );
+    }).length;
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public getCompliantAllocatorsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
+
+    return this.getAllocatorsPercentageByScoreRange({
+      minScorePercentage:
+        AllocatorService.COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD,
+      maxScorePercentage: 1,
+      cutoffDate,
+    });
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public getNonCompliantAllocatorsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
+
+    return this.getAllocatorsPercentageByScoreRange({
+      minScorePercentage: 0,
+      maxScorePercentage:
+        AllocatorService.NON_COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD,
+      cutoffDate,
+    });
+  }
+
+  // returns number of Allocators that are considered active based on if they
+  // spent DC in last 60 days
+  public async getActiveAllocatorsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+    const sixtyDaysBefore = DateTime.fromJSDate(cutoffDate).minus({ days: 60 });
+
+    const activeAllocators =
+      await this.prismaService.client_datacap_allocation.groupBy({
+        by: 'allocator_id',
+        where: {
+          timestamp: {
+            gte: sixtyDaysBefore.toJSDate(),
+          },
+        },
+      });
+
+    return activeAllocators.length;
+  }
+
+  private async getAllocatorsPercentageByScoreRange(options: {
+    minScorePercentage: number;
+    maxScorePercentage: number;
+    cutoffDate: Date;
+  }): Promise<number> {
+    const { minScorePercentage, maxScorePercentage, cutoffDate } = options;
+
+    const [allAllocators, currentlyMatchingAllocators] = await Promise.all([
+      // Use the same query to get total count of allocators so the percentage
+      // calculation make sense. This makes sure we include only allocators that
+      // were scored in a first report generated before the cutoff date
+      this.prismaService.$queryRawTyped(
+        getAllocatorsIdsByScorePercentageThreshold(0, 1, cutoffDate),
+      ),
+      this.prismaService.$queryRawTyped(
+        getAllocatorsIdsByScorePercentageThreshold(
+          minScorePercentage,
+          maxScorePercentage,
+          cutoffDate,
+        ),
+      ),
+    ]);
+
+    const totalAllocatorsCount = allAllocators.length;
+
+    if (totalAllocatorsCount === 0) {
+      return 0;
+    }
+
+    const matchingAllocatorsCount = currentlyMatchingAllocators.length;
+
+    return matchingAllocatorsCount / totalAllocatorsCount;
   }
 }

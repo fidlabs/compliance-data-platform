@@ -6,6 +6,7 @@ import {
   AllocatorReportCheck,
   ClientReportCheck,
 } from 'prisma/generated/client';
+import { getAllocatorsReportChecksCountForDay } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { getFilPlusEditionById } from 'src/utils/filplus-edition';
@@ -499,6 +500,17 @@ export class AllocatorReportChecksService {
         msg: `${((invalidAllocations.length / verifiedClientAllocations.length) * 100).toFixed(2)}% of active clients did not receive allocations according to the tranche schedule`,
       },
     );
+  }
+
+  public async getFailedReportChecksCount(options?: {
+    date?: Date;
+  }): Promise<number> {
+    const { date = DateTime.now().toUTC().toJSDate() } = options ?? {};
+    const results = await this.prismaService.$queryRawTyped(
+      getAllocatorsReportChecksCountForDay(date, false),
+    );
+
+    return results[0]?.total_checks_count ?? 0;
   }
 
   private validateAllocations(clientAllocations: ClientAllocations): {

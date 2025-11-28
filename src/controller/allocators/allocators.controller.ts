@@ -8,6 +8,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DateTime } from 'luxon';
+import { getAllocatorsScoresSummaryByMetric } from 'prisma/generated/client/sql';
+import { PrismaService } from 'src/db/prisma.service';
+import { AllocatorReportChecksService } from 'src/service/allocator-report-checks/allocator-report-checks.service';
+import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import {
   AllocatorAuditOutcomesData,
@@ -28,22 +33,46 @@ import {
   stringToNumber,
 } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
+import { DashboardStatistic } from '../base/types.controller-base';
+import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
-  GetAllocatorsRequest,
+  AllocatorDataType,
+  AllocatorsDashboardStatistic,
+  AllocatorsDashboardStatisticType,
   GetAllocatorsLatestScoresRankingRequest,
   GetAllocatorsLatestScoresRankingResponse,
+  GetAllocatorsRequest,
+  GetAllocatorsScoresSummaryByMetricRequest,
+  GetAllocatorsScoresSummaryByMetricResponse,
+  GetAllocatorsStatisticsRequest,
   GetDatacapFlowDataRequest,
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
-  AllocatorDataType,
-  GetAllocatorsScoresSummaryByMetricRequest,
-  GetAllocatorsScoresSummaryByMetricResponse,
 } from './types.allocators';
-import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
-import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
-import { PrismaService } from 'src/db/prisma.service';
-import { getAllocatorsScoresSummaryByMetric } from 'prisma/generated/client/sql';
+
+const dashboardStatisticsTitleDict: Record<
+  AllocatorsDashboardStatisticType,
+  AllocatorsDashboardStatistic['title']
+> = {
+  TOTAL_APPROVED_ALLOCATORS: 'Approved Allocators',
+  TOTAL_ACTIVE_ALLOCATORS: 'Active Allocators',
+  COMPLIANT_ALLOCATORS: 'Compliant Allocators',
+  NON_COMPLIANT_ALLOCATORS: 'Non Compliant Allocators',
+  NUMBER_OF_ALERTS: 'Alerts',
+};
+
+const dashboardStatisticsDescriptionDict: Record<
+  AllocatorsDashboardStatisticType,
+  AllocatorsDashboardStatistic['description']
+> = {
+  TOTAL_APPROVED_ALLOCATORS: null,
+  TOTAL_ACTIVE_ALLOCATORS:
+    'Number of allocators that spent Datacap in last 60 days',
+  COMPLIANT_ALLOCATORS: `Percentage of Allocators with score above ${AllocatorService.COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD * 100}%`,
+  NON_COMPLIANT_ALLOCATORS: `Percentage of allocators with score below ${AllocatorService.NON_COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD * 100}%`,
+  NUMBER_OF_ALERTS: null,
+};
 
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -54,6 +83,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly allocatorService: AllocatorService,
     private readonly allocatorScoringService: AllocatorScoringService,
+    private readonly allocatorReportChecksService: AllocatorReportChecksService,
     private readonly prismaService: PrismaService,
   ) {
     super();
@@ -311,5 +341,114 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       query,
       allocators.length,
     );
+  }
+
+  @Get('/statistics')
+  @ApiOperation({
+    summary: 'Get list of statistics regarding allocators',
+  })
+  @ApiOkResponse({
+    description: 'List of statistics regarding allocators',
+    type: [AllocatorsDashboardStatistic],
+  })
+  public async getAllocatorsStatistics(
+    @Query() query: GetAllocatorsStatisticsRequest,
+  ): Promise<AllocatorsDashboardStatistic[]> {
+    const { interval = 'day' } = query;
+    const cutoffDate = DateTime.now()
+      .toUTC()
+      .minus({ [interval]: 1 })
+      .toJSDate();
+
+    const [
+      currentApprovedAllocatorsCount,
+      previousApprovedAllocatorsCount,
+      currentActiveAllocatorsCount,
+      previousActiveAllocatorsCount,
+      currentCompliantAllocatorsPercentage,
+      previousCompliantAllocatorsPercentage,
+      currentNonCompliantAllocatorsPercentage,
+      previousNonCompliantAllocatorsPercentage,
+      currentAlertsCount,
+      previousAlertsCount,
+    ] = await Promise.all([
+      this.allocatorService.getApprovedAllocatorsStat(),
+      this.allocatorService.getApprovedAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getActiveAllocatorsStat(),
+      this.allocatorService.getActiveAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getCompliantAllocatorsStat(),
+      this.allocatorService.getCompliantAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getNonCompliantAllocatorsStat(),
+      this.allocatorService.getNonCompliantAllocatorsStat({ cutoffDate }),
+      this.allocatorReportChecksService.getFailedReportChecksCount(),
+      this.allocatorReportChecksService.getFailedReportChecksCount({
+        date: cutoffDate,
+      }),
+    ]);
+
+    return [
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_APPROVED_ALLOCATORS',
+        currentValue: currentApprovedAllocatorsCount,
+        previousValue: previousApprovedAllocatorsCount,
+        valueType: 'numeric',
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_ACTIVE_ALLOCATORS',
+        currentValue: currentActiveAllocatorsCount,
+        previousValue: previousActiveAllocatorsCount,
+        valueType: 'numeric',
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'COMPLIANT_ALLOCATORS',
+        currentValue: currentCompliantAllocatorsPercentage,
+        previousValue: previousCompliantAllocatorsPercentage,
+        valueType: 'percentage',
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'NON_COMPLIANT_ALLOCATORS',
+        currentValue: currentNonCompliantAllocatorsPercentage,
+        previousValue: previousNonCompliantAllocatorsPercentage,
+        valueType: 'percentage',
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'NUMBER_OF_ALERTS',
+        currentValue: currentAlertsCount,
+        previousValue: previousAlertsCount,
+        valueType: 'numeric',
+        interval,
+      }),
+    ];
+  }
+
+  private calculateDashboardStatistic(options: {
+    type: AllocatorsDashboardStatistic['type'];
+    currentValue: number;
+    previousValue: number;
+    valueType: DashboardStatistic['value']['type'];
+    interval: DashboardStatistic['percentageChange']['interval'];
+  }): AllocatorsDashboardStatistic {
+    const { type, currentValue, previousValue, valueType, interval } = options;
+
+    return {
+      type,
+      title: dashboardStatisticsTitleDict[type],
+      description: dashboardStatisticsDescriptionDict[type],
+      value: {
+        value: currentValue,
+        type: valueType,
+      },
+      percentageChange:
+        previousValue !== 0
+          ? {
+              value: currentValue / previousValue - 1,
+              interval,
+            }
+          : null,
+    };
   }
 }
