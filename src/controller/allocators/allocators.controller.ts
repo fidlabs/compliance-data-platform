@@ -27,13 +27,17 @@ import {
   getFilPlusEditionByTimestamp,
 } from 'src/utils/filplus-edition';
 import {
+  bigIntDiv,
   lastWeek,
   stringToBool,
   stringToDate,
   stringToNumber,
 } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
-import { DashboardStatistic } from '../base/types.controller-base';
+import {
+  DashboardStatistic,
+  DashboardStatisticValue,
+} from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
   AllocatorDataType,
@@ -389,37 +393,62 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     return [
       this.calculateDashboardStatistic({
         type: 'TOTAL_APPROVED_ALLOCATORS',
-        currentValue: currentApprovedAllocatorsCount,
-        previousValue: previousApprovedAllocatorsCount,
-        valueType: 'numeric',
+        currentValue: {
+          value: currentApprovedAllocatorsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousApprovedAllocatorsCount,
+          type: 'numeric',
+        },
         interval,
       }),
       this.calculateDashboardStatistic({
         type: 'TOTAL_ACTIVE_ALLOCATORS',
-        currentValue: currentActiveAllocatorsCount,
-        previousValue: previousActiveAllocatorsCount,
-        valueType: 'numeric',
+        currentValue: {
+          value: currentActiveAllocatorsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousActiveAllocatorsCount,
+          type: 'numeric',
+        },
         interval,
       }),
       this.calculateDashboardStatistic({
         type: 'COMPLIANT_ALLOCATORS',
-        currentValue: currentCompliantAllocatorsPercentage,
-        previousValue: previousCompliantAllocatorsPercentage,
-        valueType: 'percentage',
+        currentValue: {
+          value: currentCompliantAllocatorsPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousCompliantAllocatorsPercentage,
+          type: 'percentage',
+        },
         interval,
       }),
       this.calculateDashboardStatistic({
         type: 'NON_COMPLIANT_ALLOCATORS',
-        currentValue: currentNonCompliantAllocatorsPercentage,
-        previousValue: previousNonCompliantAllocatorsPercentage,
-        valueType: 'percentage',
+        currentValue: {
+          value: currentNonCompliantAllocatorsPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousNonCompliantAllocatorsPercentage,
+          type: 'percentage',
+        },
         interval,
       }),
       this.calculateDashboardStatistic({
         type: 'NUMBER_OF_ALERTS',
-        currentValue: currentAlertsCount,
-        previousValue: previousAlertsCount,
-        valueType: 'numeric',
+        currentValue: {
+          value: currentAlertsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousAlertsCount,
+          type: 'numeric',
+        },
         interval,
       }),
     ];
@@ -427,25 +456,44 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
 
   private calculateDashboardStatistic(options: {
     type: AllocatorsDashboardStatistic['type'];
-    currentValue: number;
-    previousValue: number;
-    valueType: DashboardStatistic['value']['type'];
+    currentValue: DashboardStatisticValue;
+    previousValue: DashboardStatisticValue;
     interval: DashboardStatistic['percentageChange']['interval'];
   }): AllocatorsDashboardStatistic {
-    const { type, currentValue, previousValue, valueType, interval } = options;
+    const { type, currentValue, previousValue, interval } = options;
+
+    if (currentValue.type !== previousValue.type) {
+      throw new TypeError(
+        'Cannot compare different dashboard statistics types',
+      );
+    }
+
+    const percentageChangeValue: number | null = (() => {
+      if (BigInt(previousValue.value) === 0n) {
+        return null;
+      }
+
+      const ratio =
+        currentValue.type === 'bigint' || previousValue.type === 'bigint'
+          ? bigIntDiv(
+              BigInt(currentValue.value),
+              BigInt(previousValue.value),
+              2,
+            )
+          : currentValue.value / previousValue.value;
+
+      return ratio - 1;
+    })();
 
     return {
       type,
       title: dashboardStatisticsTitleDict[type],
       description: dashboardStatisticsDescriptionDict[type],
-      value: {
-        value: currentValue,
-        type: valueType,
-      },
+      value: currentValue,
       percentageChange:
-        previousValue !== 0
+        percentageChangeValue !== null
           ? {
-              value: currentValue / previousValue - 1,
+              value: percentageChangeValue,
               interval,
             }
           : null,

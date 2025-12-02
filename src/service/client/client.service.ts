@@ -1,7 +1,11 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import { Prisma } from 'prisma/generated/client';
-import { getAverageSecondsToFirstDeal } from 'prisma/generated/client/sql';
+import {
+  getAverageSecondsToFirstDeal,
+  getCountOfClientsFailingMoreThanHalfOfChecksForDay,
+} from 'prisma/generated/client/sql';
 import {
   getClientData,
   getClientsByAllocator,
@@ -10,11 +14,16 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
 import {
+  bigIntDiv,
+  BigIntString,
+  dateToFilecoinBlockHeight,
+  parseDataSizeToBytes,
+} from 'src/utils/utils';
+import {
   ClientBookkeepingInfo,
   ClientWithAllowance,
   ClientWithBookkeeping,
 } from './types.client';
-import { bigIntDiv, parseDataSizeToBytes } from 'src/utils/utils';
 
 @Injectable()
 export class ClientService {
@@ -284,5 +293,87 @@ export class ClientService {
         )
       )?.[0]?.average,
     );
+  }
+
+  public async getClientsCountStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
+    const blockHeightThreshold = dateToFilecoinBlockHeight(cutoffDate);
+    this.logger.debug('CLIENTS COUNT', cutoffDate, blockHeightThreshold);
+    const result = await this.prismaDmobService.verified_client.count({
+      where: {
+        createdAtHeight: {
+          lt: blockHeightThreshold,
+        },
+      },
+    });
+
+    return result;
+  }
+
+  // returns number of Clients that are considered active based on if they
+  // spent DC in last 60 days
+  public async getActiveClientsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+    const sixtyDaysBefore = DateTime.fromJSDate(cutoffDate).minus({ days: 60 });
+
+    const activeClients =
+      await this.prismaService.client_datacap_allocation.groupBy({
+        by: 'client_id',
+        where: {
+          timestamp: {
+            gte: sixtyDaysBefore.toJSDate(),
+          },
+        },
+      });
+
+    return activeClients.length;
+  }
+
+  // returns number of Clients that fail more than 50% checks for given day
+  public async getFailingClientsPercentageStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+
+    const results = await this.prismaService.$queryRawTyped(
+      getCountOfClientsFailingMoreThanHalfOfChecksForDay(cutoffDate),
+    );
+    const result = results[0];
+
+    if (!result || result.total_clients_count === 0n) {
+      return 0;
+    }
+
+    return bigIntDiv(
+      result.failing_clients_count,
+      result.total_clients_count,
+      2,
+    );
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getDatacapSpentByClientsStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<BigIntString> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+
+    const result =
+      await this.prismaService.unified_verified_deal_hourly.aggregate({
+        _sum: {
+          total_deal_size: true,
+        },
+        where: {
+          hour: {
+            lt: cutoffDate,
+          },
+        },
+      });
+    const value = result._sum.total_deal_size;
+
+    return value.toString() as BigIntString;
   }
 }

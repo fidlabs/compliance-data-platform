@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon';
 import { parse } from 'bytes-iec';
 
+export type BigIntString = `${'-' | ''}${number}`;
+
 export function stringToBool(s?: string): boolean | null {
   if (['1', 'TRUE', 'YES', 'ON'].includes(s?.toUpperCase())) return true;
   if (['0', 'FALSE', 'NO', 'OFF'].includes(s?.toUpperCase())) return false;
@@ -109,6 +111,13 @@ export function bigIntDiv(
 export function arrayAverage(arr?: number[]): number | null {
   const result = arr?.reduce((acc, val) => acc + val, 0) / arr?.length;
   return Number.isFinite(result) ? result : null;
+}
+
+export function dateToFilecoinBlockHeight(
+  date: Date | string | number,
+): number {
+  const epochSeconds = Math.floor(new Date(date).valueOf() / 1000);
+  return Math.floor((epochSeconds - 1598306400) / 30);
 }
 
 export type DatabasePaginationQuery = {
