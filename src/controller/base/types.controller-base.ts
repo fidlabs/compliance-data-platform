@@ -72,13 +72,9 @@ export class PaginationSortingInfoRequest extends IntersectionType(
 ) {}
 
 // Dashboard Statistics
-export type DashboardStatisticValueType =
-  (typeof dashboardStatisticValueTypes)[number];
-
 export type DashboardStatisticChangeInterval =
   (typeof dashboardStatisticChangeIntervals)[number];
 
-const dashboardStatisticValueTypes = ['numeric', 'percentage'] as const;
 const dashboardStatisticChangeIntervals = ['day', 'week', 'month'] as const;
 
 export class BigIntDashboardStatisticValue {
