@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
 import { decodeAllSync } from 'cbor';
-import { Multiaddr } from 'multiaddr';
+// import { Multiaddr } from 'multiaddr';
 import { lastValueFrom } from 'rxjs';
 import { Address } from '../location/types.location';
 import { IPNIAdvertisement, IPNIProvider } from './types.cid-contact';
@@ -127,10 +127,10 @@ export class CidContactService {
 
     // check if the publisher address is base64 encoded. byte64 comes from StateMinerInfo in lotus api
     if (base64Regex.test(publisherAddress)) {
-      const multiAddrInstance = new Multiaddr(
-        Buffer.from(publisherAddress, 'base64'),
-      );
-      finalMultiAddrToParse = multiAddrInstance.toString();
+      // const multiAddrInstance = new Multiaddr(
+      //   Buffer.from(publisherAddress, 'base64'),
+      // );
+      // finalMultiAddrToParse = multiAddrInstance.toString();
     }
 
     let curioSuffix = '';
