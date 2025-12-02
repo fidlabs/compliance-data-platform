@@ -13,6 +13,7 @@ import { DateTime } from 'luxon';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
+import { Cacheable } from 'src/utils/cacheable';
 import { bigIntDiv } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
@@ -222,6 +223,7 @@ export class ClientsController extends ControllerBase {
   }
 
   @Get('/statistics')
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   @ApiOperation({
     summary: 'Get list of statistics regarding clients',
   })
