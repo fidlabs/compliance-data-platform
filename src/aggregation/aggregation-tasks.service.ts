@@ -22,6 +22,7 @@ import { StorageProviderService } from '../service/storage-provider/storage-prov
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { sleep } from 'src/utils/utils';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
+import { CidContactService } from 'src/service/cid-contact/cid-contact.service';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -49,6 +50,7 @@ export class AggregationTasksService extends HealthIndicator {
     private readonly storageProviderService: StorageProviderService,
     private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
     private readonly allocatorService: AllocatorService,
+    private readonly cidContactService: CidContactService,
   ) {
     super();
   }
@@ -146,6 +148,7 @@ export class AggregationTasksService extends HealthIndicator {
                   storageProviderService: this.storageProviderService,
                   storageProviderUrlFinderService: this.storageProviderUrlFinderService,
                   allocatorService: this.allocatorService,
+                  cidContactService: this.cidContactService,
                 }),
               aggregationRunnerName,
             );

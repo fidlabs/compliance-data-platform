@@ -13,6 +13,7 @@ import { AggregationTable } from './aggregation-table';
 import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { AllocatorService } from '../service/allocator/allocator.service';
+import { CidContactService } from 'src/service/cid-contact/cid-contact.service';
 
 export type AggregationRunnerRunServices = {
   prismaService: PrismaService;
@@ -29,6 +30,7 @@ export type AggregationRunnerRunServices = {
   storageProviderService: StorageProviderService;
   storageProviderUrlFinderService: StorageProviderUrlFinderService;
   allocatorService: AllocatorService;
+  cidContactService: CidContactService;
 };
 
 export interface AggregationRunner {
