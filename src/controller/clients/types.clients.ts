@@ -1,5 +1,14 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PaginationSortingInfoRequest } from '../base/types.controller-base';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  PartialType,
+  PickType,
+} from '@nestjs/swagger';
+import {
+  DashboardStatistic,
+  DashboardStatisticChange,
+  PaginationSortingInfoRequest,
+} from '../base/types.controller-base';
 
 export class ClientStorageProvidersStats {
   @ApiProperty({ description: 'Storage provider ID' })
@@ -98,3 +107,26 @@ export class GetClientLatestClaimResponse {
   })
   totalSumOfNonDdoPieceSize: string;
 }
+
+export const clientsDashboardStatisticTypes = [
+  'TOTAL_CLIENTS',
+  'TOTAL_ACTIVE_CLIENTS',
+  'FAILING_CLIENTS',
+  'DATACAP_SPENT_BY_CLIENTS',
+] as const;
+
+export type ClientsDashboardStatisticType =
+  (typeof clientsDashboardStatisticTypes)[number];
+
+export class ClientsDashboardStatistic extends DashboardStatistic {
+  @ApiProperty({
+    description: 'Type of clients dashboard statistic',
+    enumName: 'ClientsDashboardStatisticType',
+    enum: clientsDashboardStatisticTypes,
+  })
+  type: ClientsDashboardStatisticType;
+}
+
+export class GetClientsStatisticsRequest extends PartialType(
+  PickType(DashboardStatisticChange, ['interval'] as const),
+) {}

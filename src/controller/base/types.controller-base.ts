@@ -1,8 +1,11 @@
 import {
+  ApiExtraModels,
   ApiProperty,
   ApiPropertyOptional,
+  getSchemaPath,
   IntersectionType,
 } from '@nestjs/swagger';
+import { BigIntString } from 'src/utils/utils';
 
 export class PaginationInfoRequest {
   @ApiPropertyOptional({
@@ -70,28 +73,51 @@ export class PaginationSortingInfoRequest extends IntersectionType(
 ) {}
 
 // Dashboard Statistics
-export type DashboardStatisticValueType =
-  (typeof dashboardStatisticValueTypes)[number];
-
 export type DashboardStatisticChangeInterval =
   (typeof dashboardStatisticChangeIntervals)[number];
 
-const dashboardStatisticValueTypes = ['numeric', 'percentage'] as const;
 const dashboardStatisticChangeIntervals = ['day', 'week', 'month'] as const;
 
-export class DashboardStatisticValue {
+export class BigIntDashboardStatisticValue {
   @ApiProperty({
-    description: 'Value for statistic as number',
+    description: 'BigInt value for the statistic as string',
+  })
+  value: BigIntString;
+
+  @ApiProperty({
+    enum: ['bigint'],
+  })
+  type: 'bigint';
+}
+
+export class NumericDashboardStatisticValue {
+  @ApiProperty({
+    description: 'Numeric value for the statistic',
   })
   value: number;
 
   @ApiProperty({
-    description: 'Type of statistic value',
-    enumName: 'DashboardStatisticValueType',
-    enum: dashboardStatisticValueTypes,
+    enum: ['numeric'],
   })
-  type: DashboardStatisticValueType;
+  type: 'numeric';
 }
+
+export class PercentageDashboardStatisticValue {
+  @ApiProperty({
+    description: 'Percentage value for the statistic',
+  })
+  value: number;
+
+  @ApiProperty({
+    enum: ['percentage'],
+  })
+  type: 'percentage';
+}
+
+export type DashboardStatisticValue =
+  | BigIntDashboardStatisticValue
+  | NumericDashboardStatisticValue
+  | PercentageDashboardStatisticValue;
 
 export class DashboardStatisticChange {
   @ApiProperty({
@@ -107,6 +133,11 @@ export class DashboardStatisticChange {
   interval: DashboardStatisticChangeInterval;
 }
 
+@ApiExtraModels(
+  BigIntDashboardStatisticValue,
+  NumericDashboardStatisticValue,
+  PercentageDashboardStatisticValue,
+)
 export class DashboardStatistic {
   @ApiProperty({ description: 'Statistic title' })
   title: string;
@@ -116,7 +147,14 @@ export class DashboardStatistic {
   })
   description: string | null;
 
-  @ApiProperty({ description: 'Current value of given statistic' })
+  @ApiProperty({
+    description: 'Current value of given statistic',
+    oneOf: [
+      { $ref: getSchemaPath(BigIntDashboardStatisticValue) },
+      { $ref: getSchemaPath(NumericDashboardStatisticValue) },
+      { $ref: getSchemaPath(PercentageDashboardStatisticValue) },
+    ],
+  })
   value: DashboardStatisticValue;
 
   @ApiPropertyOptional({

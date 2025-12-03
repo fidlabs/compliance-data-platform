@@ -9,16 +9,44 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DateTime } from 'luxon';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
 import { bigIntDiv } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
+  DashboardStatistic,
+  DashboardStatisticValue,
+} from '../base/types.controller-base';
+import {
+  ClientsDashboardStatistic,
   GetClientLatestClaimRequest,
   GetClientLatestClaimResponse,
+  GetClientsStatisticsRequest,
   GetClientStorageProvidersResponse,
 } from './types.clients';
+
+const dashboardStatisticsTitleDict: Record<
+  ClientsDashboardStatistic['type'],
+  ClientsDashboardStatistic['title']
+> = {
+  TOTAL_CLIENTS: 'Total Clients',
+  TOTAL_ACTIVE_CLIENTS: 'Active Clients',
+  FAILING_CLIENTS: 'Failing Clients',
+  DATACAP_SPENT_BY_CLIENTS: 'Datacap Spent by Clients',
+};
+
+const dashboardStatisticsDescriptionDict: Record<
+  ClientsDashboardStatistic['type'],
+  ClientsDashboardStatistic['description']
+> = {
+  TOTAL_CLIENTS: null,
+  TOTAL_ACTIVE_CLIENTS: 'Number of Clients that spent DataCap in last 60 days',
+  FAILING_CLIENTS:
+    'Percentage of Clients that are failing more than 50% of report checks',
+  DATACAP_SPENT_BY_CLIENTS: null,
+};
 
 @Controller('clients')
 export class ClientsController extends ControllerBase {
@@ -191,5 +219,138 @@ export class ClientsController extends ControllerBase {
         0,
       ) ?? 0,
     );
+  }
+
+  @Get('/statistics')
+  @ApiOperation({
+    summary: 'Get list of statistics regarding clients',
+  })
+  @ApiOkResponse({
+    description: 'List of statistics regarding clients',
+    type: [ClientsDashboardStatistic],
+  })
+  public async getClientsStatistics(
+    @Query() query: GetClientsStatisticsRequest,
+  ): Promise<ClientsDashboardStatistic[]> {
+    const { interval = 'day' } = query;
+    const cutoffDate = DateTime.now()
+      .toUTC()
+      .minus({ [interval]: 1 })
+      .toJSDate();
+
+    const [
+      currentClientsCount,
+      previousClientsCount,
+      currentActiveClientsCount,
+      previousActiveClientsCount,
+      currentFailingClientsPercentage,
+      previousFailingClientsPercentage,
+      currentDatacapSpentByClients,
+      previousDatacapSpentByClients,
+    ] = await Promise.all([
+      this.clientService.getClientsCountStat(),
+      this.clientService.getClientsCountStat({ cutoffDate }),
+      this.clientService.getActiveClientsStat(),
+      this.clientService.getActiveClientsStat({ cutoffDate }),
+      this.clientService.getFailingClientsPercentageStat(),
+      this.clientService.getFailingClientsPercentageStat({ cutoffDate }),
+      this.clientService.getDatacapSpentByClientsStat(),
+      this.clientService.getDatacapSpentByClientsStat({ cutoffDate }),
+    ]);
+
+    return [
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_CLIENTS',
+        currentValue: {
+          value: currentClientsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousClientsCount,
+          type: 'numeric',
+        },
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_ACTIVE_CLIENTS',
+        currentValue: {
+          value: currentActiveClientsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousActiveClientsCount,
+          type: 'numeric',
+        },
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'FAILING_CLIENTS',
+        currentValue: {
+          value: currentFailingClientsPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousFailingClientsPercentage,
+          type: 'percentage',
+        },
+        interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'DATACAP_SPENT_BY_CLIENTS',
+        currentValue: {
+          value: currentDatacapSpentByClients,
+          type: 'bigint',
+        },
+        previousValue: {
+          value: previousDatacapSpentByClients,
+          type: 'bigint',
+        },
+        interval,
+      }),
+    ];
+  }
+
+  private calculateDashboardStatistic(options: {
+    type: ClientsDashboardStatistic['type'];
+    currentValue: DashboardStatisticValue;
+    previousValue: DashboardStatisticValue;
+    interval: DashboardStatistic['percentageChange']['interval'];
+  }): ClientsDashboardStatistic {
+    const { type, currentValue, previousValue, interval } = options;
+
+    if (currentValue.type !== previousValue.type) {
+      throw new TypeError(
+        'Cannot compare different dashboard statistics types',
+      );
+    }
+
+    const percentageChange: ClientsDashboardStatistic['percentageChange'] =
+      (() => {
+        if (!previousValue.value) {
+          return null;
+        }
+
+        const ratio =
+          currentValue.type === 'bigint' || previousValue.type === 'bigint'
+            ? bigIntDiv(
+                BigInt(currentValue.value),
+                BigInt(previousValue.value),
+                2,
+              )
+            : currentValue.value / previousValue.value;
+
+        return {
+          value: ratio - 1,
+          interval,
+        };
+      })();
+
+    return {
+      type,
+      title: dashboardStatisticsTitleDict[type],
+      description: dashboardStatisticsDescriptionDict[type],
+      value: currentValue,
+      percentageChange,
+    };
   }
 }
