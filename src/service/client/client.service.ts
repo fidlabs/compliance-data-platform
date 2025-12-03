@@ -295,12 +295,12 @@ export class ClientService {
     );
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getClientsCountStat(options?: {
     cutoffDate?: Date;
   }): Promise<number> {
     const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
     const blockHeightThreshold = dateToFilecoinBlockHeight(cutoffDate);
-    this.logger.debug('CLIENTS COUNT', cutoffDate, blockHeightThreshold);
     const result = await this.prismaDmobService.verified_client.count({
       where: {
         createdAtHeight: {
@@ -314,6 +314,7 @@ export class ClientService {
 
   // returns number of Clients that are considered active based on if they
   // spent DC in last 60 days
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getActiveClientsStat(options?: {
     cutoffDate?: Date;
   }): Promise<number> {
@@ -326,6 +327,7 @@ export class ClientService {
         where: {
           timestamp: {
             gte: sixtyDaysBefore.toJSDate(),
+            lte: cutoffDate,
           },
         },
       });
@@ -334,6 +336,7 @@ export class ClientService {
   }
 
   // returns number of Clients that fail more than 50% checks for given day
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getFailingClientsPercentageStat(options?: {
     cutoffDate?: Date;
   }): Promise<number> {
@@ -372,8 +375,9 @@ export class ClientService {
           },
         },
       });
+
     const value = result._sum.total_deal_size;
 
-    return value.toString() as BigIntString;
+    return typeof value === 'bigint' ? (value.toString() as BigIntString) : '0';
   }
 }

@@ -1,4 +1,5 @@
 import {
+  ApiExtraModels,
   ApiProperty,
   ApiPropertyOptional,
   getSchemaPath,
@@ -132,6 +133,11 @@ export class DashboardStatisticChange {
   interval: DashboardStatisticChangeInterval;
 }
 
+@ApiExtraModels(
+  BigIntDashboardStatisticValue,
+  NumericDashboardStatisticValue,
+  PercentageDashboardStatisticValue,
+)
 export class DashboardStatistic {
   @ApiProperty({ description: 'Statistic title' })
   title: string;

@@ -223,7 +223,6 @@ export class ClientsController extends ControllerBase {
   }
 
   @Get('/statistics')
-  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   @ApiOperation({
     summary: 'Get list of statistics regarding clients',
   })
@@ -326,40 +325,38 @@ export class ClientsController extends ControllerBase {
       );
     }
 
-    const percentageChangeValue: number | null = (() => {
-      const dividerIsZero =
-        previousValue.type === 'bigint'
-          ? BigInt(previousValue.value) === 0n
-          : previousValue.value === 0;
+    const percentageChange: ClientsDashboardStatistic['percentageChange'] =
+      (() => {
+        const dividerIsZero =
+          previousValue.type === 'bigint'
+            ? BigInt(previousValue.value) === 0n
+            : previousValue.value === 0;
 
-      if (dividerIsZero) {
-        return null;
-      }
+        if (dividerIsZero) {
+          return null;
+        }
 
-      const ratio =
-        currentValue.type === 'bigint' || previousValue.type === 'bigint'
-          ? bigIntDiv(
-              BigInt(currentValue.value),
-              BigInt(previousValue.value),
-              2,
-            )
-          : currentValue.value / previousValue.value;
+        const ratio =
+          currentValue.type === 'bigint' || previousValue.type === 'bigint'
+            ? bigIntDiv(
+                BigInt(currentValue.value),
+                BigInt(previousValue.value),
+                2,
+              )
+            : currentValue.value / previousValue.value;
 
-      return ratio - 1;
-    })();
+        return {
+          value: ratio - 1,
+          interval,
+        };
+      })();
 
     return {
       type,
       title: dashboardStatisticsTitleDict[type],
       description: dashboardStatisticsDescriptionDict[type],
       value: currentValue,
-      percentageChange:
-        percentageChangeValue !== null
-          ? {
-              value: percentageChangeValue,
-              interval,
-            }
-          : null,
+      percentageChange,
     };
   }
 }

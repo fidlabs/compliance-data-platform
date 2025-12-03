@@ -468,35 +468,38 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       );
     }
 
-    const percentageChangeValue: number | null = (() => {
-      if (BigInt(previousValue.value) === 0n) {
-        return null;
-      }
+    const percentageChange: AllocatorsDashboardStatistic['percentageChange'] =
+      (() => {
+        const dividerIsZero =
+          previousValue.type === 'bigint'
+            ? BigInt(previousValue.value) === 0n
+            : previousValue.value === 0;
 
-      const ratio =
-        currentValue.type === 'bigint' || previousValue.type === 'bigint'
-          ? bigIntDiv(
-              BigInt(currentValue.value),
-              BigInt(previousValue.value),
-              2,
-            )
-          : currentValue.value / previousValue.value;
+        if (dividerIsZero) {
+          return null;
+        }
 
-      return ratio - 1;
-    })();
+        const ratio =
+          currentValue.type === 'bigint' || previousValue.type === 'bigint'
+            ? bigIntDiv(
+                BigInt(currentValue.value),
+                BigInt(previousValue.value),
+                2,
+              )
+            : currentValue.value / previousValue.value;
+
+        return {
+          value: ratio - 1,
+          interval,
+        };
+      })();
 
     return {
       type,
       title: dashboardStatisticsTitleDict[type],
       description: dashboardStatisticsDescriptionDict[type],
       value: currentValue,
-      percentageChange:
-        percentageChangeValue !== null
-          ? {
-              value: percentageChangeValue,
-              interval,
-            }
-          : null,
+      percentageChange,
     };
   }
 }
