@@ -127,11 +127,10 @@ export class CidContactService {
 
     // check if the publisher address is base64 encoded. byte64 comes from StateMinerInfo in lotus api
     if (base64Regex.test(publisherAddress)) {
-      const multiAddrInstance = new Multiaddr(
-        Buffer.from(publisherAddress, 'base64'),
-      );
-
-      finalMultiAddrToParse = multiAddrInstance.toString();
+      finalMultiAddrToParse = Buffer.from(
+        publisherAddress,
+        'base64',
+      ).toString();
     }
 
     let curioSuffix = '';
