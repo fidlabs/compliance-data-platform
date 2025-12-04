@@ -35,6 +35,7 @@ export class EthApiService {
       abi,
       functionName: 'clientConfigs',
       args: [clientAddress],
+      authorizationList: undefined,
     });
 
     return formatUnits(maxDeviation, 2);
@@ -76,6 +77,7 @@ export class EthApiService {
       abi,
       functionName: 'getPeerData',
       args: [BigInt(validatedSpAddress)],
+      authorizationList: undefined,
     })) as { peerID: string; signature: string };
 
     return peerData.peerID || null;
