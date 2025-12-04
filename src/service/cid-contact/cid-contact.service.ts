@@ -133,6 +133,7 @@ export class CidContactService {
       ).toString();
     }
 
+    console.log('finalMultiAddrToParse:', finalMultiAddrToParse);
     let curioSuffix = '';
 
     // TODO temporary fix needed because multiaddr library does not support /dns/ prefix
