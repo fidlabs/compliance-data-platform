@@ -10,10 +10,15 @@ import { ControllerBase } from '../base/controller-base';
 import { Cacheable } from 'src/utils/cacheable';
 import {
   GetStorageProvidersRequest,
+  GetStorageProvidersSLIDataRequest,
+  GetStorageProvidersSLIDataResponse,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
+  StorageProvidersSLIMetric,
 } from './types.storage-providers';
 import { lastWeek, stringToDate } from 'src/utils/utils';
+import { PrismaService } from 'src/db/prisma.service';
+import { groupBy } from 'lodash';
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -23,6 +28,7 @@ export class StorageProvidersController extends ControllerBase {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly storageProviderService: StorageProviderService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -155,5 +161,76 @@ export class StorageProvidersController extends ControllerBase {
       query,
       providers.length,
     );
+  }
+
+  @Get('/sli-data')
+  @ApiOperation({
+    summary: 'Get SLI data for storage providers',
+  })
+  @ApiOkResponse({
+    description: 'SLI data for storage providers',
+    type: GetStorageProvidersSLIDataResponse,
+    isArray: true,
+  })
+  public async getStorageProvidersSLIData(
+    @Query() query: GetStorageProvidersSLIDataRequest,
+  ): Promise<GetStorageProvidersSLIDataResponse[]> {
+    if (typeof query.storageProvidersIds === 'string') {
+      query.storageProvidersIds = [query.storageProvidersIds];
+    }
+
+    const _retrievabilityData = groupBy(
+      await this.prismaService.provider_url_finder_retrievability_daily.findMany(
+        {
+          where: {
+            provider: {
+              in: query.storageProvidersIds,
+            },
+          },
+          select: {
+            provider: true,
+            date: true,
+            success_rate: true,
+          },
+        },
+      ),
+      (a) => a.provider,
+    );
+
+    const retrievabilityData = groupBy(
+      Object.keys(_retrievabilityData).map((storageProviderId) => {
+        const latestDate = _retrievabilityData[storageProviderId].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )[0];
+
+        return {
+          storageProviderId,
+          ...latestDate,
+        };
+      }),
+      (a) => a.storageProviderId,
+    );
+
+    return query.storageProvidersIds.map((storageProviderId) => ({
+      storageProviderId: storageProviderId,
+      storageProviderName: null, // TODO
+      updatedAt: null, // TODO choose latest updatedAt from data
+      data: [
+        {
+          sliMetric: StorageProvidersSLIMetric.RPA_RETRIEVABILITY,
+          sliMetricName: 'RPA retrievability',
+          sliMetricDescription:
+            'Retrievability percentage as measured by the RPA system',
+          sliMetricUnit: '%',
+          sliMetricValue:
+            retrievabilityData[storageProviderId]?.[0]?.success_rate !== null
+              ? (
+                  retrievabilityData[storageProviderId][0].success_rate * 100
+                ).toFixed(2)
+              : null,
+          updatedAt: retrievabilityData[storageProviderId]?.[0]?.date ?? null,
+        },
+      ],
+    }));
   }
 }
