@@ -36,6 +36,10 @@ export class ClientReportService {
         ? allocators[1]
         : allocators?.[0];
 
+    const clientName = clientData.find((c) => c.name)?.name?.trim() ?? null;
+    const clientOrgName =
+      clientData.find((c) => c.orgName)?.orgName?.trim() ?? null;
+
     const [
       storageProviderDistribution,
       replicaDistribution,
@@ -110,8 +114,7 @@ export class ClientReportService {
           mainAllocatorRegistryInfo?.application.required_replicas,
         allocator_required_sps:
           mainAllocatorRegistryInfo?.application.required_sps,
-        organization_name:
-          `${clientData[0].name ?? ''} ${clientData[0].orgName ?? ''}`.trim(),
+        organization_name: clientName || clientOrgName,
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),

@@ -72,16 +72,15 @@ export class ClientsController extends ControllerBase {
   public async getClientStorageProviders(
     @Param('client') clientIdOrAddress: string,
   ): Promise<GetClientStorageProvidersResponse> {
-    const clientData = (
-      await this.clientService.getClientData(clientIdOrAddress)
-    )?.[0];
+    const clientData =
+      await this.clientService.getClientData(clientIdOrAddress);
 
-    if (!clientData?.addressId) throw new NotFoundException();
+    if (!clientData) throw new NotFoundException();
 
     const clientProviderDistribution =
       await this.prismaService.client_provider_distribution.findMany({
         where: {
-          client: clientData.addressId,
+          client: clientData[0].addressId,
         },
         omit: {
           client: true,
@@ -93,8 +92,12 @@ export class ClientsController extends ControllerBase {
       0n,
     );
 
+    const clientName = clientData.find((c) => c.name)?.name?.trim() ?? null;
+    const clientOrgName =
+      clientData.find((c) => c.orgName)?.orgName?.trim() ?? null;
+
     return {
-      name: clientData.name,
+      name: clientName || clientOrgName,
       stats: clientProviderDistribution.map((provider) => ({
         provider: provider.provider,
         total_deal_size: provider.total_deal_size,
