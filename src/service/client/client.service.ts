@@ -312,8 +312,7 @@ export class ClientService {
     return result;
   }
 
-  // returns number of Clients that are considered active based on if they
-  // spent DC in last 60 days
+  // returns number of Clients that are considered active based on if they spent DC in last 60 days
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getActiveClientsStat(options?: {
     cutoffDate?: Date;

@@ -89,16 +89,16 @@ export function stringToNumber(valueString?: string): number | null {
 }
 
 export function bigIntDiv(
-  a: bigint,
+  a: bigint | number,
   b: bigint | number,
   precision: number = 2,
 ): number {
-  const _precisionMultiplier = 10 ** precision;
+  const precisionMultiplier = 10 ** precision;
 
   const result = stringToNumber(
     (
-      bigIntToNumber((a * BigInt(_precisionMultiplier)) / BigInt(b)) /
-      _precisionMultiplier
+      bigIntToNumber((BigInt(a) * BigInt(precisionMultiplier)) / BigInt(b)) /
+      precisionMultiplier
     ).toFixed(precision),
   );
 
@@ -106,6 +106,14 @@ export function bigIntDiv(
     throw new Error('Computation resulted in an invalid number');
 
   return result;
+}
+
+export function bigIntMul(a: bigint, b: number, precision = 6): bigint {
+  const precisionMultiplier = 10 ** precision;
+  return (
+    (a * BigInt(Math.round(b * precisionMultiplier))) /
+    BigInt(precisionMultiplier)
+  );
 }
 
 export function arrayAverage(arr?: number[]): number | null {

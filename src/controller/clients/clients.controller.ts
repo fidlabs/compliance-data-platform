@@ -326,9 +326,7 @@ export class ClientsController extends ControllerBase {
 
     const percentageChange: ClientsDashboardStatistic['percentageChange'] =
       (() => {
-        if (!previousValue.value) {
-          return null;
-        }
+        if (!previousValue.value) return null;
 
         const ratio =
           currentValue.type === 'bigint' || previousValue.type === 'bigint'
@@ -341,16 +339,16 @@ export class ClientsController extends ControllerBase {
 
         return {
           value: ratio - 1,
-          interval,
+          interval: interval,
         };
       })();
 
     return {
-      type,
+      type: type,
       title: dashboardStatisticsTitleDict[type],
       description: dashboardStatisticsDescriptionDict[type],
       value: currentValue,
-      percentageChange,
+      percentageChange: percentageChange,
     };
   }
 }

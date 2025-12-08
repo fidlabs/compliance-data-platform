@@ -496,9 +496,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
 
     const percentageChange: AllocatorsDashboardStatistic['percentageChange'] =
       (() => {
-        if (!previousValue.value) {
-          return null;
-        }
+        if (!previousValue.value) return null;
 
         const ratio =
           currentValue.type === 'bigint' || previousValue.type === 'bigint'
@@ -511,16 +509,16 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
 
         return {
           value: ratio - 1,
-          interval,
+          interval: interval,
         };
       })();
 
     return {
-      type,
+      type: type,
       title: dashboardStatisticsTitleDict[type],
       description: dashboardStatisticsDescriptionDict[type],
       value: currentValue,
-      percentageChange,
+      percentageChange: percentageChange,
     };
   }
 }
