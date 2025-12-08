@@ -8,6 +8,7 @@ import { DateTime } from 'luxon';
 import {
   arrayAverage,
   bigIntDiv,
+  bigIntMul,
   stringToDate,
   stringToNumber,
 } from 'src/utils/utils';
@@ -55,7 +56,7 @@ export class AllocatorScoringService {
 
     if (!allocatorDataType) {
       this.logger.warn(
-        `Skipping scoring calculations for round != 6 ${report.allocator}`,
+        `Skipping scoring calculations for round != 6 for ${report.allocator}`,
       );
 
       return;
@@ -231,6 +232,21 @@ export class AllocatorScoringService {
           : null,
       },
     });
+  }
+
+  private computeClientWeight(lastDatacapSpent: Date | null): number {
+    if (!lastDatacapSpent) return 0;
+
+    const daysAgo = Math.floor(
+      (Date.now() - lastDatacapSpent.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysAgo <= 60) return 1;
+
+    const decayDays = daysAgo - 60;
+    const halfLife = 120; // days
+
+    return Math.exp(-decayDays / halfLife);
   }
 
   private async storeIPNIReportingScore(report, dataType: AllocatorDataType) {
@@ -457,30 +473,27 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 3;
     const enterpriseScoreWeight = 3;
 
-    const allocatorClients =
-      await this.prismaService.allocator_report_client.findMany({
-        where: {
-          allocator_report_id: report.id,
-          last_datacap_spent: {
-            gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
-          },
-        },
-        include: {
-          cid_sharing: true,
-        },
-      });
-
-    const allocatorClientsTotalAllocation = allocatorClients.reduce(
-      (acc, client) => acc + client.total_allocations,
+    const allocatorClientsTotalAllocation = report.clients.reduce(
+      (acc, client) =>
+        acc +
+        bigIntMul(
+          client.total_allocations,
+          this.computeClientWeight(client.last_datacap_spent),
+        ),
       0n,
     );
 
-    const allocatorClientsWithCIDSharingAllocations = allocatorClients.reduce(
+    const allocatorClientsWithCIDSharingAllocations = report.clients.reduce(
       (acc, client) =>
         acc +
         (client.cid_sharing
           ? client.cid_sharing.reduce(
-              (acc, cidSharing) => acc + cidSharing.total_deal_size,
+              (acc, cidSharing) =>
+                acc +
+                bigIntMul(
+                  cidSharing.total_deal_size,
+                  this.computeClientWeight(client.last_datacap_spent),
+                ),
               0n,
             )
           : 0n),
@@ -521,10 +534,10 @@ export class AllocatorScoringService {
         { metricValueMin: 2, metricValueMax: 100, score: 0 },
       ],
       {
-        'Total allocations': this.convertFilesize(
+        'Total allocations (weighted)': this.convertFilesize(
           allocatorClientsTotalAllocation,
         ),
-        'Allocations with CID sharing': this.convertFilesize(
+        'Allocations with CID sharing (weighted)': this.convertFilesize(
           allocatorClientsWithCIDSharingAllocations,
         ),
         'Percentage of allocations with CID sharing':
@@ -610,23 +623,23 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
-    const allocatorClients =
-      await this.prismaService.allocator_report_client.findMany({
-        where: {
-          allocator_report_id: report.id,
-          last_datacap_spent: {
-            gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
-          },
-        },
-      });
-
-    const totalClientsExpectedSizeOfSingleDataSet = allocatorClients.reduce(
-      (acc, client) => acc + (client.expected_size_of_single_dataset ?? 0n),
+    const totalClientsExpectedSizeOfSingleDataSet = report.clients.reduce(
+      (acc, client) =>
+        acc +
+        bigIntMul(
+          client.expected_size_of_single_dataset ?? 0n,
+          this.computeClientWeight(client.last_datacap_spent),
+        ),
       0n,
     );
 
-    const totalClientsUniqDataSetSize = allocatorClients.reduce(
-      (acc, client) => acc + (client.total_uniq_data_set_size ?? 0n),
+    const totalClientsUniqDataSetSize = report.clients.reduce(
+      (acc, client) =>
+        acc +
+        bigIntMul(
+          client.total_uniq_data_set_size ?? 0n,
+          this.computeClientWeight(client.last_datacap_spent),
+        ),
       0n,
     );
 
@@ -664,9 +677,9 @@ export class AllocatorScoringService {
         { metricValueMin: 120, metricValueMax: null, score: 0 },
       ],
       {
-        'Total expected size of single data set for active clients':
+        'Total expected size of single data set (weighted)':
           this.convertFilesize(totalClientsExpectedSizeOfSingleDataSet),
-        'Total unique data set size for active clients': this.convertFilesize(
+        'Total unique data set size (weighted)': this.convertFilesize(
           totalClientsUniqDataSetSize,
         ),
         'Ratio of unique data set size to expected size of single data set':
@@ -685,18 +698,11 @@ export class AllocatorScoringService {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
-    const allocatorClients =
-      await this.prismaService.allocator_report_client.findMany({
-        where: {
-          allocator_report_id: report.id,
-          last_datacap_spent: {
-            gte: DateTime.now().toUTC().minus({ days: 60 }).toJSDate(), // consider only clients that spent datacap in the last 60 days
-          },
-        },
-      });
-
-    const allocatorClientsAllocations = allocatorClients.map(
-      (client) => client.total_allocations,
+    const allocatorClientsAllocations = report.clients.map((client) =>
+      bigIntMul(
+        client.total_allocations,
+        this.computeClientWeight(client.last_datacap_spent),
+      ),
     );
 
     const totalAllocations = allocatorClientsAllocations.reduce(
@@ -704,12 +710,13 @@ export class AllocatorScoringService {
       0n,
     );
 
-    const activeClients = BigInt(allocatorClientsAllocations.length);
-
     const equalityRatioForEachClient = allocatorClientsAllocations.map(
       (allocation) =>
         totalAllocations
-          ? bigIntDiv(allocation * activeClients, totalAllocations)
+          ? bigIntDiv(
+              allocation * BigInt(report.clients.length),
+              totalAllocations,
+            )
           : 0,
     );
 
@@ -756,8 +763,8 @@ export class AllocatorScoringService {
       ],
       // prettier-ignore
       {
-        'Total allocations': this.convertFilesize(totalAllocations),
-        'Number of active clients': activeClients,
+        'Total allocations (weighted)': this.convertFilesize(totalAllocations),
+        'Number of clients': BigInt(report.clients.length),
         'Standard deviation of equality ratio': standardDeviation.toFixed(2),
         'Standard deviation >= 0.9 and <= 1.1': '3 points',
         'Standard deviation (>= 0.7 and < 0.9) or (> 1.1 and <= 1.3)': '2 points',
