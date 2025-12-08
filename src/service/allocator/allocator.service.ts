@@ -1218,6 +1218,7 @@ export class AllocatorService {
         getAllocatorVerifiedClients([allocatorId]),
       );
     }
+
     const twoWeeksAgoDate = new Date(twoWeeksAgoTimestamp * 1000);
 
     const dealSumsRaw =

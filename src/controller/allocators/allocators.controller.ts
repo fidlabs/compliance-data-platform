@@ -5,6 +5,7 @@ import {
   Get,
   Inject,
   Logger,
+  Param,
   Query,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
@@ -34,7 +35,6 @@ import {
   stringToNumber,
 } from 'src/utils/utils';
 import { FilPlusEditionControllerBase } from '../base/filplus-edition-controller-base';
-import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
   DashboardStatistic,
   DashboardStatisticValue,
@@ -50,6 +50,7 @@ import {
   GetAllocatorsScoresSummaryByMetricRequest,
   GetAllocatorsScoresSummaryByMetricResponse,
   GetAllocatorsStatisticsRequest,
+  GetAllocatorVerifiedClientsRequest,
   GetDatacapFlowDataRequest,
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
@@ -348,7 +349,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     );
   }
 
-  @Get('/verified-clients/:allocatorId')
+  @Get(':allocatorId/verified-clients')
   @ApiOperation({
     summary: 'Get paginated list of verified clients for allocator',
   })
