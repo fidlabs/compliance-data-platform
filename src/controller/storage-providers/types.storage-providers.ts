@@ -1,7 +1,17 @@
-import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  IntersectionType,
+  PartialType,
+  PickType,
+} from '@nestjs/swagger';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
-import { PaginationSortingInfoRequest } from '../base/types.controller-base';
+import {
+  DashboardStatistic,
+  DashboardStatisticChange,
+  PaginationSortingInfoRequest,
+} from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
@@ -72,3 +82,28 @@ export class GetWeekStorageProvidersWithSpsComplianceRequest extends Intersectio
   })
   complianceScore?: StorageProviderComplianceScoreRange;
 }
+
+export const storageProvidersDashboardStatisticTypes = [
+  'TOTAL_STORAGE_PROVIDERS',
+  'TOTAL_ACTIVE_STORAGE_PROVIDERS',
+  'DDO_DEALS_PERCENTAGE',
+  'DDO_DEALS_PERCENTAGE_TO_DATE',
+  'STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE',
+  'STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE',
+] as const;
+
+export type StorageProvidersDashboardStatisticType =
+  (typeof storageProvidersDashboardStatisticTypes)[number];
+
+export class StorageProvidersDashboardStatistic extends DashboardStatistic {
+  @ApiProperty({
+    description: 'Type of storage providers dashboard statistic',
+    enumName: 'StorageProvidersDashboardStatisticType',
+    enum: storageProvidersDashboardStatisticTypes,
+  })
+  type: StorageProvidersDashboardStatisticType;
+}
+
+export class GetStorageProvidersStatisticsRequest extends PartialType(
+  PickType(DashboardStatisticChange, ['interval'] as const),
+) {}

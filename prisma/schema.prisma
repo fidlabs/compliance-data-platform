@@ -23,6 +23,7 @@ model provider {
   total_deal_size  BigInt
   num_of_clients   Int
   last_deal_height Int
+  first_deal_height Int @default(0)
 }
 
 model allocator_registry {
@@ -86,11 +87,13 @@ model cid_sharing {
 }
 
 model unified_verified_deal_hourly {
-  hour            DateTime
-  client          String
-  provider        String
-  num_of_claims   Int
-  total_deal_size BigInt
+  hour                DateTime
+  client              String
+  provider            String
+  num_of_claims       Int
+  num_of_ddo_claims   Int @default(0)
+  total_deal_size     BigInt
+  total_ddo_deal_size BigInt @default(0)
 
   @@id([hour, client, provider])
 }
