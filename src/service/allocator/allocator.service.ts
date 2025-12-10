@@ -518,7 +518,7 @@ export class AllocatorService {
       );
 
     const allocators = await this.prismaDmobService.$queryRawTyped(
-      getAllocatorsFull(false, null, null, null),
+      getAllocatorsFull(false, false, null, null),
     );
 
     const registryInfoMap = await this.getAllocatorRegistryInfoMap();
