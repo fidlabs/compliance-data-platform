@@ -1668,6 +1668,18 @@ CREATE TABLE public.op_log (
 
 
 --
+-- Name: client_contract; Type: TABLE; SCHEMA: public; Owner: -
+--
+
+CREATE TABLE public.client_contract (
+    id integer NOT NULL,
+    "addressId" character varying NOT NULL,
+    address character varying NOT NULL,
+    "addressEth" character varying NOT NULL
+);
+
+
+--
 -- Name: op_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
