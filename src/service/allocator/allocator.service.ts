@@ -403,6 +403,10 @@ export class AllocatorService {
         );
 
         return AllocatorAuditOutcome.invalid;
+
+      case 'PENDING':
+        return AllocatorAuditOutcome.pending;
+
       default:
         this.logger.warn(
           `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
@@ -527,12 +531,10 @@ export class AllocatorService {
       .map((allocator) => {
         const allocatorAudits = registryInfoMap[
           allocator.addressId
-        ]?.registry_info?.audits
-          .filter((audit) => stringToDate(audit.ended))
-          .sort(
-            (a, b) =>
-              stringToDate(a.ended).getTime() - stringToDate(b.ended).getTime(),
-          );
+        ]?.registry_info?.audits.sort(
+          (a, b) =>
+            stringToDate(a.ended)?.getTime() - stringToDate(b.ended)?.getTime(),
+        );
 
         return {
           allocatorId: allocator.addressId,
@@ -542,14 +544,17 @@ export class AllocatorService {
               ?.map((audit, i) => {
                 return {
                   ...audit,
+                  ended: audit.ended || null,
                   outcome: this.mapAuditOutcome(
                     audit.outcome,
                     allocator.addressId,
                     i,
                   ),
+                  dc_allocated: audit.dc_allocated || null,
+                  datacap_amount: audit.datacap_amount || null,
                 };
               })
-              ?.slice(1) // skip the first audit, which is always GRANTED
+              ?.slice(1) // skip the first audit, which is always GRANTED without the actual audit
               ?.filter((audit) => audit.outcome) ?? [],
         };
       })

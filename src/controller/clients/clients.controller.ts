@@ -75,7 +75,7 @@ export class ClientsController extends ControllerBase {
     const clientData =
       await this.clientService.getClientData(clientIdOrAddress);
 
-    if (!clientData) throw new NotFoundException();
+    if (!clientData?.length) throw new NotFoundException();
 
     const clientProviderDistribution =
       await this.prismaService.client_provider_distribution.findMany({
