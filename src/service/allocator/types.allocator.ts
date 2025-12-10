@@ -102,6 +102,7 @@ export enum AllocatorAuditOutcome {
   passed = 'passed',
   passedConditionally = 'passedConditionally',
   failed = 'failed',
+  pending = 'pending',
 }
 
 type AllocatorAuditOutcomesMetrics = {
