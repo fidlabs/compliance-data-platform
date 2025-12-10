@@ -21,6 +21,8 @@ from "verified_client"
          left join "verified_client_allowance"
                    on "verified_client"."addressId" = "verified_client_allowance"."addressId"
                        and "verified_client"."verifierAddressId" = "verified_client_allowance"."verifierAddressId"
+         left join "client_contract"
+                   on "verified_client"."addressId" = "client_contract"."addressId"
 where upper("verified_client"."verifierAddressId") = upper($1)
-and "verified_client"."addressId" is not null and "verified_client"."addressId" != ''
+and "verified_client"."addressId" is not null and "verified_client"."addressId" != '' and "client_contract"."id" is null
 group by "verified_client"."id";
