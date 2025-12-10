@@ -83,6 +83,13 @@ model client_uuid {
   ghId    Int     @unique(map: "UQ_d7e11ff89141fb62b9e2660706f")
 }
 
+model client_contract {
+  id         Int    @id(map: "PK_e869e822669ca4016bbc09f8b88") @default(autoincrement())
+  addressId  String @unique(map: "UQ_427b2f7fa3eb21a38ea6108807c") @db.VarChar
+  address    String @db.VarChar
+  addressEth String @db.VarChar
+}
+
 model cron_running_state {
   id                     Int     @id(map: "PK_7e8db3b75b09b220991bb1183e9") @default(autoincrement())
   key                    String? @db.VarChar
