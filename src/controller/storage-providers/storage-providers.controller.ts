@@ -219,10 +219,12 @@ export class StorageProvidersController extends ControllerBase {
       previousDDOPercentageToDate,
     ] = await Promise.all([
       this.storageProviderService.getStorageProvidersCountStat(),
-      this.storageProviderService.getStorageProvidersCountStat({ cutoffDate }),
+      this.storageProviderService.getStorageProvidersCountStat({
+        cutoffDate: cutoffDate,
+      }),
       this.storageProviderService.getActiveStorageProvidersCountStat(),
       this.storageProviderService.getActiveStorageProvidersCountStat({
-        cutoffDate,
+        cutoffDate: cutoffDate,
       }),
       this.storageProviderService.getStorageProvidersPercentageByUrlFinderRetrievability(
         { minRetrievability: hightUrlFinderRetrievabilityThreshold },
@@ -230,30 +232,30 @@ export class StorageProvidersController extends ControllerBase {
       this.storageProviderService.getStorageProvidersPercentageByUrlFinderRetrievability(
         {
           minRetrievability: hightUrlFinderRetrievabilityThreshold,
-          cutoffDate,
+          cutoffDate: cutoffDate,
         },
       ),
       this.storageProviderService.getStorageProvidersReportingToIPNIPercentage(),
       this.storageProviderService.getStorageProvidersReportingToIPNIPercentage({
-        cutoffDate,
+        cutoffDate: cutoffDate,
       }),
       this.storageProviderService.getDDOPercentageStat({
         duration: { [interval]: 1 },
       }),
       this.storageProviderService.getDDOPercentageStat({
         duration: { [interval]: 1 },
-        cutoffDate,
+        cutoffDate: cutoffDate,
       }),
       this.storageProviderService.getDDOPercentageStat(),
       this.storageProviderService.getDDOPercentageStat({
-        cutoffDate,
+        cutoffDate: cutoffDate,
       }),
     ]);
 
     return [
       this.calculateDashboardStatistic({
         type: 'TOTAL_STORAGE_PROVIDERS',
-        interval,
+        interval: interval,
         currentValue: {
           value: currentProvidersCount,
           type: 'numeric',
@@ -265,7 +267,7 @@ export class StorageProvidersController extends ControllerBase {
       }),
       this.calculateDashboardStatistic({
         type: 'TOTAL_ACTIVE_STORAGE_PROVIDERS',
-        interval,
+        interval: interval,
         currentValue: {
           value: currentActiveProvidersCount,
           type: 'numeric',
@@ -277,7 +279,7 @@ export class StorageProvidersController extends ControllerBase {
       }),
       this.calculateDashboardStatistic({
         type: 'STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE',
-        interval,
+        interval: interval,
         currentValue: {
           value: currentHighRetrievabilityProvidersPercentage,
           type: 'percentage',
@@ -289,7 +291,7 @@ export class StorageProvidersController extends ControllerBase {
       }),
       this.calculateDashboardStatistic({
         type: 'STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE',
-        interval,
+        interval: interval,
         currentValue: {
           value: currentProvidersReportingToIPNIPercentage,
           type: 'percentage',
@@ -301,7 +303,7 @@ export class StorageProvidersController extends ControllerBase {
       }),
       this.calculateDashboardStatistic({
         type: 'DDO_DEALS_PERCENTAGE',
-        interval,
+        interval: interval,
         currentValue: {
           value: currentDDOPercentage,
           type: 'percentage',
@@ -313,7 +315,7 @@ export class StorageProvidersController extends ControllerBase {
       }),
       this.calculateDashboardStatistic({
         type: 'DDO_DEALS_PERCENTAGE_TO_DATE',
-        interval,
+        interval: interval,
         currentValue: {
           value: currentDDOPercentageToDate,
           type: 'percentage',
@@ -342,9 +344,7 @@ export class StorageProvidersController extends ControllerBase {
 
     const percentageChange: StorageProvidersDashboardStatistic['percentageChange'] =
       (() => {
-        if (!previousValue.value) {
-          return null;
-        }
+        if (!previousValue.value) return null;
 
         const ratio =
           currentValue.type === 'bigint' || previousValue.type === 'bigint'
@@ -357,7 +357,7 @@ export class StorageProvidersController extends ControllerBase {
 
         return {
           value: ratio - 1,
-          interval,
+          interval: interval,
         };
       })();
 
@@ -368,11 +368,11 @@ export class StorageProvidersController extends ControllerBase {
     }
 
     return {
-      type,
-      title,
+      type: type,
+      title: title,
       description: dashboardStatisticsDescriptionDict[type],
       value: currentValue,
-      percentageChange,
+      percentageChange: percentageChange,
     };
   }
 
