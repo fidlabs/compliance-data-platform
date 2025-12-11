@@ -12,7 +12,7 @@ select 'f0' || "unique_providers"."providerId"                  as "id",
        coalesce(sum("miner_info"."total_deal_size"), 0)::bigint as "total_deal_size",
        count("miner_info"."client")::int                        as "num_of_clients",
        coalesce(max("miner_info"."last_deal_height"), 0)::int   as "last_deal_height",
-       coalesce(min("miner_info"."first_deal_height"), 0)::int   as "first_deal_height"
+       coalesce(min("miner_info"."first_deal_height"), 0)::int  as "first_deal_height"
 from "unique_providers"
       left join "miner_info" on "unique_providers"."providerId" = "miner_info"."provider"
 group by "unique_providers"."providerId";
