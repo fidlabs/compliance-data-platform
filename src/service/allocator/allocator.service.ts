@@ -290,7 +290,7 @@ export class AllocatorService {
           .filter(Number.isFinite);
 
         return {
-          month,
+          month: month,
           averageAuditTimeSecs: Math.round(arrayAverage(monthAuditTimesSecs)),
           // prettier-ignore
           averageAllocationTimeSecs: Math.round(arrayAverage(monthAllocationTimesSecs),
@@ -354,8 +354,8 @@ export class AllocatorService {
     }
 
     return {
-      averageAuditTimesSecs,
-      averageAllocationTimesSecs,
+      averageAuditTimesSecs: averageAuditTimesSecs,
+      averageAllocationTimesSecs: averageAllocationTimesSecs,
       averageConversationTimesSecs: null, // conversation times are not available for FilPlus edition 6
     };
   }
@@ -829,14 +829,14 @@ export class AllocatorService {
     const [weekProvidersForClients, totalDatacapByAllocators] =
       await Promise.all([
         this.prismaService.client_provider_distribution_weekly_acc.findMany({
-          where: { week, client: { in: clientIds } },
+          where: { week: week, client: { in: clientIds } },
           select: { client: true, provider: true },
           distinct: ['client', 'provider'],
         }),
         this.prismaService.allocators_weekly_acc.findMany({
           where: {
             allocator: { in: allocatorIds },
-            week,
+            week: week,
           },
           select: {
             allocator: true,
@@ -1114,7 +1114,7 @@ export class AllocatorService {
       minScorePercentage:
         AllocatorService.COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD,
       maxScorePercentage: 1,
-      cutoffDate,
+      cutoffDate: cutoffDate,
     });
   }
 
@@ -1128,7 +1128,7 @@ export class AllocatorService {
       minScorePercentage: 0,
       maxScorePercentage:
         AllocatorService.NON_COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD,
-      cutoffDate,
+      cutoffDate: cutoffDate,
     });
   }
 
