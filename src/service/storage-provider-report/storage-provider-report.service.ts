@@ -56,9 +56,10 @@ export class StorageProviderReportService {
 
         return {
           ...clientProviderDistribution,
-          retrievability_success_rate_http,
-          retrievability_success_rate,
-          retrievability_success_rate_url_finder,
+          retrievability_success_rate_http: retrievability_success_rate_http,
+          retrievability_success_rate: retrievability_success_rate,
+          retrievability_success_rate_url_finder:
+            retrievability_success_rate_url_finder,
           ipni_reporting_status: ipniReportingStatus.status,
           ipni_reported_claims_count:
             ipniReportingStatus.ipniReportedClaimsCount,
@@ -136,7 +137,10 @@ export class StorageProviderReportService {
       const retrievability_success_rate_http =
         result._sum.successful_http / result._sum.total;
 
-      return { retrievability_success_rate, retrievability_success_rate_http };
+      return {
+        retrievability_success_rate: retrievability_success_rate,
+        retrievability_success_rate_http: retrievability_success_rate_http,
+      };
     } else {
       return {
         retrievability_success_rate: null,

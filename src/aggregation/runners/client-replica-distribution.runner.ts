@@ -38,7 +38,7 @@ export class ClientReplicaDistributionRunner implements AggregationRunner {
     );
 
     await prismaService.$executeRaw`delete from client_replica_distribution;`;
-    await prismaService.client_replica_distribution.createMany({ data });
+    await prismaService.client_replica_distribution.createMany({ data: data });
 
     storeDataEndTimerMetric();
   }

@@ -63,7 +63,7 @@ export class AllocatorClientBookkeepingRunner implements AggregationRunner {
       .map((row) => {
         const url = row.registry_info['application']['allocation_bookkeeping'];
         const [owner, repo] = url.split('/').slice(3);
-        return { allocatorId: row.allocator_id, owner, repo };
+        return { allocatorId: row.allocator_id, owner: owner, repo: repo };
       });
 
     const result = [];

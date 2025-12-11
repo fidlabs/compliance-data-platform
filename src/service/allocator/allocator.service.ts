@@ -20,6 +20,7 @@ import {
 import {
   getAllocatorDatacapFlowData,
   getAllocatorsFull,
+  getAllocatorVerifiedClients,
 } from 'prismaDmob/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
@@ -38,8 +39,19 @@ import {
   AllocatorSpsComplianceWeekSingle,
 } from './types.allocator';
 
-import { FilPlusEdition } from 'src/utils/filplus-edition';
-import { AverageRetrievabilityType, lastWeek } from 'src/utils/utils';
+import {
+  FilPlusEdition,
+  getCurrentFilPlusEdition,
+  getFilPlusEditionById,
+  getFilPlusEditionByTimestamp,
+} from 'src/utils/filplus-edition';
+import {
+  arrayAverage,
+  AverageRetrievabilityType,
+  lastWeek,
+  stringToDate,
+  stringToNumber,
+} from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeek,
@@ -55,15 +67,8 @@ import {
 } from '../storage-provider/types.storage-provider';
 
 import { DateTime } from 'luxon';
-import { getAllocatorVerifiedClients } from 'prismaDmob/generated/client/sql';
 import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
 import { RetrievabilityType } from 'src/controller/stats/allocators/types.allocator-stats';
-import {
-  getCurrentFilPlusEdition,
-  getFilPlusEditionById,
-  getFilPlusEditionByTimestamp,
-} from 'src/utils/filplus-edition';
-import { arrayAverage, stringToDate, stringToNumber } from 'src/utils/utils';
 import z from 'zod';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
@@ -1235,22 +1240,18 @@ export class AllocatorService {
 
     const groupByClient = groupBy(dealSumsRaw, (d) => d.client);
 
-    const allocatorClientsWithTotalDealSize = allocatorVerifiedClients.map(
-      (client) => {
-        const clientDeals = groupByClient[client.addressId] ?? [];
+    return allocatorVerifiedClients.map((client) => {
+      const clientDeals = groupByClient[client.addressId] ?? [];
 
-        const totalDealSize = clientDeals.reduce(
-          (acc, v) => acc + (v.total_deal_size ?? BigInt(0)),
-          BigInt(0),
-        );
+      const totalDealSize = clientDeals.reduce(
+        (acc, v) => acc + (v.total_deal_size ?? BigInt(0)),
+        BigInt(0),
+      );
 
-        return {
-          ...client,
-          usedDatacapChange: totalDealSize,
-        };
-      },
-    );
-
-    return allocatorClientsWithTotalDealSize;
+      return {
+        ...client,
+        usedDatacapChange: totalDealSize,
+      };
+    });
   }
 }

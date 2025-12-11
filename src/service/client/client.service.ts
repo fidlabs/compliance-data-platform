@@ -255,9 +255,9 @@ export class ClientService {
     };
 
     return {
-      isPublicDataset,
-      clientContractAddress,
-      storageProviderIDsDeclared,
+      isPublicDataset: isPublicDataset,
+      clientContractAddress: clientContractAddress,
+      storageProviderIDsDeclared: storageProviderIDsDeclared,
       totalRequestedAmount: getUnitSizeFromJsonInBytes(
         'Total Requested Amount',
       ),
@@ -301,15 +301,14 @@ export class ClientService {
   }): Promise<number> {
     const { cutoffDate = DateTime.now().toUTC().toJSDate() } = options ?? {};
     const blockHeightThreshold = dateToFilecoinBlockHeight(cutoffDate);
-    const result = await this.prismaDmobService.verified_client.count({
+
+    return await this.prismaDmobService.verified_client.count({
       where: {
         createdAtHeight: {
           lt: blockHeightThreshold,
         },
       },
     });
-
-    return result;
   }
 
   // returns number of Clients that are considered active based on if they

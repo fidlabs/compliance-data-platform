@@ -74,7 +74,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
 
     return new Octokit({
       authStrategy: createAppAuth,
-      auth,
+      auth: auth,
     });
   }
 

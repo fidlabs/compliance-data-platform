@@ -71,7 +71,7 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
             }
 
             await tx.unified_verified_deal_hourly.createMany({
-              data,
+              data: data,
             });
 
             data.length = 0;
@@ -88,7 +88,7 @@ export class UnifiedVerifiedDealHourlyRunner implements AggregationRunner {
             await tx.$executeRaw`delete from unified_verified_deal_hourly`;
           }
           await tx.unified_verified_deal_hourly.createMany({
-            data,
+            data: data,
           });
         }
 

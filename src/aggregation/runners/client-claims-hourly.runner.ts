@@ -65,7 +65,7 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
             }
 
             await tx.client_claims_hourly.createMany({
-              data,
+              data: data,
             });
 
             data.length = 0;
@@ -83,7 +83,7 @@ export class ClientClaimsHourlyRunner implements AggregationRunner {
           }
 
           await tx.client_claims_hourly.createMany({
-            data,
+            data: data,
           });
         }
         if (storeDataEndTimerMetric) storeDataEndTimerMetric();

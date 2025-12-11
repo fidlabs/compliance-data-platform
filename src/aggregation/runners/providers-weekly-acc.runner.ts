@@ -44,7 +44,7 @@ export class ProvidersWeeklyAccRunner implements AggregationRunner {
     );
 
     await prismaService.$executeRaw`delete from providers_weekly_acc;`;
-    await prismaService.providers_weekly_acc.createMany({ data });
+    await prismaService.providers_weekly_acc.createMany({ data: data });
     storeDataEndTimerMetric();
   }
 
