@@ -80,6 +80,7 @@ import { StorageProviderService } from './service/storage-provider/storage-provi
 import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
 import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
 import { AllocatorScoringService } from './service/allocator-scoring/allocator-scoring.service';
+import { FilscanService } from './service/filscan/filscan.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -148,6 +149,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     PrismaService,
     PrismaDmobService,
     FilSparkService,
+    FilscanService,
     StorageProviderService,
     AllocatorService,
     PostgresService,
