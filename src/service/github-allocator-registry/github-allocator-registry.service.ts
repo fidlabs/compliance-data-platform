@@ -121,9 +121,7 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       this.healthy = false;
       throw new Error(
         `Error fetching allocators registry from path: ${gitHubPath}, error: ${err.message}`,
-        {
-          cause: err,
-        },
+        { cause: err },
       );
     }
 
