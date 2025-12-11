@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Logger } from '@nestjs/common';
 import {
   HealthCheck,
+  HealthCheckError,
   HealthCheckResult,
   HealthCheckService,
   HealthIndicator,
@@ -20,6 +21,8 @@ import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 import { Cacheable } from 'src/utils/cacheable';
 import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
+import { firstValueFrom } from 'rxjs';
+import { HttpService } from '@nestjs/axios';
 
 @Controller()
 export class AppController extends HealthIndicator {
@@ -41,6 +44,7 @@ export class AppController extends HealthIndicator {
     private readonly ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
     private readonly gitHubAllocatorRegistryService: GitHubAllocatorRegistryService,
+    private readonly httpService: HttpService,
   ) {
     super();
   }
@@ -103,12 +107,37 @@ export class AppController extends HealthIndicator {
     );
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
+  private async _httpPingCheckFilscan(): Promise<HealthIndicatorResult> {
+    let healthy = false;
+
+    try {
+      const endpoint = `${this.configService.get<string>('FILSCAN_API_BASE_URL')}/v1/TotalIndicators`;
+
+      const { data } = await firstValueFrom(
+        this.httpService.post(endpoint, {}),
+      );
+
+      healthy = !!data?.['result'];
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
+      healthy = false;
+    }
+
+    const result = this.getStatus('filscan-api', healthy);
+
+    if (healthy) return result;
+    throw new HealthCheckError('Healthcheck failed', result);
+  }
+
   @Cacheable({ ttl: 1000 * 10 }) // 10 seconds
   private async _getHealth(): Promise<HealthCheckResult> {
     // prettier-ignore
     return this.healthCheckService.check([
       () => this._getHealthMetadata(),
       () => this._httpPingCheckIpInfo(),
+      () => this._httpPingCheckFilscan(),
       () => this._httpPingCheck('cid.contact', 'https://cid.contact/health'),
       () => this._httpPingCheck('glif-api', `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`),
       () => this._httpPingCheck('stats.filspark.com', 'https://stats.filspark.com'),

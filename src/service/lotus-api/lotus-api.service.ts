@@ -38,6 +38,7 @@ export class LotusApiService {
 
     // if address not found in DB -> look up the glif API
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
+
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateLookupIdResponse>(endpoint, {
         jsonrpc: '2.0',
@@ -47,7 +48,13 @@ export class LotusApiService {
       }),
     );
 
-    if (data.error?.code === 3 || !data.result) return null;
+    if (data.error?.code === 3 || !data.result) {
+      this.logger.warn(
+        `Glif API returned an error for StateLookupID with address ${address}: ${JSON.stringify(data)}`,
+      );
+
+      return null;
+    }
 
     this.logger.debug(
       `Storing mapping for ID ${data.result} and address ${address}`,
@@ -94,6 +101,7 @@ export class LotusApiService {
       );
 
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
+
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateMinerInfoResponse>(endpoint, {
         jsonrpc: '2.0',
@@ -116,6 +124,7 @@ export class LotusApiService {
 
   public async getClientDatacap(clientId: string): Promise<bigint | null> {
     const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
+
     const { data } = await firstValueFrom(
       this.httpService.post<LotusStateVerifiedClientStatusResponse>(endpoint, {
         jsonrpc: '2.0',
@@ -125,7 +134,13 @@ export class LotusApiService {
       }),
     );
 
-    if (data.error || !data.result) return null;
+    if (data.error || !data.result) {
+      this.logger.warn(
+        `Glif API returned an error for StateVerifiedClientStatus with clientId ${clientId}: ${JSON.stringify(data)}`,
+      );
+
+      return null;
+    }
 
     return BigInt(data.result);
   }
