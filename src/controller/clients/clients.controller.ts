@@ -249,13 +249,17 @@ export class ClientsController extends ControllerBase {
       previousDatacapSpentByClients,
     ] = await Promise.all([
       this.clientService.getClientsCountStat(),
-      this.clientService.getClientsCountStat({ cutoffDate }),
+      this.clientService.getClientsCountStat({ cutoffDate: cutoffDate }),
       this.clientService.getActiveClientsStat(),
-      this.clientService.getActiveClientsStat({ cutoffDate }),
+      this.clientService.getActiveClientsStat({ cutoffDate: cutoffDate }),
       this.clientService.getFailingClientsPercentageStat(),
-      this.clientService.getFailingClientsPercentageStat({ cutoffDate }),
+      this.clientService.getFailingClientsPercentageStat({
+        cutoffDate: cutoffDate,
+      }),
       this.clientService.getDatacapSpentByClientsStat(),
-      this.clientService.getDatacapSpentByClientsStat({ cutoffDate }),
+      this.clientService.getDatacapSpentByClientsStat({
+        cutoffDate: cutoffDate,
+      }),
     ]);
 
     return [
@@ -269,7 +273,7 @@ export class ClientsController extends ControllerBase {
           value: previousClientsCount,
           type: 'numeric',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'TOTAL_ACTIVE_CLIENTS',
@@ -281,7 +285,7 @@ export class ClientsController extends ControllerBase {
           value: previousActiveClientsCount,
           type: 'numeric',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'FAILING_CLIENTS',
@@ -293,7 +297,7 @@ export class ClientsController extends ControllerBase {
           value: previousFailingClientsPercentage,
           type: 'percentage',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'DATACAP_SPENT_BY_CLIENTS',
@@ -305,7 +309,7 @@ export class ClientsController extends ControllerBase {
           value: previousDatacapSpentByClients,
           type: 'bigint',
         },
-        interval,
+        interval: interval,
       }),
     ];
   }
@@ -341,16 +345,16 @@ export class ClientsController extends ControllerBase {
 
         return {
           value: ratio - 1,
-          interval,
+          interval: interval,
         };
       })();
 
     return {
-      type,
+      type: type,
       title: dashboardStatisticsTitleDict[type],
       description: dashboardStatisticsDescriptionDict[type],
       value: currentValue,
-      percentageChange,
+      percentageChange: percentageChange,
     };
   }
 }
