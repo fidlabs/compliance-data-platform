@@ -19,6 +19,19 @@ export class FilscanService {
   @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
   public async getAccountInfoByID(
     addressId: string,
+  ): Promise<FilscanAccountInfoByID | null> {
+    try {
+      return await this._getAccountInfoByID(addressId);
+    } catch (err) {
+      throw new Error(
+        `Error fetching Filscan AccountInfoByID for ${addressId}: ${err.message}`,
+        { cause: err },
+      );
+    }
+  }
+
+  private async _getAccountInfoByID(
+    addressId: string,
   ): Promise<FilscanAccountInfoByID> {
     const endpoint = `${this.configService.get<string>('FILSCAN_API_BASE_URL')}/v1/AccountInfoByID`;
 
@@ -29,11 +42,7 @@ export class FilscanService {
     );
 
     if ((data?.['code'] && data?.['code'] !== 0) || !data?.['result']) {
-      this.logger.warn(
-        `Filscan API returned an error for AccountInfoByID with addressId ${addressId}: ${JSON.stringify(data)}`,
-      );
-
-      return null;
+      throw new Error(`Invalid data: ${JSON.stringify(data)}`);
     }
 
     return data['result'];
