@@ -39,7 +39,7 @@ export class ProviderIpInfoRunner implements AggregationRunner {
         );
 
         return {
-          provider,
+          provider: provider,
           lat: location?.loc?.split(',')?.[0],
           long: location?.loc?.split(',')?.[1],
           country: location?.country,
@@ -56,7 +56,7 @@ export class ProviderIpInfoRunner implements AggregationRunner {
     const storeDataEndTimerMetric =
       startStoreDataTimerByRunnerNameMetric(runnerName);
 
-    await prismaService.provider_ip_info.createMany({ data });
+    await prismaService.provider_ip_info.createMany({ data: data });
 
     storeDataEndTimerMetric();
   }

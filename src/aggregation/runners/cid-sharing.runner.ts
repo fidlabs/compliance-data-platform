@@ -36,7 +36,7 @@ export class CidSharingRunner implements AggregationRunner {
     );
 
     await prismaService.$executeRaw`delete from cid_sharing;`;
-    await prismaService.cid_sharing.createMany({ data });
+    await prismaService.cid_sharing.createMany({ data: data });
 
     storeDataEndTimerMetric();
   }

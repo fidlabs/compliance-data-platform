@@ -88,7 +88,7 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
     provider: IPNIProvider,
   ): Promise<void> {
     const parsedAddress =
-      await this.cidContactService.extractMultiaddrAndBuildPublisherBaseUrl(
+      this.cidContactService.extractMultiaddrAndBuildPublisherBaseUrl(
         provider.Publisher.Addrs[0],
       );
 

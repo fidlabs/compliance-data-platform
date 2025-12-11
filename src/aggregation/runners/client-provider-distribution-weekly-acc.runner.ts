@@ -7,9 +7,7 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ClientProviderDistributionWeeklyAccRunner
-  implements AggregationRunner
-{
+export class ClientProviderDistributionWeeklyAccRunner implements AggregationRunner {
   private readonly logger = new Logger(
     ClientProviderDistributionWeeklyAccRunner.name,
   );
@@ -74,7 +72,7 @@ export class ClientProviderDistributionWeeklyAccRunner
         });
 
         await tx.client_provider_distribution_weekly_acc.createMany({
-          data,
+          data: data,
         });
       });
 

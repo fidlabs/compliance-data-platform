@@ -33,8 +33,8 @@ export class GitHubAllocatorClientBookkeepingService {
     const response = await appOctokit.request(
       'GET /repos/{owner}/{repo}/installation',
       {
-        owner,
-        repo,
+        owner: owner,
+        repo: repo,
         headers: {
           'X-GitHub-Api-Version': '2022-11-28',
         },
@@ -54,7 +54,7 @@ export class GitHubAllocatorClientBookkeepingService {
 
     return new Octokit({
       authStrategy: createAppAuth,
-      auth,
+      auth: auth,
     });
   }
 
@@ -90,8 +90,8 @@ export class GitHubAllocatorClientBookkeepingService {
       response = (await octokit.request(
         'GET /repos/{owner}/{repo}/contents/{path}',
         {
-          owner,
-          repo,
+          owner: owner,
+          repo: repo,
           path: 'applications',
           headers: {
             'X-GitHub-Api-Version': '2022-11-28',
@@ -143,8 +143,8 @@ export class GitHubAllocatorClientBookkeepingService {
     const file = (await octokit.request(
       'GET /repos/{owner}/{repo}/contents/{path}',
       {
-        owner,
-        repo,
+        owner: owner,
+        repo: repo,
         path: path,
         headers: {
           'X-GitHub-Api-Version': '2022-11-28',

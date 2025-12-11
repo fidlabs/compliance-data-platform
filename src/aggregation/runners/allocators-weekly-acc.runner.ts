@@ -79,7 +79,7 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
             }
 
             await tx.allocators_weekly_acc.createMany({
-              data,
+              data: data,
             });
 
             data.length = 0;
@@ -97,7 +97,7 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
           }
 
           await tx.allocators_weekly_acc.createMany({
-            data,
+            data: data,
           });
         }
 

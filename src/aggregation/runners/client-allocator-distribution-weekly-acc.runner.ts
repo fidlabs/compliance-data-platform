@@ -5,9 +5,7 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 
-export class ClientAllocatorDistributionWeeklyAccRunner
-  implements AggregationRunner
-{
+export class ClientAllocatorDistributionWeeklyAccRunner implements AggregationRunner {
   public async run({
     prismaService,
     prismaDmobService,
@@ -42,7 +40,7 @@ export class ClientAllocatorDistributionWeeklyAccRunner
 
     await prismaService.$executeRaw`delete from client_allocator_distribution_weekly_acc;`;
     await prismaService.client_allocator_distribution_weekly_acc.createMany({
-      data,
+      data: data,
     });
 
     storeDataEndTimerMetric();

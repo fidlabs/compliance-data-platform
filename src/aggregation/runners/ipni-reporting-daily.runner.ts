@@ -55,7 +55,7 @@ export class IpniReportingDailyRunner implements AggregationRunner {
       IpniReportingDailyRunner.name,
     );
 
-    await prismaService.ipni_reporting_daily.create({ data });
+    await prismaService.ipni_reporting_daily.create({ data: data });
 
     storeDataEndTimerMetric();
   }
