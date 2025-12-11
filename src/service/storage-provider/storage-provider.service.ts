@@ -1,5 +1,6 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { DateTime, DurationLike, Interval } from 'luxon';
 import {
   getProviderBiggestClientDistributionAcc,
   getProviderClientsWeeklyAcc,
@@ -15,7 +16,11 @@ import {
   FilPlusEdition,
   getCurrentFilPlusEdition,
 } from 'src/utils/filplus-edition';
-import { AverageRetrievabilityType, lastWeek } from 'src/utils/utils';
+import {
+  AverageRetrievabilityType,
+  dateToFilecoinBlockHeight,
+  lastWeek,
+} from 'src/utils/utils';
 import { HistogramHelperService } from '../histogram-helper/histogram-helper.service';
 import {
   HistogramWeek,
@@ -505,6 +510,158 @@ export class StorageProviderService {
         StorageProviderComplianceScoreRange.NonCompliant,
       ),
     };
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getStorageProvidersCountStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+    const cutoffBlockHeight = dateToFilecoinBlockHeight(cutoffDate);
+
+    const count = await this.prismaService.provider.count({
+      where: {
+        first_deal_height: {
+          lt: cutoffBlockHeight,
+        },
+      },
+    });
+
+    return count;
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getActiveStorageProvidersCountStat(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+    const sixtyDaysBefore = DateTime.fromJSDate(cutoffDate)
+      .minus({ days: 60 })
+      .toJSDate();
+
+    const result =
+      await this.prismaService.unified_verified_deal_hourly.groupBy({
+        by: 'provider',
+        _count: {
+          provider: true,
+        },
+        where: {
+          hour: {
+            gte: sixtyDaysBefore,
+            lte: cutoffDate,
+          },
+        },
+      });
+
+    return result[0]?._count.provider ?? 0;
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getStorageProvidersPercentageByUrlFinderRetrievability(options: {
+    cutoffDate?: Date;
+    minRetrievability: number;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate(), minRetrievability } =
+      options;
+    const startOfDay = DateTime.fromJSDate(cutoffDate).toUTC().startOf('day');
+    const { start: startDate, end: endDate } = Interval.after(startOfDay, {
+      day: 1,
+    });
+
+    const [matchingCount, totalCount] = await Promise.all([
+      this.prismaService.provider_url_finder_retrievability_daily.count({
+        where: {
+          success_rate: {
+            gt: minRetrievability,
+          },
+          date: {
+            gte: startDate.toJSDate(),
+            lte: endDate.toJSDate(),
+          },
+        },
+      }),
+      this.prismaService.provider_url_finder_retrievability_daily.count({
+        where: {
+          date: {
+            gte: startDate.toJSDate(),
+            lte: endDate.toJSDate(),
+          },
+        },
+      }),
+    ]);
+
+    return totalCount === 0 ? 0 : matchingCount / totalCount;
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getStorageProvidersReportingToIPNIPercentage(options?: {
+    cutoffDate?: Date;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+    const startOfDay = DateTime.fromJSDate(cutoffDate).toUTC().startOf('day');
+    const { start: startDate, end: endDate } = Interval.after(startOfDay, {
+      days: 1,
+    });
+
+    const result = await this.prismaService.ipni_reporting_daily.findFirst({
+      where: {
+        date: {
+          gte: startDate.toJSDate(),
+          lte: endDate.toJSDate(),
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      select: {
+        ok: true,
+        total: true,
+      },
+    });
+
+    if (!result || result.total === 0) {
+      return 0;
+    }
+
+    return result.ok / result.total;
+  }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getDDOPercentageStat(options?: {
+    cutoffDate?: Date;
+    duration?: DurationLike;
+  }): Promise<number> {
+    const { cutoffDate = DateTime.now().toJSDate(), duration } = options ?? {};
+    const interval = duration ? Interval.before(cutoffDate, duration) : null;
+
+    const filter = {
+      where: {
+        hour: {
+          gte: interval ? interval.start.toJSDate() : undefined,
+          lte: interval ? interval.end.toJSDate() : cutoffDate,
+        },
+      },
+    };
+
+    // prisma does not allow two different sums in one query
+    const [ddoResult, totalResult] = await Promise.all([
+      this.prismaService.unified_verified_deal_hourly.aggregate({
+        _sum: {
+          num_of_ddo_claims: true,
+        },
+        ...filter,
+      }),
+      this.prismaService.unified_verified_deal_hourly.aggregate({
+        _sum: {
+          num_of_claims: true,
+        },
+        ...filter,
+      }),
+    ]);
+
+    return totalResult._sum.num_of_claims
+      ? ddoResult._sum.num_of_ddo_claims / totalResult._sum.num_of_claims
+      : 0;
   }
 
   // returns providers with validComplianceScore compliance score

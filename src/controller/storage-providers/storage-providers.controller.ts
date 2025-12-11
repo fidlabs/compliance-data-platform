@@ -1,3 +1,4 @@
+import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
@@ -5,15 +6,44 @@ import {
   StorageProviderComplianceMetrics,
   StorageProviderWithIpInfo,
 } from 'src/service/storage-provider/types.storage-provider';
-import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { ControllerBase } from '../base/controller-base';
 import { Cacheable } from 'src/utils/cacheable';
+import { bigIntDiv, lastWeek, stringToDate } from 'src/utils/utils';
+import { ControllerBase } from '../base/controller-base';
 import {
   GetStorageProvidersRequest,
+  GetStorageProvidersStatisticsRequest,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
+  StorageProvidersDashboardStatistic,
 } from './types.storage-providers';
-import { lastWeek, stringToDate } from 'src/utils/utils';
+import { DashboardStatisticValue } from '../base/types.controller-base';
+import { DateTime } from 'luxon';
+
+const hightUrlFinderRetrievabilityThreshold = 0.7;
+const dashboardStatisticsTitleDict: Record<
+  StorageProvidersDashboardStatistic['type'],
+  StorageProvidersDashboardStatistic['title']
+> = {
+  TOTAL_STORAGE_PROVIDERS: 'Total SPs',
+  TOTAL_ACTIVE_STORAGE_PROVIDERS: 'Active SPs',
+  DDO_DEALS_PERCENTAGE: 'DDO Deals',
+  DDO_DEALS_PERCENTAGE_TO_DATE: 'DDO Deals to Date',
+  STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: 'High RPA SPs',
+  STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: 'SPs Reporting to IPNI',
+};
+
+const dashboardStatisticsDescriptionDict: Record<
+  StorageProvidersDashboardStatistic['type'],
+  StorageProvidersDashboardStatistic['description']
+> = {
+  TOTAL_STORAGE_PROVIDERS: null,
+  TOTAL_ACTIVE_STORAGE_PROVIDERS:
+    'Number of Storage Providers who onboarded data in last 60 days',
+  DDO_DEALS_PERCENTAGE: 'Percentage of DDO deals in selected duration',
+  DDO_DEALS_PERCENTAGE_TO_DATE: 'Percentage of DDO deals up to date',
+  STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: `Percentage of Storage Providers with RPA higher than ${hightUrlFinderRetrievabilityThreshold * 100}%`,
+  STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: null,
+};
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -155,5 +185,207 @@ export class StorageProvidersController extends ControllerBase {
       query,
       providers.length,
     );
+  }
+
+  @Get('/statistics')
+  @ApiOperation({
+    summary: 'Get list of statistics regarding storage providers',
+  })
+  @ApiOkResponse({
+    description: 'List of statistics regarding storage providers',
+    type: [StorageProvidersDashboardStatistic],
+  })
+  public async getStorageProvidersStatistics(
+    @Query() query: GetStorageProvidersStatisticsRequest,
+  ): Promise<StorageProvidersDashboardStatistic[]> {
+    const { interval = 'day' } = query;
+    const cutoffDate = DateTime.now()
+      .toUTC()
+      .minus({ [interval]: 1 })
+      .toJSDate();
+
+    const [
+      currentProvidersCount,
+      previousProvidersCount,
+      currentActiveProvidersCount,
+      previousActiveProvidersCount,
+      currentHighRetrievabilityProvidersPercentage,
+      previousHighRetrievabilityProvidersPercentage,
+      currentProvidersReportingToIPNIPercentage,
+      previousProvidersReportingToIPNIPercentage,
+      currentDDOPercentage,
+      previousDDOPercentage,
+      currentDDOPercentageToDate,
+      previousDDOPercentageToDate,
+    ] = await Promise.all([
+      this.storageProviderService.getStorageProvidersCountStat(),
+      this.storageProviderService.getStorageProvidersCountStat({ cutoffDate }),
+      this.storageProviderService.getActiveStorageProvidersCountStat(),
+      this.storageProviderService.getActiveStorageProvidersCountStat({
+        cutoffDate,
+      }),
+      this.storageProviderService.getStorageProvidersPercentageByUrlFinderRetrievability(
+        { minRetrievability: hightUrlFinderRetrievabilityThreshold },
+      ),
+      this.storageProviderService.getStorageProvidersPercentageByUrlFinderRetrievability(
+        {
+          minRetrievability: hightUrlFinderRetrievabilityThreshold,
+          cutoffDate,
+        },
+      ),
+      this.storageProviderService.getStorageProvidersReportingToIPNIPercentage(),
+      this.storageProviderService.getStorageProvidersReportingToIPNIPercentage({
+        cutoffDate,
+      }),
+      this.storageProviderService.getDDOPercentageStat({
+        duration: { [interval]: 1 },
+      }),
+      this.storageProviderService.getDDOPercentageStat({
+        duration: { [interval]: 1 },
+        cutoffDate,
+      }),
+      this.storageProviderService.getDDOPercentageStat(),
+      this.storageProviderService.getDDOPercentageStat({
+        cutoffDate,
+      }),
+    ]);
+
+    return [
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_STORAGE_PROVIDERS',
+        interval,
+        currentValue: {
+          value: currentProvidersCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousProvidersCount,
+          type: 'numeric',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_ACTIVE_STORAGE_PROVIDERS',
+        interval,
+        currentValue: {
+          value: currentActiveProvidersCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousActiveProvidersCount,
+          type: 'numeric',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE',
+        interval,
+        currentValue: {
+          value: currentHighRetrievabilityProvidersPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousHighRetrievabilityProvidersPercentage,
+          type: 'percentage',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE',
+        interval,
+        currentValue: {
+          value: currentProvidersReportingToIPNIPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousProvidersReportingToIPNIPercentage,
+          type: 'percentage',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'DDO_DEALS_PERCENTAGE',
+        interval,
+        currentValue: {
+          value: currentDDOPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousDDOPercentage,
+          type: 'percentage',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'DDO_DEALS_PERCENTAGE_TO_DATE',
+        interval,
+        currentValue: {
+          value: currentDDOPercentageToDate,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousDDOPercentageToDate,
+          type: 'percentage',
+        },
+      }),
+    ];
+  }
+
+  private calculateDashboardStatistic(options: {
+    type: StorageProvidersDashboardStatistic['type'];
+    currentValue: DashboardStatisticValue;
+    previousValue: DashboardStatisticValue;
+    interval: StorageProvidersDashboardStatistic['percentageChange']['interval'];
+  }): StorageProvidersDashboardStatistic {
+    const { type, currentValue, previousValue, interval } = options;
+
+    if (currentValue.type !== previousValue.type) {
+      throw new TypeError(
+        'Cannot compare different dashboard statistics types',
+      );
+    }
+
+    const percentageChange: StorageProvidersDashboardStatistic['percentageChange'] =
+      (() => {
+        if (!previousValue.value) {
+          return null;
+        }
+
+        const ratio =
+          currentValue.type === 'bigint' || previousValue.type === 'bigint'
+            ? bigIntDiv(
+                BigInt(currentValue.value),
+                BigInt(previousValue.value),
+                2,
+              )
+            : currentValue.value / previousValue.value;
+
+        return {
+          value: ratio - 1,
+          interval,
+        };
+      })();
+
+    let title = dashboardStatisticsTitleDict[type];
+
+    if (type === 'DDO_DEALS_PERCENTAGE') {
+      title = `${title} (${this.statisticIntervalToReadableText(interval)})`;
+    }
+
+    return {
+      type,
+      title,
+      description: dashboardStatisticsDescriptionDict[type],
+      value: currentValue,
+      percentageChange,
+    };
+  }
+
+  private statisticIntervalToReadableText(
+    interval: StorageProvidersDashboardStatistic['percentageChange']['interval'],
+  ): string {
+    switch (interval) {
+      case 'day':
+        return 'Last 24h';
+      case 'week':
+        return 'Last Week';
+      case 'month':
+        return 'Last Month';
+    }
   }
 }
