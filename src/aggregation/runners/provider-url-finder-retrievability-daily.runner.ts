@@ -7,9 +7,7 @@ import { AggregationTable } from '../aggregation-table';
 import { sleep, yesterday } from 'src/utils/utils';
 import { Logger } from '@nestjs/common';
 
-export class ProviderUrlFinderRetrievabilityDailyRunner
-  implements AggregationRunner
-{
+export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRunner {
   private readonly logger = new Logger(
     ProviderUrlFinderRetrievabilityDailyRunner.name,
   );
@@ -90,7 +88,7 @@ export class ProviderUrlFinderRetrievabilityDailyRunner
     );
 
     await prismaService.provider_url_finder_retrievability_daily.createMany({
-      data,
+      data: data,
     });
 
     storeDataEndTimerMetric();

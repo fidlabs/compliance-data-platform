@@ -61,7 +61,9 @@ export class ProviderRetrievabilityDailyRunner implements AggregationRunner {
       ProviderRetrievabilityDailyRunner.name,
     );
 
-    await prismaService.provider_retrievability_daily.createMany({ data });
+    await prismaService.provider_retrievability_daily.createMany({
+      data: data,
+    });
 
     storeDataEndTimerMetric();
   }
