@@ -139,7 +139,7 @@ export class ControllerBase {
 
     const page =
       paginationInfo?.page && paginationInfo.page > 0 ? paginationInfo.page : 1;
-    return { take, skip: (page - 1) * take };
+    return { take: take, skip: (page - 1) * take };
   };
 
   protected validatePaginationInfo(
@@ -170,6 +170,8 @@ export class ControllerBase {
         'Invalid pagination value: page and limit must both be set',
       );
 
-    return Number.isNaN(limit) || Number.isNaN(page) ? null : { limit, page };
+    return Number.isNaN(limit) || Number.isNaN(page)
+      ? null
+      : { limit: limit, page: page };
   }
 }

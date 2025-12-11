@@ -541,6 +541,6 @@ export class AllocatorReportChecksService {
       }
     }
 
-    return { clientId, isValid };
+    return { clientId: clientId, isValid: isValid };
   }
 }

@@ -36,7 +36,7 @@ export class OldDatacapBalanceNv22Runner implements AggregationRunner {
     );
 
     await prismaService.$executeRaw`delete from old_datacap_balance_nv22;`;
-    await prismaService.old_datacap_balance_nv22.createMany({ data });
+    await prismaService.old_datacap_balance_nv22.createMany({ data: data });
 
     storeDataEndTimerMetric();
   }
