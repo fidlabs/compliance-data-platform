@@ -403,13 +403,19 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       previousAlertsCount,
     ] = await Promise.all([
       this.allocatorService.getApprovedAllocatorsStat(),
-      this.allocatorService.getApprovedAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getApprovedAllocatorsStat({
+        cutoffDate: cutoffDate,
+      }),
       this.allocatorService.getActiveAllocatorsStat(),
-      this.allocatorService.getActiveAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getActiveAllocatorsStat({ cutoffDate: cutoffDate }),
       this.allocatorService.getCompliantAllocatorsStat(),
-      this.allocatorService.getCompliantAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getCompliantAllocatorsStat({
+        cutoffDate: cutoffDate,
+      }),
       this.allocatorService.getNonCompliantAllocatorsStat(),
-      this.allocatorService.getNonCompliantAllocatorsStat({ cutoffDate }),
+      this.allocatorService.getNonCompliantAllocatorsStat({
+        cutoffDate: cutoffDate,
+      }),
       this.allocatorReportChecksService.getFailedReportChecksCount(),
       this.allocatorReportChecksService.getFailedReportChecksCount({
         date: cutoffDate,
@@ -427,7 +433,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           value: previousApprovedAllocatorsCount,
           type: 'numeric',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'TOTAL_ACTIVE_ALLOCATORS',
@@ -439,7 +445,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           value: previousActiveAllocatorsCount,
           type: 'numeric',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'COMPLIANT_ALLOCATORS',
@@ -451,7 +457,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           value: previousCompliantAllocatorsPercentage,
           type: 'percentage',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'NON_COMPLIANT_ALLOCATORS',
@@ -463,7 +469,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           value: previousNonCompliantAllocatorsPercentage,
           type: 'percentage',
         },
-        interval,
+        interval: interval,
       }),
       this.calculateDashboardStatistic({
         type: 'NUMBER_OF_ALERTS',
@@ -475,7 +481,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
           value: previousAlertsCount,
           type: 'numeric',
         },
-        interval,
+        interval: interval,
       }),
     ];
   }

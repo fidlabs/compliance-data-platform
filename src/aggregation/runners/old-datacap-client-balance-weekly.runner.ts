@@ -37,7 +37,9 @@ export class OldDatacapClientBalanceWeeklyRunner implements AggregationRunner {
     );
 
     await prismaService.$executeRaw`delete from old_datacap_client_balance_weekly;`;
-    await prismaService.old_datacap_client_balance_weekly.createMany({ data });
+    await prismaService.old_datacap_client_balance_weekly.createMany({
+      data: data,
+    });
 
     storeDataEndTimerMetric();
   }

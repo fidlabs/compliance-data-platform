@@ -17,6 +17,7 @@ module.exports = {
   },
   ignorePatterns: ['.eslintrc.js'],
   rules: {
+    'object-shorthand': ['error', 'never'],
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -27,22 +28,22 @@ module.exports = {
       'error',
       {
         name: 'parseInt',
-        message: 'Use utils.stringToNumber() instead',
+        message: 'Use utils.stringToNumber instead',
       },
       {
         name: 'parseFloat',
-        message: 'Use utils.stringToNumber() instead',
+        message: 'Use utils.stringToNumber instead',
       },
     ],
     'no-restricted-syntax': [
       'error',
       {
         selector: "CallExpression[callee.name='Number']",
-        message: 'Use utils.stringToNumber() instead',
+        message: 'Use utils.stringToNumber instead',
       },
       {
         selector: "NewExpression[callee.name='Number']",
-        message: 'Use utils.stringToNumber() instead',
+        message: 'Use utils.stringToNumber instead',
       },
     ],
   },

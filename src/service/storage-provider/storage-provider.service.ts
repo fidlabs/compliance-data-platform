@@ -519,15 +519,13 @@ export class StorageProviderService {
     const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
     const cutoffBlockHeight = dateToFilecoinBlockHeight(cutoffDate);
 
-    const count = await this.prismaService.provider.count({
+    return await this.prismaService.provider.count({
       where: {
         first_deal_height: {
           lt: cutoffBlockHeight,
         },
       },
     });
-
-    return count;
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes

@@ -31,8 +31,8 @@ export class EthApiService {
     ]);
 
     const maxDeviation = await this.client.readContract({
-      address,
-      abi,
+      address: address,
+      abi: abi,
       functionName: 'clientConfigs',
       args: [clientAddress],
       authorizationList: undefined,
@@ -74,7 +74,7 @@ export class EthApiService {
       signature: string;
     } = (await this.client.readContract({
       address: '0x14183aD016Ddc83D638425D6328009aa390339Ce', // Curio's contract address
-      abi,
+      abi: abi,
       functionName: 'getPeerData',
       args: [BigInt(validatedSpAddress)],
       authorizationList: undefined,
