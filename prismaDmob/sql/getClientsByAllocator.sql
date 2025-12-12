@@ -1,12 +1,12 @@
 -- @param {String} $1:allocatorAddress
 
-select "verified_client"."addressId"         as "addressId",
-       "verified_client"."address"           as "address",
-       "verified_client"."name"              as "name",
-       "verified_client"."orgName"           as "orgName",
-       "verified_client"."verifierAddressId" as "verifierAddressId",
+select "verified_client"."addressId"                                                                                  as "addressId",
+       "verified_client"."address"                                                                                    as "address",
+       case when "verified_client"."name" = 'n/a' then null else nullif(trim("verified_client"."name"), '') end       as "name",
+       case when "verified_client"."orgName" = 'n/a' then null else nullif(trim("verified_client"."orgName"), '') end as "orgName",
+       "verified_client"."verifierAddressId"                                                                          as "verifierAddressId",
        coalesce(
-                       jsonb_agg(
+               jsonb_agg(
                        jsonb_build_object(
                                'addressId', "verified_client_allowance"."addressId",
                                'verifierAddressId', "verified_client_allowance"."verifierAddressId",
@@ -15,8 +15,8 @@ select "verified_client"."addressId"         as "addressId",
                                'issueCreateTimestamp', "verified_client_allowance"."issueCreateTimestamp",
                                'createMessageTimestamp', "verified_client_allowance"."createMessageTimestamp"
                        )
-                               ), '[]'::jsonb
-       ) as "_allowanceArray"
+               ), '[]'::jsonb
+       )                                       as "_allowanceArray"
 from "verified_client"
          left join "verified_client_allowance"
                    on "verified_client"."addressId" = "verified_client_allowance"."addressId"
