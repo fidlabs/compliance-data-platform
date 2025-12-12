@@ -9,8 +9,8 @@ select "verifier"."addressId"                                                   
        "verifier"."address"                                                                                                         as "address",
        case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end                                         as "auditTrail",
        "verifier"."retries"                                                                                                         as "retries",
-       case when "verifier"."name" = 'n/a' then null else trim("verifier"."name") end                                               as "name",
-       case when "verifier"."orgName" = 'n/a' then null else trim("verifier"."orgName") end                                         as "orgName",
+       case when "verifier"."name" = 'n/a' then null else nullif(trim("verifier"."name"), '') end                                   as "name",
+       case when "verifier"."orgName" = 'n/a' then null else nullif(trim("verifier"."orgName"), '') end                             as "orgName",
        "verifier"."removed"                                                                                                         as "removed",
        "verifier"."initialAllowance"                                                                                                as "initialAllowance",
        "verifier"."allowance"::text                                                                                                 as "allowance",
@@ -36,7 +36,7 @@ select "verifier"."addressId"                                                   
        coalesce(
                jsonb_agg(
                        distinct jsonb_build_object(
-                       'error', case when "verifier_allowance"."error" = '' then null else "verifier_allowance"."error" end,
+                       'error', nullif("verifier_allowance"."error", ''),
                        'height', "verifier_allowance"."height",
                        'msgCID', "verifier_allowance"."msgCID",
                        'retries', "verifier_allowance"."retries",
