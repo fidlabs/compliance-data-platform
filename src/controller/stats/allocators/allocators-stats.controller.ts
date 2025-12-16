@@ -1,5 +1,5 @@
 import { CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
@@ -10,9 +10,10 @@ import {
   RetrievabilityWeek,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
-import { stringToBool } from 'src/utils/utils';
+import { stringToBool, stringToNumber } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
+import { DataType } from 'src/controller/allocators/types.allocators';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -36,8 +37,18 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   public async getAllocatorRetrievabilityWeekly(
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
-    return await this.allocatorService.getStandardAllocatorRetrievabilityWeekly(
-      stringToBool(query?.openDataOnly),
+    if (
+      stringToBool(query?.openDataOnly) &&
+      stringToNumber(query?.editionId) === 5
+    ) {
+      throw new BadRequestException(
+        undefined,
+        'Open data filter is not available for Fil+ Edition 5',
+      );
+    }
+
+    return await this.allocatorService.getStandardActiveAllocatorRetrievabilityWeekly(
+      stringToBool(query?.openDataOnly) ? DataType.openData : null,
       query?.retrievabilityType,
       this.getFilPlusEditionFromRequest(query),
     );

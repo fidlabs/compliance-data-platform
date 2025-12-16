@@ -13,9 +13,9 @@ import {
   getAverageSecondsToFirstDeal,
   getStandardAllocatorBiggestClientDistributionAcc,
   getStandardAllocatorClientsWeeklyAcc,
-  getStandardAllocatorCount,
-  getStandardAllocatorRetrievabilityAcc,
-  getWeekAverageStandardAllocatorRetrievabilityAcc,
+  getStandardActiveAllocatorCount,
+  getStandardActiveAllocatorRetrievabilityAcc,
+  getWeekAverageStandardActiveAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
 import {
   getAllocatorDatacapFlowData,
@@ -67,7 +67,7 @@ import {
 } from '../storage-provider/types.storage-provider';
 
 import { DateTime } from 'luxon';
-import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
+import { DataType } from 'src/controller/allocators/types.allocators';
 import { RetrievabilityType } from 'src/controller/stats/allocators/types.allocator-stats';
 import z from 'zod';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
@@ -153,7 +153,7 @@ export class AllocatorService {
     isMetaallocator?: boolean,
     filter?: string,
     usingMetaallocatorId?: string,
-    dataType?: AllocatorDataType,
+    dataType?: DataType,
     filPlusEdition?: FilPlusEdition,
   ) {
     const allocators = await this.prismaDmobService.$queryRawTyped(
@@ -224,14 +224,14 @@ export class AllocatorService {
   ): Promise<boolean> {
     return (
       (await this.getAllocatorDataType(allocatorIdOrAddress, registryInfo)) ===
-      AllocatorDataType.openData
+      DataType.openData
     );
   }
 
   public async getAllocatorDataType(
     allocatorIdOrAddress: string,
     registryInfo?: any,
-  ): Promise<AllocatorDataType | null> {
+  ): Promise<DataType | null> {
     registryInfo ??= await this.getAllocatorRegistryInfo(allocatorIdOrAddress);
 
     const enterpriseApplicationAuditOptions = [
@@ -246,8 +246,8 @@ export class AllocatorService {
     return registryInfo?.application?.audit?.some((v) =>
       enterpriseApplicationAuditOptions.includes(v.trim()),
     )
-      ? AllocatorDataType.enterprise
-      : AllocatorDataType.openData;
+      ? DataType.enterprise
+      : DataType.openData;
   }
 
   public async getAuditTimesByMonthData(
@@ -647,7 +647,7 @@ export class AllocatorService {
     filPlusEditionData?: FilPlusEdition,
   ): Promise<HistogramWeek> {
     return new HistogramWeek(
-      await this.getStandardAllocatorCount(false, filPlusEditionData),
+      await this.getStandardActiveAllocatorCount(null, filPlusEditionData),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
           getStandardAllocatorClientsWeeklyAcc(
@@ -659,24 +659,24 @@ export class AllocatorService {
     );
   }
 
-  private async _getStandardAllocatorRetrievability(
-    openDataOnly = true,
+  private async _getStandardActiveAllocatorRetrievability(
     retrievabilityType: RetrievabilityType,
     filPlusEditionData?: FilPlusEdition,
+    dataType?: DataType,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
-      getStandardAllocatorRetrievabilityAcc(
-        openDataOnly,
+      getStandardActiveAllocatorRetrievabilityAcc(
         retrievabilityType,
         filPlusEditionData?.startDate,
         filPlusEditionData?.endDate,
         filPlusEditionData?.id,
+        dataType,
       ),
     );
   }
 
-  public async getStandardAllocatorRetrievabilityWeekly(
-    openDataOnly = true,
+  public async getStandardActiveAllocatorRetrievabilityWeekly(
+    dataType?: DataType,
     retrievabilityType?: RetrievabilityType,
     filPlusEditionData?: FilPlusEdition,
   ): Promise<RetrievabilityWeek> {
@@ -686,6 +686,7 @@ export class AllocatorService {
     const httpRetrievability = retrievabilityType
       ? retrievabilityType === RetrievabilityType.http
       : undefined;
+
     const urlFinderRetrievability = retrievabilityType
       ? retrievabilityType === RetrievabilityType.urlFinder
       : undefined;
@@ -693,18 +694,18 @@ export class AllocatorService {
     const [lastWeekAverageRetrievability, standardAllocatorRetrievability] =
       await Promise.all([
         isCurrentFilPlusEdition
-          ? this.getWeekAverageStandardAllocatorRetrievability(
+          ? this.getWeekAverageStandardActiveAllocatorRetrievability(
               lastWeek(),
-              openDataOnly,
               httpRetrievability,
               urlFinderRetrievability,
               filPlusEditionData?.id,
+              dataType,
             )
           : null,
-        this._getStandardAllocatorRetrievability(
-          openDataOnly,
+        this._getStandardActiveAllocatorRetrievability(
           retrievabilityType,
           filPlusEditionData,
+          dataType,
         ),
       ]);
 
@@ -722,16 +723,19 @@ export class AllocatorService {
         ? lastWeekAverageRetrievability.urlFinder * 100
         : null,
       new RetrievabilityHistogramWeekResults(
-        await this.getStandardAllocatorCount(openDataOnly, filPlusEditionData),
+        await this.getStandardActiveAllocatorCount(
+          dataType,
+          filPlusEditionData,
+        ),
         await Promise.all(
           weeklyHistogramResult.map(async (histogramWeek) => {
             const retrievability =
-              await this.getWeekAverageStandardAllocatorRetrievability(
+              await this.getWeekAverageStandardActiveAllocatorRetrievability(
                 histogramWeek.week,
-                openDataOnly,
                 httpRetrievability,
                 urlFinderRetrievability,
                 filPlusEditionData?.id,
+                dataType,
               );
 
             return RetrievabilityHistogramWeek.of(
@@ -749,7 +753,7 @@ export class AllocatorService {
     filPlusEditionData?: FilPlusEdition,
   ): Promise<HistogramWeek> {
     return new HistogramWeek(
-      await this.getStandardAllocatorCount(false, filPlusEditionData),
+      await this.getStandardActiveAllocatorCount(null, filPlusEditionData),
       await this.histogramHelper.getWeeklyHistogramResult(
         await this.prismaService.$queryRawTyped(
           getStandardAllocatorBiggestClientDistributionAcc(
@@ -946,37 +950,37 @@ export class AllocatorService {
   }
 
   // returns the number of standard allocators (not metaallocators)
-  public async getStandardAllocatorCount(
-    openDataOnly = false,
+  public async getStandardActiveAllocatorCount(
+    dataType?: DataType,
     filPlusEditionData?: FilPlusEdition,
   ): Promise<number> {
     return (
       await this.prismaService.$queryRawTyped(
-        getStandardAllocatorCount(
-          openDataOnly,
+        getStandardActiveAllocatorCount(
           filPlusEditionData?.startDate,
           filPlusEditionData?.endDate,
           filPlusEditionData?.id,
+          dataType,
         ),
       )
     )[0].count;
   }
 
-  public async getWeekAverageStandardAllocatorRetrievability(
+  public async getWeekAverageStandardActiveAllocatorRetrievability(
     week: Date,
-    openDataOnly = true,
     httpRetrievability = true,
     urlFinderRetrievability = true,
     filPlusEditionId?: number,
+    dataType?: DataType,
   ): Promise<AverageRetrievabilityType> {
     return (
       await this.prismaService.$queryRawTyped(
-        getWeekAverageStandardAllocatorRetrievabilityAcc(
-          openDataOnly,
+        getWeekAverageStandardActiveAllocatorRetrievabilityAcc(
           httpRetrievability,
           urlFinderRetrievability,
           week,
           filPlusEditionId,
+          dataType,
         ),
       )
     )[0];
