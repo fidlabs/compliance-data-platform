@@ -51,47 +51,33 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                        else 100 * "_month_ago_reports"."totalScore"::float / "_month_ago_reports"."maxPossibleScore"::float end as "_scorePercentage"
                             from "_month_ago_reports"),
 --
-     "active_allocators" as (select "allocator_id"  as "allocator_id",
-                                    "registry_info" as "registry_info",
-                                    6               as "editionId"
+     "all_allocators" as (select "allocator_id"               as "allocator_id",
+                                    6                         as "edition_id",
+                                    case
+                                        when not (("registry_info"::jsonb -> 'application' -> 'audit') ?|
+                                                    array ['Enterprise Data', 'Automated', 'Faucet', 'Market Based']) then 'openData'
+                                        else 'enterprise' end as "data_type"
                              from "allocator_registry"
-                             where "rejected" = false
 
                              union all
 
-                             select "allocator_id"  as "allocator_id",
-                                    "registry_info" as "registry_info",
-                                    5               as "editionId"
-                             from "allocator_registry_archive"
-                             where "rejected" = false),
+                             select "allocator_id" as "allocator_id",
+                                    5              as "edition_id",
+                                    null           as "data_type"
+                             from "allocator_registry_archive"),
 --
-     "active_in_edition" as (select *
-                             from "active_allocators"),
---
-     "open_data_pathway_allocators" as (
-         -- edition 6: open = not enterprise, automated, faucet, market based
-         select distinct "active_in_edition"."allocator_id"
-         from "active_in_edition"
-         where "active_in_edition"."editionId" = 6
-           and not (("active_in_edition"."registry_info"::jsonb->'application'->'audit') ?|
-               array['Enterprise Data', 'Automated', 'Faucet', 'Market Based'])
-
-         union
-
-         -- edition 5: open by bookkeeping
-         select distinct "allocator_client_bookkeeping"."allocator_id"
-         from "allocator_client_bookkeeping"
-                  join "active_in_edition" on "allocator_client_bookkeeping"."allocator_id" = "active_in_edition"."allocator_id"
-         where "active_in_edition"."editionId" = 5
-           and lower(
-                       "allocator_client_bookkeeping"."bookkeeping_info"::jsonb->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
-               ) in ('[x] i confirm', 'yes')),
+     "selected_allocators" as (select distinct on ("allocator_id") "allocator_id" as "allocator_id",
+                                                                   "edition_id"   as "edition_id",
+                                                                   "data_type"    as "data_type"
+                               from "all_allocators"
+                               order by "allocator_id", "data_type"),
 --
      "result" as (select "latest_reports"."allocatorId"                                           as "allocatorId",
                          "latest_reports"."allocatorName"                                         as "allocatorName",
                          "latest_reports"."totalScore"                                            as "totalScore",
                          "latest_reports"."maxPossibleScore"                                      as "maxPossibleScore",
                          to_char("latest_reports"."_scorePercentage", 'FM999.00')                 as "scorePercentage",
+
                          (select "total_sum_of_allocations"
                                   from "allocators_weekly_acc"
                                     where "allocators_weekly_acc"."allocator" = "latest_reports"."allocatorId"
@@ -100,15 +86,16 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                          case
                              when "week_ago_reports"."_scorePercentage" is null then null
                              else to_char("week_ago_reports"."_scorePercentage", 'FM999.00') end  as "weekAgoScorePercentage",
+
                          case
                              when "month_ago_reports"."_scorePercentage" is null then null
                              else to_char("month_ago_reports"."_scorePercentage", 'FM999.00') end as "monthAgoScorePercentage",
-                         case
-                             when "latest_reports"."allocatorId" in (select "allocator_id" from "open_data_pathway_allocators") then 'openData'
-                             else 'enterprise' end                                                as "dataType"
+
+                         "selected_allocators"."data_type"                                        as "dataType"
                   from "latest_reports"
                            left join "week_ago_reports" on "latest_reports"."allocatorId" = "week_ago_reports"."allocatorId"
-                           left join "month_ago_reports" on "latest_reports"."allocatorId" = "month_ago_reports"."allocatorId")
+                           left join "month_ago_reports" on "latest_reports"."allocatorId" = "month_ago_reports"."allocatorId"
+                           join "selected_allocators" on "latest_reports"."allocatorId" = "selected_allocators"."allocator_id")
 --
 select *
 from "result"
