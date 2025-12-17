@@ -6,7 +6,7 @@ import {
   PaginationInfoResponse,
   SortingInfoRequest,
 } from './types.controller-base';
-import { DatabasePaginationQuery, stringToNumber } from 'src/utils/utils';
+import { DatabasePaginationQuery } from 'src/utils/utils';
 
 export class ControllerBase {
   public withPaginationInfo<T>(
@@ -48,10 +48,9 @@ export class ControllerBase {
     sortingInfo = this.validateSortingInfo(values, sortingInfo);
     if (!sortingInfo?.sort || !values) return values;
 
-    const isValidStringNumber = (value: string): boolean => {
+    const isValidStringBigInt = (value: string): boolean => {
       try {
-        stringToNumber(value);
-        return true;
+        return BigInt(value).toString() === value;
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (_) {
@@ -64,10 +63,10 @@ export class ControllerBase {
       if (b === null || b === undefined) return -1;
 
       if (typeof a === 'string' && typeof b === 'string') {
-        if (isValidStringNumber(a) && isValidStringNumber(b)) {
-          // try to cast string to number if applicable
-          a = stringToNumber(a);
-          b = stringToNumber(b);
+        if (isValidStringBigInt(a) && isValidStringBigInt(b)) {
+          // try to cast string to bigint if applicable
+          a = BigInt(a);
+          b = BigInt(b);
         } else {
           // compare string case insensitively
           a = a.toLowerCase();
