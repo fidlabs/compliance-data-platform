@@ -547,13 +547,13 @@ model provider_ip_info {
 
 enum StorageProvidersMetricType {
   TTFB
-  RETRIEVABILITY
+  RPA_RETRIEVABILITY
   RETENTION
 }
 
 model storage_provider_sli_metric {
-  id         String                     @id @default(cuid())
-  metricType StorageProvidersMetricType @unique
+  id          String                     @id @default(cuid())
+  metric_type StorageProvidersMetricType @unique
 
   name        String?
   description String?
@@ -563,18 +563,18 @@ model storage_provider_sli_metric {
 }
 
 model storage_provider_sli {
-  id         String @id @default(cuid())
-  providerId String
+  id          String @id @default(cuid())
+  provider_id String
 
-  metricId String
-  metric   storage_provider_sli_metric @relation(fields: [metricId], references: [id])
-  value    BigInt
+  metric_id String
+  metric    storage_provider_sli_metric @relation(fields: [metric_id], references: [id])
+  value     BigInt
 
   update_date DateTime @default(now())
 
-  @@index([providerId])
-  @@index([metricId])
-  @@index([providerId, metricId, update_date])
+  @@index([provider_id])
+  @@index([metric_id])
+  @@index([provider_id, metric_id, update_date])
 }
 
 enum AllocatorScoringMetric {

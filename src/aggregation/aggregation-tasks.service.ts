@@ -74,7 +74,7 @@ export class AggregationTasksService extends HealthIndicator {
         this.lastRun = new Date();
         this.healthy = true;
 
-        // await this.runAggregations();
+        await this.runAggregations();
 
         this.lastSuccess = new Date();
         this.logger.log('Finished aggregations');
