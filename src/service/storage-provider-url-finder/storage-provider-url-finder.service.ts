@@ -7,7 +7,8 @@ import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   SliStorageProviderMetricData,
-  SliStorageProviderUrlFinderResponse,
+  UrlFinderStorageProviderBulkResponse,
+  UrlFinderStorageProviderData,
 } from './types.storage-provider-url-finder.service';
 
 @Injectable()
@@ -25,37 +26,42 @@ export class StorageProviderUrlFinderService {
       this.configService.get<string>('URL_FINDER_API_URL');
   }
 
-  public async fetchLastSlisForAllProviders(): Promise<
-    SliStorageProviderUrlFinderResponse[]
-  > {
-    const endpoint = `${this.URL_FINDER_API_URL}/slis`;
-
-    const { data } = await lastValueFrom(
-      this.httpService.get<SliStorageProviderUrlFinderResponse[]>(endpoint),
-    );
-
-    return data;
-  }
-
-  public async fetchLastSlisForProvider(
+  public async fetchLastStorageProviderData(
     storageProviderId: string,
     clientId?: string,
-  ): Promise<SliStorageProviderUrlFinderResponse> {
-    const endpoint = `${this.URL_FINDER_API_URL}/slis/find/${storageProviderId}${clientId ? `/${clientId}` : ''}`;
+  ): Promise<UrlFinderStorageProviderData | null> {
+    const endpoint = `${this.URL_FINDER_API_URL}/providers/${storageProviderId}${clientId ? `/clients/${clientId}` : ''}`;
 
     const { data } = await lastValueFrom(
-      this.httpService.get<SliStorageProviderUrlFinderResponse>(endpoint),
+      this.httpService.get<UrlFinderStorageProviderData | null>(endpoint),
     );
 
     return data;
   }
 
-  public async fetchHistoricalSlisForProvider(
+  public async fetchLastStorageProviderDataInBulk(
+    storageProviderIds: string[],
+  ): Promise<UrlFinderStorageProviderData[] | null> {
+    const endpoint = `${this.URL_FINDER_API_URL}/providers/bulk`;
+
+    const { data } = await lastValueFrom(
+      this.httpService.post<UrlFinderStorageProviderBulkResponse | null>(
+        endpoint,
+        {
+          provider_ids: storageProviderIds,
+        },
+      ),
+    );
+
+    return data.providers;
+  }
+
+  public async fetchHistoricalStorageProviderData(
     storageProviderId: string,
     clientId?: string,
     options?: { from: string; to: string },
   ): Promise<SliStorageProviderMetricData[]> {
-    const endpoint = `${this.URL_FINDER_API_URL}/slis/find/${storageProviderId}${clientId ? `/${clientId}` : ''} ${options ? `?from=${options.from}&to=${options.to}` : ''}`;
+    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}${clientId ? `/${clientId}` : ''} ${options ? `?from=${options.from}&to=${options.to}` : ''}`;
 
     const { data } = await lastValueFrom(
       this.httpService.get<SliStorageProviderMetricData[]>(endpoint),
@@ -64,12 +70,12 @@ export class StorageProviderUrlFinderService {
     return data;
   }
 
-  public async storeSliMetricForProviders(
+  public async storeSliMetricForStorageProviders(
     metricType: StorageProvidersMetricType,
     storageProviderMetricData: SliStorageProviderMetricData[],
   ): Promise<void> {
     const createOrUpdateMetric = {
-      metricType,
+      metric_type: metricType,
       name: this.getSliMetricName(metricType),
       description: this.getSliMetricDescription(metricType),
       unit: this.getSliMetricUnit(metricType),
@@ -77,20 +83,20 @@ export class StorageProviderUrlFinderService {
 
     const metric = await this.prismaService.storage_provider_sli_metric.upsert({
       where: {
-        metricType,
+        metric_type: metricType,
       },
       create: createOrUpdateMetric,
       update: createOrUpdateMetric, // in case description or name changes
     });
 
-    const data = storageProviderMetricData.map((row) => ({
-      metricId: metric.id,
-      providerId: row.providerId,
-      value: row.value,
-      update_date: row.lastUpdateAt,
+    const data = storageProviderMetricData.map((metricData) => ({
+      metric_id: metric.id,
+      provider_id: metricData.providerId,
+      value: metricData.value,
+      update_date: metricData.lastUpdateAt,
     }));
 
-    console.log(
+    this.logger.log(
       `Storing ${data.length} providers for metric type ${metricType}`,
     );
 
@@ -103,7 +109,7 @@ export class StorageProviderUrlFinderService {
       string
     > = {
       [StorageProvidersMetricType.TTFB]: 'TTFB',
-      [StorageProvidersMetricType.RETRIEVABILITY]: 'Retrievability',
+      [StorageProvidersMetricType.RPA_RETRIEVABILITY]: 'RPA Retrievability',
       [StorageProvidersMetricType.RETENTION]: 'Retention',
     };
 
@@ -118,7 +124,8 @@ export class StorageProviderUrlFinderService {
       string
     > = {
       [StorageProvidersMetricType.TTFB]: 'Time to first byte (TTFB)',
-      [StorageProvidersMetricType.RETRIEVABILITY]: 'Retrievability percentage',
+      [StorageProvidersMetricType.RPA_RETRIEVABILITY]:
+        'RPA Retrievability percentage',
       [StorageProvidersMetricType.RETENTION]:
         'Consensus failures of PoRep Interrogating the PDP proofs continuity',
     };
@@ -132,7 +139,7 @@ export class StorageProviderUrlFinderService {
       string
     > = {
       [StorageProvidersMetricType.TTFB]: 'ms',
-      [StorageProvidersMetricType.RETRIEVABILITY]: '%',
+      [StorageProvidersMetricType.RPA_RETRIEVABILITY]: '%',
       [StorageProvidersMetricType.RETENTION]: 'qty',
     };
 

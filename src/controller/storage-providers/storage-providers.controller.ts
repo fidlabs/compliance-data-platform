@@ -1,24 +1,22 @@
+import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderWithIpInfo,
 } from 'src/service/storage-provider/types.storage-provider';
-import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { ControllerBase } from '../base/controller-base';
 import { Cacheable } from 'src/utils/cacheable';
+import { lastWeek, stringToDate } from 'src/utils/utils';
+import { ControllerBase } from '../base/controller-base';
 import {
   GetStorageProvidersRequest,
   GetStorageProvidersSLIDataRequest,
   GetStorageProvidersSLIDataResponse,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
-  StorageProvidersSLIMetric,
 } from './types.storage-providers';
-import { lastWeek, stringToDate } from 'src/utils/utils';
-import { PrismaService } from 'src/db/prisma.service';
-import { groupBy } from 'lodash';
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -179,58 +177,48 @@ export class StorageProvidersController extends ControllerBase {
       query.storageProvidersIds = [query.storageProvidersIds];
     }
 
-    const _retrievabilityData = groupBy(
-      await this.prismaService.provider_url_finder_retrievability_daily.findMany(
-        {
-          where: {
-            provider: {
-              in: query.storageProvidersIds,
-            },
-          },
+    const sliMetrics = await this.prismaService.storage_provider_sli.findMany({
+      where: {
+        provider_id: {
+          in: query.storageProvidersIds,
+        },
+      },
+      orderBy: [
+        { provider_id: 'asc' },
+        { metric_id: 'asc' },
+        { update_date: 'desc' },
+      ],
+      distinct: ['provider_id', 'metric_id'],
+      select: {
+        provider_id: true,
+        metric: {
           select: {
-            provider: true,
-            date: true,
-            success_rate: true,
+            metric_type: true,
+            name: true,
+            description: true,
+            unit: true,
           },
         },
-      ),
-      (a) => a.provider,
-    );
-
-    const retrievabilityData = groupBy(
-      Object.keys(_retrievabilityData).map((storageProviderId) => {
-        const latestDate = _retrievabilityData[storageProviderId].sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        )[0];
-
-        return {
-          storageProviderId,
-          ...latestDate,
-        };
-      }),
-      (a) => a.storageProviderId,
-    );
+        value: true,
+        update_date: true,
+      },
+    });
 
     return query.storageProvidersIds.map((storageProviderId) => ({
       storageProviderId: storageProviderId,
       storageProviderName: null, // TODO
-      updatedAt: null, // TODO choose latest updatedAt from data
-      data: [
-        {
-          sliMetric: StorageProvidersSLIMetric.RPA_RETRIEVABILITY,
-          sliMetricName: 'RPA retrievability',
-          sliMetricDescription:
-            'Retrievability percentage as measured by the RPA system',
-          sliMetricUnit: '%',
-          sliMetricValue:
-            retrievabilityData[storageProviderId]?.[0]?.success_rate !== null
-              ? (
-                  retrievabilityData[storageProviderId][0].success_rate * 100
-                ).toFixed(2)
-              : null,
-          updatedAt: retrievabilityData[storageProviderId]?.[0]?.date ?? null,
-        },
-      ],
+      data: sliMetrics
+        .filter((metric) => metric.provider_id === storageProviderId)
+        .map((metricData) => {
+          return {
+            sliMetric: metricData.metric.metric_type,
+            sliMetricName: metricData.metric.name,
+            sliMetricValue: metricData.value.toString(),
+            sliMetricDescription: metricData.metric.description,
+            sliMetricUnit: metricData.metric.unit,
+            updatedAt: metricData.update_date,
+          };
+        }),
     }));
   }
 }

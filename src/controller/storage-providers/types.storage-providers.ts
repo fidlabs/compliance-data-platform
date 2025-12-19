@@ -7,6 +7,7 @@ import { StorageProviderComplianceScoreRange } from 'src/service/storage-provide
 import { stringifiedBool } from 'src/utils/utils';
 import { PaginationSortingInfoRequest } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
+import { StorageProvidersMetricType } from 'prisma/generated/client';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
@@ -85,16 +86,12 @@ export class GetStorageProvidersSLIDataRequest {
   storageProvidersIds: string[];
 }
 
-export enum StorageProvidersSLIMetric {
-  RPA_RETRIEVABILITY = 'RPA_RETRIEVABILITY',
-}
-
 class StorageProvidersSLIData {
   @ApiProperty({
-    enum: StorageProvidersSLIMetric,
+    enum: StorageProvidersMetricType,
     description: 'SLI Metric',
   })
-  sliMetric: StorageProvidersSLIMetric;
+  sliMetric: StorageProvidersMetricType;
 
   @ApiProperty({ description: 'SLI Metric Name' })
   sliMetricName: string;
@@ -123,14 +120,6 @@ export class GetStorageProvidersSLIDataResponse {
 
   @ApiProperty({ description: 'Storage provider Name', nullable: true })
   storageProviderName: string | null;
-
-  @ApiProperty({
-    type: String,
-    format: 'date-time',
-    example: '2024-04-22T00:00:00.000Z',
-    description: 'Last updated at; ISO format',
-  })
-  updatedAt: Date;
 
   @ApiProperty({
     isArray: true,

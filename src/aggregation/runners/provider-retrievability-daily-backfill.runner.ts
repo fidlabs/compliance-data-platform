@@ -6,9 +6,7 @@ import {
 import { AggregationTable } from '../aggregation-table';
 import { stringToNumber } from 'src/utils/utils';
 
-export class ProviderRetrievabilityDailyBackfillRunner
-  implements AggregationRunner
-{
+export class ProviderRetrievabilityDailyBackfillRunner implements AggregationRunner {
   // will fetch 1 day worth of data each run until everything is backfilled
   public async run({
     prismaService,

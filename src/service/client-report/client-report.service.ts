@@ -72,7 +72,7 @@ export class ClientReportService {
           return {
             ...provider,
             piece_working_url: (
-              await this.storageProviderUrlFinderService.fetchLastSlisForProvider(
+              await this.storageProviderUrlFinderService.fetchLastStorageProviderData(
                 provider.provider,
                 clientData[0].addressId,
               )
