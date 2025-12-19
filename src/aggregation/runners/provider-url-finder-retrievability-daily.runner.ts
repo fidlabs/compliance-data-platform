@@ -58,7 +58,7 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
           return {
             provider: provider.id,
             success_rate: (
-              await storageProviderUrlFinderService.fetchLastSlisForProvider(
+              await storageProviderUrlFinderService.fetchLastStorageProviderData(
                 provider.id,
               )
             ).retrievability_percent,

@@ -1,16 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import {
   HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
+import * as _ from 'lodash';
 import { groupBy } from 'lodash';
+import { DateTime } from 'luxon';
 import { StorageProvidersMetricType } from 'prisma/generated/client';
 import { getStorageProviderRetentionSli } from 'prismaDmob/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
+import { SliStorageProviderMetricChunkData } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
 
 @Injectable()
 export class StorageProviderSliFetcherJobService extends HealthIndicator {
@@ -39,8 +42,7 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  // @Cron('0 23 * * 1,4') // At 23:00 on Monday and Thursday
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron('0 23 * * 1,4') // At 23:00 on Monday and Thursday
   public async runStorageProviderSliFetcherJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
@@ -49,81 +51,69 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
         this.logger.log('Starting Storage Provider SLIs Fetcher job');
         this.healthy = true;
 
-        const providersWithSli = [
-          {
-            provider_id: 'f01234',
-            retrievability_percent: 123,
-            tested_at: new Date(),
-          },
-          {
-            provider_id: 'f01235',
-            retrievability_percent: 123456,
-            tested_at: new Date(),
-          },
-          {
-            provider_id: 'f0123556',
-            retrievability_percent: 123456789,
-            tested_at: new Date(),
-          },
-        ];
+        const providers = await this.prismaService.provider.findMany({});
+        const providersToDmobRequest = providers.map((x) => x.id.substring(2));
 
-        const providersList = providersWithSli.map((x) =>
-          x.provider_id.substring(2),
-        );
-
-        const providersRetention: {
+        const dmobProvidersRetention: {
           provider: string;
           amount_of_terminated_deals: number;
         }[] = await this.prismaDmobService.$queryRawTyped(
-          getStorageProviderRetentionSli(providersList),
+          getStorageProviderRetentionSli(providersToDmobRequest),
         );
 
-        // await this.storageProviderUrlFinderService.fetchLastSlisForAllProviders();
+        const storageProvidersChunks = _.chunk(providers, 50);
 
-        const metricsForSPs = providersWithSli.map((provider) => ({
-          providerId: provider.provider_id,
-          metrics: [
-            {
-              type: StorageProvidersMetricType.RETRIEVABILITY,
-              value: provider.retrievability_percent,
-              tested_at: provider.tested_at,
-            },
-            {
-              type: StorageProvidersMetricType.TTFB,
-              value: 0,
-              tested_at: provider.tested_at,
-            },
-            {
-              type: StorageProvidersMetricType.RETENTION,
-              value:
-                providersRetention.find(
-                  (x) => x.provider === provider.provider_id.substring(2),
-                )?.amount_of_terminated_deals || 0,
-              tested_at: new Date(),
-            },
-          ],
-        }));
+        const metricsToInsert: SliStorageProviderMetricChunkData[] = [];
 
-        const flattened = metricsForSPs.flatMap((sp) =>
-          sp.metrics.map((m) => ({
-            type: m.type,
-            providerId: sp.providerId,
-            value: m.value,
-            update_date: m.tested_at,
-          })),
-        );
+        for (const spChunk of storageProvidersChunks) {
+          const sliDataForChunk =
+            await this.storageProviderUrlFinderService.fetchLastStorageProviderDataInBulk(
+              spChunk.map((x) => x.id),
+            );
 
-        const groupedByMetrics = groupBy(flattened, 'type');
+          const chunkMetricsToInsert = sliDataForChunk.map((provider) => {
+            const {
+              provider_id,
+              retrievability_percent,
+              tested_at,
+              performance,
+            } = provider;
+
+            return [
+              {
+                providerId: provider_id,
+                metricType: StorageProvidersMetricType.RPA_RETRIEVABILITY,
+                value: retrievability_percent || 0,
+                lastUpdateAt: tested_at,
+              },
+              {
+                providerId: provider_id,
+                metricType: StorageProvidersMetricType.TTFB,
+                value: performance?.bandwidth?.ttfb_ms || 0,
+                lastUpdateAt: performance?.bandwidth?.tested_at,
+              },
+              {
+                providerId: provider_id,
+                metricType: StorageProvidersMetricType.RETENTION,
+                value:
+                  dmobProvidersRetention.find(
+                    (x) => x.provider === provider_id.substring(2),
+                  )?.amount_of_terminated_deals || 0,
+                lastUpdateAt: DateTime.utc().toISO(),
+              },
+            ];
+          });
+
+          metricsToInsert.push(...chunkMetricsToInsert.flat());
+        }
+
+        const groupedByMetrics = groupBy(metricsToInsert, 'metricType');
 
         await Promise.all(
           Object.keys(groupedByMetrics).map(async (key) => {
-            this.storageProviderUrlFinderService.storeSliMetricForProviders(
+            this.storageProviderUrlFinderService.storeSliMetricForStorageProviders(
               key as StorageProvidersMetricType,
-              groupedByMetrics[key].map((item) => ({
-                providerId: item.providerId,
-                value: item.value,
-                lastUpdateAt: item.update_date,
-              })),
+              groupedByMetrics[key],
             );
           }),
         );
