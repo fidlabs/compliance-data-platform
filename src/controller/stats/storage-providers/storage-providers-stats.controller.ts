@@ -1,5 +1,5 @@
 import { CacheTTL } from '@nestjs/cache-manager';
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
@@ -18,8 +18,9 @@ import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
-import { stringToBool, stringToNumber } from 'src/utils/utils';
+import { stringToBool } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import { DataType } from 'src/controller/allocators/types.allocators';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -57,9 +58,9 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
-      stringToBool(query?.openDataOnly),
       this.getFilPlusEditionFromRequest(query),
       query?.retrievabilityType,
+      stringToBool(query?.openDataOnly) ? DataType.openData : null,
     );
   }
 

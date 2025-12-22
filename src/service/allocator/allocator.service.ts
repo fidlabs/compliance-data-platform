@@ -803,10 +803,10 @@ export class AllocatorService {
     ] = await Promise.all([
       this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
-        true,
         spMetricsToCheck?.httpRetrievability,
         spMetricsToCheck?.urlFinderRetrievability,
         filPlusEditionId,
+        DataType.openData,
       ),
       this.storageProviderService.getWeekProviders(week),
       this.getWeekStandardAllocatorsWithClients(week),
@@ -921,10 +921,10 @@ export class AllocatorService {
       ),
       isCurrentFilPlusEdition || filPlusEditionData === null
         ? this.storageProviderService.getLastWeekAverageProviderRetrievability(
-            true,
             filPlusEditionData?.id,
             spMetricsToCheck?.httpRetrievability,
             spMetricsToCheck?.urlFinderRetrievability,
+            DataType.openData,
           )
         : null,
     ]);
