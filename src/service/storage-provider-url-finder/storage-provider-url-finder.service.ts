@@ -111,6 +111,7 @@ export class StorageProviderUrlFinderService {
       [StorageProvidersMetricType.TTFB]: 'TTFB',
       [StorageProvidersMetricType.RPA_RETRIEVABILITY]: 'RPA Retrievability',
       [StorageProvidersMetricType.RETENTION]: 'Retention',
+      [StorageProvidersMetricType.BANDWIDTH]: 'Bandwith',
     };
 
     return SLI_METRIC_NAME[clientReportCheck];
@@ -128,6 +129,7 @@ export class StorageProviderUrlFinderService {
         'RPA Retrievability percentage',
       [StorageProvidersMetricType.RETENTION]:
         'Consensus failures of PoRep Interrogating the PDP proofs continuity',
+      [StorageProvidersMetricType.BANDWIDTH]: 'Download bandwidth in Mbps',
     };
 
     return SLI_METRIC_DESCRIPTION[storageProviderMetric];
@@ -141,6 +143,7 @@ export class StorageProviderUrlFinderService {
       [StorageProvidersMetricType.TTFB]: 'ms',
       [StorageProvidersMetricType.RPA_RETRIEVABILITY]: '%',
       [StorageProvidersMetricType.RETENTION]: 'qty',
+      [StorageProvidersMetricType.BANDWIDTH]: 'Mbps',
     };
 
     return SLI_METRIC_UNIT[storageProviderMetric];
