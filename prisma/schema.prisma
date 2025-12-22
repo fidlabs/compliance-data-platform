@@ -535,6 +535,7 @@ enum StorageProvidersMetricType {
   TTFB
   RPA_RETRIEVABILITY
   RETENTION
+  BANDWIDTH
 }
 
 model storage_provider_sli_metric {
