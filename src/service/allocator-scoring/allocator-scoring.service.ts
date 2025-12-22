@@ -16,7 +16,7 @@ import { AllocatorService } from '../allocator/allocator.service';
 import { filesize } from 'filesize';
 import { Cacheable } from 'src/utils/cacheable';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
-import { AllocatorDataType } from 'src/controller/allocators/types.allocators';
+import { DataType } from 'src/controller/allocators/types.allocators';
 import { getAllocatorLatestScores } from 'prisma/generated/client/sql';
 
 @Injectable()
@@ -73,7 +73,7 @@ export class AllocatorScoringService {
     await this.storeClientPreviousApplicationsScore(report, allocatorDataType);
   }
 
-  public async getLatestScores(dataType?: AllocatorDataType) {
+  public async getLatestScores(dataType?: DataType) {
     return await this.prismaService.$queryRawTyped(
       getAllocatorLatestScores(dataType),
     );
@@ -81,7 +81,7 @@ export class AllocatorScoringService {
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   public async getTotalScoreAverage(
-    dataType: AllocatorDataType,
+    dataType: DataType,
   ): Promise<number | null> {
     const latestScores = await this.getLatestScores(dataType);
 
@@ -175,7 +175,7 @@ export class AllocatorScoringService {
     score: number,
     openDataScoreWeight: number,
     enterpriseScoreWeight: number,
-    dataType: AllocatorDataType,
+    dataType: DataType,
     metricName: string,
     metricDescription: string,
     metricUnit: string | null,
@@ -187,7 +187,7 @@ export class AllocatorScoringService {
     }[],
     metadata?: object,
   ) {
-    const isOpenData = dataType === AllocatorDataType.openData;
+    const isOpenData = dataType === DataType.openData;
 
     const scoreWeight = isOpenData
       ? openDataScoreWeight
@@ -249,7 +249,7 @@ export class AllocatorScoringService {
     return Math.exp(-decayDays / halfLife);
   }
 
-  private async storeIPNIReportingScore(report, dataType: AllocatorDataType) {
+  private async storeIPNIReportingScore(report, dataType: DataType) {
     const openDataScoreWeight = 3;
     const enterpriseScoreWeight = 0;
 
@@ -322,10 +322,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeHttpRetrievabilityScore(
-    report,
-    dataType: AllocatorDataType,
-  ) {
+  private async storeHttpRetrievabilityScore(report, dataType: DataType) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
@@ -395,10 +392,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeUrlFinderRetrievabilityScore(
-    report,
-    dataType: AllocatorDataType,
-  ) {
+  private async storeUrlFinderRetrievabilityScore(report, dataType: DataType) {
     const openDataScoreWeight = 5;
     const enterpriseScoreWeight = 0;
 
@@ -469,7 +463,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeCIDSharingScore(report, dataType: AllocatorDataType) {
+  private async storeCIDSharingScore(report, dataType: DataType) {
     const openDataScoreWeight = 3;
     const enterpriseScoreWeight = 3;
 
@@ -549,7 +543,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeDuplicatedDataScore(report, dataType: AllocatorDataType) {
+  private async storeDuplicatedDataScore(report, dataType: DataType) {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
@@ -616,10 +610,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeUniqueDataSetSizeScore(
-    report,
-    dataType: AllocatorDataType,
-  ) {
+  private async storeUniqueDataSetSizeScore(report, dataType: DataType) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;
 
@@ -691,10 +682,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeEqualityOfDatacapDistribution(
-    report,
-    dataType: AllocatorDataType,
-  ) {
+  private async storeEqualityOfDatacapDistribution(report, dataType: DataType) {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
@@ -774,7 +762,7 @@ export class AllocatorScoringService {
     );
   }
 
-  private async storeClientDiversityScore(report, dataType: AllocatorDataType) {
+  private async storeClientDiversityScore(report, dataType: DataType) {
     const openDataScoreWeight = 2;
     const enterpriseScoreWeight = 2;
 
@@ -833,7 +821,7 @@ export class AllocatorScoringService {
 
   private async storeClientPreviousApplicationsScore(
     report,
-    dataType: AllocatorDataType,
+    dataType: DataType,
   ) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;

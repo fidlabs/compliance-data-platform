@@ -1,4 +1,4 @@
--- @param {Boolean} $1:openDataOnly
+-- @param {String} $1:dataType
 -- @param {Boolean} $2:httpRetrievability
 -- @param {Boolean} $3:urlFinderRetrievability
 -- @param {DateTime} $4:week
@@ -33,6 +33,8 @@ with "active_allocators" as (select "allocator_id" as "allocator_id",
 select avg("avg_retrievability_success_rate_http") filter (where $2 = true or $2 is null)                    as "http",
        avg("avg_retrievability_success_rate_url_finder") filter (where $3 = true or $3 is null)              as "urlFinder"
 from "providers_weekly_acc"
-where ($1 = false or "provider" in (select "provider"
-                                      from "open_data_pathway_provider"))
+    left join "open_data_pathway_provider" using ("provider")
+where (($1 = 'openData' and "open_data_pathway_provider"."provider" is not null) or
+       ($1 = 'enterprise' and "open_data_pathway_provider"."provider" is null) or
+       ($1 is null))
   and "week" = $4::timestamp;

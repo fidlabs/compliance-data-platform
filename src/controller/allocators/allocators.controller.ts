@@ -41,7 +41,7 @@ import {
 } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
-  AllocatorDataType,
+  DataType,
   AllocatorsDashboardStatistic,
   AllocatorsDashboardStatisticType,
   GetAllocatorsLatestScoresRankingRequest,
@@ -136,7 +136,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       await this.allocatorScoringService.getLatestScores(query.dataType)
     ).map((item) => ({
       ...item,
-      dataType: item.dataType as AllocatorDataType,
+      dataType: item.dataType as DataType,
     }));
   }
 

@@ -19,18 +19,18 @@ import {
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from '../storage-providers/types.storage-providers';
 
-export enum AllocatorDataType {
+export enum DataType {
   openData = 'openData',
   enterprise = 'enterprise',
 }
 
 export class GetAllocatorsLatestScoresRankingRequest {
   @ApiPropertyOptional({
-    enum: AllocatorDataType,
+    enum: DataType,
     description:
       'Type of allocator data to use for ranking; default is all data',
   })
-  dataType?: AllocatorDataType;
+  dataType?: DataType;
 }
 
 class AllocatorsScoresSummaryByMetricDataDetails {
@@ -68,10 +68,10 @@ class AllocatorsScoresSummaryByMetricDataDetails {
   scorePercentage: string;
 
   @ApiProperty({
-    enum: AllocatorDataType,
+    enum: DataType,
     description: 'Type of data allocator is using',
   })
-  dataType: AllocatorDataType;
+  dataType: DataType;
 
   @ApiProperty({
     description: 'Total datacap of the allocator at the time of the report',
@@ -179,10 +179,10 @@ export class GetAllocatorsScoresSummaryByMetricRequest {
   groupBy?: 'week' | 'month';
 
   @ApiPropertyOptional({
-    enum: AllocatorDataType,
+    enum: DataType,
     description: 'Type of allocator data to filter by; default is all data',
   })
-  dataType?: AllocatorDataType;
+  dataType?: DataType;
 
   @ApiPropertyOptional({
     description:
@@ -249,10 +249,10 @@ export class GetAllocatorsLatestScoresRankingResponse {
   monthAgoScorePercentage: string | null;
 
   @ApiProperty({
-    enum: AllocatorDataType,
+    enum: DataType,
     description: 'Type of data allocator is using',
   })
-  dataType: AllocatorDataType;
+  dataType: DataType;
 
   @ApiProperty({
     description: 'Total datacap of the allocator',
@@ -328,10 +328,10 @@ export class GetAllocatorsRequest extends IntersectionType(
   isMetaallocator?: stringifiedBool;
 
   @ApiPropertyOptional({
-    enum: AllocatorDataType,
+    enum: DataType,
     description: 'Type of allocator data to filter by; default is all data',
   })
-  dataType?: AllocatorDataType;
+  dataType?: DataType;
 }
 
 export class GetWeekAllocatorsWithSpsComplianceRequestData extends IntersectionType(

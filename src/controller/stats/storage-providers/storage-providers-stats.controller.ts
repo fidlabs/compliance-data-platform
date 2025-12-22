@@ -20,6 +20,7 @@ import {
 } from 'src/service/storage-provider/types.storage-provider';
 import { stringToBool } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import { DataType } from 'src/controller/allocators/types.allocators';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -57,9 +58,9 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     @Query() query: GetRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
-      stringToBool(query?.openDataOnly),
       this.getFilPlusEditionFromRequest(query),
       query?.retrievabilityType,
+      stringToBool(query?.openDataOnly) ? DataType.openData : null,
     );
   }
 
