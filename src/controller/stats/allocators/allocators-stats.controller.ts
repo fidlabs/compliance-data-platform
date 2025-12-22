@@ -42,7 +42,6 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
       stringToNumber(query?.editionId) === 5
     ) {
       throw new BadRequestException(
-        undefined,
         'Open data filter is not available for Fil+ Edition 5',
       );
     }
