@@ -94,6 +94,12 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
               },
               {
                 providerId: provider_id,
+                metricType: StorageProvidersMetricType.BANDWIDTH,
+                value: performance?.bandwidth?.download_speed_mbps || 0,
+                lastUpdateAt: performance?.bandwidth?.tested_at,
+              },
+              {
+                providerId: provider_id,
                 metricType: StorageProvidersMetricType.RETENTION,
                 value:
                   dmobProvidersRetention.find(
