@@ -7,9 +7,7 @@ import { AggregationTable } from '../aggregation-table';
 import { sleep, yesterday } from 'src/utils/utils';
 import { Logger } from '@nestjs/common';
 
-export class ProviderUrlFinderRetrievabilityDailyRunner
-  implements AggregationRunner
-{
+export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRunner {
   private readonly logger = new Logger(
     ProviderUrlFinderRetrievabilityDailyRunner.name,
   );
@@ -59,10 +57,11 @@ export class ProviderUrlFinderRetrievabilityDailyRunner
         _storageProviders.map(async (provider) => {
           return {
             provider: provider.id,
-            success_rate:
-              await storageProviderUrlFinderService.fetchRetrievability(
+            success_rate: (
+              await storageProviderUrlFinderService.fetchLastStorageProviderData(
                 provider.id,
-              ),
+              )
+            ).retrievability_percent,
           };
         }),
       );
