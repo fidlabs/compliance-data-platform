@@ -101,13 +101,11 @@ export class ControllerBase {
 
     if (sortingInfo.order && !sortingInfo.sort)
       throw new BadRequestException(
-        undefined,
         'Invalid sorting value: sort must be set if order is set',
       );
 
     if (sortingInfo.order && !['asc', 'desc'].includes(sortingInfo.order))
       throw new BadRequestException(
-        undefined,
         'Invalid sorting value: order must be "asc" or "desc"',
       );
 
@@ -117,7 +115,6 @@ export class ControllerBase {
       values[0][sortingInfo.sort] === undefined
     )
       throw new BadRequestException(
-        undefined,
         `Invalid sorting value: sort '${sortingInfo.sort}' does not exist in the data`,
       );
 
@@ -153,19 +150,16 @@ export class ControllerBase {
 
     if (paginationInfo.limit && (Number.isNaN(limit) || limit <= 0))
       throw new BadRequestException(
-        undefined,
         'Invalid pagination value: limit must be Integer > 0',
       );
 
     if (paginationInfo.page && (Number.isNaN(page) || page <= 0))
       throw new BadRequestException(
-        undefined,
         'Invalid pagination value: page must be Integer > 0',
       );
 
     if (Number.isNaN(limit) !== Number.isNaN(page))
       throw new BadRequestException(
-        undefined,
         'Invalid pagination value: page and limit must both be set',
       );
 
