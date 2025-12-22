@@ -1,4 +1,4 @@
--- @param {Boolean} $1:openDataOnly
+-- @param {String} $1:dataType
 -- @param {String} $2:retrievabilityType
 -- @param {DateTime} $3:startDate
 -- @param {DateTime} $4:endDate
@@ -28,6 +28,9 @@ select "week"                                              as "week",
        count(*)::int                                       as "count",
        sum("total_deal_size")::bigint                      as "totalDatacap"
 from "provider_weekly"
-where ($1 = false or "provider" in (select "provider" from "open_data_pathway_provider"))
+    left join "open_data_pathway_provider" using ("provider")
+where (($1 = 'openData' and "open_data_pathway_provider"."provider" is not null) or
+       ($1 = 'enterprise' and "open_data_pathway_provider"."provider" is null) or
+       ($1 is null))
 group by "week", "valueFromExclusive", "valueToInclusive"
 order by "week", "valueFromExclusive";
