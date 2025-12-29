@@ -25,6 +25,17 @@ export function yesterday(): DateTime {
   return DateTime.now().toUTC().minus({ day: 1 }).startOf('day');
 }
 
+export function isTodayUTC(input: DateTime): boolean {
+  const now = DateTime.utc();
+  const comparedDate = input.toUTC();
+
+  return (
+    now.hasSame(comparedDate, 'year') &&
+    now.hasSame(comparedDate, 'month') &&
+    now.hasSame(comparedDate, 'day')
+  );
+}
+
 export function envNotSet(value?: any): boolean {
   return (
     value === undefined ||

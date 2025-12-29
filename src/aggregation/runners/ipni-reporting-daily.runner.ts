@@ -1,10 +1,10 @@
 import { DateTime } from 'luxon';
+import { isTodayUTC } from 'src/utils/utils';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
-import { yesterday } from 'src/utils/utils';
 
 export class IpniReportingDailyRunner implements AggregationRunner {
   public async run({
@@ -30,8 +30,8 @@ export class IpniReportingDailyRunner implements AggregationRunner {
       ? DateTime.fromJSDate(latestStored.date, { zone: 'UTC' })
       : null;
 
-    if (latestStoredDate >= yesterday()) {
-      // already downloaded yesterday's data, wait for next day
+    // skip if we already did aggregation today
+    if (!!latestStoredDate && isTodayUTC(latestStoredDate)) {
       return;
     }
 
