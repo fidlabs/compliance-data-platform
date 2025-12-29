@@ -9,41 +9,26 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                       from "allocator_report_scoring_result_range"
                       group by "scoring_result_id"),
 --
-     "active_allocators" as (select "allocator_id"  as "allocator_id",
-                                    "registry_info" as "registry_info",
-                                    6               as "editionId"
+     "all_allocators" as (select "allocator_id"               as "allocator_id",
+                                    6                         as "edition_id",
+                                    case
+                                        when not (("registry_info"::jsonb -> 'application' -> 'audit') ?|
+                                                    array ['Enterprise Data', 'Automated', 'Faucet', 'Market Based']) then 'openData'
+                                        else 'enterprise' end as "data_type"
                              from "allocator_registry"
-                             where "rejected" = false
 
                              union all
 
-                             select "allocator_id"  as "allocator_id",
-                                    "registry_info" as "registry_info",
-                                    5               as "editionId"
-                             from "allocator_registry_archive"
-                             where "rejected" = false),
+                             select "allocator_id" as "allocator_id",
+                                    5              as "edition_id",
+                                    null           as "data_type"
+                             from "allocator_registry_archive"),
 --
-     "active_in_edition" as (select *
-                             from "active_allocators"),
---
-     "open_data_pathway_allocators" as (
-         -- edition 6: open = not enterprise, automated, faucet, market based
-         select distinct "active_in_edition"."allocator_id"
-         from "active_in_edition"
-         where "active_in_edition"."editionId" = 6
-           and not (("active_in_edition"."registry_info"::jsonb->'application'->'audit') ?|
-               array['Enterprise Data', 'Automated', 'Faucet', 'Market Based'])
-
-         union
-
-         -- edition 5: open by bookkeeping
-         select distinct "allocator_client_bookkeeping"."allocator_id"
-         from "allocator_client_bookkeeping"
-                  join "active_in_edition" on "allocator_client_bookkeeping"."allocator_id" = "active_in_edition"."allocator_id"
-         where "active_in_edition"."editionId" = 5
-           and lower(
-                       "allocator_client_bookkeeping"."bookkeeping_info"::jsonb->'Project'->>'Confirm that this is a public dataset that can be retrieved by anyone on the network (i.e., no specific permissions or access rights are required to view the data)'
-               ) in ('[x] i confirm', 'yes')),
+     "selected_allocators" as (select distinct on ("allocator_id") "allocator_id" as "allocator_id",
+                                                                   "edition_id"   as "edition_id",
+                                                                   "data_type"    as "data_type"
+                               from "all_allocators"
+                               where ($2 = "data_type" or $2 is null)),
 --
      "latest_reports_by_date" as (select distinct on ("allocator_id", "date") "allocator_report"."id"                              as "report_id",
                                                                               "allocator_report"."allocator"                       as "allocator_id",
@@ -57,11 +42,9 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                                                                order by "week" desc
                                                                                limit 1)                                            as "total_datacap",
 
-                                                                              case
-                                                                                  when "allocator_report"."allocator" in (select "allocator_id" from "open_data_pathway_allocators")
-                                                                                      then 'openData'
-                                                                                  else 'enterprise' end                            as "data_type"
+                                                                              "selected_allocators"."data_type"                    as "data_type"
                                   from "allocator_report"
+                                           join "selected_allocators" on "allocator_report"."allocator" = "selected_allocators"."allocator_id"
                                   order by "allocator_id", "date", "allocator_report"."create_date" desc),
 --
      "report_scores" as (select "latest_reports_by_date"."allocator_id"                as "allocator_id",
