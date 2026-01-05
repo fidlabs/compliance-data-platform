@@ -81,6 +81,7 @@ import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runner
 import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
 import { AllocatorScoringService } from './service/allocator-scoring/allocator-scoring.service';
 import { FilscanService } from './service/filscan/filscan.service';
+import { AllocatorsClientStatsDailyRunner } from './aggregation/runners/allocators-client-stats-daily.runner';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -111,6 +112,7 @@ const AGGREGATION_RUNNERS = [
   ProvidersWeeklyRunner,
   ProvidersWeeklyAccRunner,
   UnifiedVerifiedDealHourlyRunner,
+  AllocatorsClientStatsDailyRunner,
 ];
 
 const AGGREGATION_RUNNERS_RUN_ONLY = [];

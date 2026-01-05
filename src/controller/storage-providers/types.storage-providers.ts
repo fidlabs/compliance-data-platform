@@ -90,6 +90,7 @@ export const storageProvidersDashboardStatisticTypes = [
   'DDO_DEALS_PERCENTAGE_TO_DATE',
   'STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE',
   'STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE',
+  'AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE',
 ] as const;
 
 export type StorageProvidersDashboardStatisticType =

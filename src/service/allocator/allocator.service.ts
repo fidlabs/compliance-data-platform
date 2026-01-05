@@ -1157,6 +1157,42 @@ export class AllocatorService {
     return activeAllocators.length;
   }
 
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getAllocatorsClientsStats(options?: {
+    cutoffDate?: Date;
+  }): Promise<{
+    averageNumberOfClients: number | null;
+    averageReturningClientsPercentage: number | null;
+    averageSecondsToFirstDeal: number | null;
+  }> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+
+    const results =
+      await this.prismaService.allocator_client_stats_daily.aggregate({
+        _avg: {
+          number_of_clients: true,
+          returning_clients_percentage: true,
+          average_seconds_to_first_deal: true,
+        },
+        where: {
+          date: DateTime.fromJSDate(cutoffDate)
+            .toUTC()
+            .startOf('day')
+            .toJSDate(),
+        },
+      });
+
+    return {
+      averageNumberOfClients: results._avg.number_of_clients,
+      averageReturningClientsPercentage:
+        results._avg.returning_clients_percentage?.toNumber() ?? null,
+      averageSecondsToFirstDeal:
+        results._avg.average_seconds_to_first_deal !== null
+          ? Math.round(results._avg.average_seconds_to_first_deal)
+          : null,
+    };
+  }
+
   private async getAllocatorsPercentageByScoreRange(options: {
     minScorePercentage: number;
     maxScorePercentage: number;

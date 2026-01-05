@@ -30,6 +30,7 @@ const dashboardStatisticsTitleDict: Record<
   DDO_DEALS_PERCENTAGE_TO_DATE: 'DDO Deals to Date',
   STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: 'High RPA SPs',
   STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: 'SPs Reporting to IPNI',
+  AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE: 'Average RPA',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -43,6 +44,7 @@ const dashboardStatisticsDescriptionDict: Record<
   DDO_DEALS_PERCENTAGE_TO_DATE: 'Percentage of DDO deals up to date',
   STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: `Percentage of Storage Providers with RPA higher than ${hightUrlFinderRetrievabilityThreshold * 100}%`,
   STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: null,
+  AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE: null,
 };
 
 @Controller('storage-providers')
@@ -217,6 +219,8 @@ export class StorageProvidersController extends ControllerBase {
       previousDDOPercentage,
       currentDDOPercentageToDate,
       previousDDOPercentageToDate,
+      currentAverageUrlFinderRetrievability,
+      previousAverageUrlFinderRetrievability,
     ] = await Promise.all([
       this.storageProviderService.getStorageProvidersCountStat(),
       this.storageProviderService.getStorageProvidersCountStat({
@@ -248,6 +252,10 @@ export class StorageProvidersController extends ControllerBase {
       }),
       this.storageProviderService.getDDOPercentageStat(),
       this.storageProviderService.getDDOPercentageStat({
+        cutoffDate: cutoffDate,
+      }),
+      this.storageProviderService.getAverageUrlFinderRetrievabilityStat(),
+      this.storageProviderService.getAverageUrlFinderRetrievabilityStat({
         cutoffDate: cutoffDate,
       }),
     ]);
@@ -322,6 +330,18 @@ export class StorageProvidersController extends ControllerBase {
         },
         previousValue: {
           value: previousDDOPercentageToDate,
+          type: 'percentage',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE',
+        interval: interval,
+        currentValue: {
+          value: currentAverageUrlFinderRetrievability ?? 0,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousAverageUrlFinderRetrievability ?? 0,
           type: 'percentage',
         },
       }),
