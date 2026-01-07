@@ -66,6 +66,9 @@ const dashboardStatisticsTitleDict: Record<
   COMPLIANT_ALLOCATORS: 'Compliant Allocators',
   NON_COMPLIANT_ALLOCATORS: 'Non Compliant Allocators',
   NUMBER_OF_ALERTS: 'Alerts',
+  AVERAGE_NUMBER_OF_CLIENTS: 'Avg. Clients',
+  AVERAGE_PERCENTAGE_OF_RETURNING_CLIENTS: 'Avg. Returning Clients',
+  AVERAGE_TIME_TO_FIRST_DEAL: 'Avg. TTFD',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -78,6 +81,10 @@ const dashboardStatisticsDescriptionDict: Record<
   COMPLIANT_ALLOCATORS: `Percentage of Allocators with score above ${AllocatorService.COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD * 100}%`,
   NON_COMPLIANT_ALLOCATORS: `Percentage of allocators with score below ${AllocatorService.NON_COMPLIANT_ALLOCATORS_DASHBOARD_STAT_SCORE_PERCENTAGE_THRESHOLD * 100}%`,
   NUMBER_OF_ALERTS: null,
+  AVERAGE_NUMBER_OF_CLIENTS: 'Average Number of Clients per Allocator',
+  AVERAGE_PERCENTAGE_OF_RETURNING_CLIENTS:
+    'Average Percentage of returning Clients',
+  AVERAGE_TIME_TO_FIRST_DEAL: 'Average time to first deal',
 };
 
 @Controller('allocators')
@@ -401,6 +408,8 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       previousNonCompliantAllocatorsPercentage,
       currentAlertsCount,
       previousAlertsCount,
+      currentClientsStats,
+      previousClientsStats,
     ] = await Promise.all([
       this.allocatorService.getApprovedAllocatorsStat(),
       this.allocatorService.getApprovedAllocatorsStat({
@@ -419,6 +428,10 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       this.allocatorReportChecksService.getFailedReportChecksCount(),
       this.allocatorReportChecksService.getFailedReportChecksCount({
         date: cutoffDate,
+      }),
+      this.allocatorService.getAllocatorsClientsStats(),
+      this.allocatorService.getAllocatorsClientsStats({
+        cutoffDate: cutoffDate,
       }),
     ]);
 
@@ -480,6 +493,44 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
         previousValue: {
           value: previousAlertsCount,
           type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'AVERAGE_NUMBER_OF_CLIENTS',
+        currentValue: {
+          value: currentClientsStats.averageNumberOfClients ?? 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousClientsStats.averageNumberOfClients ?? 0,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'AVERAGE_PERCENTAGE_OF_RETURNING_CLIENTS',
+        currentValue: {
+          value: currentClientsStats.averageReturningClientsPercentage ?? 0,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousClientsStats.averageReturningClientsPercentage ?? 0,
+          type: 'percentage',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'AVERAGE_TIME_TO_FIRST_DEAL',
+        currentValue: {
+          value: currentClientsStats.averageSecondsToFirstDeal ?? 0,
+          type: 'duration',
+          unit: 'second',
+        },
+        previousValue: {
+          value: previousClientsStats.averageSecondsToFirstDeal ?? 0,
+          type: 'duration',
+          unit: 'second',
         },
         interval: interval,
       }),

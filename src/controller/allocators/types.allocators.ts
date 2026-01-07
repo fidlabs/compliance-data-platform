@@ -395,6 +395,9 @@ export const allocatorsDashboardStatisticTypes = [
   'COMPLIANT_ALLOCATORS',
   'NON_COMPLIANT_ALLOCATORS',
   'NUMBER_OF_ALERTS',
+  'AVERAGE_NUMBER_OF_CLIENTS',
+  'AVERAGE_PERCENTAGE_OF_RETURNING_CLIENTS',
+  'AVERAGE_TIME_TO_FIRST_DEAL',
 ] as const;
 
 export type AllocatorsDashboardStatisticType =

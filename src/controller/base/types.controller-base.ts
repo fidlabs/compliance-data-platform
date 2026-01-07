@@ -114,10 +114,42 @@ export class PercentageDashboardStatisticValue {
   type: 'percentage';
 }
 
+const durationDashboardStatisticUnits = [
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'month',
+  'year',
+] as const;
+export type DurationDashboardStatisticUnit =
+  (typeof durationDashboardStatisticUnits)[number];
+
+export class DurationDashboardStatisticValue {
+  @ApiProperty({
+    description: 'Value for the statistic in duration units',
+  })
+  value: number;
+
+  @ApiProperty({
+    description: 'Duration unit',
+    enum: durationDashboardStatisticUnits,
+  })
+  unit: DurationDashboardStatisticUnit;
+
+  @ApiProperty({
+    enum: ['duration'],
+  })
+  type: 'duration';
+}
+
 export type DashboardStatisticValue =
   | BigIntDashboardStatisticValue
   | NumericDashboardStatisticValue
-  | PercentageDashboardStatisticValue;
+  | PercentageDashboardStatisticValue
+  | DurationDashboardStatisticValue;
 
 export class DashboardStatisticChange {
   @ApiProperty({
@@ -137,6 +169,7 @@ export class DashboardStatisticChange {
   BigIntDashboardStatisticValue,
   NumericDashboardStatisticValue,
   PercentageDashboardStatisticValue,
+  DurationDashboardStatisticValue,
 )
 export class DashboardStatistic {
   @ApiProperty({ description: 'Statistic title' })

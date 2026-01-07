@@ -57,6 +57,17 @@ model allocator_client_bookkeeping {
   @@index([client_id])
 }
 
+model allocator_client_stats_daily {
+  date                          DateTime
+  allocator_id                  String
+  number_of_clients             Int
+  returning_clients_percentage  Decimal
+  average_seconds_to_first_deal Int?
+
+  @@id([allocator_id, date])
+  @@index([date])
+}
+
 model client_datacap_allocation {
   id           Int      @id
   client_id    String
