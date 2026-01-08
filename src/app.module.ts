@@ -12,11 +12,13 @@ import { AllocatorClientBookkeepingRunner } from './aggregation/runners/allocato
 import { AllocatorRegistryArchiveRunner } from './aggregation/runners/allocator-registry-archive.runner';
 import { AllocatorRegistryRunner } from './aggregation/runners/allocator-registry.runner';
 import { AllocatorRunner } from './aggregation/runners/allocator.runner';
+import { AllocatorsClientStatsDailyRunner } from './aggregation/runners/allocators-client-stats-daily.runner';
 import { AllocatorsWeeklyAccRunner } from './aggregation/runners/allocators-weekly-acc.runner';
 import { CidSharingRunner } from './aggregation/runners/cid-sharing.runner';
 import { ClientAllocatorDistributionWeeklyAccRunner } from './aggregation/runners/client-allocator-distribution-weekly-acc.runner';
 import { ClientAllocatorDistributionWeeklyRunner } from './aggregation/runners/client-allocator-distribution-weekly.runner';
 import { ClientClaimsHourlyRunner } from './aggregation/runners/client-claims-hourly.runner';
+import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
 import { ClientProviderDistributionWeeklyAccRunner } from './aggregation/runners/client-provider-distribution-weekly-acc.runner';
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
@@ -28,8 +30,7 @@ import { OldDatacapClientBalanceNv22Runner } from './aggregation/runners/old-dat
 import { OldDatacapClientBalanceWeeklyRunner } from './aggregation/runners/old-datacap-client-balance-weekly.runner';
 import { ProviderFirstClientRunner } from './aggregation/runners/provider-first-client.runner';
 import { ProviderIpInfoRunner } from './aggregation/runners/provider-ip-info.runner';
-import { ProviderRetrievabilityDailyBackfillRunner } from './aggregation/runners/provider-retrievability-daily-backfill.runner';
-import { ProviderRetrievabilityDailyRunner } from './aggregation/runners/provider-retrievability-daily.runner';
+import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
 import { ProviderRunner } from './aggregation/runners/provider.runner';
 import { ProvidersWeeklyAccRunner } from './aggregation/runners/providers-weekly-acc.runner';
 import { ProvidersWeeklyRunner } from './aggregation/runners/providers-weekly.runner';
@@ -57,13 +58,14 @@ import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { PrometheusMetricModule } from './prometheus';
 import { AllocatorReportChecksService } from './service/allocator-report-checks/allocator-report-checks.service';
 import { AllocatorReportService } from './service/allocator-report/allocator-report.service';
+import { AllocatorScoringService } from './service/allocator-scoring/allocator-scoring.service';
 import { AllocatorService } from './service/allocator/allocator.service';
 import { CidContactService } from './service/cid-contact/cid-contact.service';
 import { ClientReportChecksService } from './service/client-report-checks/client-report-checks.service';
 import { ClientReportService } from './service/client-report/client-report.service';
 import { ClientService } from './service/client/client.service';
 import { EthApiService } from './service/eth-api/eth-api.service';
-import { FilSparkService } from './service/filspark/filspark.service';
+import { FilscanService } from './service/filscan/filscan.service';
 import { GitHubAllocatorClientBookkeepingService } from './service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
 import { GitHubAllocatorRegistryService } from './service/github-allocator-registry/github-allocator-registry.service';
 import { GitHubIssueParserService } from './service/github-issue-parser/github-issue-parser.service';
@@ -77,11 +79,6 @@ import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
-import { ProviderUrlFinderRetrievabilityDailyRunner } from './aggregation/runners/provider-url-finder-retrievability-daily.runner';
-import { ClientDatacapAllocationRunner } from './aggregation/runners/client-datacap-allocation.runner';
-import { AllocatorScoringService } from './service/allocator-scoring/allocator-scoring.service';
-import { FilscanService } from './service/filscan/filscan.service';
-import { AllocatorsClientStatsDailyRunner } from './aggregation/runners/allocators-client-stats-daily.runner';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -107,8 +104,6 @@ const AGGREGATION_RUNNERS = [
   OldDatacapClientBalanceWeeklyRunner,
   ProviderFirstClientRunner,
   ProviderIpInfoRunner,
-  ProviderRetrievabilityDailyRunner,
-  ProviderRetrievabilityDailyBackfillRunner,
   ProvidersWeeklyRunner,
   ProvidersWeeklyAccRunner,
   UnifiedVerifiedDealHourlyRunner,
@@ -150,7 +145,6 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     AllocatorReportGeneratorJobService,
     PrismaService,
     PrismaDmobService,
-    FilSparkService,
     FilscanService,
     StorageProviderService,
     AllocatorService,
