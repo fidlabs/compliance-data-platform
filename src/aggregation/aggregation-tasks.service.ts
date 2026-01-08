@@ -6,22 +6,21 @@ import {
   HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { PrometheusMetricService } from 'src/prometheus';
-import { PrismaDmobService } from '../db/prismaDmob.service';
-import { PrismaService } from '../db/prisma.service';
-import { FilSparkService } from '../service/filspark/filspark.service';
+import { AllocatorService } from 'src/service/allocator/allocator.service';
+import { sleep } from 'src/utils/utils';
 import { PostgresService } from '../db/postgres.service';
 import { PostgresDmobService } from '../db/postgresDmob.service';
-import { AggregationRunner } from './aggregation-runner';
+import { PrismaService } from '../db/prisma.service';
+import { PrismaDmobService } from '../db/prismaDmob.service';
+import { GitHubAllocatorClientBookkeepingService } from '../service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
+import { GitHubAllocatorRegistryService } from '../service/github-allocator-registry/github-allocator-registry.service';
 import { IpniMisreportingCheckerService } from '../service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { LocationService } from '../service/location/location.service';
 import { LotusApiService } from '../service/lotus-api/lotus-api.service';
-import { GitHubAllocatorRegistryService } from '../service/github-allocator-registry/github-allocator-registry.service';
-import { GitHubAllocatorClientBookkeepingService } from '../service/github-allocator-client-bookkeeping/github-allocator-client-bookkeeping.service';
-import { AggregationTable } from './aggregation-table';
-import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
-import { sleep } from 'src/utils/utils';
-import { AllocatorService } from 'src/service/allocator/allocator.service';
+import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
+import { AggregationRunner } from './aggregation-runner';
+import { AggregationTable } from './aggregation-table';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -35,7 +34,6 @@ export class AggregationTasksService extends HealthIndicator {
   constructor(
     private readonly prismaDmobService: PrismaDmobService,
     private readonly prismaService: PrismaService,
-    private readonly filSparkService: FilSparkService,
     private readonly postgresService: PostgresService,
     private readonly postgresDmobService: PostgresDmobService,
     @Inject('AggregationRunner')
@@ -134,7 +132,6 @@ export class AggregationTasksService extends HealthIndicator {
                 aggregationRunner.run({
                   prismaService: this.prismaService,
                   prismaDmobService: this.prismaDmobService,
-                  filSparkService: this.filSparkService,
                   postgresService: this.postgresService,
                   postgresDmobService: this.postgresDmobService,
                   prometheusMetricService: this.prometheusMetricService,

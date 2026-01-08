@@ -55,7 +55,7 @@ export class ProvidersWeeklyRunner implements AggregationRunner {
   getDependingTables(): AggregationTable[] {
     return [
       AggregationTable.ClientProviderDistributionWeekly,
-      AggregationTable.ProviderRetrievabilityDaily,
+      AggregationTable.ProviderUrlFinderRetrievabilityDaily,
     ];
   }
 }
