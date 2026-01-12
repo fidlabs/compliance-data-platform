@@ -32,9 +32,6 @@ export class ProvidersWeeklyAccRunner implements AggregationRunner {
       num_of_clients: row.num_of_clients,
       biggest_client_total_deal_size: row.biggest_client_total_deal_size,
       total_deal_size: row.total_deal_size,
-      avg_retrievability_success_rate: row.avg_retrievability_success_rate,
-      avg_retrievability_success_rate_http:
-        row.avg_retrievability_success_rate_http,
       avg_retrievability_success_rate_url_finder:
         row.avg_retrievability_success_rate_url_finder,
     }));
