@@ -21,6 +21,7 @@ import {
 } from '../base/types.controller-base';
 import {
   ClientsDashboardStatistic,
+  ClientsDashboardStatisticType,
   GetClientLatestClaimRequest,
   GetClientLatestClaimResponse,
   GetClientsStatisticsRequest,
@@ -47,6 +48,10 @@ const dashboardStatisticsDescriptionDict: Record<
     'Percentage of Clients that are failing more than 50% of report checks',
   DATACAP_SPENT_BY_CLIENTS: null,
 };
+
+const negativeStatistics = [
+  'FAILING_CLIENTS',
+] satisfies ClientsDashboardStatisticType[];
 
 @Controller('clients')
 export class ClientsController extends ControllerBase {
@@ -347,6 +352,7 @@ export class ClientsController extends ControllerBase {
         return {
           value: ratio - 1,
           interval: interval,
+          increaseNegative: (negativeStatistics as string[]).includes(type),
         };
       })();
 

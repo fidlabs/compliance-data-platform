@@ -163,6 +163,12 @@ export class DashboardStatisticChange {
     enum: dashboardStatisticChangeIntervals,
   })
   interval: DashboardStatisticChangeInterval;
+
+  @ApiProperty({
+    description:
+      'Flag telling if increase in given stat is a positive or negative thing',
+  })
+  increaseNegative: boolean;
 }
 
 @ApiExtraModels(
