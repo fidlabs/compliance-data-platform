@@ -371,15 +371,16 @@ export class AllocatorService {
     auditIndex?: number,
   ): AllocatorAuditOutcome {
     if (auditIndex === 0) {
-      // first audit outcome should always be GRANTED
-      if (outcome.toUpperCase() !== 'GRANTED') {
+      if (outcome.toUpperCase() === 'GRANTED') {
+        // first datacap is granted without audit
+        return AllocatorAuditOutcome.notAudited;
+      } else if (outcome.toUpperCase() === 'PENDING') {
+        return AllocatorAuditOutcome.pending;
+      } else {
         this.logger.warn(
-          `Allocator ${allocatorId} has first audit with outcome ${outcome} !== GRANTED, please investigate`,
+          `Allocator ${allocatorId} has first audit with outcome ${outcome} !== GRANTED and !== PENDING, please investigate`,
         );
       }
-
-      // first datacap is granted without audit
-      return AllocatorAuditOutcome.notAudited;
     }
 
     switch (outcome.toUpperCase()) {
