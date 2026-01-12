@@ -42,13 +42,6 @@ export class StorageProviderReportService {
           minerInfo.result.Multiaddrs,
         );
 
-        const {
-          retrievability_success_rate,
-          retrievability_success_rate_http,
-        } = await this.getStorageProviderRetrievability(
-          clientProviderDistribution.provider,
-        );
-
         const retrievability_success_rate_url_finder =
           await this.getStorageProviderUrlFinderRetrievability(
             clientProviderDistribution.provider,
@@ -56,8 +49,6 @@ export class StorageProviderReportService {
 
         return {
           ...clientProviderDistribution,
-          retrievability_success_rate_http: retrievability_success_rate_http,
-          retrievability_success_rate: retrievability_success_rate,
           retrievability_success_rate_url_finder:
             retrievability_success_rate_url_finder,
           ipni_reporting_status: ipniReportingStatus.status,
