@@ -158,7 +158,7 @@ model providers_weekly {
   num_of_clients                             Int
   biggest_client_total_deal_size             BigInt
   total_deal_size                            BigInt
-  avg_retrievability_success_rate            Float
+  avg_retrievability_success_rate            Float?
   avg_retrievability_success_rate_http       Float?
   avg_retrievability_success_rate_url_finder Float?
 
@@ -211,7 +211,7 @@ model providers_weekly_acc {
   num_of_clients                             Int
   biggest_client_total_deal_size             BigInt
   total_deal_size                            BigInt
-  avg_retrievability_success_rate            Float
+  avg_retrievability_success_rate            Float?
   avg_retrievability_success_rate_http       Float?
   avg_retrievability_success_rate_url_finder Float?
 
