@@ -70,13 +70,10 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                                                    "edition_id"   as "edition_id",
                                                                    "data_type"    as "data_type"
                                from "all_allocators"
+                               where "edition_id" = 6
                                order by "allocator_id", "data_type"),
 --
-     "result" as (select "latest_reports"."allocatorId"                                           as "allocatorId",
-                         "latest_reports"."allocatorName"                                         as "allocatorName",
-                         "latest_reports"."totalScore"                                            as "totalScore",
-                         "latest_reports"."maxPossibleScore"                                      as "maxPossibleScore",
-                         to_char("latest_reports"."_scorePercentage", 'FM999.00')                 as "scorePercentage",
+     "result" as (select "latest_reports".*,
 
                          (select "total_sum_of_allocations"
                                   from "allocators_weekly_acc"
@@ -97,7 +94,15 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                            left join "month_ago_reports" on "latest_reports"."allocatorId" = "month_ago_reports"."allocatorId"
                            join "selected_allocators" on "latest_reports"."allocatorId" = "selected_allocators"."allocator_id")
 --
-select *
+select "result"."allocatorId"                                           as "allocatorId",
+       "result"."allocatorName"                                         as "allocatorName",
+       "result"."totalScore"                                            as "totalScore",
+       "result"."maxPossibleScore"                                      as "maxPossibleScore",
+       to_char("result"."_scorePercentage", 'FM999.00')                 as "scorePercentage",
+       coalesce("result"."totalDatacap", 0)                             as "totalDatacap",
+       "result"."weekAgoScorePercentage"                                as "weekAgoScorePercentage",
+       "result"."monthAgoScorePercentage"                               as "monthAgoScorePercentage",
+       "result"."dataType"                                              as "dataType"
 from "result"
 where ($1::text is null or "result"."dataType" = $1::text)
-order by "result"."scorePercentage" desc, "result"."allocatorId";
+order by "result"."_scorePercentage" desc, "result"."allocatorId";
