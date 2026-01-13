@@ -432,12 +432,18 @@ export class AllocatorService {
         `Audit outcomes data not available for edition ${filPlusEdition.id}`,
       );
 
-    const registryInfo = await this.prismaService.allocator_registry.findMany({
-      select: {
-        allocator_id: true,
-        registry_info: true,
-      },
-    });
+    const registryInfo = await this.prismaService.$queryRaw<
+      {
+        allocator_id: string;
+        registry_info: string;
+      }[]
+    >`select
+          "allocator_registry"."allocator_id"  as "allocator_id",
+          "allocator_registry"."registry_info" as "registry_info"
+        from "allocator_registry"
+          left join "allocator" on "allocator"."id" = "allocator_registry"."allocator_id"
+        where "allocator"."is_metaallocator" = false;
+      `;
 
     const firstAuditMonth = filPlusEdition.startDate.toISOString().slice(0, 7);
 
