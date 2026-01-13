@@ -15,6 +15,7 @@ import {
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
   StorageProvidersDashboardStatistic,
+  StorageProvidersDashboardStatisticType,
 } from './types.storage-providers';
 import { DashboardStatisticValue } from '../base/types.controller-base';
 import { DateTime } from 'luxon';
@@ -46,6 +47,10 @@ const dashboardStatisticsDescriptionDict: Record<
   STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: null,
   AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE: null,
 };
+
+// fill as needed
+const negativeStatistics =
+  [] satisfies StorageProvidersDashboardStatisticType[];
 
 @Controller('storage-providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -378,6 +383,7 @@ export class StorageProvidersController extends ControllerBase {
         return {
           value: ratio - 1,
           interval: interval,
+          increaseNegative: (negativeStatistics as string[]).includes(type),
         };
       })();
 

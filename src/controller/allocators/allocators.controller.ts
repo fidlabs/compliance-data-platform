@@ -87,6 +87,11 @@ const dashboardStatisticsDescriptionDict: Record<
   AVERAGE_TIME_TO_FIRST_DEAL: 'Average time to first deal',
 };
 
+const negativeStatistics = [
+  'NON_COMPLIANT_ALLOCATORS',
+  'NUMBER_OF_ALERTS',
+] satisfies AllocatorsDashboardStatisticType[];
+
 @Controller('allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
 export class AllocatorsController extends FilPlusEditionControllerBase {
@@ -567,6 +572,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
         return {
           value: ratio - 1,
           interval: interval,
+          increaseNegative: (negativeStatistics as string[]).includes(type),
         };
       })();
 
