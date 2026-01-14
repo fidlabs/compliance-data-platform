@@ -683,10 +683,6 @@ export class AllocatorService {
     const isCurrentFilPlusEdition =
       filPlusEditionData?.id === getCurrentFilPlusEdition().id;
 
-    const httpRetrievability = retrievabilityType
-      ? retrievabilityType === RetrievabilityType.http
-      : undefined;
-
     const urlFinderRetrievability = retrievabilityType
       ? retrievabilityType === RetrievabilityType.urlFinder
       : undefined;
@@ -696,7 +692,6 @@ export class AllocatorService {
         isCurrentFilPlusEdition
           ? this.getWeekAverageStandardActiveAllocatorRetrievability(
               lastWeek(),
-              httpRetrievability,
               urlFinderRetrievability,
               filPlusEditionData?.id,
               dataType,
@@ -732,7 +727,6 @@ export class AllocatorService {
             const retrievability =
               await this.getWeekAverageStandardActiveAllocatorRetrievability(
                 histogramWeek.week,
-                httpRetrievability,
                 urlFinderRetrievability,
                 filPlusEditionData?.id,
                 dataType,
@@ -803,7 +797,6 @@ export class AllocatorService {
     ] = await Promise.all([
       this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
-        spMetricsToCheck?.httpRetrievability,
         spMetricsToCheck?.urlFinderRetrievability,
         filPlusEditionId,
         DataType.openData,
@@ -922,7 +915,6 @@ export class AllocatorService {
       isCurrentFilPlusEdition || filPlusEditionData === null
         ? this.storageProviderService.getLastWeekAverageProviderRetrievability(
             filPlusEditionData?.id,
-            spMetricsToCheck?.httpRetrievability,
             spMetricsToCheck?.urlFinderRetrievability,
             DataType.openData,
           )
@@ -968,7 +960,6 @@ export class AllocatorService {
 
   public async getWeekAverageStandardActiveAllocatorRetrievability(
     week: Date,
-    httpRetrievability = true,
     urlFinderRetrievability = true,
     filPlusEditionId?: number,
     dataType?: DataType,
@@ -976,7 +967,6 @@ export class AllocatorService {
     return (
       await this.prismaService.$queryRawTyped(
         getWeekAverageStandardActiveAllocatorRetrievabilityAcc(
-          httpRetrievability,
           urlFinderRetrievability,
           week,
           filPlusEditionId,
