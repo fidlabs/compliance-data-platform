@@ -136,9 +136,6 @@ export class StorageProviderService {
     const isCurrentFilPlusEdition =
       filPlusEditionData?.id === getCurrentFilPlusEdition().id;
 
-    const httpRetrievability = retrievabilityType
-      ? retrievabilityType === RetrievabilityType.http
-      : undefined;
     const urlFinderRetrievability = retrievabilityType
       ? retrievabilityType === RetrievabilityType.urlFinder
       : undefined;
@@ -147,7 +144,6 @@ export class StorageProviderService {
       isCurrentFilPlusEdition || !filPlusEditionData
         ? await this.getLastWeekAverageProviderRetrievability(
             filPlusEditionData?.id,
-            httpRetrievability,
             urlFinderRetrievability,
             dataType,
           )
@@ -181,7 +177,6 @@ export class StorageProviderService {
             const retrievability =
               await this.getWeekAverageProviderRetrievability(
                 histogramWeek.week,
-                httpRetrievability,
                 urlFinderRetrievability,
                 filPlusEditionData?.id,
                 dataType,
@@ -200,13 +195,11 @@ export class StorageProviderService {
 
   public getLastWeekAverageProviderRetrievability(
     filPlusEditionId?: number,
-    httpRetrievability?: boolean,
     urlFinderRetrievability?: boolean,
     dataType?: DataType,
   ): Promise<AverageRetrievabilityType> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
-      httpRetrievability,
       urlFinderRetrievability,
       filPlusEditionId,
       dataType,
@@ -228,7 +221,6 @@ export class StorageProviderService {
       isCurrentFilPlusEdition || !filPlusEditionData
         ? this.getLastWeekAverageProviderRetrievability(
             filPlusEditionData?.id,
-            metricsToCheck?.httpRetrievability,
             metricsToCheck?.urlFinderRetrievability,
             DataType.openData,
           )
@@ -240,7 +232,6 @@ export class StorageProviderService {
         const weekAverageRetrievability =
           await this.getWeekAverageProviderRetrievability(
             week,
-            metricsToCheck?.httpRetrievability,
             metricsToCheck?.urlFinderRetrievability,
             filPlusEditionData?.id,
             DataType.openData,
@@ -340,7 +331,6 @@ export class StorageProviderService {
   // returns 0 - 1
   public async getWeekAverageProviderRetrievability(
     week: Date,
-    httpRetrievability = true,
     urlFinderRetrievability = true,
     filPlusEditionId?: number,
     dataType?: DataType,
@@ -349,7 +339,6 @@ export class StorageProviderService {
       await this.prismaService.$queryRawTyped(
         getWeekAverageProviderRetrievabilityAcc(
           dataType,
-          httpRetrievability,
           urlFinderRetrievability,
           week,
           filPlusEditionId,
@@ -364,17 +353,6 @@ export class StorageProviderService {
     metricsToCheck?: StorageProviderComplianceMetrics,
   ): StorageProviderComplianceScore {
     let complianceScore = 0;
-
-    // when http retrievability is checked
-    if (
-      !metricsToCheck?.httpRetrievability ||
-      (metricsToCheck?.httpRetrievability &&
-        weekAverageRetrievability.http &&
-        providerWeekly.avg_retrievability_success_rate_http >
-          weekAverageRetrievability.http)
-    ) {
-      complianceScore++;
-    }
 
     // when rpa retrievability is checked
     if (

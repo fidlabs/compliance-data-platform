@@ -16,12 +16,6 @@ import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
-    description: 'Flag to filter by HTTP retrievability type',
-    type: Boolean,
-  })
-  httpRetrievability: stringifiedBool;
-
-  @ApiPropertyOptional({
     description: 'Flag to filter by URL finder retrievability',
     type: Boolean,
   })
@@ -44,13 +38,11 @@ export class StorageProviderComplianceMetricsRequest extends FilPlusEditionReque
   constructor(
     numberOfClients: stringifiedBool = 'true',
     totalDealSize: stringifiedBool = 'true',
-    httpRetrievability: stringifiedBool = 'true',
     urlFinderRetrievability: stringifiedBool = 'true',
   ) {
     super();
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
-    this.httpRetrievability = httpRetrievability;
     this.urlFinderRetrievability = urlFinderRetrievability;
   }
 }
