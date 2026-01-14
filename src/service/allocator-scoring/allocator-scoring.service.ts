@@ -63,7 +63,6 @@ export class AllocatorScoringService {
     }
 
     await this.storeIPNIReportingScore(report, allocatorDataType);
-    await this.storeHttpRetrievabilityScore(report, allocatorDataType);
     await this.storeUrlFinderRetrievabilityScore(report, allocatorDataType);
     await this.storeCIDSharingScore(report, allocatorDataType);
     await this.storeDuplicatedDataScore(report, allocatorDataType);
@@ -322,6 +321,7 @@ export class AllocatorScoringService {
     );
   }
 
+  // DEPRECATED: replaced by URL Finder retrievability
   private async storeHttpRetrievabilityScore(report, dataType: DataType) {
     const openDataScoreWeight = 1;
     const enterpriseScoreWeight = 1;

@@ -63,7 +63,6 @@ export class ClientReportChecksService {
     await this.storeProvidersExceedingMaxDuplicationPercentage(reportId);
     await this.storeProvidersWithUnknownLocation(reportId);
     await this.storeProvidersInSameLocation(reportId);
-    await this.storeProvidersHttpRetrievability(reportId);
     await this.storeProvidersUrlFinderRetrievability(reportId);
     await this.storeProvidersIPNIMisreporting(reportId);
     await this.storeProvidersIPNINotReporting(reportId);
@@ -380,6 +379,7 @@ export class ClientReportChecksService {
     });
   }
 
+  // DEPRECATED - replaced by RPA retrievability
   private async storeProvidersHttpRetrievability(reportId: bigint) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(
