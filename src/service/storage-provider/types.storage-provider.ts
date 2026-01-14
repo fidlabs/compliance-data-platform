@@ -106,9 +106,6 @@ export class StorageProviderComplianceWeekResults extends IntersectionType(
 
 export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   @ApiProperty()
-  httpRetrievability: boolean;
-
-  @ApiProperty()
   urlFinderRetrievability: boolean;
 
   @ApiProperty()
@@ -120,12 +117,10 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
   constructor(
     numberOfClients = true,
     totalDealSize = true,
-    httpRetrievability = true,
     urlFinderRetrievability = true,
   ) {
     super();
     this.urlFinderRetrievability = urlFinderRetrievability;
-    this.httpRetrievability = httpRetrievability;
     this.numberOfClients = numberOfClients;
     this.totalDealSize = totalDealSize;
   }
@@ -134,7 +129,6 @@ export class StorageProviderComplianceMetrics extends FilPlusEditionRequest {
     return new StorageProviderComplianceMetrics(
       stringToBool(metrics.numberOfClients) ?? true,
       stringToBool(metrics.totalDealSize) ?? true,
-      stringToBool(metrics.httpRetrievability) ?? true,
       stringToBool(metrics.urlFinderRetrievability) ?? true,
     );
   }
@@ -200,8 +194,6 @@ export class StorageProviderWithIpInfo {
 
 export class StorageProviderWeekly {
   avg_retrievability_success_rate_url_finder: number;
-  avg_retrievability_success_rate: number;
-  avg_retrievability_success_rate_http: number;
   num_of_clients: number;
   biggest_client_total_deal_size: bigint | null;
   total_deal_size: bigint | null;
