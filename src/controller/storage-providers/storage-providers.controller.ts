@@ -1,6 +1,8 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DateTime } from 'luxon';
+import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
@@ -9,16 +11,17 @@ import {
 import { Cacheable } from 'src/utils/cacheable';
 import { bigIntDiv, lastWeek, stringToDate } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
+import { DashboardStatisticValue } from '../base/types.controller-base';
 import {
   GetStorageProvidersRequest,
+  GetStorageProvidersSLIDataRequest,
+  GetStorageProvidersSLIDataResponse,
   GetStorageProvidersStatisticsRequest,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
   StorageProvidersDashboardStatistic,
   StorageProvidersDashboardStatisticType,
 } from './types.storage-providers';
-import { DashboardStatisticValue } from '../base/types.controller-base';
-import { DateTime } from 'luxon';
 
 const hightUrlFinderRetrievabilityThreshold = 0.7;
 const dashboardStatisticsTitleDict: Record<
@@ -60,6 +63,7 @@ export class StorageProvidersController extends ControllerBase {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly storageProviderService: StorageProviderService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -413,5 +417,66 @@ export class StorageProvidersController extends ControllerBase {
       case 'month':
         return 'Last Month';
     }
+  }
+
+  @Get('/sli-data')
+  @ApiOperation({
+    summary: 'Get SLI data for storage providers',
+  })
+  @ApiOkResponse({
+    description: 'SLI data for storage providers',
+    type: GetStorageProvidersSLIDataResponse,
+    isArray: true,
+  })
+  public async getStorageProvidersSLIData(
+    @Query() query: GetStorageProvidersSLIDataRequest,
+  ): Promise<GetStorageProvidersSLIDataResponse[]> {
+    if (typeof query.storageProvidersIds === 'string') {
+      query.storageProvidersIds = [query.storageProvidersIds];
+    }
+
+    const sliMetrics = await this.prismaService.storage_provider_sli.findMany({
+      where: {
+        provider_id: {
+          in: query.storageProvidersIds,
+        },
+      },
+      orderBy: [
+        { provider_id: 'asc' },
+        { metric_id: 'asc' },
+        { update_date: 'desc' },
+      ],
+      distinct: ['provider_id', 'metric_id'],
+      select: {
+        provider_id: true,
+        metric: {
+          select: {
+            metric_type: true,
+            name: true,
+            description: true,
+            unit: true,
+          },
+        },
+        value: true,
+        update_date: true,
+      },
+    });
+
+    return query.storageProvidersIds.map((storageProviderId) => ({
+      storageProviderId: storageProviderId,
+      storageProviderName: null, // TODO
+      data: sliMetrics
+        .filter((metric) => metric.provider_id === storageProviderId)
+        .map((metricData) => {
+          return {
+            sliMetric: metricData.metric.metric_type,
+            sliMetricName: metricData.metric.name,
+            sliMetricValue: metricData.value.toString(),
+            sliMetricDescription: metricData.metric.description,
+            sliMetricUnit: metricData.metric.unit,
+            updatedAt: metricData.update_date,
+          };
+        }),
+    }));
   }
 }

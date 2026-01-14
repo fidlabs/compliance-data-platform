@@ -13,6 +13,7 @@ import {
   PaginationSortingInfoRequest,
 } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
+import { StorageProvidersMetricType } from 'prisma/generated/client';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
@@ -108,3 +109,54 @@ export class StorageProvidersDashboardStatistic extends DashboardStatistic {
 export class GetStorageProvidersStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}
+
+export class GetStorageProvidersSLIDataRequest {
+  @ApiProperty({
+    description: 'List of storage providers IDs to get SLI data for',
+    isArray: true,
+  })
+  storageProvidersIds: string[];
+}
+
+class StorageProvidersSLIData {
+  @ApiProperty({
+    enum: StorageProvidersMetricType,
+    description: 'SLI Metric',
+  })
+  sliMetric: StorageProvidersMetricType;
+
+  @ApiProperty({ description: 'SLI Metric Name' })
+  sliMetricName: string;
+
+  @ApiProperty({ description: 'SLI Metric Value' })
+  sliMetricValue: string;
+
+  @ApiProperty({ description: 'SLI Metric Description' })
+  sliMetricDescription: string;
+
+  @ApiProperty({ description: 'SLI Metric Unit' })
+  sliMetricUnit: string;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'Last updated at; ISO format',
+  })
+  updatedAt: Date;
+}
+
+export class GetStorageProvidersSLIDataResponse {
+  @ApiProperty({ description: 'Storage provider ID' })
+  storageProviderId: string;
+
+  @ApiProperty({ description: 'Storage provider Name', nullable: true })
+  storageProviderName: string | null;
+
+  @ApiProperty({
+    isArray: true,
+    type: StorageProvidersSLIData,
+    description: 'SLI Data for the storage provider',
+  })
+  data: StorageProvidersSLIData[];
+}
