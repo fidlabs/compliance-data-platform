@@ -73,6 +73,13 @@ export class GetStorageProvidersRequest extends PaginationSortingInfoRequest {
   provider?: string;
 }
 
+export class GetStorageProviderFilscanInfoRequest {
+  @ApiProperty({
+    description: 'Storage provider ID to ask for',
+  })
+  provider: string;
+}
+
 export class GetWeekStorageProvidersWithSpsComplianceRequest extends IntersectionType(
   GetWeekStorageProvidersWithSpsComplianceRequestData,
   GetStorageProvidersRequest,

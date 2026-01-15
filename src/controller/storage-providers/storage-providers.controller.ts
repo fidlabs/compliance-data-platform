@@ -1,7 +1,6 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { DateTime } from 'luxon';
 import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
@@ -11,8 +10,8 @@ import {
 import { Cacheable } from 'src/utils/cacheable';
 import { bigIntDiv, lastWeek, stringToDate } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
-import { DashboardStatisticValue } from '../base/types.controller-base';
 import {
+  GetStorageProviderFilscanInfoRequest,
   GetStorageProvidersRequest,
   GetStorageProvidersSLIDataRequest,
   GetStorageProvidersSLIDataResponse,
@@ -22,8 +21,12 @@ import {
   StorageProvidersDashboardStatistic,
   StorageProvidersDashboardStatisticType,
 } from './types.storage-providers';
+import { DashboardStatisticValue } from '../base/types.controller-base';
+import { DateTime } from 'luxon';
+import { FilscanAccountInfoByID } from 'src/service/filscan/types.filscan';
+import { FilscanService } from 'src/service/filscan/filscan.service';
 
-const hightUrlFinderRetrievabilityThreshold = 0.7;
+const highUrlFinderRetrievabilityThreshold = 0.7;
 const dashboardStatisticsTitleDict: Record<
   StorageProvidersDashboardStatistic['type'],
   StorageProvidersDashboardStatistic['title']
@@ -46,7 +49,7 @@ const dashboardStatisticsDescriptionDict: Record<
     'Number of Storage Providers who onboarded data in last 60 days',
   DDO_DEALS_PERCENTAGE: 'Percentage of DDO deals in selected duration',
   DDO_DEALS_PERCENTAGE_TO_DATE: 'Percentage of DDO deals up to date',
-  STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: `Percentage of Storage Providers with RPA higher than ${hightUrlFinderRetrievabilityThreshold * 100}%`,
+  STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: `Percentage of Storage Providers with RPA higher than ${highUrlFinderRetrievabilityThreshold * 100}%`,
   STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: null,
   AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE: null,
 };
@@ -64,6 +67,7 @@ export class StorageProvidersController extends ControllerBase {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly storageProviderService: StorageProviderService,
     private readonly prismaService: PrismaService,
+    private readonly filscanService: FilscanService,
   ) {
     super();
   }
@@ -81,6 +85,20 @@ export class StorageProvidersController extends ControllerBase {
     StorageProviderWithIpInfo[]
   > {
     return await this.storageProviderService.getProvidersWithIpInfo();
+  }
+
+  @Get('/filscan-info')
+  @ApiOperation({
+    summary: 'Get storage provider info from filscan',
+  })
+  @ApiOkResponse({
+    description: 'Storage provider info from filscan',
+    type: FilscanAccountInfoByID,
+  })
+  public async getStorageProviderFilscanInfo(
+    @Query() query: GetStorageProviderFilscanInfoRequest,
+  ): Promise<FilscanAccountInfoByID> {
+    return await this.filscanService.getAccountInfoByID(query.provider);
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
@@ -240,11 +258,11 @@ export class StorageProvidersController extends ControllerBase {
         cutoffDate: cutoffDate,
       }),
       this.storageProviderService.getStorageProvidersPercentageByUrlFinderRetrievability(
-        { minRetrievability: hightUrlFinderRetrievabilityThreshold },
+        { minRetrievability: highUrlFinderRetrievabilityThreshold },
       ),
       this.storageProviderService.getStorageProvidersPercentageByUrlFinderRetrievability(
         {
-          minRetrievability: hightUrlFinderRetrievabilityThreshold,
+          minRetrievability: highUrlFinderRetrievabilityThreshold,
           cutoffDate: cutoffDate,
         },
       ),
