@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -45,6 +50,13 @@ export class FilscanService {
       throw new Error(`Invalid data: ${JSON.stringify(data)}`);
     }
 
-    return data['result'];
+    const result =
+      data['result']?.['account_info']?.['account_miner']?.[
+        'account_indicator'
+      ];
+
+    if (!result) throw new BadRequestException('Invalid address provided');
+
+    return result;
   }
 }
