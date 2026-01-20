@@ -1,7 +1,6 @@
 -- @param {String} $1:dataType
--- @param {String} $2:retrievabilityType
--- @param {DateTime} $3:startDate
--- @param {DateTime} $4:endDate
+-- @param {DateTime} $2:startDate
+-- @param {DateTime} $3:endDate
 
 with "open_data_pathway_provider" as (select distinct "provider" as "provider"
                                       from "allocator_client_bookkeeping"
@@ -13,14 +12,10 @@ with "open_data_pathway_provider" as (select distinct "provider" as "provider"
      "provider_weekly" as (select "week"            as "week",
                                   "provider"        as "provider",
                                   "total_deal_size" as "total_deal_size",
-                                  case
-                                      when $2 = 'http' then "avg_retrievability_success_rate_http"
-                                      when $2 = 'urlFinder' then "avg_retrievability_success_rate_url_finder"
-                                      else "avg_retrievability_success_rate"
-                                      end           as "selected_retrievability"
+                                  "avg_retrievability_success_rate_url_finder" as "selected_retrievability"
                            from "providers_weekly_acc"
-                           where ($3::date is null or "week" >= $3)
-                             and ($4::date is null or "week" <= $4))
+                           where ($2::date is null or "week" >= $2)
+                             and ($3::date is null or "week" <= $3))
 --
 select "week"                                              as "week",
        100 * ceil("selected_retrievability" * 20) / 20 - 5 as "valueFromExclusive",

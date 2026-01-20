@@ -13,8 +13,6 @@ class AllocatorWeekly {
   num_of_clients: number | null;
   biggest_client_sum_of_allocations: bigint | null;
   total_sum_of_allocations: bigint | null;
-  avg_weighted_retrievability_success_rate: number | null;
-  avg_weighted_retrievability_success_rate_http: number | null;
   avg_weighted_retrievability_success_rate_url_finder: number | null;
 }
 
@@ -58,10 +56,6 @@ export class AllocatorsWeeklyAccRunner implements AggregationRunner {
             biggest_client_sum_of_allocations:
               rowResult.biggest_client_sum_of_allocations,
             total_sum_of_allocations: rowResult.total_sum_of_allocations,
-            avg_weighted_retrievability_success_rate:
-              rowResult.avg_weighted_retrievability_success_rate,
-            avg_weighted_retrievability_success_rate_http:
-              rowResult.avg_weighted_retrievability_success_rate_http,
             avg_weighted_retrievability_success_rate_url_finder:
               rowResult.avg_weighted_retrievability_success_rate_url_finder,
           });

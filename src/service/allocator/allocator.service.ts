@@ -68,7 +68,6 @@ import {
 
 import { DateTime } from 'luxon';
 import { DataType } from 'src/controller/allocators/types.allocators';
-import { RetrievabilityType } from 'src/controller/stats/allocators/types.allocator-stats';
 import z from 'zod';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
@@ -667,13 +666,11 @@ export class AllocatorService {
   }
 
   private async _getStandardActiveAllocatorRetrievability(
-    retrievabilityType: RetrievabilityType,
     filPlusEditionData?: FilPlusEdition,
     dataType?: DataType,
   ): Promise<HistogramWeekFlat[]> {
     return await this.prismaService.$queryRawTyped(
       getStandardActiveAllocatorRetrievabilityAcc(
-        retrievabilityType,
         filPlusEditionData?.startDate,
         filPlusEditionData?.endDate,
         filPlusEditionData?.id,
@@ -684,28 +681,21 @@ export class AllocatorService {
 
   public async getStandardActiveAllocatorRetrievabilityWeekly(
     dataType?: DataType,
-    retrievabilityType?: RetrievabilityType,
     filPlusEditionData?: FilPlusEdition,
   ): Promise<RetrievabilityWeek> {
     const isCurrentFilPlusEdition =
       filPlusEditionData?.id === getCurrentFilPlusEdition().id;
-
-    const urlFinderRetrievability = retrievabilityType
-      ? retrievabilityType === RetrievabilityType.urlFinder
-      : undefined;
 
     const [lastWeekAverageRetrievability, standardAllocatorRetrievability] =
       await Promise.all([
         isCurrentFilPlusEdition
           ? this.getWeekAverageStandardActiveAllocatorRetrievability(
               lastWeek(),
-              urlFinderRetrievability,
               filPlusEditionData?.id,
               dataType,
             )
           : null,
         this._getStandardActiveAllocatorRetrievability(
-          retrievabilityType,
           filPlusEditionData,
           dataType,
         ),
@@ -734,7 +724,6 @@ export class AllocatorService {
             const retrievability =
               await this.getWeekAverageStandardActiveAllocatorRetrievability(
                 histogramWeek.week,
-                urlFinderRetrievability,
                 filPlusEditionData?.id,
                 dataType,
               );
@@ -804,7 +793,6 @@ export class AllocatorService {
     ] = await Promise.all([
       this.storageProviderService.getWeekAverageProviderRetrievability(
         week,
-        spMetricsToCheck?.urlFinderRetrievability,
         filPlusEditionId,
         DataType.openData,
       ),
@@ -899,7 +887,6 @@ export class AllocatorService {
 
     return {
       week: week,
-      averageHttpSuccessRate: weekAverageProvidersRetrievability?.http * 100,
       averageUrlFinderSuccessRate:
         weekAverageProvidersRetrievability?.urlFinder * 100,
       total: weekAllocators.length,
@@ -922,7 +909,6 @@ export class AllocatorService {
       isCurrentFilPlusEdition || filPlusEditionData === null
         ? this.storageProviderService.getLastWeekAverageProviderRetrievability(
             filPlusEditionData?.id,
-            spMetricsToCheck?.urlFinderRetrievability,
             DataType.openData,
           )
         : null,
@@ -940,7 +926,6 @@ export class AllocatorService {
 
     return new AllocatorSpsComplianceWeek(
       spMetricsToCheck,
-      lastWeekAverageProviderRetrievability?.http * 100,
       lastWeekAverageProviderRetrievability?.urlFinder * 100,
       this.histogramHelper.withoutCurrentWeek(
         this.histogramHelper.sorted(results),
@@ -967,14 +952,12 @@ export class AllocatorService {
 
   public async getWeekAverageStandardActiveAllocatorRetrievability(
     week: Date,
-    urlFinderRetrievability = true,
     filPlusEditionId?: number,
     dataType?: DataType,
   ): Promise<AverageRetrievabilityType> {
     return (
       await this.prismaService.$queryRawTyped(
         getWeekAverageStandardActiveAllocatorRetrievabilityAcc(
-          urlFinderRetrievability,
           week,
           filPlusEditionId,
           dataType,

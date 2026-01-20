@@ -59,7 +59,6 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   ): Promise<RetrievabilityWeek> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.getFilPlusEditionFromRequest(query),
-      query?.retrievabilityType,
       stringToBool(query?.openDataOnly) ? DataType.openData : null,
     );
   }
