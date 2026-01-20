@@ -224,7 +224,7 @@ model allocators_weekly_acc {
   num_of_clients                                      Int
   biggest_client_sum_of_allocations                   BigInt
   total_sum_of_allocations                            BigInt
-  avg_weighted_retrievability_success_rate            Float
+  avg_weighted_retrievability_success_rate            Float?
   avg_weighted_retrievability_success_rate_http       Float?
   avg_weighted_retrievability_success_rate_url_finder Float?
 
