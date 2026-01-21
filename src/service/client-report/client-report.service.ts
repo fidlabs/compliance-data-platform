@@ -114,7 +114,8 @@ export class ClientReportService {
           mainAllocatorRegistryInfo?.application.required_replicas,
         allocator_required_sps:
           mainAllocatorRegistryInfo?.application.required_sps,
-        organization_name: clientName || clientOrgName,
+        organization_name:
+          bookkeepingInfo?.clientName || clientName || clientOrgName,
         application_url: this.clientService.getClientApplicationUrl(
           clientData[0],
         ),

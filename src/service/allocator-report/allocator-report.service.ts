@@ -152,7 +152,8 @@ export class AllocatorReportService {
 
               return {
                 client_id: client.addressId,
-                name: clientName || clientOrgName,
+                name:
+                  bookkeepingInfo?.clientName || clientName || clientOrgName,
                 allocators: clientData?.map((c) => c.verifierAddressId) ?? null,
                 allocations_number: client.allowanceArray.length,
                 application_url:

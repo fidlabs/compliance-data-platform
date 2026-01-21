@@ -254,6 +254,14 @@ export class ClientService {
       }
     };
 
+    const getClientName = (): string | null => {
+      const clientNameKey = 'Name';
+
+      return info.Client[clientNameKey]
+        ? (info.Client[clientNameKey] as string)
+        : null;
+    };
+
     return {
       isPublicDataset: isPublicDataset,
       clientContractAddress: clientContractAddress,
@@ -264,6 +272,7 @@ export class ClientService {
       expectedSizeOfSingleDataset: getUnitSizeFromJsonInBytes(
         'Single Size Dataset',
       ),
+      clientName: getClientName(),
     };
   }
 
