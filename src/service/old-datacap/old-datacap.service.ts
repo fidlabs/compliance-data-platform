@@ -123,6 +123,19 @@ export class OldDatacapService {
     const byWeek = groupBy(clientData, (row) => row.week);
     const clientsGrouped = groupBy(clients, (c) => c.addressId);
 
+    const clientNamesFromBookkeeping =
+      await this.prismaService.allocator_client_bookkeeping.findMany({
+        where: {
+          client_id: {
+            in: clients.map((c) => c.addressId),
+          },
+        },
+        select: {
+          client_id: true,
+          bookkeeping_info: true,
+        },
+      });
+
     return dbResults.map((r) => ({
       week: r.week,
       clients: r._count.client,
@@ -131,7 +144,12 @@ export class OldDatacapService {
       drilldown:
         byWeek[r.week.toISOString()].map((v) => ({
           client: v.client,
-          clientName: clientsGrouped[v.client]?.[0]?.name?.trim() || null,
+          clientName:
+            clientNamesFromBookkeeping.find(
+              (client) => client.client_id === v.client,
+            )?.bookkeeping_info?.['Client']['Name'] ||
+            clientsGrouped[v.client]?.[0]?.name?.trim() ||
+            null,
           oldDatacap: v.oldDatacap,
           claims: v.claims,
         })) ?? [],
