@@ -178,19 +178,6 @@ export class GetAllocatorReportChecksDetailsResponse {
   results: AllocatorReportChecksDetails[];
 }
 
-export class AllocatorReportChecksSummaryByCheckDataAllocator {
-  @ApiProperty({ description: 'Allocator ID' })
-  allocatorId: string;
-
-  @ApiProperty({
-    description: 'Total datacap of the allocator at the time of the report',
-    format: 'int64',
-    example: '42',
-    nullable: true,
-  })
-  totalDatacap: string | null;
-}
-
 export class AllocatorReportChecksSummaryByCheckData {
   @ApiProperty({
     type: String,
@@ -199,18 +186,6 @@ export class AllocatorReportChecksSummaryByCheckData {
     description: 'Date of the summary; ISO format',
   })
   date: Date;
-
-  @ApiProperty({
-    description:
-      'Unique allocators that failed the check; check is considered failed if it failed in any report in a given time period',
-  })
-  failedAllocators: AllocatorReportChecksSummaryByCheckDataAllocator;
-
-  @ApiProperty({
-    description:
-      'Unique allocators that passed the check; check is considered passed if it passed in all reports in a given time period',
-  })
-  passedAllocators: AllocatorReportChecksSummaryByCheckDataAllocator;
 
   @ApiProperty({
     description: 'Number of unique allocators that failed the check',
