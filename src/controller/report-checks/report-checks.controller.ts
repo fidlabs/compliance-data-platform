@@ -7,7 +7,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import {
   ReportChecksWeek,
   GetAllocatorReportChecksDailyRequest,
@@ -95,6 +95,7 @@ export class ReportChecksController {
     };
   }
 
+  @CacheTTL(6 * 1000 * 60 * 60) // 6 hour
   @Get('/allocator/summary-by-check')
   @ApiOperation({
     summary:
