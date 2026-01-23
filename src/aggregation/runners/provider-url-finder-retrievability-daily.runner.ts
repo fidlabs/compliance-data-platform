@@ -57,7 +57,7 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
     for (let i = 0; i < storageProviders.length; i += sliceSize) {
       const _storageProviders = storageProviders.slice(i, i + sliceSize);
 
-      const newData = await Promise.all(
+      const newData = await Promise.allSettled(
         _storageProviders.map(async (provider) => {
           return {
             provider: provider.id,
@@ -78,7 +78,7 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
         );
       }
 
-      await sleep(5000); // 5 seconds
+      await sleep(1000); // 1 seconds
     }
 
     getDataEndTimerMetric();
