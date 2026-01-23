@@ -569,7 +569,7 @@ model storage_provider_sli {
 
   metric_id String
   metric    storage_provider_sli_metric @relation(fields: [metric_id], references: [id])
-  value     BigInt
+  value     Float
 
   update_date DateTime @default(now())
 
