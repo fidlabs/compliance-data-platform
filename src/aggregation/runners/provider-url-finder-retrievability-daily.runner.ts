@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
+import * as _ from 'lodash';
 import { DateTime } from 'luxon';
-import { isTodayUTC, sleep } from 'src/utils/utils';
+import { isTodayUTC } from 'src/utils/utils';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
@@ -48,38 +49,38 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
 
     const storageProviders = await storageProviderService.getProviders();
     const data = [];
-    const sliceSize = 20;
+    const chunkSize = 100;
+    const storageProvidersChunks = _.chunk(storageProviders, chunkSize);
+    let processedCount = 0;
 
-    for (let i = 0; i < storageProviders.length; i += sliceSize) {
-      const _storageProviders = storageProviders.slice(i, i + sliceSize);
+    for (let i = 0; i < storageProvidersChunks.length; i++) {
+      const spChunk = storageProvidersChunks[i];
 
-      const newData = await Promise.allSettled(
-        _storageProviders.map(async (provider) => {
-          return {
-            provider: provider.id,
-            success_rate: (
-              await storageProviderUrlFinderService.fetchLastStorageProviderData(
-                provider.id,
-              )
-            )?.retrievability_percent,
-          };
-        }),
-      );
+      const sliDataForChunk =
+        await storageProviderUrlFinderService.fetchLastStorageProviderDataInBulk(
+          spChunk.map((x) => x.id),
+        );
 
-      data.push(...newData);
+      const chunkMetricsToInsert = sliDataForChunk.map((provider) => {
+        const { provider_id, retrievability_percent } = provider;
 
-      // await prismaService.provider_url_finder_retrievability_daily.createMany({
-      //   data: newData,
-      // }); // save progress?
+        return {
+          provider: provider_id,
+          success_rate: retrievability_percent,
+        };
+      });
 
-      // log progress every ~100 providers
-      if (i % 100 < sliceSize && i > 0) {
+      processedCount += spChunk.length;
+
+      if (
+        processedCount % 100 === 0 ||
+        processedCount === storageProviders.length
+      ) {
         this.logger.debug(
-          `Processed ${i} of ${storageProviders.length} storage providers`,
+          `Processed ${processedCount} of ${storageProviders.length} storage providers`,
         );
       }
-
-      await sleep(1000); // 1 seconds
+      data.push(...chunkMetricsToInsert);
     }
 
     getDataEndTimerMetric();
