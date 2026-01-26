@@ -379,67 +379,6 @@ export class ClientReportChecksService {
     });
   }
 
-  // DEPRECATED - replaced by RPA retrievability
-  private async storeProvidersHttpRetrievability(reportId: bigint) {
-    const providerDistribution =
-      await this.prismaService.client_report_storage_provider_distribution.findMany(
-        {
-          where: {
-            client_report_id: reportId,
-          },
-        },
-      );
-
-    {
-      const zeroHttpRetrievabilityProviders = providerDistribution
-        .filter((p) => !p.retrievability_success_rate_http)
-        .map((p) => p.provider);
-
-      const httpCheckPassed = zeroHttpRetrievabilityProviders.length === 0;
-
-      await this.prismaService.client_report_check_result.create({
-        data: {
-          client_report_id: reportId,
-          check:
-            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
-          result: httpCheckPassed,
-          metadata: {
-            violating_ids: zeroHttpRetrievabilityProviders,
-            max_zero_retrievability_providers: 0,
-            msg: httpCheckPassed
-              ? `Storage provider HTTP retrievability looks healthy (1/2)`
-              : `${this._storageProviders(zeroHttpRetrievabilityProviders.length)} have HTTP retrieval success rate equal to zero`,
-          },
-        },
-      });
-    }
-
-    {
-      const lessThan75HttpRetrievabilityProviders = providerDistribution
-        .filter((p) => (p.retrievability_success_rate_http ?? 0) < 0.75)
-        .map((p) => p.provider);
-
-      const httpCheckPassed =
-        lessThan75HttpRetrievabilityProviders.length === 0;
-
-      await this.prismaService.client_report_check_result.create({
-        data: {
-          client_report_id: reportId,
-          check:
-            ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
-          result: httpCheckPassed,
-          metadata: {
-            violating_ids: lessThan75HttpRetrievabilityProviders,
-            max_less_than_75_retrievability_providers: 0,
-            msg: httpCheckPassed
-              ? `Storage provider HTTP retrievability looks healthy (2/2)`
-              : `${this._storageProviders(lessThan75HttpRetrievabilityProviders.length)} have HTTP retrieval success rate less than 75%`,
-          },
-        },
-      });
-    }
-  }
-
   private async storeProvidersUrlFinderRetrievability(reportId: bigint) {
     const providerDistribution =
       await this.prismaService.client_report_storage_provider_distribution.findMany(

@@ -30,6 +30,24 @@ export class StorageProviderUrlFinderService {
     storageProviderId: string,
     clientId?: string,
   ): Promise<UrlFinderStorageProviderData | null> {
+    try {
+      return await this._fetchLastStorageProviderData(
+        storageProviderId,
+        clientId,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Error fetching URL finder data for provider ${storageProviderId}/${clientId}: ${err.message}`,
+      );
+
+      return null;
+    }
+  }
+
+  private async _fetchLastStorageProviderData(
+    storageProviderId: string,
+    clientId?: string,
+  ): Promise<UrlFinderStorageProviderData | null> {
     const endpoint = `${this.URL_FINDER_API_URL}/providers/${storageProviderId}${clientId ? `/clients/${clientId}` : ''}`;
 
     const { data } = await lastValueFrom(

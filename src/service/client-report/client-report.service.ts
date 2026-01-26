@@ -80,7 +80,7 @@ export class ClientReportService {
                 provider.provider,
                 clientData[0].addressId,
               )
-            ).working_url,
+            )?.working_url,
             declared_in_application_file:
               bookkeepingInfo?.storageProviderIDsDeclared?.includes(
                 provider.provider,

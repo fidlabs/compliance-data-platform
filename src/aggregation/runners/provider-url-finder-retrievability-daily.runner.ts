@@ -61,7 +61,7 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
               await storageProviderUrlFinderService.fetchLastStorageProviderData(
                 provider.id,
               )
-            ).retrievability_percent,
+            )?.retrievability_percent,
           };
         }),
       );

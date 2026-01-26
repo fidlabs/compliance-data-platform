@@ -23,6 +23,7 @@ import { Cacheable } from 'src/utils/cacheable';
 import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
 import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
+import { StorageProviderSliFetcherJobService } from 'src/jobs/storage-provider-sli-fetcher-job/storage-provider-sli-fetcher.service';
 
 @Controller()
 export class AppController extends HealthIndicator {
@@ -45,6 +46,7 @@ export class AppController extends HealthIndicator {
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
     private readonly gitHubAllocatorRegistryService: GitHubAllocatorRegistryService,
     private readonly httpService: HttpService,
+    private readonly storageProviderSliFetcherJobService: StorageProviderSliFetcherJobService,
   ) {
     super();
   }
@@ -154,6 +156,7 @@ export class AppController extends HealthIndicator {
       () => this.ipniAdvertisementFetcherJobService.getHealth(),
       () => this.gitHubTriggersHandlerService.getHealth(),
       () => this.gitHubAllocatorRegistryService.getHealth(),
+      () => this.storageProviderSliFetcherJobService.getHealth(),
     ]);
   }
 }
