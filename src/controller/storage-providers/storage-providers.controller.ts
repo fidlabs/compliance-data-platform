@@ -391,7 +391,7 @@ export class StorageProvidersController extends ControllerBase {
 
     const percentageChange: StorageProvidersDashboardStatistic['percentageChange'] =
       (() => {
-        if (!previousValue.value) return null;
+        if (BigInt(previousValue.value) === 0n) return null;
 
         const ratio =
           currentValue.type === 'bigint' || previousValue.type === 'bigint'

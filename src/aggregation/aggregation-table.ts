@@ -27,4 +27,5 @@ export enum AggregationTable {
   ClientDatacapAllocation,
   AllocatorRegistryArchive,
   AllocatorsClientStatsDaily,
+  ClientsStatsDaily,
 }
