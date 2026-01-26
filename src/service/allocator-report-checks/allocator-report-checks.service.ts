@@ -12,18 +12,7 @@ import { GlifAutoVerifiedAllocatorId } from 'src/utils/constants';
 import { getFilPlusEditionById } from 'src/utils/filplus-edition';
 import { envNotSet, stringToNumber } from 'src/utils/utils';
 import { ClientService } from '../client/client.service';
-
-type ClientAllocations = {
-  clientId: string;
-  allocations: {
-    id: string;
-    allocatorReportId: string;
-    clientId: string;
-    allocation: bigint;
-    timestamp: Date;
-  }[];
-  totalRequestedAmount: bigint;
-};
+import { ClientAllocations } from './types.allocator-report-checks';
 
 @Injectable()
 export class AllocatorReportChecksService {

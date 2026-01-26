@@ -189,13 +189,13 @@ export class GitHubAllocatorRegistryService extends HealthIndicator {
       jsonAllocatorAddress !== dbAllocatorAddress
     ) {
       this.logger.warn(
-        `allocator address from json: ${jsonAllocatorAddress} / ${jsonAllocatorId} does not match the database: ${dbAllocatorAddress} for path: ${path}, please investigate`,
+        `Allocator address from json: ${jsonAllocatorAddress} / ${jsonAllocatorId} does not match the database: ${dbAllocatorAddress} for path: ${path}, please investigate`,
       );
     }
 
     if (jsonAllocatorId && dbAllocatorId && jsonAllocatorId !== dbAllocatorId) {
       this.logger.warn(
-        `allocator id from json: ${jsonAllocatorAddress} / ${jsonAllocatorId} does not match the database: ${dbAllocatorId} for path: ${path}, please investigate`,
+        `Allocator id from json: ${jsonAllocatorAddress} / ${jsonAllocatorId} does not match the database: ${dbAllocatorId} for path: ${path}, please investigate`,
       );
     }
 

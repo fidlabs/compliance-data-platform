@@ -88,16 +88,6 @@ export class AllocatorReportService {
           await this.allocatorService.getAverageSecondsToFirstDeal(
             allocatorData.addressId,
           ),
-        avg_retrievability_success_rate:
-          storageProviderDistribution.reduce(
-            (acc, curr) => acc + curr.retrievability_success_rate,
-            0,
-          ) / storageProviderDistribution.length,
-        avg_retrievability_success_rate_http:
-          storageProviderDistribution.reduce(
-            (acc, curr) => acc + curr.retrievability_success_rate_http,
-            0,
-          ) / storageProviderDistribution.length,
         avg_retrievability_success_rate_url_finder:
           storageProviderDistribution.reduce(
             (acc, curr) => acc + curr.retrievability_success_rate_url_finder,

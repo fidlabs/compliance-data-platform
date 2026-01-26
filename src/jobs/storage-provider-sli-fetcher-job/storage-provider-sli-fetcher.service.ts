@@ -117,7 +117,7 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
 
         await Promise.all(
           Object.keys(groupedByMetrics).map(async (key) => {
-            this.storageProviderUrlFinderService.storeSliMetricForStorageProviders(
+            await this.storageProviderUrlFinderService.storeSliMetricForStorageProviders(
               key as StorageProvidersMetricType,
               groupedByMetrics[key],
             );
