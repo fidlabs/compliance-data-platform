@@ -357,7 +357,7 @@ export class StorageProviderService {
     return {
       provider: providerWeekly.provider,
       complianceScore:
-        complianceScore === 4
+        complianceScore === 3
           ? StorageProviderComplianceScoreRange.Compliant
           : complianceScore === 0
             ? StorageProviderComplianceScoreRange.NonCompliant
