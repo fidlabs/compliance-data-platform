@@ -558,7 +558,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
 
     const percentageChange: AllocatorsDashboardStatistic['percentageChange'] =
       (() => {
-        if (!previousValue.value) return null;
+        if (BigInt(previousValue.value) === 0n) return null;
 
         const ratio =
           currentValue.type === 'bigint' || previousValue.type === 'bigint'
