@@ -47,9 +47,13 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
     );
 
     const storageProviders = await storageProviderService.getProviders();
-    const data = [];
-    const sliceSize = 20;
 
+    const data: {
+      provider: string;
+      success_rate: number | null;
+    }[] = [];
+
+    const sliceSize = 20;
     for (let i = 0; i < storageProviders.length; i += sliceSize) {
       const _storageProviders = storageProviders.slice(i, i + sliceSize);
 
@@ -57,20 +61,15 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
         _storageProviders.map(async (provider) => {
           return {
             provider: provider.id,
-            success_rate: (
-              await storageProviderUrlFinderService.fetchLastStorageProviderData(
+            success_rate:
+              await storageProviderUrlFinderService.fetchLastStorageProviderRetrievability(
                 provider.id,
-              )
-            )?.retrievability_percent,
+              ), // value between 0 and 1
           };
         }),
       );
 
       data.push(...newData);
-
-      // await prismaService.provider_url_finder_retrievability_daily.createMany({
-      //   data: newData,
-      // }); // save progress?
 
       // log progress every ~100 providers
       if (i % 100 < sliceSize && i > 0) {
