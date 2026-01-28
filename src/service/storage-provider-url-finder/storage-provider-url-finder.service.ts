@@ -118,7 +118,7 @@ export class StorageProviderUrlFinderService {
       `Storing ${data.length} providers for metric type ${metricType}`,
     );
 
-    await this.prismaService.storage_provider_sli.createMany({ data });
+    await this.prismaService.storage_provider_sli.createMany({ data: data });
   }
 
   private getSliMetricName(clientReportCheck: StorageProvidersMetricType) {
