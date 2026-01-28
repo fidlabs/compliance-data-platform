@@ -9,6 +9,7 @@ import {
   SliStorageProviderMetricData,
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderData,
+  UrlFinderStorageProviderDataResponse,
 } from './types.storage-provider-url-finder.service';
 
 @Injectable()
@@ -26,10 +27,34 @@ export class StorageProviderUrlFinderService {
       this.configService.get<string>('URL_FINDER_API_URL');
   }
 
+  // fetch the last retrievability as a value between 0 and 1 or null (the UrlFinder returns percentage value)
+  public async fetchLastStorageProviderRetrievability(
+    storageProviderId: string,
+    clientId?: string,
+  ): Promise<number | null> {
+    const spData = await this.fetchLastStorageProviderData(
+      storageProviderId,
+      clientId,
+    );
+
+    if (
+      !spData ||
+      spData.error_code ||
+      spData?.diagnostics?.result_code !== 'Success'
+    ) {
+      return null;
+    }
+
+    return spData.retrievability_percent
+      ? spData.retrievability_percent / 100
+      : null;
+  }
+
+  // fetches the last data for storage provider from URL Finder including diagnostics and metrics if exists
   public async fetchLastStorageProviderData(
     storageProviderId: string,
     clientId?: string,
-  ): Promise<UrlFinderStorageProviderData | null> {
+  ): Promise<UrlFinderStorageProviderDataResponse | null> {
     try {
       return await this._fetchLastStorageProviderData(
         storageProviderId,
@@ -37,7 +62,7 @@ export class StorageProviderUrlFinderService {
       );
     } catch (err) {
       this.logger.warn(
-        `Error fetching URL finder data for provider ${storageProviderId}/${clientId}: ${err.message}`,
+        `Error fetching URL finder data for provider: ${storageProviderId} ${clientId ? `client: ${clientId}` : ''}: ${err.message}`,
       );
 
       return null;
@@ -47,11 +72,11 @@ export class StorageProviderUrlFinderService {
   private async _fetchLastStorageProviderData(
     storageProviderId: string,
     clientId?: string,
-  ): Promise<UrlFinderStorageProviderData | null> {
-    const endpoint = `${this.URL_FINDER_API_URL}/providers/${storageProviderId}${clientId ? `/clients/${clientId}` : ''}`;
+  ): Promise<UrlFinderStorageProviderDataResponse> {
+    const endpoint = `${this.URL_FINDER_API_URL}/providers/${storageProviderId}${clientId ? `/clients/${clientId}` : ''}?extended=true`;
 
     const { data } = await lastValueFrom(
-      this.httpService.get<UrlFinderStorageProviderData | null>(endpoint),
+      this.httpService.get<UrlFinderStorageProviderDataResponse>(endpoint),
     );
 
     return data;
@@ -118,7 +143,7 @@ export class StorageProviderUrlFinderService {
       `Storing ${data.length} providers for metric type ${metricType}`,
     );
 
-    await this.prismaService.storage_provider_sli.createMany({ data });
+    await this.prismaService.storage_provider_sli.createMany({ data: data });
   }
 
   private getSliMetricName(clientReportCheck: StorageProvidersMetricType) {

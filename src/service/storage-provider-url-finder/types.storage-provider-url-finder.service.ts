@@ -8,7 +8,7 @@ export type SliStorageProviderMetricChunkData = SliStorageProviderMetricData & {
   metricType: string;
 };
 
-export interface UrlFinderStorageProviderBandwidthResult {
+export interface UrlFinderStorageProviderBandwidthData {
   status: string;
   tested_at: string | null;
   ping_avg_ms: number | null;
@@ -17,7 +17,7 @@ export interface UrlFinderStorageProviderBandwidthResult {
   download_speed_mbps: number | null;
 }
 
-export interface UrlFinderStorageProviderGeolocationResult {
+export interface UrlFinderStorageProviderGeolocationData {
   status: string;
   tested_at: string | null;
   routing_key: string | null;
@@ -27,8 +27,8 @@ export interface UrlFinderStorageProviderGeolocationResult {
 }
 
 export interface UrlFinderStorageProviderPerformanceData {
-  bandwidth: UrlFinderStorageProviderBandwidthResult | null;
-  geolocation: UrlFinderStorageProviderGeolocationResult | null;
+  bandwidth: UrlFinderStorageProviderBandwidthData | null;
+  geolocation: UrlFinderStorageProviderGeolocationData | null;
 }
 
 export interface UrlFinderStorageProviderData {
@@ -37,10 +37,17 @@ export interface UrlFinderStorageProviderData {
   working_url: string | null;
   retrievability_percent: number;
   tested_at: string;
-  result_code: string;
   performance: UrlFinderStorageProviderPerformanceData;
 }
 
 export interface UrlFinderStorageProviderBulkResponse {
-  providers: UrlFinderStorageProviderData[];
+  providers: UrlFinderStorageProviderDataResponse[];
+}
+
+export interface UrlFinderStorageProviderDataResponse extends UrlFinderStorageProviderData {
+  error: string | null;
+  error_code: string | null;
+  diagnostics?: {
+    result_code: string;
+  };
 }
