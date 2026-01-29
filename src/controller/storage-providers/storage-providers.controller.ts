@@ -38,6 +38,8 @@ const dashboardStatisticsTitleDict: Record<
   STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: 'High RPA SPs',
   STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: 'SPs Reporting to IPNI',
   AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE: 'Average RPA',
+  AVERAGE_AVAILABLE_URL_FINDER_RETRIEVABILITY_PERCENTAGE:
+    'Average Available RPA',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -51,7 +53,10 @@ const dashboardStatisticsDescriptionDict: Record<
   DDO_DEALS_PERCENTAGE_TO_DATE: 'Percentage of DDO deals up to date',
   STORAGE_PROVIDERS_WITH_HIGH_RPA_PERCENTAGE: `Percentage of Storage Providers with RPA higher than ${highUrlFinderRetrievabilityThreshold * 100}%`,
   STORAGE_PROVIDERS_REPORTING_TO_IPNI_PERCENTAGE: null,
-  AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE: null,
+  AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE:
+    'Percent of average retrievability across all SPs',
+  AVERAGE_AVAILABLE_URL_FINDER_RETRIEVABILITY_PERCENTAGE:
+    'Percentage of average retrievability across SPs with available data',
 };
 
 // fill as needed
@@ -246,8 +251,8 @@ export class StorageProvidersController extends ControllerBase {
       previousDDOPercentage,
       currentDDOPercentageToDate,
       previousDDOPercentageToDate,
-      currentAverageUrlFinderRetrievability,
-      previousAverageUrlFinderRetrievability,
+      currentAverageUrlFinderRetrievabilities,
+      previousAverageUrlFinderRetrievabiliies,
     ] = await Promise.all([
       this.storageProviderService.getStorageProvidersCountStat(),
       this.storageProviderService.getStorageProvidersCountStat({
@@ -281,8 +286,8 @@ export class StorageProvidersController extends ControllerBase {
       this.storageProviderService.getDDOPercentageStat({
         cutoffDate: cutoffDate,
       }),
-      this.storageProviderService.getAverageUrlFinderRetrievabilityStat(),
-      this.storageProviderService.getAverageUrlFinderRetrievabilityStat({
+      this.storageProviderService.getAverageUrlFinderRetrievabilityStats(),
+      this.storageProviderService.getAverageUrlFinderRetrievabilityStats({
         cutoffDate: cutoffDate,
       }),
     ]);
@@ -364,11 +369,23 @@ export class StorageProvidersController extends ControllerBase {
         type: 'AVERAGE_URL_FINDER_RETRIEVABILITY_PERCENTAGE',
         interval: interval,
         currentValue: {
-          value: currentAverageUrlFinderRetrievability ?? 0,
+          value: currentAverageUrlFinderRetrievabilities?.avgAllSp ?? 0,
           type: 'percentage',
         },
         previousValue: {
-          value: previousAverageUrlFinderRetrievability ?? 0,
+          value: previousAverageUrlFinderRetrievabiliies?.avgAllSp ?? 0,
+          type: 'percentage',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'AVERAGE_AVAILABLE_URL_FINDER_RETRIEVABILITY_PERCENTAGE',
+        interval: interval,
+        currentValue: {
+          value: currentAverageUrlFinderRetrievabilities?.avgAvailableSp ?? 0,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousAverageUrlFinderRetrievabiliies?.avgAvailableSp ?? 0,
           type: 'percentage',
         },
       }),
