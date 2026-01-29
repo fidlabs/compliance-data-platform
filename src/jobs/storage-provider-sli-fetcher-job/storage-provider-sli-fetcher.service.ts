@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import {
   HealthCheckError,
   HealthIndicator,
@@ -42,7 +41,6 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron('0 23 * * 1,4') // At 23:00 on Monday and Thursday
   public async runStorageProviderSliFetcherJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;

@@ -586,31 +586,26 @@ export class StorageProviderService {
   }
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
-  public async getAverageUrlFinderRetrievabilityStat(options?: {
+  public async getAverageUrlFinderRetrievabilityStats(options?: {
     cutoffDate?: Date;
-  }): Promise<number | null> {
+  }): Promise<{ avgAllSp: number | null; avgAvailableSp: number | null }> {
     const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
     const startOfDay = DateTime.fromJSDate(cutoffDate).toUTC().startOf('day');
     const { start: startDate, end: endDate } = Interval.after(startOfDay, {
       day: 1,
     });
 
-    const result =
-      await this.prismaService.provider_url_finder_retrievability_daily.aggregate(
-        {
-          _avg: {
-            success_rate: true,
-          },
-          where: {
-            date: {
-              gte: startDate.toJSDate(),
-              lte: endDate.toJSDate(),
-            },
-          },
-        },
-      );
+    const [{ avg_all, avg_available }] = await this.prismaService.$queryRaw<
+      { avg_all: number | null; avg_available: number | null }[]
+    >`SELECT AVG(COALESCE(success_rate, 0)) AS avg_all,
+      AVG(success_rate) AS avg_available
+      FROM provider_url_finder_retrievability_daily
+      WHERE "date" >= ${startDate.toJSDate()} and "date" <= ${endDate.toJSDate()};`;
 
-    return result._avg.success_rate;
+    return {
+      avgAllSp: avg_all,
+      avgAvailableSp: avg_available,
+    };
   }
 
   // returns providers with validComplianceScore compliance score
