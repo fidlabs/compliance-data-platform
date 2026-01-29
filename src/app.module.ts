@@ -80,6 +80,7 @@ import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
+import { ClientsStatsDailyRunner } from './aggregation/runners/clients-stats-daily.runner';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -109,6 +110,7 @@ const AGGREGATION_RUNNERS = [
   ProvidersWeeklyAccRunner,
   UnifiedVerifiedDealHourlyRunner,
   AllocatorsClientStatsDailyRunner,
+  ClientsStatsDailyRunner,
 ];
 
 const AGGREGATION_RUNNERS_RUN_ONLY = [];

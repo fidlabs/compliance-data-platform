@@ -387,4 +387,28 @@ export class ClientService {
 
     return typeof value === 'bigint' ? (value.toString() as BigIntString) : '0';
   }
+
+  @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getClientsGenericStats(options?: {
+    cutoffDate?: Date;
+  }): Promise<{
+    clients_with_active_deals: number;
+    clients_who_have_dc_and_deals: number;
+    total_remaining_clients_datacap: bigint;
+  } | null> {
+    const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
+
+    const result = await this.prismaService.clients_stats_daily.findFirst({
+      where: {
+        date: {
+          equals: DateTime.fromJSDate(cutoffDate)
+            .toUTC()
+            .startOf('day')
+            .toJSDate(),
+        },
+      },
+    });
+
+    return result;
+  }
 }
