@@ -80,7 +80,6 @@ export class ProviderUrlFinderRetrievabilityDailyRunner implements AggregationRu
 
       await sleep(5000); // 5 seconds
     }
-
     getDataEndTimerMetric();
 
     const storeDataEndTimerMetric = startStoreDataTimerByRunnerNameMetric(

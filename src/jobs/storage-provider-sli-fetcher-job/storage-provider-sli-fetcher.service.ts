@@ -81,34 +81,37 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
               {
                 providerId: provider_id,
                 metricType: StorageProvidersMetricType.RPA_RETRIEVABILITY,
-                value: retrievability_percent || 0,
+                value: retrievability_percent,
                 lastUpdateAt: tested_at,
               },
               {
                 providerId: provider_id,
                 metricType: StorageProvidersMetricType.TTFB,
-                value: performance?.bandwidth?.ttfb_ms || 0,
+                value: performance?.bandwidth?.ttfb_ms,
                 lastUpdateAt: performance?.bandwidth?.tested_at,
               },
               {
                 providerId: provider_id,
                 metricType: StorageProvidersMetricType.BANDWIDTH,
-                value: performance?.bandwidth?.download_speed_mbps || 0,
+                value: performance?.bandwidth?.download_speed_mbps,
                 lastUpdateAt: performance?.bandwidth?.tested_at,
               },
               {
                 providerId: provider_id,
                 metricType: StorageProvidersMetricType.RETENTION,
-                value:
-                  dmobProvidersRetention.find(
-                    (x) => x.provider === provider_id.substring(2),
-                  )?.amount_of_terminated_deals || 0,
+                value: dmobProvidersRetention.find(
+                  (x) => x.provider === provider_id.substring(2),
+                )?.amount_of_terminated_deals,
                 lastUpdateAt: DateTime.utc().toISO(),
               },
             ];
           });
 
-          metricsToInsert.push(...chunkMetricsToInsert.flat());
+          const filteredChunkMetricsToInsert = chunkMetricsToInsert
+            .flat()
+            .filter((x) => x.value !== null && x.value !== undefined);
+
+          metricsToInsert.push(...filteredChunkMetricsToInsert);
         }
 
         const groupedByMetrics = groupBy(metricsToInsert, 'metricType');
