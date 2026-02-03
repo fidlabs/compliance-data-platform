@@ -13,7 +13,7 @@ import { DateTime } from 'luxon';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { ClientService } from 'src/service/client/client.service';
-import { bigIntDiv } from 'src/utils/utils';
+import { bigIntDiv, type BigIntString } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
@@ -36,6 +36,10 @@ const dashboardStatisticsTitleDict: Record<
   TOTAL_ACTIVE_CLIENTS: 'Active Clients',
   FAILING_CLIENTS: 'Failing Clients',
   DATACAP_SPENT_BY_CLIENTS: 'Datacap Spent by Clients',
+  CLIENTS_WITH_ACTIVE_DEALS: 'Client With Active Deals',
+  CLIENTS_WITH_ACTIVE_DEALS_AND_DATACAP:
+    'Client With Active Deals and Remaining DC',
+  TOTAL_REMAINING_CLIENTS_DATACAP: 'Total Remaining Datacap',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -47,6 +51,9 @@ const dashboardStatisticsDescriptionDict: Record<
   FAILING_CLIENTS:
     'Percentage of Clients that are failing more than 50% of report checks',
   DATACAP_SPENT_BY_CLIENTS: null,
+  CLIENTS_WITH_ACTIVE_DEALS: null,
+  CLIENTS_WITH_ACTIVE_DEALS_AND_DATACAP: null,
+  TOTAL_REMAINING_CLIENTS_DATACAP: null,
 };
 
 const negativeStatistics = [
@@ -266,6 +273,8 @@ export class ClientsController extends ControllerBase {
       previousFailingClientsPercentage,
       currentDatacapSpentByClients,
       previousDatacapSpentByClients,
+      currentGenericStats,
+      previousGenericStats,
     ] = await Promise.all([
       this.clientService.getClientsCountStat(),
       this.clientService.getClientsCountStat({ cutoffDate: cutoffDate }),
@@ -279,6 +288,8 @@ export class ClientsController extends ControllerBase {
       this.clientService.getDatacapSpentByClientsStat({
         cutoffDate: cutoffDate,
       }),
+      this.clientService.getClientsGenericStats(),
+      this.clientService.getClientsGenericStats({ cutoffDate }),
     ]);
 
     return [
@@ -330,6 +341,54 @@ export class ClientsController extends ControllerBase {
         },
         interval: interval,
       }),
+      this.calculateDashboardStatistic({
+        type: 'CLIENTS_WITH_ACTIVE_DEALS',
+        currentValue: {
+          value: currentGenericStats
+            ? currentGenericStats.clients_with_active_deals
+            : 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousGenericStats
+            ? previousGenericStats.clients_with_active_deals
+            : 0,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'CLIENTS_WITH_ACTIVE_DEALS_AND_DATACAP',
+        currentValue: {
+          value: currentGenericStats
+            ? currentGenericStats.clients_who_have_dc_and_deals
+            : 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousGenericStats
+            ? previousGenericStats.clients_who_have_dc_and_deals
+            : 0,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_REMAINING_CLIENTS_DATACAP',
+        currentValue: {
+          value: currentGenericStats
+            ? (currentGenericStats.total_remaining_clients_datacap.toString() as BigIntString)
+            : '0',
+          type: 'bigint',
+        },
+        previousValue: {
+          value: previousGenericStats
+            ? (previousGenericStats.total_remaining_clients_datacap.toString() as BigIntString)
+            : '0',
+          type: 'bigint',
+        },
+        interval: interval,
+      }),
     ];
   }
 
@@ -349,7 +408,7 @@ export class ClientsController extends ControllerBase {
 
     const percentageChange: ClientsDashboardStatistic['percentageChange'] =
       (() => {
-        if (!previousValue.value) return null;
+        if (BigInt(previousValue.value) === 0n) return null;
 
         const ratio =
           currentValue.type === 'bigint' || previousValue.type === 'bigint'

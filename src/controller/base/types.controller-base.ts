@@ -192,6 +192,7 @@ export class DashboardStatistic {
       { $ref: getSchemaPath(BigIntDashboardStatisticValue) },
       { $ref: getSchemaPath(NumericDashboardStatisticValue) },
       { $ref: getSchemaPath(PercentageDashboardStatisticValue) },
+      { $ref: getSchemaPath(DurationDashboardStatisticValue) },
     ],
   })
   value: DashboardStatisticValue;

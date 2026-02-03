@@ -113,6 +113,9 @@ export const clientsDashboardStatisticTypes = [
   'TOTAL_ACTIVE_CLIENTS',
   'FAILING_CLIENTS',
   'DATACAP_SPENT_BY_CLIENTS',
+  'CLIENTS_WITH_ACTIVE_DEALS',
+  'CLIENTS_WITH_ACTIVE_DEALS_AND_DATACAP',
+  'TOTAL_REMAINING_CLIENTS_DATACAP',
 ] as const;
 
 export type ClientsDashboardStatisticType =
