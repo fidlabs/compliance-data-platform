@@ -59,8 +59,8 @@ export class ControllerBase {
     };
 
     const sortAsc = (a: any, b: any): -1 | 0 | 1 => {
-      if (a === null || a === undefined) return 1;
-      if (b === null || b === undefined) return -1;
+      if (a === null || a === undefined) return -1;
+      if (b === null || b === undefined) return 1;
 
       if (typeof a === 'string' && typeof b === 'string') {
         if (isValidStringBigInt(a) && isValidStringBigInt(b)) {

@@ -25,6 +25,7 @@ import { DashboardStatisticValue } from '../base/types.controller-base';
 import { DateTime } from 'luxon';
 import { FilscanAccountInfoByID } from 'src/service/filscan/types.filscan';
 import { FilscanService } from 'src/service/filscan/filscan.service';
+import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 
 const highUrlFinderRetrievabilityThreshold = 0.7;
 const dashboardStatisticsTitleDict: Record<
@@ -108,13 +109,9 @@ export class StorageProvidersController extends ControllerBase {
 
   @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
   private async _getStorageProviders() {
-    return (await this.storageProviderService.getProviders()).map((p) => ({
-      provider: p.id,
-      noOfVerifiedDeals: p.num_of_deals,
-      verifiedDealsTotalSize: p.total_deal_size,
-      noOfClients: p.num_of_clients,
-      lastDealHeight: p.last_deal_height,
-    }));
+    return this.prismaService.$queryRawTyped(
+      getStorageProvidersWithAverageUrlFinderRetrievability(),
+    );
   }
 
   @Get()
