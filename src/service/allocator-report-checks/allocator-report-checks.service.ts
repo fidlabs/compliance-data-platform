@@ -19,6 +19,11 @@ export class AllocatorReportChecksService {
   public CLIENT_REPORT_MAX_PERCENTAGE_FOR_REQUIRED_COPIES: number;
   public readonly MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS = 50; // <= 50% of clients checks may fail for each check type
   private readonly logger = new Logger(AllocatorReportChecksService.name);
+  private readonly DEPRECATED_CLIENT_REPORT_CHECKS: Set<ClientReportCheck> =
+    new Set<ClientReportCheck>([
+      ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_75,
+      ClientReportCheck.STORAGE_PROVIDER_DISTRIBUTION_PROVIDERS_RETRIEVABILITY_ZERO,
+    ]);
 
   // prettier-ignore
   constructor(
@@ -318,7 +323,7 @@ export class AllocatorReportChecksService {
   }
 
   public async storeAllocatorChecksBasedOnClientReportChecks(report) {
-    const activeClientsChecks = (
+    const allocatorClientsChecks = (
       await Promise.all(
         report.clients.map((client) =>
           this.prismaService.client_report.findFirst({
@@ -341,30 +346,27 @@ export class AllocatorReportChecksService {
           }),
         ),
       )
-    ).filter(Boolean);
-
-    const otherClientsChecks = (
-      await Promise.all(
-        report.clients.map((client) =>
-          this.prismaService.client_report.findFirst({
-            where: {
-              client: client.client_id,
-            },
-            include: {
-              check_results: {
-                where: {
-                  check: ClientReportCheck.INACTIVITY,
+    )
+      .concat(
+        await Promise.all(
+          report.clients.map((client) =>
+            this.prismaService.client_report.findFirst({
+              where: {
+                client: client.client_id,
+              },
+              include: {
+                check_results: {
+                  where: {
+                    check: ClientReportCheck.INACTIVITY,
+                  },
                 },
               },
-            },
-            orderBy: { create_date: 'desc' },
-          }),
+              orderBy: { create_date: 'desc' },
+            }),
+          ),
         ),
       )
-    ).filter(Boolean);
-
-    const allocatorClientsChecks =
-      activeClientsChecks.concat(otherClientsChecks);
+      .filter(Boolean);
 
     const groupedClientsChecks = groupBy(
       allocatorClientsChecks.flatMap((x) => x?.check_results || []),
@@ -372,29 +374,36 @@ export class AllocatorReportChecksService {
     );
 
     await Promise.all(
-      Object.entries(ClientReportCheck).map(async ([check]) => {
-        const failedChecks =
-          groupedClientsChecks[check]?.filter((x) => x.result === false) ?? [];
+      Object.entries(ClientReportCheck)
+        .filter(([check]) => {
+          return !this.DEPRECATED_CLIENT_REPORT_CHECKS.has(
+            check as ClientReportCheck,
+          );
+        })
+        .map(async ([check]) => {
+          const failedChecks =
+            groupedClientsChecks[check]?.filter((x) => x.result === false) ??
+            [];
 
-        const failedChecksPercentage = groupedClientsChecks[check]
-          ? (failedChecks.length / groupedClientsChecks[check].length) * 100
-          : 0;
+          const failedChecksPercentage = groupedClientsChecks[check]
+            ? (failedChecks.length / groupedClientsChecks[check].length) * 100
+            : 0;
 
-        const checkPassed =
-          failedChecksPercentage <=
-          this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS;
+          const checkPassed =
+            failedChecksPercentage <=
+            this.MAX_ALLOWED_PERCENT_FAILED_CLIENT_REPORT_CHECKS;
 
-        return this.storeCheck(
-          report.id,
-          check as AllocatorReportCheck,
-          this.getClientReportCheckName(check as ClientReportCheck),
-          this.getClientReportCheckDescription(check as ClientReportCheck),
-          checkPassed,
-          {
-            msg: `${failedChecksPercentage.toFixed(2)}% ${this.getClientReportCheckFailMessage(check as ClientReportCheck)}`,
-          },
-        );
-      }),
+          return this.storeCheck(
+            report.id,
+            check as AllocatorReportCheck,
+            this.getClientReportCheckName(check as ClientReportCheck),
+            this.getClientReportCheckDescription(check as ClientReportCheck),
+            checkPassed,
+            {
+              msg: `${failedChecksPercentage.toFixed(2)}% ${this.getClientReportCheckFailMessage(check as ClientReportCheck)}`,
+            },
+          );
+        }),
     );
   }
 
