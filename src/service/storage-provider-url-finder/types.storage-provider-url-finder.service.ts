@@ -1,3 +1,8 @@
+import {
+  StorageProviderUrlFinderMetricResultCodeType,
+  StorageProviderUrlFinderMetricType,
+} from 'prisma/generated/client';
+
 export type SliStorageProviderMetricData = {
   providerId: string;
   value: number;
@@ -41,6 +46,7 @@ export interface UrlFinderStorageProviderData {
 }
 
 export interface UrlFinderStorageProviderBulkResponse {
+  not_found?: string[];
   providers: UrlFinderStorageProviderDataResponse[];
 }
 
@@ -50,4 +56,18 @@ export interface UrlFinderStorageProviderDataResponse extends UrlFinderStoragePr
   diagnostics?: {
     result_code: string;
   };
+}
+
+export interface StorageProviderUrlFinderMetricValue {
+  metricType: StorageProviderUrlFinderMetricType;
+  value?: number;
+  testedAt?: Date;
+}
+
+export interface StorageProviderUrlFinderDailySnapshot {
+  provider: string;
+  snapshotDate: Date;
+  testedAt: Date;
+  resultCode: StorageProviderUrlFinderMetricResultCodeType;
+  metricValues?: StorageProviderUrlFinderMetricValue[];
 }
