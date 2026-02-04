@@ -5,6 +5,7 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
+import { StorageProviderSliMetricType } from 'prisma/generated/client';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
 import {
@@ -13,7 +14,6 @@ import {
   PaginationSortingInfoRequest,
 } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
-import { StorageProvidersMetricType } from 'prisma/generated/client';
 
 export class StorageProviderComplianceMetricsRequest extends FilPlusEditionRequest {
   @ApiPropertyOptional({
@@ -120,10 +120,10 @@ export class GetStorageProvidersSLIDataRequest {
 
 class StorageProvidersSLIData {
   @ApiProperty({
-    enum: StorageProvidersMetricType,
+    enum: StorageProviderSliMetricType,
     description: 'SLI Metric',
   })
-  sliMetric: StorageProvidersMetricType;
+  sliMetric: StorageProviderSliMetricType;
 
   @ApiProperty({ description: 'SLI Metric Name' })
   sliMetricName: string;
