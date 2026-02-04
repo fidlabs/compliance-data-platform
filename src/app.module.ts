@@ -81,6 +81,7 @@ import { StorageProviderReportService } from './service/storage-provider-report/
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { ClientsStatsDailyRunner } from './aggregation/runners/clients-stats-daily.runner';
+import { StorageProviderUrlFinderSnapshotMetricService } from './jobs/storage-provider-ulr-finder-snapshot-job/storage-provider-url-finder-shanpshot-job.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -173,6 +174,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     StorageProviderReportService,
     OldDatacapService,
     StorageProviderSliFetcherJobService,
+    StorageProviderUrlFinderSnapshotMetricService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {

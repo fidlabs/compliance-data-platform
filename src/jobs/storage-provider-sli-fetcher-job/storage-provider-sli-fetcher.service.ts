@@ -7,7 +7,7 @@ import {
 import * as _ from 'lodash';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
-import { StorageProvidersMetricType } from 'prisma/generated/client';
+import { StorageProviderSliMetricType } from 'prisma/generated/client';
 import { getStorageProviderRetentionSli } from 'prismaDmob/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
@@ -69,43 +69,45 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
               spChunk.map((x) => x.id),
             );
 
-          const chunkMetricsToInsert = sliDataForChunk.map((provider) => {
-            const {
-              provider_id,
-              retrievability_percent,
-              tested_at,
-              performance,
-            } = provider;
+          const chunkMetricsToInsert = sliDataForChunk.providers.map(
+            (provider) => {
+              const {
+                provider_id,
+                retrievability_percent,
+                tested_at,
+                performance,
+              } = provider;
 
-            return [
-              {
-                providerId: provider_id,
-                metricType: StorageProvidersMetricType.RPA_RETRIEVABILITY,
-                value: retrievability_percent,
-                lastUpdateAt: tested_at,
-              },
-              {
-                providerId: provider_id,
-                metricType: StorageProvidersMetricType.TTFB,
-                value: performance?.bandwidth?.ttfb_ms,
-                lastUpdateAt: performance?.bandwidth?.tested_at,
-              },
-              {
-                providerId: provider_id,
-                metricType: StorageProvidersMetricType.BANDWIDTH,
-                value: performance?.bandwidth?.download_speed_mbps,
-                lastUpdateAt: performance?.bandwidth?.tested_at,
-              },
-              {
-                providerId: provider_id,
-                metricType: StorageProvidersMetricType.RETENTION,
-                value: dmobProvidersRetention.find(
-                  (x) => x.provider === provider_id.substring(2),
-                )?.amount_of_terminated_deals,
-                lastUpdateAt: DateTime.utc().toISO(),
-              },
-            ];
-          });
+              return [
+                {
+                  providerId: provider_id,
+                  metricType: StorageProviderSliMetricType.RPA_RETRIEVABILITY,
+                  value: retrievability_percent,
+                  lastUpdateAt: tested_at,
+                },
+                {
+                  providerId: provider_id,
+                  metricType: StorageProviderSliMetricType.TTFB,
+                  value: performance?.bandwidth?.ttfb_ms,
+                  lastUpdateAt: performance?.bandwidth?.tested_at,
+                },
+                {
+                  providerId: provider_id,
+                  metricType: StorageProviderSliMetricType.BANDWIDTH,
+                  value: performance?.bandwidth?.download_speed_mbps,
+                  lastUpdateAt: performance?.bandwidth?.tested_at,
+                },
+                {
+                  providerId: provider_id,
+                  metricType: StorageProviderSliMetricType.RETENTION,
+                  value: dmobProvidersRetention.find(
+                    (x) => x.provider === provider_id.substring(2),
+                  )?.amount_of_terminated_deals,
+                  lastUpdateAt: DateTime.utc().toISO(),
+                },
+              ];
+            },
+          );
 
           const filteredChunkMetricsToInsert = chunkMetricsToInsert
             .flat()
@@ -119,7 +121,7 @@ export class StorageProviderSliFetcherJobService extends HealthIndicator {
         await Promise.all(
           Object.keys(groupedByMetrics).map(async (key) => {
             await this.storageProviderUrlFinderService.storeSliMetricForStorageProviders(
-              key as StorageProvidersMetricType,
+              key as StorageProviderSliMetricType,
               groupedByMetrics[key],
             );
           }),

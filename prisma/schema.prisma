@@ -554,16 +554,34 @@ model provider_ip_info {
   @@id([provider, date])
 }
 
-enum StorageProvidersMetricType {
+enum StorageProviderSliMetricType {
   TTFB
   RPA_RETRIEVABILITY
   RETENTION
   BANDWIDTH
 }
 
+enum StorageProviderUrlFinderMetricType {
+  TTFB
+  RPA_RETRIEVABILITY
+  BANDWIDTH
+}
+
+enum StorageProviderUrlFinderMetricResultCodeType {
+  NO_PEER_ID
+  NO_CID_CONTACT_DATA
+  MISSING_ADDR_FROM_CID_CONTACT
+  MISSING_HTTP_ADDR_FROM_CID_CONTACT
+  FAILED_TO_GET_WORKING_URL
+  NO_DEALS_FOUND
+  TIMED_OUT
+  ERROR
+  SUCCESS
+}
+
 model storage_provider_sli_metric {
-  id          String                     @id @default(cuid())
-  metric_type StorageProvidersMetricType @unique
+  id          String                       @id @default(cuid())
+  metric_type StorageProviderSliMetricType @unique
 
   name        String?
   description String?
@@ -585,6 +603,49 @@ model storage_provider_sli {
   @@index([provider_id])
   @@index([metric_id])
   @@index([provider_id, metric_id, update_date])
+}
+
+model storage_provider_url_finder_metric {
+  id          String                             @id @default(uuid())
+  metric_type StorageProviderUrlFinderMetricType @unique
+
+  name        String?
+  description String?
+  unit        String?
+
+  metric_values storage_provider_url_finder_metric_value[]
+}
+
+model storage_provider_url_finder_metric_value {
+  id          String  @id @default(uuid())
+  provider    String
+  metric_id   String
+  snapshot_id String
+
+  metric                          storage_provider_url_finder_metric          @relation(fields: [metric_id], references: [id])
+  storage_provider_daily_snapshot storage_provider_url_finder_daily_snapshot? @relation(fields: [snapshot_id], references: [id])
+
+  value       Float?
+  tested_at   DateTime?
+
+  @@unique([provider, metric_id, tested_at])
+  @@index([provider])
+  @@index([metric_id])
+  @@index([provider, metric_id, tested_at])
+}
+
+model storage_provider_url_finder_daily_snapshot {
+  id            String                                       @id @default(uuid())
+  provider      String
+  snapshot_date DateTime                                     
+  tested_at     DateTime                                     
+  result_code   StorageProviderUrlFinderMetricResultCodeType
+
+  metric_values storage_provider_url_finder_metric_value[]
+
+  @@unique([provider, snapshot_date])
+  @@index([provider])
+  @@index([snapshot_date])
 }
 
 enum AllocatorScoringMetric {
