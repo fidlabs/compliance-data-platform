@@ -1,9 +1,11 @@
 import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DataType } from 'src/controller/allocators/types.allocators';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
+import { PrismaService } from 'src/db/prisma.service';
 import {
   HistogramWeek,
   RetrievabilityWeek,
@@ -13,21 +15,25 @@ import {
   AggregatedProvidersIPNIReportingStatus,
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
+import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
+import { StorageProviderMetricHistogramDailyResponse } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
-import { stringToBool } from 'src/utils/utils';
+import { stringToBool, stringToDate } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
-import { DataType } from 'src/controller/allocators/types.allocators';
+import { UrlFinderStorageProviderMetricDataRequest } from './types.storage-providers-stats';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
 export class StorageProvidersAccStatsController extends FilPlusEditionControllerBase {
   constructor(
     private readonly storageProviderService: StorageProviderService,
+    private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
     private readonly ipniMisreportingCheckerService: IpniMisreportingCheckerService,
+    private readonly prismaService: PrismaService,
   ) {
     super();
   }
@@ -102,5 +108,27 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     return await this.ipniMisreportingCheckerService.getAggregatedProvidersReportingStatusWeekly(
       this.getFilPlusEditionFromRequest(query),
     );
+  }
+
+  @Get('/rpa/metrics/retrieval-result-codes')
+  @ApiOperation({
+    summary:
+      'Get SP Url Finder retrieval result codes metrics for storage providers',
+  })
+  public async getStorageProvidersUrlFinderRetrievalCodesData(
+    @Query() query: UrlFinderStorageProviderMetricDataRequest,
+  ): Promise<StorageProviderMetricHistogramDailyResponse> {
+    const metrics =
+      await this.storageProviderUrlFinderService.getUrlFinderSnapshotsForProviders(
+        query?.startDate ? stringToDate(query?.startDate) : undefined,
+        query?.endDate ? stringToDate(query?.endDate) : undefined,
+      );
+
+    const result =
+      await this.storageProviderUrlFinderService.generateRetrievalResultCodesDailyHistogram(
+        metrics,
+      );
+
+    return result;
   }
 }

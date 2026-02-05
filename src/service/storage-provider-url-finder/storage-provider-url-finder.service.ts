@@ -2,6 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { groupBy } from 'lodash';
 import {
   StorageProviderSliMetricType,
   StorageProviderUrlFinderMetricResultCodeType,
@@ -11,10 +12,14 @@ import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   SliStorageProviderMetricData,
+  StorageProviderMetricHistogramDailyResponse,
+  StorageProviderMetricHistogramDay,
+  StorageProviderMetricHistogramResult,
   StorageProviderUrlFinderDailySnapshot,
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderDataResponse,
 } from './types.storage-provider-url-finder.service';
+import { stringToNumber } from 'src/utils/utils';
 
 @Injectable()
 export class StorageProviderUrlFinderService {
@@ -276,6 +281,50 @@ export class StorageProviderUrlFinderService {
     );
   }
 
+  public RESULT_CODE_META: Record<
+    StorageProviderUrlFinderMetricResultCodeType,
+    { name: string; description: string }
+  > = {
+    [StorageProviderUrlFinderMetricResultCodeType.NO_PEER_ID]: {
+      name: 'No Peer ID',
+      description: 'No peer ID found for this provider',
+    },
+    [StorageProviderUrlFinderMetricResultCodeType.NO_CID_CONTACT_DATA]: {
+      name: 'No CID Contact Data',
+      description: 'No entry in cid contact',
+    },
+    [StorageProviderUrlFinderMetricResultCodeType.MISSING_ADDR_FROM_CID_CONTACT]:
+      {
+        name: 'Missing Address from CID Contact',
+        description: 'No entry point found in cid contact',
+      },
+    [StorageProviderUrlFinderMetricResultCodeType.MISSING_HTTP_ADDR_FROM_CID_CONTACT]:
+      {
+        name: 'Missing HTTP Address from CID Contact',
+        description: 'No HTTP entry point in cid contact',
+      },
+    [StorageProviderUrlFinderMetricResultCodeType.FAILED_TO_GET_WORKING_URL]: {
+      name: 'Failed to Get Working URL',
+      description: 'None of the tested URLs are working',
+    },
+    [StorageProviderUrlFinderMetricResultCodeType.NO_DEALS_FOUND]: {
+      name: 'No Deals Found',
+      description: 'No deals found for given miner',
+    },
+    [StorageProviderUrlFinderMetricResultCodeType.TIMED_OUT]: {
+      name: 'Timed Out',
+      description: 'Request timed out while discovering URL',
+    },
+    [StorageProviderUrlFinderMetricResultCodeType.SUCCESS]: {
+      name: 'Success',
+      description: 'Found working URL',
+    },
+    [StorageProviderUrlFinderMetricResultCodeType.ERROR]: {
+      name: 'Error',
+      description: 'Provider not indexed yet or error occurred',
+    },
+  };
+
   public async ensureUrlFinderMetricTypesExist() {
     const metricTypes = Object.values(StorageProviderUrlFinderMetricType);
 
@@ -333,6 +382,83 @@ export class StorageProviderUrlFinderService {
           },
         }),
       ),
+    );
+  }
+
+  public async getUrlFinderSnapshotsForProviders(
+    startDate?: Date,
+    endDate?: Date,
+    includeMetrics = false,
+  ) {
+    return await this.prismaService.storage_provider_url_finder_daily_snapshot.findMany(
+      {
+        where: {
+          snapshot_date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        ...(includeMetrics && {
+          include: {
+            metric_values: {
+              include: {
+                metric: true,
+              },
+            },
+          },
+        }),
+      },
+    );
+  }
+
+  public generateRetrievalResultCodesDailyHistogram(
+    snapshots: {
+      provider: string;
+      snapshot_date: Date;
+      result_code: StorageProviderUrlFinderMetricResultCodeType;
+    }[],
+  ): StorageProviderMetricHistogramDailyResponse {
+    const groupedByDay = groupBy(snapshots, (row) => row.snapshot_date);
+
+    const days = Object.entries(groupedByDay).map(([dayIso, daySnapshots]) => {
+      const total = daySnapshots.length;
+
+      const counts = daySnapshots.reduce(
+        (
+          acc: Partial<
+            Record<StorageProviderUrlFinderMetricResultCodeType, number>
+          >,
+          snap,
+        ) => {
+          acc[snap.result_code] = (acc[snap.result_code] ?? 0) + 1;
+          return acc;
+        },
+        {},
+      );
+
+      const results = Object.entries(counts).map(([code, count]) => {
+        const percentage = total ? count / total : 0;
+
+        return new StorageProviderMetricHistogramResult(
+          code,
+          count,
+          stringToNumber(percentage.toFixed(4)),
+        );
+      });
+
+      return new StorageProviderMetricHistogramDay(
+        new Date(dayIso),
+        total,
+        results,
+      );
+    });
+
+    days.sort((a, b) => a.day.getTime() - b.day.getTime());
+
+    return new StorageProviderMetricHistogramDailyResponse(
+      snapshots.length,
+      days,
+      this.RESULT_CODE_META,
     );
   }
 }
