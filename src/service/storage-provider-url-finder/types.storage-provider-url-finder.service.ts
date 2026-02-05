@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   StorageProviderUrlFinderMetricResultCodeType,
   StorageProviderUrlFinderMetricType,
@@ -70,4 +71,106 @@ export interface StorageProviderUrlFinderDailySnapshot {
   testedAt: Date;
   resultCode: StorageProviderUrlFinderMetricResultCodeType;
   metricValues?: StorageProviderUrlFinderMetricValue[];
+}
+
+export class StorageProviderMetricHistogramResult {
+  @ApiProperty({
+    example: 'TIMEOUT',
+  })
+  code: string;
+
+  @ApiProperty({
+    example: 'Timeout',
+  })
+  name: string;
+
+  @ApiProperty({
+    example: 'Request timed out while contacting provider',
+  })
+  description: string;
+
+  @ApiProperty({
+    example: 42,
+  })
+  count: number;
+
+  @ApiProperty({
+    example: 21.5,
+    description: 'Percentage of all results for the day',
+  })
+  percentage: number;
+
+  constructor(code: string, count: number, percentage: number) {
+    this.code = code;
+
+    this.count = count;
+    this.percentage = percentage;
+  }
+}
+
+export class StorageProviderMetricHistogramDay {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2026-02-04T00:00:00.000Z',
+  })
+  day: Date;
+
+  @ApiProperty({
+    description: 'Total number of storage providers for the day',
+    example: 197,
+  })
+  total: number;
+
+  @ApiProperty({
+    type: StorageProviderMetricHistogramResult,
+    isArray: true,
+  })
+  results: StorageProviderMetricHistogramResult[];
+
+  constructor(
+    day: Date,
+    total: number,
+    results: StorageProviderMetricHistogramResult[],
+  ) {
+    this.day = day;
+    this.total = total;
+    this.results = results;
+  }
+}
+
+export class StorageProviderMetricHistogramDailyResponse {
+  @ApiProperty({
+    type: Object,
+    description:
+      'Mapping of retrieval result codes to their descriptions and names',
+  })
+  metadata: {
+    [code: string]: {
+      name: string;
+      description: string;
+    };
+  };
+
+  @ApiProperty({
+    description: 'Total number of storage providers in the whole range',
+    example: 1234,
+  })
+  total: number;
+
+  @ApiProperty({
+    type: StorageProviderMetricHistogramDay,
+    isArray: true,
+  })
+  days: StorageProviderMetricHistogramDay[];
+
+  constructor(
+    total: number,
+    days: StorageProviderMetricHistogramDay[],
+    metadata: Record<string, { name: string; description: string }>,
+  ) {
+    this.total = total;
+    this.days = days;
+    this.metadata = metadata;
+  }
 }
