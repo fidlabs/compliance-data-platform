@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { groupBy } from 'lodash';
 import {
-  Histogram,
-  HistogramWeekResults,
+  HistogramTotalDatacap,
   HistogramWeekFlat,
+  HistogramWeekResults,
 } from './types.histogram-helper';
 
 @Injectable()
@@ -21,7 +21,7 @@ export class HistogramHelperService {
 
     for (const week in histogramsByWeek) {
       const weekResults = histogramsByWeek[week].map((r) => {
-        return new Histogram(
+        return new HistogramTotalDatacap(
           r.valueFromExclusive,
           r.valueToInclusive,
           r.count,
@@ -94,7 +94,9 @@ export class HistogramHelperService {
 
       if (missingBuckets.length > 0) {
         histogramWeek.results.push(
-          ...missingBuckets.map((v) => new Histogram(v - maxMinSpan, v, 0, 0n)),
+          ...missingBuckets.map(
+            (v) => new HistogramTotalDatacap(v - maxMinSpan, v, 0, 0n),
+          ),
         );
 
         histogramWeek.results.sort(
