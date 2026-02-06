@@ -1,13 +1,18 @@
 import { CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { groupBy } from 'lodash';
+import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
+import { getUrlFinderProviderMetricWeeklyAcc } from 'prisma/generated/client/sql';
 import { DataType } from 'src/controller/allocators/types.allocators';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { PrismaService } from 'src/db/prisma.service';
 import {
+  HistogramTotalDatacap,
   HistogramWeek,
+  HistogramWeekResults,
   RetrievabilityWeek,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
@@ -22,9 +27,12 @@ import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
-import { stringToBool, stringToDate } from 'src/utils/utils';
+import { bigIntToNumber, stringToBool, stringToDate } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
-import { UrlFinderStorageProviderMetricDataRequest } from './types.storage-providers-stats';
+import {
+  UrlFinderStorageProviderMetricBaseRequest,
+  UrlFinderStorageProviderMetricTypeRequest,
+} from './types.storage-providers-stats';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -116,7 +124,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
       'Get SP Url Finder retrieval result codes metrics for storage providers',
   })
   public async getStorageProvidersUrlFinderRetrievalCodesData(
-    @Query() query: UrlFinderStorageProviderMetricDataRequest,
+    @Query() query: UrlFinderStorageProviderMetricBaseRequest,
   ): Promise<StorageProviderMetricHistogramDailyResponse> {
     const metrics =
       await this.storageProviderUrlFinderService.getUrlFinderSnapshotsForProviders(
@@ -130,5 +138,71 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
       );
 
     return result;
+  }
+
+  @Get('/rpa/metric/')
+  @ApiOperation({
+    summary: 'Get RPA metrics for storage providers',
+  })
+  public async getStorageProvidersUrlFinderMetricData(
+    @Query() query: UrlFinderStorageProviderMetricTypeRequest,
+  ): Promise<HistogramWeek> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+    let bucketSize = 2000;
+
+    switch (query.metricType) {
+      case StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY:
+        bucketSize = 0.05;
+        break;
+      case StorageProviderUrlFinderMetricType.TTFB:
+        bucketSize = 2000;
+        break;
+      case StorageProviderUrlFinderMetricType.BANDWIDTH:
+        bucketSize = 10;
+        break;
+    }
+
+    const metricWeekData = await this.prismaService.$queryRawTyped(
+      getUrlFinderProviderMetricWeeklyAcc(
+        query.metricType,
+        bucketSize,
+        startDate,
+        endDate,
+      ),
+    );
+
+    const rowsByWeek = groupBy(metricWeekData, (r) => r.week.toISOString());
+
+    const weekResults: HistogramWeekResults[] = Object.entries(rowsByWeek).map(
+      ([weekIso, weekRows]) => {
+        const histograms = weekRows.map(
+          (r) =>
+            new HistogramTotalDatacap(
+              r.valueFromExclusive,
+              r.valueToInclusive,
+              bigIntToNumber(r.count),
+              r.totalDatacap,
+            ),
+        );
+
+        const total = weekRows.reduce(
+          (sum, r) => sum + bigIntToNumber(r.count),
+          0,
+        );
+
+        return new HistogramWeekResults(new Date(weekIso), total, histograms);
+      },
+    );
+
+    const totalAcrossAllWeeks = weekResults.reduce(
+      (sum, w) => sum + w.total,
+      0,
+    );
+
+    return new HistogramWeek(totalAcrossAllWeeks, weekResults);
   }
 }
