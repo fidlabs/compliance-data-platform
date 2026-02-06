@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class Histogram {
+export class HistogramBase {
   @ApiProperty({
     description: 'Bucket (valueFromExclusive, valueToInclusive> starting value',
   })
@@ -16,6 +16,18 @@ export class Histogram {
   })
   count: number;
 
+  constructor(
+    valueFromExclusive: number,
+    valueToInclusive: number,
+    count: number,
+  ) {
+    this.valueFromExclusive = valueFromExclusive;
+    this.valueToInclusive = valueToInclusive;
+    this.count = count;
+  }
+}
+
+export class HistogramTotalDatacap extends HistogramBase {
   @ApiProperty({
     description:
       'Total datacap of allocators / storage providers in the bucket',
@@ -31,9 +43,7 @@ export class Histogram {
     count: number,
     totalDatacap: bigint,
   ) {
-    this.valueFromExclusive = valueFromExclusive;
-    this.valueToInclusive = valueToInclusive;
-    this.count = count;
+    super(valueFromExclusive, valueToInclusive, count);
     this.totalDatacap = totalDatacap;
   }
 }
@@ -52,17 +62,17 @@ export class HistogramWeekResults {
   })
   total: number;
 
-  @ApiProperty({ type: Histogram, isArray: true })
-  results: Histogram[];
+  @ApiProperty({ type: HistogramTotalDatacap, isArray: true })
+  results: HistogramTotalDatacap[];
 
-  constructor(week: Date, total: number, results: Histogram[]) {
+  constructor(week: Date, total: number, results: HistogramTotalDatacap[]) {
     this.week = week;
     this.total = total;
     this.results = results;
   }
 }
 
-export class HistogramWeekFlat extends Histogram {
+export class HistogramWeekFlat extends HistogramTotalDatacap {
   week: Date;
 
   constructor(
@@ -91,7 +101,7 @@ export class RetrievabilityHistogramWeek extends HistogramWeekResults {
   constructor(
     week: Date,
     total: number,
-    results: Histogram[],
+    results: HistogramTotalDatacap[],
     averageHttpSuccessRate: number,
     averageUrlFinderSuccessRate: number,
   ) {
