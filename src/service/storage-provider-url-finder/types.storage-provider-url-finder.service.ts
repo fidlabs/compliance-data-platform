@@ -80,16 +80,6 @@ export class StorageProviderMetricHistogramResult {
   code: string;
 
   @ApiProperty({
-    example: 'Timeout',
-  })
-  name: string;
-
-  @ApiProperty({
-    example: 'Request timed out while contacting provider',
-  })
-  description: string;
-
-  @ApiProperty({
     example: 42,
   })
   count: number;
@@ -142,8 +132,7 @@ export class StorageProviderMetricHistogramDay {
 export class StorageProviderMetricHistogramDailyResponse {
   @ApiProperty({
     type: Object,
-    description:
-      'Mapping of retrieval result codes to their descriptions and names',
+    description: 'Metadata of metric codes to their descriptions and names',
   })
   metadata: {
     [code: string]: {

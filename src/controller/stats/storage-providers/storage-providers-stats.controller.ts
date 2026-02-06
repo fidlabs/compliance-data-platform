@@ -9,6 +9,9 @@ import { PrismaService } from 'src/db/prisma.service';
 import {
   HistogramWeek,
   RetrievabilityWeek,
+  UrlFinderStorageProviderMetricHistogram,
+  UrlFinderStorageProviderMetricHistogramWeek,
+  UrlFinderStorageProviderMetricHistogramWeekResults,
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { IpniMisreportingCheckerService } from 'src/service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import {
@@ -22,9 +25,15 @@ import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
-import { stringToBool, stringToDate } from 'src/utils/utils';
+import { bigIntToNumber, stringToBool, stringToDate } from 'src/utils/utils';
 import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
-import { UrlFinderStorageProviderMetricDataRequest } from './types.storage-providers-stats';
+import {
+  UrlFinderStorageProviderMetricBaseRequest,
+  UrlFinderStorageProviderMetricTypeRequest,
+} from './types.storage-providers-stats';
+import { getUrlFinderProviderMetricWeeklyAcc } from 'prisma/generated/client/sql';
+import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
+import { groupBy } from 'lodash';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -116,7 +125,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
       'Get SP Url Finder retrieval result codes metrics for storage providers',
   })
   public async getStorageProvidersUrlFinderRetrievalCodesData(
-    @Query() query: UrlFinderStorageProviderMetricDataRequest,
+    @Query() query: UrlFinderStorageProviderMetricBaseRequest,
   ): Promise<StorageProviderMetricHistogramDailyResponse> {
     const metrics =
       await this.storageProviderUrlFinderService.getUrlFinderSnapshotsForProviders(
@@ -130,5 +139,76 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
       );
 
     return result;
+  }
+
+  @Get('/rpa/metric/')
+  @ApiOperation({
+    summary: 'Get RPA metrics for storage providers',
+  })
+  public async getStorageProvidersUrlFinderMetricData(
+    @Query() query: UrlFinderStorageProviderMetricTypeRequest,
+  ): Promise<UrlFinderStorageProviderMetricHistogramWeek> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+    let bucketSize = 2000;
+
+    switch (query.metricType) {
+      case StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY:
+        bucketSize = 0.05;
+        break;
+      case StorageProviderUrlFinderMetricType.TTFB:
+        bucketSize = 200;
+        break;
+      case StorageProviderUrlFinderMetricType.BANDWIDTH:
+        bucketSize = 10;
+        break;
+    }
+
+    const metricWeekData = await this.prismaService.$queryRawTyped(
+      getUrlFinderProviderMetricWeeklyAcc(
+        query.metricType,
+        bucketSize,
+        startDate,
+        endDate,
+      ),
+    );
+
+    const rowsByWeek = groupBy(metricWeekData, (r) => r.week.toISOString());
+
+    const weekResults: UrlFinderStorageProviderMetricHistogramWeekResults[] =
+      Object.entries(rowsByWeek).map(([weekIso, weekRows]) => {
+        const histograms = weekRows.map(
+          (r) =>
+            new UrlFinderStorageProviderMetricHistogram(
+              r.valueFromExclusive,
+              r.valueToInclusive,
+              bigIntToNumber(r.count),
+            ),
+        );
+
+        const total = weekRows.reduce(
+          (sum, r) => sum + bigIntToNumber(r.count),
+          0,
+        );
+
+        return new UrlFinderStorageProviderMetricHistogramWeekResults(
+          new Date(weekIso),
+          total,
+          histograms,
+        );
+      });
+
+    const totalAcrossAllWeeks = weekResults.reduce(
+      (sum, w) => sum + w.total,
+      0,
+    );
+
+    return new UrlFinderStorageProviderMetricHistogramWeek(
+      totalAcrossAllWeeks,
+      weekResults,
+    );
   }
 }

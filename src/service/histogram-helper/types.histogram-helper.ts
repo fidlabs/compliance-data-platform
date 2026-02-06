@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class Histogram {
+export class HistogramBase {
   @ApiProperty({
     description: 'Bucket (valueFromExclusive, valueToInclusive> starting value',
   })
@@ -16,6 +16,18 @@ export class Histogram {
   })
   count: number;
 
+  constructor(
+    valueFromExclusive: number,
+    valueToInclusive: number,
+    count: number,
+  ) {
+    this.valueFromExclusive = valueFromExclusive;
+    this.valueToInclusive = valueToInclusive;
+    this.count = count;
+  }
+}
+
+export class HistogramTotalDatacap extends HistogramBase {
   @ApiProperty({
     description:
       'Total datacap of allocators / storage providers in the bucket',
@@ -31,9 +43,7 @@ export class Histogram {
     count: number,
     totalDatacap: bigint,
   ) {
-    this.valueFromExclusive = valueFromExclusive;
-    this.valueToInclusive = valueToInclusive;
-    this.count = count;
+    super(valueFromExclusive, valueToInclusive, count);
     this.totalDatacap = totalDatacap;
   }
 }
@@ -52,17 +62,17 @@ export class HistogramWeekResults {
   })
   total: number;
 
-  @ApiProperty({ type: Histogram, isArray: true })
-  results: Histogram[];
+  @ApiProperty({ type: HistogramTotalDatacap, isArray: true })
+  results: HistogramTotalDatacap[];
 
-  constructor(week: Date, total: number, results: Histogram[]) {
+  constructor(week: Date, total: number, results: HistogramTotalDatacap[]) {
     this.week = week;
     this.total = total;
     this.results = results;
   }
 }
 
-export class HistogramWeekFlat extends Histogram {
+export class HistogramWeekFlat extends HistogramTotalDatacap {
   week: Date;
 
   constructor(
@@ -91,7 +101,7 @@ export class RetrievabilityHistogramWeek extends HistogramWeekResults {
   constructor(
     week: Date,
     total: number,
-    results: Histogram[],
+    results: HistogramTotalDatacap[],
     averageHttpSuccessRate: number,
     averageUrlFinderSuccessRate: number,
   ) {
@@ -170,5 +180,81 @@ export class RetrievabilityWeek {
     this.averageHttpSuccessRate = averageHttpSuccessRate;
     this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
     this.histogram = histogram;
+  }
+}
+
+export class UrlFinderStorageProviderMetricHistogram {
+  @ApiProperty({
+    description: 'Bucket (valueFromExclusive, valueToInclusive> starting value',
+  })
+  valueFromExclusive: number;
+
+  @ApiProperty({
+    description: 'Bucket (valueFromExclusive, valueToInclusive> ending value',
+  })
+  valueToInclusive: number;
+
+  @ApiProperty({
+    description: 'Number of storage providers in the bucket',
+  })
+  count: number;
+
+  constructor(
+    valueFromExclusive: number,
+    valueToInclusive: number,
+    count: number,
+  ) {
+    this.valueFromExclusive = valueFromExclusive;
+    this.valueToInclusive = valueToInclusive;
+    this.count = count;
+  }
+}
+
+export class UrlFinderStorageProviderMetricHistogramWeekResults {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
+  })
+  week: Date;
+
+  @ApiProperty({
+    description: 'Number of storage providers in the week',
+  })
+  total: number;
+
+  @ApiProperty({ type: UrlFinderStorageProviderMetricHistogram, isArray: true })
+  results: HistogramBase[];
+
+  constructor(
+    week: Date,
+    total: number,
+    results: UrlFinderStorageProviderMetricHistogram[],
+  ) {
+    this.week = week;
+    this.total = total;
+    this.results = results;
+  }
+}
+
+export class UrlFinderStorageProviderMetricHistogramWeek {
+  @ApiProperty({
+    description: 'Total number of storage providers',
+  })
+  total: number;
+
+  @ApiProperty({
+    type: UrlFinderStorageProviderMetricHistogramWeekResults,
+    isArray: true,
+  })
+  results: UrlFinderStorageProviderMetricHistogramWeekResults[];
+
+  constructor(
+    total: number,
+    results: UrlFinderStorageProviderMetricHistogramWeekResults[],
+  ) {
+    this.total = total;
+    this.results = results;
   }
 }

@@ -20,6 +20,7 @@ import {
   UrlFinderStorageProviderDataResponse,
 } from './types.storage-provider-url-finder.service';
 import { stringToNumber } from 'src/utils/utils';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class StorageProviderUrlFinderService {
@@ -385,6 +386,29 @@ export class StorageProviderUrlFinderService {
     );
   }
 
+  public async getUrlFinderMetricData(
+    startDate?: Date,
+    endDate?: Date,
+    metricType?: StorageProviderUrlFinderMetricType,
+  ) {
+    return await this.prismaService.storage_provider_url_finder_metric_value.findMany(
+      {
+        where: {
+          tested_at: {
+            gte: startDate,
+            lte: endDate,
+          },
+          metric: {
+            metric_type: metricType,
+          },
+        },
+        include: {
+          metric: true,
+        },
+      },
+    );
+  }
+
   public async getUrlFinderSnapshotsForProviders(
     startDate?: Date,
     endDate?: Date,
@@ -393,7 +417,7 @@ export class StorageProviderUrlFinderService {
     return await this.prismaService.storage_provider_url_finder_daily_snapshot.findMany(
       {
         where: {
-          snapshot_date: {
+          tested_at: {
             gte: startDate,
             lte: endDate,
           },
@@ -414,11 +438,13 @@ export class StorageProviderUrlFinderService {
   public generateRetrievalResultCodesDailyHistogram(
     snapshots: {
       provider: string;
-      snapshot_date: Date;
+      tested_at: Date;
       result_code: StorageProviderUrlFinderMetricResultCodeType;
     }[],
   ): StorageProviderMetricHistogramDailyResponse {
-    const groupedByDay = groupBy(snapshots, (row) => row.snapshot_date);
+    const groupedByDay = groupBy(snapshots, (row) =>
+      DateTime.fromJSDate(row.tested_at).toUTC().startOf('day'),
+    );
 
     const days = Object.entries(groupedByDay).map(([dayIso, daySnapshots]) => {
       const total = daySnapshots.length;
@@ -459,6 +485,79 @@ export class StorageProviderUrlFinderService {
       snapshots.length,
       days,
       this.RESULT_CODE_META,
+    );
+  }
+
+  public async generateMetricsDailyHistogram(
+    metric_values: {
+      provider: string;
+      tested_at: Date;
+      value: number;
+      metric: {
+        metric_type: StorageProviderUrlFinderMetricType;
+        name: string;
+        description: string;
+      };
+    }[],
+  ): Promise<StorageProviderMetricHistogramDailyResponse> {
+    const groupedByDay = groupBy(metric_values, (row) =>
+      DateTime.fromJSDate(row.tested_at).toUTC().startOf('day'),
+    );
+
+    const metricsMetadata: Record<
+      string,
+      {
+        name: string;
+        description: string;
+      }
+    > = (
+      await this.prismaService.storage_provider_url_finder_metric.findMany()
+    ).reduce((acc, metric) => {
+      acc[metric.metric_type] = {
+        name: metric.name,
+        description: metric.description,
+      };
+      return acc;
+    }, {});
+
+    const days = Object.entries(groupedByDay).map(([dayIso, metricValues]) => {
+      const total = metricValues.length;
+
+      const counts = metricValues.reduce(
+        (
+          acc: Partial<Record<StorageProviderUrlFinderMetricType, number>>,
+          metricValue,
+        ) => {
+          acc[metricValue.metric.metric_type] =
+            (acc[metricValue.metric.metric_type] ?? 0) + 1;
+          return acc;
+        },
+        {},
+      );
+
+      const results = Object.entries(counts).map(([code, count]) => {
+        const percentage = total ? count / total : 0;
+
+        return new StorageProviderMetricHistogramResult(
+          code,
+          count,
+          stringToNumber(percentage.toFixed(4)),
+        );
+      });
+
+      return new StorageProviderMetricHistogramDay(
+        new Date(dayIso),
+        total,
+        results,
+      );
+    });
+
+    days.sort((a, b) => a.day.getTime() - b.day.getTime());
+
+    return new StorageProviderMetricHistogramDailyResponse(
+      metric_values.length,
+      days,
+      metricsMetadata,
     );
   }
 }
