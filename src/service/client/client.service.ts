@@ -20,6 +20,7 @@ import {
   parseDataSizeToBytes,
 } from 'src/utils/utils';
 import {
+  ClientAllowanceItem,
   ClientBookkeepingInfo,
   ClientWithAllowance,
   ClientWithBookkeeping,
@@ -71,12 +72,30 @@ export class ClientService {
     return new Date(result.createMessageTimestamp * 1000);
   }
 
-  public getClientApplicationUrl(clientData?: {
-    allowanceArray: {
-      auditTrail: string | null;
-    }[];
-  }): string | null {
-    let applicationUrl = clientData?.allowanceArray?.[0]?.auditTrail;
+  public async getClientAllowanceArray(
+    clientIdOrAddress: string,
+  ): Promise<ClientAllowanceItem[]> {
+    const data =
+      await this.prismaDmobService.verified_client_allowance.findMany({
+        where: {
+          addressId: clientIdOrAddress,
+        },
+      });
+
+    return data.map((item) => ({
+      addressId: item.addressId,
+      verifierAddressId: item.verifierAddressId,
+      allowance: item.allowance.toNumber(),
+      auditTrail: item.auditTrail,
+      issueCreateTimestamp: item.issueCreateTimestamp,
+      createMessageTimestamp: item.createMessageTimestamp,
+    }));
+  }
+
+  public getClientApplicationUrl(
+    allowanceArray: ClientAllowanceItem[],
+  ): string | null {
+    let applicationUrl = allowanceArray?.[0]?.auditTrail;
     if (applicationUrl === 'n/a') applicationUrl = null;
     return applicationUrl;
   }
@@ -147,10 +166,11 @@ export class ClientService {
 
   public async getClientData(
     clientIdOrAddress: string,
+    withAllowanceArray = false,
   ): Promise<ClientWithAllowance[]> {
     return (
       await this.prismaDmobService.$queryRawTyped(
-        getClientData(clientIdOrAddress),
+        getClientData(clientIdOrAddress, withAllowanceArray),
       )
     ).map((r) => ({
       allowanceArray: r._allowanceArray as [],

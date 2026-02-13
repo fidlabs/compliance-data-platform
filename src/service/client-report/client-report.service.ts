@@ -25,8 +25,10 @@ export class ClientReportService {
   ) {}
 
   public async generateReport(clientIdOrAddress: string, returnFull = false) {
-    const clientData =
-      await this.clientService.getClientData(clientIdOrAddress);
+    const clientData = await this.clientService.getClientData(
+      clientIdOrAddress,
+      true,
+    );
 
     if (!clientData?.length) return null;
 
@@ -118,7 +120,7 @@ export class ClientReportService {
         organization_name:
           bookkeepingInfo?.clientName || clientName || clientOrgName,
         application_url: this.clientService.getClientApplicationUrl(
-          clientData[0],
+          clientData[0]?.allowanceArray,
         ),
         is_public_dataset: isPublicDataset,
         using_client_contract: !!bookkeepingInfo?.clientContractAddress,
@@ -153,7 +155,9 @@ export class ClientReportService {
               ...c,
               other_client_application_url:
                 this.clientService.getClientApplicationUrl(
-                  (await this.clientService.getClientData(c.other_client))[0],
+                  await this.clientService.getClientAllowanceArray(
+                    c.other_client,
+                  ),
                 ),
             })),
           ),
