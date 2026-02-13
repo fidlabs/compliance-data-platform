@@ -174,11 +174,9 @@ export class AllocatorReportService {
                       ...c,
                       other_client_application_url:
                         this.clientService.getClientApplicationUrl(
-                          (
-                            await this.clientService.getClientData(
-                              c.other_client,
-                            )
-                          )[0],
+                          await this.clientService.getClientAllowanceArray(
+                            c.other_client,
+                          ),
                         ),
                     })),
                   ),

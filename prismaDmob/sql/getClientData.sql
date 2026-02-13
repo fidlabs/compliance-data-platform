@@ -1,25 +1,30 @@
 -- @param {String} $1:clientIdOrAddress
+-- @param {Boolean} $2:includeAllowanceArray
 
-select "verified_client"."addressId"                                                                                  as "addressId",
-       "verified_client"."address"                                                                                    as "address",
-       case when "verified_client"."name" = 'n/a' then null else nullif(trim("verified_client"."name"), '') end       as "name",
-       case when "verified_client"."orgName" = 'n/a' then null else nullif(trim("verified_client"."orgName"), '') end as "orgName",
-       "verified_client"."verifierAddressId"   as "verifierAddressId",
-       coalesce(
-               jsonb_agg(
-                       jsonb_build_object(
-                               'addressId', "verified_client_allowance"."addressId",
-                               'verifierAddressId', "verified_client_allowance"."verifierAddressId",
-                               'allowance', "verified_client_allowance"."allowance",
-                               'auditTrail', "verified_client_allowance"."auditTrail",
-                               'issueCreateTimestamp', "verified_client_allowance"."issueCreateTimestamp",
-                               'createMessageTimestamp', "verified_client_allowance"."createMessageTimestamp"
-                       )
-               ), '[]'::jsonb
-       )                                       as "_allowanceArray"
-from "verified_client"
-         left join "verified_client_allowance"
-                   on "verified_client"."addressId" = "verified_client_allowance"."addressId"
-where upper("verified_client"."address") = upper($1)
-   or upper("verified_client"."addressId") = upper($1)
-group by "verified_client"."id";
+SELECT
+    vc."addressId",
+    vc."address",
+    CASE WHEN vc."name" = 'n/a' THEN NULL ELSE NULLIF(TRIM(vc."name"), '') END AS "name",
+    CASE WHEN vc."orgName" = 'n/a' THEN NULL ELSE NULLIF(TRIM(vc."orgName"), '') END AS "orgName",
+    vc."verifierAddressId",
+    COALESCE(a."_allowanceArray", '[]'::jsonb) AS "_allowanceArray"
+FROM "verified_client" vc
+
+LEFT JOIN LATERAL (
+    SELECT jsonb_agg(
+               jsonb_build_object(
+                   'addressId', vca."addressId",
+                   'verifierAddressId', vca."verifierAddressId",
+                   'allowance', vca."allowance",
+                   'auditTrail', vca."auditTrail",
+                   'issueCreateTimestamp', vca."issueCreateTimestamp",
+                   'createMessageTimestamp', vca."createMessageTimestamp"
+               )
+           ) AS "_allowanceArray"
+    FROM "verified_client_allowance" vca
+    WHERE vca."addressId" = vc."addressId"
+      AND $2 = true
+) a ON true
+
+WHERE upper(vc."address") = upper($1)
+   OR upper(vc."addressId") = upper($1);
