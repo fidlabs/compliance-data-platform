@@ -1,4 +1,4 @@
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import {
   Controller,
   Get,
@@ -132,6 +132,7 @@ export class ClientsController extends ControllerBase {
     };
   }
 
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
   @Get(':clientId/latest-claims')
   @ApiOperation({
     summary: 'Get list of latest claims for a given client',
@@ -176,50 +177,34 @@ export class ClientsController extends ControllerBase {
       };
     }
 
-    const [
-      [unifiedVerifiedDeal, totalSumOfDdoPieceSize, totalSumOfNonDdoPieceSize],
-      unifiedVerifiedDealHourly,
-    ] = await Promise.all([
-      this.prismaDmobService.$transaction([
-        this.prismaDmobService.unified_verified_deal.findMany({
-          select: {
-            id: true,
-            dealId: true,
-            clientId: true,
-            type: true,
-            providerId: true,
-            pieceCid: true,
-            pieceSize: true,
-            createdAt: true,
-          },
-          where: {
-            clientId: clientIdPrefix,
-            ...where,
-          },
-          orderBy: [{ [sort]: order }, { id: order }], // a secondary sort for the same e.g. createdAt
-          ...paginationQuery,
-        }),
-        this.prismaDmobService.unified_verified_deal.aggregate({
-          where: {
-            dealId: 0, // DDO deals
-            clientId: clientIdPrefix,
-            ...where,
-          },
-          _sum: { pieceSize: true },
-        }),
-        this.prismaDmobService.unified_verified_deal.aggregate({
-          where: {
-            dealId: { not: 0 }, // non-DDO deals
-            clientId: clientIdPrefix,
-            ...where,
-          },
-          _sum: { pieceSize: true },
-        }),
-      ]),
-      this.prismaService.unified_verified_deal_hourly.findMany({
+    const [unifiedVerifiedDeal, unifiedVerifiedDealHourly] = await Promise.all([
+      this.prismaDmobService.unified_verified_deal.findMany({
+        select: {
+          id: true,
+          dealId: true,
+          clientId: true,
+          type: true,
+          providerId: true,
+          pieceCid: true,
+          pieceSize: true,
+          createdAt: true,
+        },
+        where: {
+          clientId: clientIdPrefix,
+          ...where,
+        },
+        orderBy: [{ [sort]: order }, { id: order }], // a secondary sort for the same e.g. createdAt
+        ...paginationQuery,
+      }),
+      this.prismaService.unified_verified_deal_hourly.aggregate({
         where: {
           client: clientId,
           ...whereHourly,
+        },
+        _sum: {
+          num_of_claims: true,
+          total_deal_size: true,
+          total_ddo_deal_size: true,
         },
       }),
     ]);
@@ -233,17 +218,17 @@ export class ClientsController extends ControllerBase {
     return this.withPaginationInfo(
       {
         totalSumOfDdoPieceSize:
-          totalSumOfDdoPieceSize._sum.pieceSize?.toString() ?? '0',
+          unifiedVerifiedDealHourly._sum.total_ddo_deal_size?.toString() ?? '0',
         totalSumOfNonDdoPieceSize:
-          totalSumOfNonDdoPieceSize._sum.pieceSize?.toString() ?? '0',
+          (
+            unifiedVerifiedDealHourly._sum.total_deal_size -
+            unifiedVerifiedDealHourly._sum.total_ddo_deal_size
+          ).toString() ?? '0',
         count: clientClaims.length,
         data: clientClaims,
       },
       query,
-      unifiedVerifiedDealHourly.reduce(
-        (acc, curr) => acc + curr.num_of_claims,
-        0,
-      ) ?? 0,
+      unifiedVerifiedDealHourly._sum.num_of_claims ?? 0,
     );
   }
 
