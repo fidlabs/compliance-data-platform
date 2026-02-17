@@ -37,15 +37,7 @@ export class StorageProviderUrlFinderService {
       clientId,
     );
 
-    if (
-      !spData ||
-      spData.error_code ||
-      spData?.diagnostics?.result_code !== 'Success'
-    ) {
-      return null;
-    }
-
-    return spData.retrievability_percent
+    return spData?.retrievability_percent
       ? spData.retrievability_percent / 100
       : null;
   }
