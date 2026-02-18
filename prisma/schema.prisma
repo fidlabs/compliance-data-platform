@@ -555,13 +555,6 @@ model provider_ip_info {
   @@id([provider, date])
 }
 
-enum StorageProviderSliMetricType {
-  TTFB
-  RPA_RETRIEVABILITY
-  RETENTION
-  BANDWIDTH
-}
-
 enum StorageProviderUrlFinderMetricType {
   TTFB
   RPA_RETRIEVABILITY
@@ -578,32 +571,6 @@ enum StorageProviderUrlFinderMetricResultCodeType {
   TIMED_OUT
   ERROR
   SUCCESS
-}
-
-model storage_provider_sli_metric {
-  id          String                       @id @default(cuid())
-  metric_type StorageProviderSliMetricType @unique
-
-  name        String?
-  description String?
-  unit        String?
-
-  slis storage_provider_sli[]
-}
-
-model storage_provider_sli {
-  id          String @id @default(cuid())
-  provider_id String
-
-  metric_id String
-  metric    storage_provider_sli_metric @relation(fields: [metric_id], references: [id])
-  value     Float
-
-  update_date DateTime @default(now())
-
-  @@index([provider_id])
-  @@index([metric_id])
-  @@index([provider_id, metric_id, update_date])
 }
 
 model storage_provider_url_finder_metric {

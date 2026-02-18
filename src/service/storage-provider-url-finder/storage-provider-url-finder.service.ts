@@ -3,13 +3,14 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
+import { DateTime } from 'luxon';
 import {
-  StorageProviderSliMetricType,
   StorageProviderUrlFinderMetricResultCodeType,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
+import { stringToNumber } from 'src/utils/utils';
 import {
   SliStorageProviderMetricData,
   StorageProviderMetricHistogramDailyResponse,
@@ -19,8 +20,6 @@ import {
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderDataResponse,
 } from './types.storage-provider-url-finder.service';
-import { stringToNumber } from 'src/utils/utils';
-import { DateTime } from 'luxon';
 
 @Injectable()
 export class StorageProviderUrlFinderService {
@@ -113,89 +112,6 @@ export class StorageProviderUrlFinderService {
     );
 
     return data;
-  }
-
-  public async storeSliMetricForStorageProviders(
-    metricType: StorageProviderSliMetricType,
-    storageProviderMetricData: SliStorageProviderMetricData[],
-  ): Promise<void> {
-    const createOrUpdateMetric = {
-      metric_type: metricType,
-      name: this.getSliMetricName(metricType),
-      description: this.getSliMetricDescription(metricType),
-      unit: this.getSliMetricUnit(metricType),
-    };
-
-    const metric = await this.prismaService.storage_provider_sli_metric.upsert({
-      where: {
-        metric_type: metricType,
-      },
-      create: createOrUpdateMetric,
-      update: createOrUpdateMetric, // in case description or name changes
-    });
-
-    const data = storageProviderMetricData.map((metricData) => ({
-      metric_id: metric.id,
-      provider_id: metricData.providerId,
-      value: metricData.value,
-      update_date: metricData.lastUpdateAt,
-    }));
-
-    this.logger.log(
-      `Storing ${data.length} providers for metric type ${metricType}`,
-    );
-
-    await this.prismaService.storage_provider_sli.createMany({ data: data });
-  }
-
-  private getSliMetricName(
-    storageProviderMetric: StorageProviderSliMetricType,
-  ) {
-    const SLI_METRIC_NAME: Record<
-      keyof typeof StorageProviderSliMetricType,
-      string
-    > = {
-      [StorageProviderSliMetricType.TTFB]: 'TTFB',
-      [StorageProviderSliMetricType.RPA_RETRIEVABILITY]: 'RPA Retrievability',
-      [StorageProviderSliMetricType.RETENTION]: 'Retention',
-      [StorageProviderSliMetricType.BANDWIDTH]: 'Bandwith',
-    };
-
-    return SLI_METRIC_NAME[storageProviderMetric];
-  }
-
-  private getSliMetricDescription(
-    storageProviderMetric: StorageProviderSliMetricType,
-  ) {
-    const SLI_METRIC_DESCRIPTION: Record<
-      keyof typeof StorageProviderSliMetricType,
-      string
-    > = {
-      [StorageProviderSliMetricType.TTFB]: 'Time to first byte (TTFB)',
-      [StorageProviderSliMetricType.RPA_RETRIEVABILITY]:
-        'RPA Retrievability percentage',
-      [StorageProviderSliMetricType.RETENTION]:
-        'Consensus failures of PoRep Interrogating the PDP proofs continuity',
-      [StorageProviderSliMetricType.BANDWIDTH]: 'Download bandwidth in Mbps',
-    };
-
-    return SLI_METRIC_DESCRIPTION[storageProviderMetric];
-  }
-
-  private getSliMetricUnit(
-    storageProviderMetric: StorageProviderSliMetricType,
-  ) {
-    const SLI_METRIC_UNIT: Record<
-      keyof typeof StorageProviderSliMetricType,
-      string
-    > = {
-      [StorageProviderSliMetricType.TTFB]: 'ms',
-      [StorageProviderSliMetricType.RPA_RETRIEVABILITY]: '%',
-      [StorageProviderSliMetricType.RETENTION]: 'qty',
-      [StorageProviderSliMetricType.BANDWIDTH]: 'Mbps',
-    };
-
-    return SLI_METRIC_UNIT[storageProviderMetric];
   }
 
   private getMetricName(

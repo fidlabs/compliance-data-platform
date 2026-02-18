@@ -5,7 +5,7 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
-import { StorageProviderSliMetricType } from 'prisma/generated/client';
+import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
 import {
@@ -120,10 +120,10 @@ export class GetStorageProvidersSLIDataRequest {
 
 class StorageProvidersSLIData {
   @ApiProperty({
-    enum: StorageProviderSliMetricType,
+    enum: StorageProviderUrlFinderMetricType,
     description: 'SLI Metric',
   })
-  sliMetric: StorageProviderSliMetricType;
+  sliMetric: StorageProviderUrlFinderMetricType;
 
   @ApiProperty({ description: 'SLI Metric Name' })
   sliMetricName: string;
