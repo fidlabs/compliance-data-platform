@@ -47,7 +47,7 @@ export class StorageProviderUrlFinderService {
       clientId,
     );
 
-    return spData?.retrievability_percent
+    return spData?.retrievability_percent != null
       ? spData.retrievability_percent / 100
       : null;
   }
