@@ -53,7 +53,6 @@ import { PrismaDmobService } from './db/prismaDmob.service';
 import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-generator-job/allocator-report-generator-job.service';
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 import { IpniAdvertisementFetcherJobService } from './jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
-import { StorageProviderSliFetcherJobService } from './jobs/storage-provider-sli-fetcher-job/storage-provider-sli-fetcher.service';
 import { StorageProviderUrlFinderSnapshotMetricService } from './jobs/storage-provider-ulr-finder-snapshot-job/storage-provider-url-finder-shanpshot-job.service';
 import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
@@ -171,7 +170,6 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     AllocatorScoringService,
     StorageProviderReportService,
     OldDatacapService,
-    StorageProviderSliFetcherJobService,
     StorageProviderUrlFinderSnapshotMetricService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
