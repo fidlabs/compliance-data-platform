@@ -5,7 +5,7 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
-import { StorageProviderSliMetricType } from 'prisma/generated/client';
+import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
 import {
@@ -110,7 +110,7 @@ export class GetStorageProvidersStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}
 
-export class GetStorageProvidersSLIDataRequest {
+export class GetStorageProvidersSliDataRequest {
   @ApiProperty({
     description: 'List of storage providers IDs to get SLI data for',
     isArray: true,
@@ -118,45 +118,47 @@ export class GetStorageProvidersSLIDataRequest {
   storageProvidersIds: string[];
 }
 
-class StorageProvidersSLIData {
+export class StorageProviderSliMetadata {
   @ApiProperty({
-    enum: StorageProviderSliMetricType,
+    enum: StorageProviderUrlFinderMetricType,
     description: 'SLI Metric',
   })
-  sliMetric: StorageProviderSliMetricType;
+  sliMetricType: StorageProviderUrlFinderMetricType;
 
   @ApiProperty({ description: 'SLI Metric Name' })
   sliMetricName: string;
-
-  @ApiProperty({ description: 'SLI Metric Value' })
-  sliMetricValue: string;
 
   @ApiProperty({ description: 'SLI Metric Description' })
   sliMetricDescription: string;
 
   @ApiProperty({ description: 'SLI Metric Unit' })
   sliMetricUnit: string;
-
-  @ApiProperty({
-    type: String,
-    format: 'date-time',
-    example: '2024-04-22T00:00:00.000Z',
-    description: 'Last updated at; ISO format',
-  })
-  updatedAt: Date;
 }
 
-export class GetStorageProvidersSLIDataResponse {
-  @ApiProperty({ description: 'Storage provider ID' })
-  storageProviderId: string;
+export class StorageProvidersSliData {
+  @ApiProperty({ description: 'SLI Metric Value' })
+  sliMetricValue: string;
 
-  @ApiProperty({ description: 'Storage provider Name', nullable: true })
-  storageProviderName: string | null;
+  @ApiProperty({ description: 'SLI Metric Value' })
+  sliMetricType: string;
+}
+
+export class GetStorageProvidersSliDataResponse {
+  @ApiProperty({
+    type: Object,
+    description:
+      'Metadata of metric codes to their descriptions names and units',
+  })
+  sliMetadata: {
+    [code: string]: StorageProviderSliMetadata;
+  };
 
   @ApiProperty({
     isArray: true,
-    type: StorageProvidersSLIData,
+    type: StorageProvidersSliData,
     description: 'SLI Data for the storage provider',
   })
-  data: StorageProvidersSLIData[];
+  data: {
+    [storageProviderId: string]: StorageProvidersSliData[];
+  };
 }
