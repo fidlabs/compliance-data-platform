@@ -116,9 +116,10 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                 {
                   metricType:
                     StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY,
-                  value: retrievability_percent
-                    ? retrievability_percent / 100
-                    : null,
+                  value:
+                    retrievability_percent != null
+                      ? retrievability_percent / 100
+                      : null,
                   testedAt: new Date(tested_at),
                 },
 
