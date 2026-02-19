@@ -23,6 +23,7 @@ import { ClientProviderDistributionWeeklyAccRunner } from './aggregation/runners
 import { ClientProviderDistributionWeeklyRunner } from './aggregation/runners/client-provider-distribution-weekly.runner';
 import { ClientProviderDistributionRunner } from './aggregation/runners/client-provider-distribution.runner';
 import { ClientReplicaDistributionRunner } from './aggregation/runners/client-replica-distribution.runner';
+import { ClientsStatsDailyRunner } from './aggregation/runners/clients-stats-daily.runner';
 import { IpniReportingDailyRunner } from './aggregation/runners/ipni-reporting-daily.runner';
 import { OldDatacapBalanceNv22Runner } from './aggregation/runners/old-datacap-balance-nv22.runner';
 import { OldDatacapBalanceWeeklyRunner } from './aggregation/runners/old-datacap-balance-weekly.runner';
@@ -40,7 +41,6 @@ import { AllocatorsController } from './controller/allocators/allocators.control
 import { AppController } from './controller/app/app.controller';
 import { ClientReportController } from './controller/client-report/client-report.controller';
 import { ClientsController } from './controller/clients/clients.controller';
-import { GoogleApisController } from './controller/proxy/googleapis.controller';
 import { ReportChecksController } from './controller/report-checks/report-checks.controller';
 import { AllocatorsAccStatsController } from './controller/stats/allocators/allocators-stats.controller';
 import { OldDatacapController } from './controller/stats/old-datacap/old-datacap.controller';
@@ -54,6 +54,7 @@ import { AllocatorReportGeneratorJobService } from './jobs/allocator-report-gene
 import { ClientReportGeneratorJobService } from './jobs/client-report-generator-job/client-report-generator-job.service';
 import { IpniAdvertisementFetcherJobService } from './jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
 import { StorageProviderSliFetcherJobService } from './jobs/storage-provider-sli-fetcher-job/storage-provider-sli-fetcher.service';
+import { StorageProviderUrlFinderSnapshotMetricService } from './jobs/storage-provider-ulr-finder-snapshot-job/storage-provider-url-finder-shanpshot-job.service';
 import { ErrorHandlerMiddleware } from './middleware/error-handler.middleware';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 import { PrometheusMetricModule } from './prometheus';
@@ -80,8 +81,6 @@ import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
-import { ClientsStatsDailyRunner } from './aggregation/runners/clients-stats-daily.runner';
-import { StorageProviderUrlFinderSnapshotMetricService } from './jobs/storage-provider-ulr-finder-snapshot-job/storage-provider-url-finder-shanpshot-job.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -129,7 +128,6 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     AllocatorsController,
     StorageProvidersAccStatsController,
     AllocatorsAccStatsController,
-    GoogleApisController,
     ClientReportController,
     ClientsController,
     AllocatorReportController,
