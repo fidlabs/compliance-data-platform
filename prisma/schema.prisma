@@ -344,6 +344,7 @@ model client_report_check_result {
   metadata         Json?
 
   @@unique([check, client_report_id])
+  @@index([client_report_id, create_date])
 }
 
 model allocator_report {
