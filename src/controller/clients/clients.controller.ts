@@ -61,6 +61,7 @@ const negativeStatistics = [
 ] satisfies ClientsDashboardStatisticType[];
 
 @Controller('clients')
+@CacheTTL(1000 * 60 * 30) // 30 minutes
 export class ClientsController extends ControllerBase {
   private readonly logger = new Logger(ClientsController.name);
 
@@ -132,7 +133,6 @@ export class ClientsController extends ControllerBase {
     };
   }
 
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   @Get(':clientId/latest-claims')
   @ApiOperation({
     summary: 'Get list of latest claims for a given client',
@@ -274,7 +274,7 @@ export class ClientsController extends ControllerBase {
         cutoffDate: cutoffDate,
       }),
       this.clientService.getClientsGenericStats(),
-      this.clientService.getClientsGenericStats({ cutoffDate }),
+      this.clientService.getClientsGenericStats({ cutoffDate: cutoffDate }),
     ]);
 
     return [
