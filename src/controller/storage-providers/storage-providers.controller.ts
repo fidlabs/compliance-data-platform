@@ -249,7 +249,7 @@ export class StorageProvidersController extends ControllerBase {
       currentDDOPercentageToDate,
       previousDDOPercentageToDate,
       currentAverageUrlFinderRetrievabilities,
-      previousAverageUrlFinderRetrievabiliies,
+      previousAverageUrlFinderRetrievabilities,
     ] = await Promise.all([
       this.storageProviderService.getStorageProvidersCountStat(),
       this.storageProviderService.getStorageProvidersCountStat({
@@ -370,7 +370,7 @@ export class StorageProvidersController extends ControllerBase {
           type: 'percentage',
         },
         previousValue: {
-          value: previousAverageUrlFinderRetrievabiliies?.avgAllSp ?? 0,
+          value: previousAverageUrlFinderRetrievabilities?.avgAllSp ?? 0,
           type: 'percentage',
         },
       }),
@@ -382,7 +382,7 @@ export class StorageProvidersController extends ControllerBase {
           type: 'percentage',
         },
         previousValue: {
-          value: previousAverageUrlFinderRetrievabiliies?.avgAvailableSp ?? 0,
+          value: previousAverageUrlFinderRetrievabilities?.avgAvailableSp ?? 0,
           type: 'percentage',
         },
       }),

@@ -418,7 +418,7 @@ export class ClientService {
   } | null> {
     const { cutoffDate = DateTime.now().toJSDate() } = options ?? {};
 
-    const result = await this.prismaService.clients_stats_daily.findFirst({
+    return await this.prismaService.clients_stats_daily.findFirst({
       where: {
         date: {
           equals: DateTime.fromJSDate(cutoffDate)
@@ -428,7 +428,5 @@ export class ClientService {
         },
       },
     });
-
-    return result;
   }
 }

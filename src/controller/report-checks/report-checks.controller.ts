@@ -27,6 +27,7 @@ import {
 import { lastWeek, stringToDate, yesterday } from 'src/utils/utils';
 
 @Controller('report-checks')
+@CacheTTL(1000 * 60 * 30) // 30 minutes
 export class ReportChecksController {
   private readonly logger = new Logger(ReportChecksController.name);
 

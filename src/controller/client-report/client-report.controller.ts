@@ -17,10 +17,11 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Cache, CacheTTL } from '@nestjs/cache-manager';
 import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 
 @Controller('client-report')
+@CacheTTL(1000 * 60 * 60 * 12) // 12 hours, cache here is being invalidated manually
 export class ClientReportController {
   private readonly logger = new Logger(ClientReportController.name);
 

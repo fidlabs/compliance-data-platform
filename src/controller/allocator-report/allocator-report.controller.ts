@@ -1,4 +1,4 @@
-import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import {
   Controller,
   Get,
@@ -22,6 +22,7 @@ import { ControllerBase } from '../base/controller-base';
 import { PaginationInfoRequest } from '../base/types.controller-base';
 
 @Controller('allocator-report')
+@CacheTTL(1000 * 60 * 60 * 12) // 12 hours, cache here is being invalidated manually
 export class AllocatorReportController extends ControllerBase {
   private readonly logger = new Logger(AllocatorReportController.name);
 
