@@ -209,6 +209,8 @@ export class StorageProviderUrlFinderService {
       [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]:
         'RPA Retrievability',
       [StorageProviderUrlFinderMetricType.BANDWIDTH]: 'Bandwith',
+      [StorageProviderUrlFinderMetricType.CAR_FILES]:
+        'CAR files Retrievability',
     };
 
     return METRIC_NAME[storageProviderMetric];
@@ -226,6 +228,8 @@ export class StorageProviderUrlFinderService {
         'RPA Retrievability percentage',
       [StorageProviderUrlFinderMetricType.BANDWIDTH]:
         'Download bandwidth in Mbps',
+      [StorageProviderUrlFinderMetricType.CAR_FILES]:
+        'CAR files retrievability percentage',
     };
 
     return METRIC_DESCRIPTION[storageProviderMetric];
@@ -241,6 +245,7 @@ export class StorageProviderUrlFinderService {
       [StorageProviderUrlFinderMetricType.TTFB]: 'ms',
       [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]: '%',
       [StorageProviderUrlFinderMetricType.BANDWIDTH]: 'Mbps',
+      [StorageProviderUrlFinderMetricType.CAR_FILES]: '%',
     };
 
     return METRIC_UNIT[storageProviderMetric];
