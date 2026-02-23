@@ -66,12 +66,18 @@ with "max_ranges" as (select "scoring_result_id" as "scoring_result_id",
                                     null           as "data_type"
                              from "allocator_registry_archive"),
 --
-     "selected_allocators" as (select distinct on ("allocator_id") "allocator_id" as "allocator_id",
+     "edition_6_allocators" as (select distinct on ("allocator_id") "allocator_id" as "allocator_id",
                                                                    "edition_id"   as "edition_id",
                                                                    "data_type"    as "data_type"
                                from "all_allocators"
                                where "edition_id" = 6
                                order by "allocator_id", "data_type"),
+--
+     "selected_allocators" as (select *
+                               from "edition_6_allocators"
+                                        left join "allocator" on "edition_6_allocators"."allocator_id" = "allocator"."id"
+                               where "allocator"."is_metaallocator" = false
+                                  or "allocator"."is_metaallocator" is null),
 --
      "result" as (select "latest_reports".*,
 
