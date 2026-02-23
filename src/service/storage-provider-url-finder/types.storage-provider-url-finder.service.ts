@@ -42,6 +42,7 @@ export interface UrlFinderStorageProviderData {
   client_id: string | null;
   working_url: string | null;
   retrievability_percent: number;
+  car_files_percent: number | null;
   tested_at: string;
   performance: UrlFinderStorageProviderPerformanceData;
 }
