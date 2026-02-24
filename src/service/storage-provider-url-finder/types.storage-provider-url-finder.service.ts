@@ -77,6 +77,7 @@ export interface StorageProviderUrlFinderDailySnapshot {
 export class StorageProviderMetricHistogramResult {
   @ApiProperty({
     example: 'TIMEOUT',
+    description: 'Metric code representing the result',
   })
   code: string;
 

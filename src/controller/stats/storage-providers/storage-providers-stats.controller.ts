@@ -3,13 +3,18 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { groupBy } from 'lodash';
 import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
-import { getUrlFinderProviderMetricWeeklyAcc } from 'prisma/generated/client/sql';
+import {
+  getAvailableInconsistentAndConsistantRetrievability,
+  getUrlFinderProviderMetricWeeklyAcc,
+} from 'prisma/generated/client/sql';
 import { DataType } from 'src/controller/allocators/types.allocators';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { PrismaService } from 'src/db/prisma.service';
 import {
+  HistogramBase,
+  HistogramBaseResults,
   HistogramTotalDatacap,
   HistogramWeek,
   HistogramWeekResults,
@@ -140,11 +145,11 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     return result;
   }
 
-  @Get('/rpa/metric/')
+  @Get('/rpa/metric')
   @ApiOperation({
     summary: 'Get RPA metrics for storage providers',
   })
-  public async getStorageProvidersUrlFinderMetricData(
+  public async getStorageProvidersUrlFinderStandardMetricData(
     @Query() query: UrlFinderStorageProviderMetricTypeRequest,
   ): Promise<HistogramWeek> {
     const startDate = query?.startDate
@@ -204,5 +209,104 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     );
 
     return new HistogramWeek(totalAcrossAllWeeks, weekResults);
+  }
+
+  @Get('/rpa/calculated-metric')
+  @ApiOperation({
+    summary: 'Get RPA metrics for storage providers',
+  })
+  public async getStorageProvidersCalculatedMetric(
+    @Query() query: UrlFinderStorageProviderMetricBaseRequest,
+  ): Promise<{
+    AIR: {
+      metadata: {
+        name: string;
+        description: string;
+      };
+      dailyMetrics: HistogramBaseResults[];
+    };
+    ACR: {
+      metadata: {
+        name: string;
+        description: string;
+      };
+      dailyMetrics: HistogramBaseResults[];
+    };
+  }> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+
+    const metricValues = await this.prismaService.$queryRawTyped(
+      getAvailableInconsistentAndConsistantRetrievability(startDate, endDate),
+    );
+
+    const groupedByMetrics = groupBy(metricValues, (r) => r.metric);
+
+    const airMetric = groupedByMetrics['AIR'];
+    const acrMetric = groupedByMetrics['ACR'];
+
+    const airByDay = groupBy(airMetric, (r) => r.day.toISOString());
+    const acrByDay = groupBy(acrMetric, (r) => r.day.toISOString());
+
+    const airHistogramByDay = Object.entries(airByDay).map(([day, dayRows]) => {
+      const total = dayRows.reduce(
+        (sum, r) => sum + bigIntToNumber(r.providers_count),
+        0,
+      );
+
+      const histograms = dayRows.map(
+        (r) =>
+          new HistogramBase(
+            r.valueFromExclusive.toNumber(),
+            r.valueToInclusive.toNumber(),
+            bigIntToNumber(r.providers_count),
+            Math.round((bigIntToNumber(r.providers_count) / total) * 10000) /
+              10000,
+          ),
+      );
+
+      return new HistogramBaseResults(new Date(day), total, histograms);
+    });
+
+    const acrHistogramByDay = Object.entries(acrByDay).map(([day, dayRows]) => {
+      const total = dayRows.reduce(
+        (sum, r) => sum + bigIntToNumber(r.providers_count),
+        0,
+      );
+      const histograms = dayRows.map(
+        (r) =>
+          new HistogramBase(
+            r.valueFromExclusive.toNumber(),
+            r.valueToInclusive.toNumber(),
+            bigIntToNumber(r.providers_count),
+            Math.round((bigIntToNumber(r.providers_count) / total) * 10000) /
+              10000,
+          ),
+      );
+
+      return new HistogramBaseResults(new Date(day), total, histograms);
+    });
+
+    return {
+      ACR: {
+        metadata: {
+          name: 'Available Consistent Retrievability',
+          description:
+            'Percentage of retrevability of storage providers including only the CAR files',
+        },
+        dailyMetrics: acrHistogramByDay,
+      },
+      AIR: {
+        metadata: {
+          name: 'Available Inconsistent Retrievability',
+          description:
+            'Percentage of retrevability of storage providers excluding the CAR files (other available files that are not CAR files)',
+        },
+        dailyMetrics: airHistogramByDay,
+      },
+    };
   }
 }
