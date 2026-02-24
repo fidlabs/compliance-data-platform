@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class HistogramBase {
   @ApiProperty({
@@ -16,14 +16,22 @@ export class HistogramBase {
   })
   count: number;
 
+  @ApiPropertyOptional({
+    description:
+      'Percentage of allocators / storage providers in the bucket compared to total',
+  })
+  percentage?: number;
+
   constructor(
     valueFromExclusive: number,
     valueToInclusive: number,
     count: number,
+    percentage?: number,
   ) {
     this.valueFromExclusive = valueFromExclusive;
     this.valueToInclusive = valueToInclusive;
     this.count = count;
+    this.percentage = percentage;
   }
 }
 
@@ -67,6 +75,30 @@ export class HistogramWeekResults {
 
   constructor(week: Date, total: number, results: HistogramTotalDatacap[]) {
     this.week = week;
+    this.total = total;
+    this.results = results;
+  }
+}
+
+export class HistogramBaseResults {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
+  })
+  date: Date;
+
+  @ApiProperty({
+    description: 'Number of allocators / storage providers in the week',
+  })
+  total: number;
+
+  @ApiProperty({ type: HistogramBase, isArray: true })
+  results: HistogramBase[];
+
+  constructor(day: Date, total: number, results: HistogramBase[]) {
+    this.date = day;
     this.total = total;
     this.results = results;
   }
