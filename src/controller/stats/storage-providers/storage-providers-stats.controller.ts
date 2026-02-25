@@ -4,7 +4,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { groupBy } from 'lodash';
 import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
 import {
-  getAvailableInconsistentAndConsistantRetrievability,
+  getAvailableInconsistentAndConsistentRetrievability,
   getUrlFinderProviderMetricWeeklyAcc,
 } from 'prisma/generated/client/sql';
 import { DataType } from 'src/controller/allocators/types.allocators';
@@ -33,11 +33,11 @@ import {
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
 import { bigIntToNumber, stringToBool, stringToDate } from 'src/utils/utils';
-import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 import {
   UrlFinderStorageProviderMetricBaseRequest,
   UrlFinderStorageProviderMetricTypeRequest,
 } from './types.storage-providers-stats';
+import { GetStorageProviderRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -74,11 +74,12 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeek })
   public async getProviderRetrievabilityWeekly(
-    @Query() query: GetRetrievabilityWeeklyRequest,
+    @Query() query: GetStorageProviderRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.getFilPlusEditionFromRequest(query),
       stringToBool(query?.openDataOnly) ? DataType.openData : null,
+      query?.retrievabilityType,
     );
   }
 
@@ -211,9 +212,9 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     return new HistogramWeek(totalAcrossAllWeeks, weekResults);
   }
 
-  @Get('/rpa/calculated-metric')
+  @Get('/rpa/metric/consistent')
   @ApiOperation({
-    summary: 'Get RPA metrics for storage providers',
+    summary: 'Get AIR and ACR metrics for storage providers',
   })
   public async getStorageProvidersCalculatedMetric(
     @Query() query: UrlFinderStorageProviderMetricBaseRequest,
@@ -240,7 +241,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
 
     const metricValues = await this.prismaService.$queryRawTyped(
-      getAvailableInconsistentAndConsistantRetrievability(startDate, endDate),
+      getAvailableInconsistentAndConsistentRetrievability(startDate, endDate),
     );
 
     const groupedByMetrics = groupBy(metricValues, (r) => r.metric);
@@ -263,8 +264,6 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
             r.valueFromExclusive.toNumber(),
             r.valueToInclusive.toNumber(),
             bigIntToNumber(r.providers_count),
-            Math.round((bigIntToNumber(r.providers_count) / total) * 10000) /
-              10000,
           ),
       );
 
@@ -276,14 +275,13 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
         (sum, r) => sum + bigIntToNumber(r.providers_count),
         0,
       );
+
       const histograms = dayRows.map(
         (r) =>
           new HistogramBase(
             r.valueFromExclusive.toNumber(),
             r.valueToInclusive.toNumber(),
             bigIntToNumber(r.providers_count),
-            Math.round((bigIntToNumber(r.providers_count) / total) * 10000) /
-              10000,
           ),
       );
 
@@ -295,7 +293,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
         metadata: {
           name: 'Available Consistent Retrievability',
           description:
-            'Percentage of retrevability of storage providers including only the CAR files',
+            'Number of storage providers including only the CAR files',
         },
         dailyMetrics: acrHistogramByDay,
       },
@@ -303,7 +301,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
         metadata: {
           name: 'Available Inconsistent Retrievability',
           description:
-            'Percentage of retrevability of storage providers excluding the CAR files (other available files that are not CAR files)',
+            'Number of storage providers excluding the CAR files (other available files that are not CAR files)',
         },
         dailyMetrics: airHistogramByDay,
       },

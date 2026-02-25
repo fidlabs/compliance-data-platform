@@ -6,8 +6,10 @@ import {
   getProviderClientsWeeklyAcc,
   getProviderCount,
   getProviderRetrievabilityAcc,
+  getProviderRetrievabilityAccConsistent,
   getProvidersWithIpInfo,
   getWeekAverageProviderRetrievabilityAcc,
+  getWeekAverageProviderRetrievabilityAccConsistent,
 } from 'prisma/generated/client/sql';
 import { DataType } from 'src/controller/allocators/types.allocators';
 import { PrismaService } from 'src/db/prisma.service';
@@ -29,6 +31,7 @@ import {
   RetrievabilityHistogramWeekResults,
   RetrievabilityWeek,
 } from '../histogram-helper/types.histogram-helper';
+import { StorageProviderRetrievabilityType } from '../storage-provider-url-finder/types.storage-provider-url-finder.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceScore,
@@ -115,15 +118,31 @@ export class StorageProviderService {
     startWeekDate?: Date,
     endWeekDate?: Date,
     dataType?: DataType,
+    retrievabilityType?: StorageProviderRetrievabilityType,
   ): Promise<HistogramWeekFlat[]> {
-    return await this.prismaService.$queryRawTyped(
-      getProviderRetrievabilityAcc(dataType, startWeekDate, endWeekDate),
-    );
+    if (
+      retrievabilityType === StorageProviderRetrievabilityType.CONSISTENT ||
+      retrievabilityType === StorageProviderRetrievabilityType.INCONSISTENT
+    ) {
+      return await this.prismaService.$queryRawTyped(
+        getProviderRetrievabilityAccConsistent(
+          dataType,
+          startWeekDate,
+          endWeekDate,
+          retrievabilityType,
+        ),
+      );
+    } else {
+      return await this.prismaService.$queryRawTyped(
+        getProviderRetrievabilityAcc(dataType, startWeekDate, endWeekDate),
+      );
+    }
   }
 
   public async getProviderRetrievabilityWeekly(
     filPlusEditionData: FilPlusEdition | null,
     dataType?: DataType,
+    retrievabilityType = StorageProviderRetrievabilityType.RPA,
   ): Promise<RetrievabilityWeek> {
     const isCurrentFilPlusEdition =
       filPlusEditionData?.id === getCurrentFilPlusEdition().id;
@@ -133,6 +152,7 @@ export class StorageProviderService {
         ? await this.getLastWeekAverageProviderRetrievability(
             filPlusEditionData?.id,
             dataType,
+            retrievabilityType,
           )
         : null;
 
@@ -140,15 +160,18 @@ export class StorageProviderService {
       filPlusEditionData?.startDate,
       filPlusEditionData?.endDate,
       dataType,
+      retrievabilityType,
     );
 
     const weeklyHistogramResult =
-      await this.histogramHelper.getWeeklyHistogramResult(result, 100);
+      await this.histogramHelper.getWeeklyHistogramResult(
+        result,
+        100,
+        null,
+        true,
+      );
 
     return new RetrievabilityWeek(
-      lastWeekAverageRetrievability?.http
-        ? lastWeekAverageRetrievability.http * 100
-        : null,
       lastWeekAverageRetrievability?.urlFinder
         ? lastWeekAverageRetrievability.urlFinder * 100
         : null,
@@ -165,11 +188,11 @@ export class StorageProviderService {
                 histogramWeek.week,
                 filPlusEditionData?.id,
                 dataType,
+                retrievabilityType,
               );
 
             return RetrievabilityHistogramWeek.of(
               histogramWeek,
-              retrievability.http ? retrievability.http * 100 : null,
               retrievability.urlFinder ? retrievability.urlFinder * 100 : null,
             );
           }),
@@ -181,11 +204,13 @@ export class StorageProviderService {
   public getLastWeekAverageProviderRetrievability(
     filPlusEditionId?: number,
     dataType?: DataType,
+    retrievabilityType?: StorageProviderRetrievabilityType,
   ): Promise<AverageRetrievabilityType> {
     return this.getWeekAverageProviderRetrievability(
       lastWeek(),
       filPlusEditionId,
       dataType,
+      retrievabilityType,
     );
   }
 
@@ -314,16 +339,33 @@ export class StorageProviderService {
     week: Date,
     filPlusEditionId?: number,
     dataType?: DataType,
+    retrievabilityType?: StorageProviderRetrievabilityType,
   ): Promise<AverageRetrievabilityType> {
-    return (
-      await this.prismaService.$queryRawTyped(
-        getWeekAverageProviderRetrievabilityAcc(
-          dataType,
-          week,
-          filPlusEditionId,
-        ),
-      )
-    )[0];
+    if (
+      retrievabilityType == StorageProviderRetrievabilityType.CONSISTENT ||
+      retrievabilityType == StorageProviderRetrievabilityType.INCONSISTENT
+    ) {
+      return (
+        await this.prismaService.$queryRawTyped(
+          getWeekAverageProviderRetrievabilityAccConsistent(
+            dataType,
+            week,
+            filPlusEditionId,
+            retrievabilityType,
+          ),
+        )
+      )[0];
+    } else {
+      return (
+        await this.prismaService.$queryRawTyped(
+          getWeekAverageProviderRetrievabilityAcc(
+            dataType,
+            week,
+            filPlusEditionId,
+          ),
+        )
+      )[0];
+    }
   }
 
   public calculateProviderComplianceScore(

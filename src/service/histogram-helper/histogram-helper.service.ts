@@ -15,6 +15,7 @@ export class HistogramHelperService {
     histogramWeeksFlat: HistogramWeekFlat[],
     maxRangeTopValue?: number,
     minRangeLowValue: number = 0,
+    includeCurrentWeek = false,
   ): Promise<HistogramWeekResults[]> {
     const histogramsByWeek = groupBy(histogramWeeksFlat, (p) => p.week);
     const results: HistogramWeekResults[] = [];
@@ -41,11 +42,13 @@ export class HistogramHelperService {
       );
     }
 
-    return this.withoutCurrentWeek(
-      this.sorted(
-        this.withMissingBuckets(results, maxRangeTopValue, minRangeLowValue),
-      ),
+    const sortedResult = this.sorted(
+      this.withMissingBuckets(results, maxRangeTopValue, minRangeLowValue),
     );
+
+    return includeCurrentWeek
+      ? sortedResult
+      : this.withoutCurrentWeek(sortedResult);
   }
 
   // removes current week from histogram responses if necessary

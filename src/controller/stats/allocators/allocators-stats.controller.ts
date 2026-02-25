@@ -11,9 +11,9 @@ import {
 } from 'src/service/histogram-helper/types.histogram-helper';
 import { StorageProviderComplianceMetrics } from 'src/service/storage-provider/types.storage-provider';
 import { stringToBool, stringToNumber } from 'src/utils/utils';
-import { GetRetrievabilityWeeklyRequest } from './types.allocator-stats';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { DataType } from 'src/controller/allocators/types.allocators';
+import { GetAllocatorRetrievabilityWeeklyRequest } from './types.allocator-stats';
 
 @Controller('stats/acc/allocators')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -35,7 +35,7 @@ export class AllocatorsAccStatsController extends FilPlusEditionControllerBase {
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeek })
   public async getAllocatorRetrievabilityWeekly(
-    @Query() query: GetRetrievabilityWeeklyRequest,
+    @Query() query: GetAllocatorRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
     if (
       stringToBool(query?.openDataOnly) &&
