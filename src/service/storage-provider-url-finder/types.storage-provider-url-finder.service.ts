@@ -14,6 +14,12 @@ export type SliStorageProviderMetricChunkData = SliStorageProviderMetricData & {
   metricType: string;
 };
 
+export enum StorageProviderRetrievabilityType {
+  RPA = 'RPA',
+  CONSISTENT = 'CONSISTENT',
+  INCONSISTENT = 'INCONSISTENT',
+}
+
 export interface UrlFinderStorageProviderBandwidthData {
   status: string;
   tested_at: string | null;

@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class HistogramBase {
   @ApiProperty({
@@ -16,22 +16,14 @@ export class HistogramBase {
   })
   count: number;
 
-  @ApiPropertyOptional({
-    description:
-      'Percentage of allocators / storage providers in the bucket compared to total',
-  })
-  percentage?: number;
-
   constructor(
     valueFromExclusive: number,
     valueToInclusive: number,
     count: number,
-    percentage?: number,
   ) {
     this.valueFromExclusive = valueFromExclusive;
     this.valueToInclusive = valueToInclusive;
     this.count = count;
-    this.percentage = percentage;
   }
 }
 
@@ -121,11 +113,6 @@ export class HistogramWeekFlat extends HistogramTotalDatacap {
 
 export class RetrievabilityHistogramWeek extends HistogramWeekResults {
   @ApiProperty({
-    description: 'Average HTTP retrievability success rate in the week',
-  })
-  averageHttpSuccessRate: number;
-
-  @ApiProperty({
     description: 'Average URL Finder retrievability success rate in the week',
   })
   averageUrlFinderSuccessRate: number;
@@ -134,24 +121,20 @@ export class RetrievabilityHistogramWeek extends HistogramWeekResults {
     week: Date,
     total: number,
     results: HistogramTotalDatacap[],
-    averageHttpSuccessRate: number,
     averageUrlFinderSuccessRate: number,
   ) {
     super(week, total, results);
-    this.averageHttpSuccessRate = averageHttpSuccessRate;
     this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
   }
 
   public static of(
     histogramWeek: HistogramWeekResults,
-    averageHttpSuccessRate: number,
     averageUrlFinderSuccessRate: number,
   ): RetrievabilityHistogramWeek {
     return new RetrievabilityHistogramWeek(
       histogramWeek.week,
       histogramWeek.total,
       histogramWeek.results,
-      averageHttpSuccessRate,
       averageUrlFinderSuccessRate,
     );
   }
@@ -189,12 +172,6 @@ export class RetrievabilityHistogramWeekResults {
 
 export class RetrievabilityWeek {
   @ApiProperty({
-    description: 'Last full week average HTTP retrievability success rate',
-    nullable: true,
-  })
-  averageHttpSuccessRate: number | null;
-
-  @ApiProperty({
     description:
       'Last full week average URL Finder retrievability success rate',
     nullable: true,
@@ -205,11 +182,9 @@ export class RetrievabilityWeek {
   histogram: RetrievabilityHistogramWeekResults;
 
   constructor(
-    averageHttpSuccessRate: number | null,
     averageUrlFinderSuccessRate: number | null,
     histogram: RetrievabilityHistogramWeekResults,
   ) {
-    this.averageHttpSuccessRate = averageHttpSuccessRate;
     this.averageUrlFinderSuccessRate = averageUrlFinderSuccessRate;
     this.histogram = histogram;
   }

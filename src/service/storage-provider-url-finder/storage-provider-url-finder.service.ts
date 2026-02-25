@@ -365,7 +365,7 @@ export class StorageProviderUrlFinderService {
                 data: snapshotData.metricValues
                   ?.map((metric) => {
                     const metricId = metricIdByType.get(metric.metricType);
-                    if (!metricId || metric.value == null) return null;
+                    if (!metricId) return null;
 
                     return {
                       metric_id: metricId,
