@@ -12,9 +12,9 @@ import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   SliStorageProviderMetricData,
-  StorageProviderMetricHistogramDailyResponse,
-  StorageProviderMetricHistogramDay,
-  StorageProviderMetricHistogramResult,
+  StorageProviderResultCodeMetricHistogramDailyResponse,
+  StorageProviderResultCodeMetricHistogramDay,
+  StorageProviderResultCodeMetricHistogramResult,
   StorageProviderUrlFinderDailySnapshot,
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderDataResponse,
@@ -209,6 +209,8 @@ export class StorageProviderUrlFinderService {
       [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]:
         'RPA Retrievability',
       [StorageProviderUrlFinderMetricType.BANDWIDTH]: 'Bandwith',
+      [StorageProviderUrlFinderMetricType.CAR_FILES]:
+        'CAR files Retrievability',
     };
 
     return METRIC_NAME[storageProviderMetric];
@@ -226,6 +228,8 @@ export class StorageProviderUrlFinderService {
         'RPA Retrievability percentage',
       [StorageProviderUrlFinderMetricType.BANDWIDTH]:
         'Download bandwidth in Mbps',
+      [StorageProviderUrlFinderMetricType.CAR_FILES]:
+        'CAR files retrievability percentage',
     };
 
     return METRIC_DESCRIPTION[storageProviderMetric];
@@ -241,6 +245,7 @@ export class StorageProviderUrlFinderService {
       [StorageProviderUrlFinderMetricType.TTFB]: 'ms',
       [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]: '%',
       [StorageProviderUrlFinderMetricType.BANDWIDTH]: 'Mbps',
+      [StorageProviderUrlFinderMetricType.CAR_FILES]: '%',
     };
 
     return METRIC_UNIT[storageProviderMetric];
@@ -360,7 +365,7 @@ export class StorageProviderUrlFinderService {
                 data: snapshotData.metricValues
                   ?.map((metric) => {
                     const metricId = metricIdByType.get(metric.metricType);
-                    if (!metricId || metric.value == null) return null;
+                    if (!metricId) return null;
 
                     return {
                       metric_id: metricId,
@@ -433,7 +438,7 @@ export class StorageProviderUrlFinderService {
       tested_at: Date;
       result_code: StorageProviderUrlFinderMetricResultCodeType;
     }[],
-  ): StorageProviderMetricHistogramDailyResponse {
+  ): StorageProviderResultCodeMetricHistogramDailyResponse {
     const groupedByDay = groupBy(snapshots, (row) =>
       DateTime.fromJSDate(row.tested_at).toUTC().startOf('day'),
     );
@@ -457,14 +462,14 @@ export class StorageProviderUrlFinderService {
       const results = Object.entries(counts).map(([code, count]) => {
         const percentage = total ? count / total : 0;
 
-        return new StorageProviderMetricHistogramResult(
+        return new StorageProviderResultCodeMetricHistogramResult(
           code,
           count,
           stringToNumber(percentage.toFixed(4)),
         );
       });
 
-      return new StorageProviderMetricHistogramDay(
+      return new StorageProviderResultCodeMetricHistogramDay(
         new Date(dayIso),
         total,
         results,
@@ -473,83 +478,10 @@ export class StorageProviderUrlFinderService {
 
     days.sort((a, b) => a.day.getTime() - b.day.getTime());
 
-    return new StorageProviderMetricHistogramDailyResponse(
+    return new StorageProviderResultCodeMetricHistogramDailyResponse(
       snapshots.length,
       days,
       this.RESULT_CODE_META,
-    );
-  }
-
-  public async generateMetricsDailyHistogram(
-    metric_values: {
-      provider: string;
-      tested_at: Date;
-      value: number;
-      metric: {
-        metric_type: StorageProviderUrlFinderMetricType;
-        name: string;
-        description: string;
-      };
-    }[],
-  ): Promise<StorageProviderMetricHistogramDailyResponse> {
-    const groupedByDay = groupBy(metric_values, (row) =>
-      DateTime.fromJSDate(row.tested_at).toUTC().startOf('day'),
-    );
-
-    const metricsMetadata: Record<
-      string,
-      {
-        name: string;
-        description: string;
-      }
-    > = (
-      await this.prismaService.storage_provider_url_finder_metric.findMany()
-    ).reduce((acc, metric) => {
-      acc[metric.metric_type] = {
-        name: metric.name,
-        description: metric.description,
-      };
-      return acc;
-    }, {});
-
-    const days = Object.entries(groupedByDay).map(([dayIso, metricValues]) => {
-      const total = metricValues.length;
-
-      const counts = metricValues.reduce(
-        (
-          acc: Partial<Record<StorageProviderUrlFinderMetricType, number>>,
-          metricValue,
-        ) => {
-          acc[metricValue.metric.metric_type] =
-            (acc[metricValue.metric.metric_type] ?? 0) + 1;
-          return acc;
-        },
-        {},
-      );
-
-      const results = Object.entries(counts).map(([code, count]) => {
-        const percentage = total ? count / total : 0;
-
-        return new StorageProviderMetricHistogramResult(
-          code,
-          count,
-          stringToNumber(percentage.toFixed(4)),
-        );
-      });
-
-      return new StorageProviderMetricHistogramDay(
-        new Date(dayIso),
-        total,
-        results,
-      );
-    });
-
-    days.sort((a, b) => a.day.getTime() - b.day.getTime());
-
-    return new StorageProviderMetricHistogramDailyResponse(
-      metric_values.length,
-      days,
-      metricsMetadata,
     );
   }
 }

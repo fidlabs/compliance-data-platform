@@ -101,6 +101,7 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
               const {
                 provider_id,
                 retrievability_percent,
+                car_files_percent,
                 tested_at,
                 performance,
                 diagnostics,
@@ -111,7 +112,6 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                 new Date(tested_at),
               );
 
-              // keep always RPA retreavability
               const metrics: StorageProviderUrlFinderMetricValue[] = [
                 {
                   metricType:
@@ -120,6 +120,12 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                     retrievability_percent != null
                       ? retrievability_percent / 100
                       : null,
+                  testedAt: new Date(tested_at),
+                },
+                {
+                  metricType: StorageProviderUrlFinderMetricType.CAR_FILES,
+                  value:
+                    car_files_percent != null ? car_files_percent / 100 : null,
                   testedAt: new Date(tested_at),
                 },
 

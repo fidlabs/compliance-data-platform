@@ -566,6 +566,7 @@ enum StorageProviderUrlFinderMetricType {
   TTFB
   RPA_RETRIEVABILITY
   BANDWIDTH
+  CAR_FILES
 }
 
 enum StorageProviderUrlFinderMetricResultCodeType {

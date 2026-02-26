@@ -1,15 +1,22 @@
 import { CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { groupBy } from 'lodash';
 import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
-import { getUrlFinderProviderMetricWeeklyAcc } from 'prisma/generated/client/sql';
+import {
+  getAvailableInconsistentAndConsistentRetrievability,
+  getUrlFinderProviderAverageMetricWeekly,
+  getUrlFinderProviderMetricWeeklyAcc,
+} from 'prisma/generated/client/sql';
 import { DataType } from 'src/controller/allocators/types.allocators';
 import { FilPlusEditionControllerBase } from 'src/controller/base/filplus-edition-controller-base';
 import { FilPlusEditionRequest } from 'src/controller/base/types.filplus-edition-controller-base';
 import { StorageProviderComplianceMetricsRequest } from 'src/controller/storage-providers/types.storage-providers';
 import { PrismaService } from 'src/db/prisma.service';
 import {
+  HistogramBase,
+  HistogramBaseResults,
+  HistogramDateValueResults,
   HistogramTotalDatacap,
   HistogramWeek,
   HistogramWeekResults,
@@ -21,14 +28,17 @@ import {
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
-import { StorageProviderMetricHistogramDailyResponse } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
+import {
+  StorageProviderResultCodeMetricHistogramDailyResponse,
+  StorageProviderSimpleMetricHistogramWeeklyResponse,
+} from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
 import { bigIntToNumber, stringToBool, stringToDate } from 'src/utils/utils';
-import { GetRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import { GetStorageProviderRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 import {
   UrlFinderStorageProviderMetricBaseRequest,
   UrlFinderStorageProviderMetricTypeRequest,
@@ -69,11 +79,12 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   @Get('retrievability')
   @ApiOkResponse({ type: RetrievabilityWeek })
   public async getProviderRetrievabilityWeekly(
-    @Query() query: GetRetrievabilityWeeklyRequest,
+    @Query() query: GetStorageProviderRetrievabilityWeeklyRequest,
   ): Promise<RetrievabilityWeek> {
     return await this.storageProviderService.getProviderRetrievabilityWeekly(
       this.getFilPlusEditionFromRequest(query),
       stringToBool(query?.openDataOnly) ? DataType.openData : null,
+      query?.retrievabilityType,
     );
   }
 
@@ -125,7 +136,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   })
   public async getStorageProvidersUrlFinderRetrievalCodesData(
     @Query() query: UrlFinderStorageProviderMetricBaseRequest,
-  ): Promise<StorageProviderMetricHistogramDailyResponse> {
+  ): Promise<StorageProviderResultCodeMetricHistogramDailyResponse> {
     const metrics =
       await this.storageProviderUrlFinderService.getUrlFinderSnapshotsForProviders(
         query?.startDate ? stringToDate(query?.startDate) : undefined,
@@ -140,11 +151,11 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     return result;
   }
 
-  @Get('/rpa/metric/')
+  @Get('/rpa/metric')
   @ApiOperation({
     summary: 'Get RPA metrics for storage providers',
   })
-  public async getStorageProvidersUrlFinderMetricData(
+  public async getStorageProvidersUrlFinderStandardMetricData(
     @Query() query: UrlFinderStorageProviderMetricTypeRequest,
   ): Promise<HistogramWeek> {
     const startDate = query?.startDate
@@ -204,5 +215,143 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     );
 
     return new HistogramWeek(totalAcrossAllWeeks, weekResults);
+  }
+
+  @Get(':provider/rpa/metric')
+  @ApiOkResponse({ type: RetrievabilityWeek })
+  public async getUrlFinderMetricForProvider(
+    @Param('provider') provider: string,
+    @Query() query: UrlFinderStorageProviderMetricTypeRequest,
+  ): Promise<StorageProviderSimpleMetricHistogramWeeklyResponse> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+
+    const avgMetricValueByWeek = await this.prismaService.$queryRawTyped(
+      getUrlFinderProviderAverageMetricWeekly(
+        query.metricType,
+        provider,
+        startDate,
+        endDate,
+      ),
+    );
+
+    const result = avgMetricValueByWeek.map((r) => {
+      return new HistogramDateValueResults(r.week, r.avg_value);
+    });
+
+    const metricDate =
+      await this.prismaService.storage_provider_url_finder_metric.findUnique({
+        where: {
+          metric_type: query.metricType as StorageProviderUrlFinderMetricType,
+        },
+      });
+
+    return new StorageProviderSimpleMetricHistogramWeeklyResponse(
+      {
+        metricName: metricDate?.metric_type || query.metricType,
+        metricDescription: metricDate?.description || '',
+        metricUnit: metricDate?.unit || '',
+      },
+      result,
+    );
+  }
+
+  @Get('/rpa/metric/consistent')
+  @ApiOperation({
+    summary: 'Get AIR and ACR metrics for storage providers',
+  })
+  public async getStorageProvidersCalculatedMetric(
+    @Query() query: UrlFinderStorageProviderMetricBaseRequest,
+  ): Promise<{
+    AIR: {
+      metadata: {
+        name: string;
+        description: string;
+      };
+      dailyMetrics: HistogramBaseResults[];
+    };
+    ACR: {
+      metadata: {
+        name: string;
+        description: string;
+      };
+      dailyMetrics: HistogramBaseResults[];
+    };
+  }> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+
+    const metricValues = await this.prismaService.$queryRawTyped(
+      getAvailableInconsistentAndConsistentRetrievability(startDate, endDate),
+    );
+
+    const groupedByMetrics = groupBy(metricValues, (r) => r.metric);
+
+    const airMetric = groupedByMetrics['AIR'];
+    const acrMetric = groupedByMetrics['ACR'];
+
+    const airByDay = groupBy(airMetric, (r) => r.day.toISOString());
+    const acrByDay = groupBy(acrMetric, (r) => r.day.toISOString());
+
+    const airHistogramByDay = Object.entries(airByDay).map(([day, dayRows]) => {
+      const total = dayRows.reduce(
+        (sum, r) => sum + bigIntToNumber(r.providers_count),
+        0,
+      );
+
+      const histograms = dayRows.map(
+        (r) =>
+          new HistogramBase(
+            r.valueFromExclusive.toNumber(),
+            r.valueToInclusive.toNumber(),
+            bigIntToNumber(r.providers_count),
+          ),
+      );
+
+      return new HistogramBaseResults(new Date(day), total, histograms);
+    });
+
+    const acrHistogramByDay = Object.entries(acrByDay).map(([day, dayRows]) => {
+      const total = dayRows.reduce(
+        (sum, r) => sum + bigIntToNumber(r.providers_count),
+        0,
+      );
+
+      const histograms = dayRows.map(
+        (r) =>
+          new HistogramBase(
+            r.valueFromExclusive.toNumber(),
+            r.valueToInclusive.toNumber(),
+            bigIntToNumber(r.providers_count),
+          ),
+      );
+
+      return new HistogramBaseResults(new Date(day), total, histograms);
+    });
+
+    return {
+      ACR: {
+        metadata: {
+          name: 'Available Consistent Retrievability',
+          description:
+            'Number of storage providers including only the CAR files',
+        },
+        dailyMetrics: acrHistogramByDay,
+      },
+      AIR: {
+        metadata: {
+          name: 'Available Inconsistent Retrievability',
+          description:
+            'Number of storage providers excluding the CAR files (other available files that are not CAR files)',
+        },
+        dailyMetrics: airHistogramByDay,
+      },
+    };
   }
 }

@@ -708,9 +708,6 @@ export class AllocatorService {
       );
 
     return new RetrievabilityWeek(
-      lastWeekAverageRetrievability?.http
-        ? lastWeekAverageRetrievability.http * 100
-        : null,
       lastWeekAverageRetrievability?.urlFinder
         ? lastWeekAverageRetrievability.urlFinder * 100
         : null,
@@ -730,7 +727,6 @@ export class AllocatorService {
 
             return RetrievabilityHistogramWeek.of(
               histogramWeek,
-              retrievability.http ? retrievability.http * 100 : null,
               retrievability.urlFinder ? retrievability.urlFinder * 100 : null,
             );
           }),

@@ -3,6 +3,7 @@ import {
   StorageProviderUrlFinderMetricResultCodeType,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
+import { HistogramDateValueResults } from '../histogram-helper/types.histogram-helper';
 
 export type SliStorageProviderMetricData = {
   providerId: string;
@@ -13,6 +14,12 @@ export type SliStorageProviderMetricData = {
 export type SliStorageProviderMetricChunkData = SliStorageProviderMetricData & {
   metricType: string;
 };
+
+export enum StorageProviderRetrievabilityType {
+  RPA = 'RPA',
+  CONSISTENT = 'CONSISTENT',
+  INCONSISTENT = 'INCONSISTENT',
+}
 
 export interface UrlFinderStorageProviderBandwidthData {
   status: string;
@@ -42,6 +49,7 @@ export interface UrlFinderStorageProviderData {
   client_id: string | null;
   working_url: string | null;
   retrievability_percent: number;
+  car_files_percent: number | null;
   tested_at: string;
   performance: UrlFinderStorageProviderPerformanceData;
 }
@@ -73,9 +81,10 @@ export interface StorageProviderUrlFinderDailySnapshot {
   metricValues?: StorageProviderUrlFinderMetricValue[];
 }
 
-export class StorageProviderMetricHistogramResult {
+export class StorageProviderResultCodeMetricHistogramResult {
   @ApiProperty({
     example: 'TIMEOUT',
+    description: 'Metric code representing the result',
   })
   code: string;
 
@@ -98,7 +107,7 @@ export class StorageProviderMetricHistogramResult {
   }
 }
 
-export class StorageProviderMetricHistogramDay {
+export class StorageProviderResultCodeMetricHistogramDay {
   @ApiProperty({
     type: String,
     format: 'date-time',
@@ -113,15 +122,15 @@ export class StorageProviderMetricHistogramDay {
   total: number;
 
   @ApiProperty({
-    type: StorageProviderMetricHistogramResult,
+    type: StorageProviderResultCodeMetricHistogramResult,
     isArray: true,
   })
-  results: StorageProviderMetricHistogramResult[];
+  results: StorageProviderResultCodeMetricHistogramResult[];
 
   constructor(
     day: Date,
     total: number,
-    results: StorageProviderMetricHistogramResult[],
+    results: StorageProviderResultCodeMetricHistogramResult[],
   ) {
     this.day = day;
     this.total = total;
@@ -129,7 +138,7 @@ export class StorageProviderMetricHistogramDay {
   }
 }
 
-export class StorageProviderMetricHistogramDailyResponse {
+export class StorageProviderResultCodeMetricHistogramDailyResponse {
   @ApiProperty({
     type: Object,
     description: 'Metadata of metric codes to their descriptions and names',
@@ -148,18 +157,48 @@ export class StorageProviderMetricHistogramDailyResponse {
   total: number;
 
   @ApiProperty({
-    type: StorageProviderMetricHistogramDay,
+    type: StorageProviderResultCodeMetricHistogramDay,
     isArray: true,
   })
-  days: StorageProviderMetricHistogramDay[];
+  days: StorageProviderResultCodeMetricHistogramDay[];
 
   constructor(
     total: number,
-    days: StorageProviderMetricHistogramDay[],
+    days: StorageProviderResultCodeMetricHistogramDay[],
     metadata: Record<string, { name: string; description: string }>,
   ) {
     this.total = total;
     this.days = days;
     this.metadata = metadata;
+  }
+}
+
+export class StorageProviderSimpleMetricHistogramWeeklyResponse {
+  @ApiProperty({
+    type: Object,
+    description: 'Metadata of metric codes to their description, name and unit',
+  })
+  metadata: {
+    metricName: string;
+    metricDescription: string;
+    metricUnit: string;
+  };
+
+  @ApiProperty({
+    type: HistogramDateValueResults,
+    isArray: true,
+  })
+  results: HistogramDateValueResults[];
+
+  constructor(
+    metadata: {
+      metricName: string;
+      metricDescription: string;
+      metricUnit: string;
+    },
+    dates: HistogramDateValueResults[],
+  ) {
+    this.metadata = metadata;
+    this.results = dates;
   }
 }
