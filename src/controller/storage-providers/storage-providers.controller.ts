@@ -1,7 +1,11 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DateTime } from 'luxon';
+import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
+import { FilscanService } from 'src/service/filscan/filscan.service';
+import { FilscanAccountInfoByID } from 'src/service/filscan/types.filscan';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
@@ -10,6 +14,7 @@ import {
 import { Cacheable } from 'src/utils/cacheable';
 import { bigIntDiv, lastWeek, stringToDate } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
+import { DashboardStatisticValue } from '../base/types.controller-base';
 import {
   GetStorageProviderFilscanInfoRequest,
   GetStorageProvidersRequest,
@@ -21,11 +26,6 @@ import {
   StorageProvidersDashboardStatistic,
   StorageProvidersDashboardStatisticType,
 } from './types.storage-providers';
-import { DashboardStatisticValue } from '../base/types.controller-base';
-import { DateTime } from 'luxon';
-import { FilscanAccountInfoByID } from 'src/service/filscan/types.filscan';
-import { FilscanService } from 'src/service/filscan/filscan.service';
-import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 
 const highUrlFinderRetrievabilityThreshold = 0.7;
 const dashboardStatisticsTitleDict: Record<
@@ -457,62 +457,71 @@ export class StorageProvidersController extends ControllerBase {
 
   @Get('/sli-data')
   @ApiOperation({
-    summary: 'Get SLI data for storage providers',
+    summary: 'Get last SLI data for storage providers',
   })
   @ApiOkResponse({
-    description: 'SLI data for storage providers',
+    description: 'The last SLI data for storage providers',
     type: GetStorageProvidersSLIDataResponse,
     isArray: true,
   })
-  public async getStorageProvidersSLIData(
+  public async getLastStorageProvidersSLIData(
     @Query() query: GetStorageProvidersSLIDataRequest,
   ): Promise<GetStorageProvidersSLIDataResponse[]> {
     if (typeof query.storageProvidersIds === 'string') {
       query.storageProvidersIds = [query.storageProvidersIds];
     }
 
-    const sliMetrics = await this.prismaService.storage_provider_sli.findMany({
-      where: {
-        provider_id: {
-          in: query.storageProvidersIds,
-        },
-      },
-      orderBy: [
-        { provider_id: 'asc' },
-        { metric_id: 'asc' },
-        { update_date: 'desc' },
-      ],
-      distinct: ['provider_id', 'metric_id'],
-      select: {
-        provider_id: true,
-        metric: {
+    const metricValues =
+      await this.prismaService.storage_provider_url_finder_metric_value.findMany(
+        {
+          where: {
+            provider: {
+              in: query.storageProvidersIds,
+            },
+          },
+          orderBy: [
+            { provider: 'asc' },
+            { metric_id: 'asc' },
+            { tested_at: 'desc' },
+          ],
+          distinct: ['provider', 'metric_id'],
           select: {
-            metric_type: true,
-            name: true,
-            description: true,
-            unit: true,
+            provider: true,
+            metric_id: true,
+            tested_at: true,
+            value: true,
+            metric: {
+              select: {
+                id: true,
+                metric_type: true,
+                name: true,
+                description: true,
+                unit: true,
+              },
+            },
           },
         },
-        value: true,
-        update_date: true,
-      },
-    });
+      );
 
-    return query.storageProvidersIds.map((storageProviderId) => ({
-      storageProviderId: storageProviderId,
-      storageProviderName: null, // TODO
-      data: sliMetrics
-        .filter((metric) => metric.provider_id === storageProviderId)
-        .map((metricData) => {
-          return {
-            sliMetric: metricData.metric.metric_type,
-            sliMetricName: metricData.metric.name,
-            sliMetricValue: metricData.value.toString(),
-            sliMetricDescription: metricData.metric.description,
-            sliMetricUnit: metricData.metric.unit,
-            updatedAt: metricData.update_date,
-          };
-        }),
-    }));
+    const sliDataResponse = query.storageProvidersIds.map(
+      (storageProviderId) => ({
+        storageProviderId: storageProviderId,
+        storageProviderName: null, // TODO
+        data: metricValues
+          .filter((metric) => metric.provider === storageProviderId)
+          .map((metricData) => {
+            return {
+              sliMetric: metricData.metric.metric_type,
+              sliMetricName: metricData.metric.name,
+              sliMetricValue: metricData.value.toString(),
+              sliMetricDescription: metricData.metric.description,
+              sliMetricUnit: metricData.metric.unit,
+              updatedAt: metricData.tested_at,
+            };
+          }),
+      }),
+    );
+
+    return sliDataResponse;
   }
 }
