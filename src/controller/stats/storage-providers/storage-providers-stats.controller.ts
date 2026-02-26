@@ -1,10 +1,11 @@
 import { CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { groupBy } from 'lodash';
 import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
 import {
   getAvailableInconsistentAndConsistentRetrievability,
+  getUrlFinderProviderAverageMetricWeekly,
   getUrlFinderProviderMetricWeeklyAcc,
 } from 'prisma/generated/client/sql';
 import { DataType } from 'src/controller/allocators/types.allocators';
@@ -15,6 +16,7 @@ import { PrismaService } from 'src/db/prisma.service';
 import {
   HistogramBase,
   HistogramBaseResults,
+  HistogramDateValueResults,
   HistogramTotalDatacap,
   HistogramWeek,
   HistogramWeekResults,
@@ -26,18 +28,21 @@ import {
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
-import { StorageProviderMetricHistogramDailyResponse } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
+import {
+  StorageProviderResultCodeMetricHistogramDailyResponse,
+  StorageProviderSimpleMetricHistogramWeeklyResponse,
+} from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
 import { bigIntToNumber, stringToBool, stringToDate } from 'src/utils/utils';
+import { GetStorageProviderRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 import {
   UrlFinderStorageProviderMetricBaseRequest,
   UrlFinderStorageProviderMetricTypeRequest,
 } from './types.storage-providers-stats';
-import { GetStorageProviderRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -131,7 +136,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
   })
   public async getStorageProvidersUrlFinderRetrievalCodesData(
     @Query() query: UrlFinderStorageProviderMetricBaseRequest,
-  ): Promise<StorageProviderMetricHistogramDailyResponse> {
+  ): Promise<StorageProviderResultCodeMetricHistogramDailyResponse> {
     const metrics =
       await this.storageProviderUrlFinderService.getUrlFinderSnapshotsForProviders(
         query?.startDate ? stringToDate(query?.startDate) : undefined,
@@ -210,6 +215,48 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     );
 
     return new HistogramWeek(totalAcrossAllWeeks, weekResults);
+  }
+
+  @Get(':provider/rpa/metric')
+  @ApiOkResponse({ type: RetrievabilityWeek })
+  public async getUrlFinderMetricForProvider(
+    @Param('provider') provider: string,
+    @Query() query: UrlFinderStorageProviderMetricTypeRequest,
+  ): Promise<StorageProviderSimpleMetricHistogramWeeklyResponse> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+
+    const avgMetricValueByWeek = await this.prismaService.$queryRawTyped(
+      getUrlFinderProviderAverageMetricWeekly(
+        query.metricType,
+        provider,
+        startDate,
+        endDate,
+      ),
+    );
+
+    const result = avgMetricValueByWeek.map((r) => {
+      return new HistogramDateValueResults(r.week, r.avg_value);
+    });
+
+    const metricDate =
+      await this.prismaService.storage_provider_url_finder_metric.findUnique({
+        where: {
+          metric_type: query.metricType as StorageProviderUrlFinderMetricType,
+        },
+      });
+
+    return new StorageProviderSimpleMetricHistogramWeeklyResponse(
+      {
+        metricName: metricDate?.metric_type || query.metricType,
+        metricDescription: metricDate?.description || '',
+        metricUnit: metricDate?.unit || '',
+      },
+      result,
+    );
   }
 
   @Get('/rpa/metric/consistent')

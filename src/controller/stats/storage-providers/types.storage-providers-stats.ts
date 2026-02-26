@@ -1,5 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
+
+export enum StorageProviderUrlFinderMetricTypeRequestEnum {
+  TTFB = 'TTFB',
+  BANDWIDTH = 'BANDWIDTH',
+  RPA_RETRIEVABILITY = 'RPA_RETRIEVABILITY',
+  CONSISTENT_RETRIEVABILITY = 'CONSISTENT_RETRIEVABILITY',
+  INCONSISTENT_RETRIEVABILITY = 'INCONSISTENT_RETRIEVABILITY',
+}
 
 export class UrlFinderStorageProviderMetricBaseRequest {
   @ApiPropertyOptional({
@@ -20,8 +27,8 @@ export class UrlFinderStorageProviderMetricBaseRequest {
 export class UrlFinderStorageProviderMetricTypeRequest extends UrlFinderStorageProviderMetricBaseRequest {
   @ApiPropertyOptional({
     description: 'Compliance score to filter by',
-    enum: StorageProviderUrlFinderMetricType,
-    example: StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY,
+    enum: StorageProviderUrlFinderMetricTypeRequestEnum,
+    example: StorageProviderUrlFinderMetricTypeRequestEnum.TTFB,
   })
-  metricType: StorageProviderUrlFinderMetricType;
+  metricType: StorageProviderUrlFinderMetricTypeRequestEnum;
 }

@@ -1,5 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export class HistogramDateValueResults {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
+  })
+  date: Date;
+
+  @ApiProperty({
+    description: 'Histogram value (e.g. value of metric)',
+  })
+  value: number;
+
+  constructor(date: Date, value: number) {
+    this.date = date;
+    this.value = value;
+  }
+}
+
 export class HistogramBase {
   @ApiProperty({
     description: 'Bucket (valueFromExclusive, valueToInclusive> starting value',

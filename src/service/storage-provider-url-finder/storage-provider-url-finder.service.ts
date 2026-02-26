@@ -12,9 +12,9 @@ import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
 import {
   SliStorageProviderMetricData,
-  StorageProviderMetricHistogramDailyResponse,
-  StorageProviderMetricHistogramDay,
-  StorageProviderMetricHistogramResult,
+  StorageProviderResultCodeMetricHistogramDailyResponse,
+  StorageProviderResultCodeMetricHistogramDay,
+  StorageProviderResultCodeMetricHistogramResult,
   StorageProviderUrlFinderDailySnapshot,
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderDataResponse,
@@ -438,7 +438,7 @@ export class StorageProviderUrlFinderService {
       tested_at: Date;
       result_code: StorageProviderUrlFinderMetricResultCodeType;
     }[],
-  ): StorageProviderMetricHistogramDailyResponse {
+  ): StorageProviderResultCodeMetricHistogramDailyResponse {
     const groupedByDay = groupBy(snapshots, (row) =>
       DateTime.fromJSDate(row.tested_at).toUTC().startOf('day'),
     );
@@ -462,14 +462,14 @@ export class StorageProviderUrlFinderService {
       const results = Object.entries(counts).map(([code, count]) => {
         const percentage = total ? count / total : 0;
 
-        return new StorageProviderMetricHistogramResult(
+        return new StorageProviderResultCodeMetricHistogramResult(
           code,
           count,
           stringToNumber(percentage.toFixed(4)),
         );
       });
 
-      return new StorageProviderMetricHistogramDay(
+      return new StorageProviderResultCodeMetricHistogramDay(
         new Date(dayIso),
         total,
         results,
@@ -478,7 +478,7 @@ export class StorageProviderUrlFinderService {
 
     days.sort((a, b) => a.day.getTime() - b.day.getTime());
 
-    return new StorageProviderMetricHistogramDailyResponse(
+    return new StorageProviderResultCodeMetricHistogramDailyResponse(
       snapshots.length,
       days,
       this.RESULT_CODE_META,
