@@ -1,8 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  StorageProviderUrlFinderMetricResultCodeType,
-  StorageProviderUrlFinderMetricType,
-} from 'prisma/generated/client';
+import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
+import { HistogramDateValueResults } from '../histogram-helper/types.histogram-helper';
+
+export enum StorageProviderUrlFinderBaseMetricType {
+  TTFB = 'TTFB',
+  BANDWIDTH = 'BANDWIDTH',
+  CAR_FILES = 'CAR_FILES',
+  RPA_RETRIEVABILITY = 'RPA_RETRIEVABILITY',
+}
+
+export enum StorageProviderUrlFinderCustomMetricType {
+  CONSISTENT_RETRIEVABILITY = 'CONSISTENT_RETRIEVABILITY',
+  INCONSISTENT_RETRIEVABILITY = 'INCONSISTENT_RETRIEVABILITY',
+}
+
+export type StorageProviderUrlFinderMetricType =
+  | StorageProviderUrlFinderBaseMetricType
+  | StorageProviderUrlFinderCustomMetricType;
 
 export type SliStorageProviderMetricData = {
   providerId: string;
@@ -67,7 +81,7 @@ export interface UrlFinderStorageProviderDataResponse extends UrlFinderStoragePr
 }
 
 export interface StorageProviderUrlFinderMetricValue {
-  metricType: StorageProviderUrlFinderMetricType;
+  metricType: StorageProviderUrlFinderBaseMetricType;
   value?: number;
   testedAt?: Date;
 }
@@ -80,7 +94,7 @@ export interface StorageProviderUrlFinderDailySnapshot {
   metricValues?: StorageProviderUrlFinderMetricValue[];
 }
 
-export class StorageProviderMetricHistogramResult {
+export class StorageProviderResultCodeMetricHistogramResult {
   @ApiProperty({
     example: 'TIMEOUT',
     description: 'Metric code representing the result',
@@ -106,7 +120,7 @@ export class StorageProviderMetricHistogramResult {
   }
 }
 
-export class StorageProviderMetricHistogramDay {
+export class StorageProviderResultCodeMetricHistogramDay {
   @ApiProperty({
     type: String,
     format: 'date-time',
@@ -121,15 +135,15 @@ export class StorageProviderMetricHistogramDay {
   total: number;
 
   @ApiProperty({
-    type: StorageProviderMetricHistogramResult,
+    type: StorageProviderResultCodeMetricHistogramResult,
     isArray: true,
   })
-  results: StorageProviderMetricHistogramResult[];
+  results: StorageProviderResultCodeMetricHistogramResult[];
 
   constructor(
     day: Date,
     total: number,
-    results: StorageProviderMetricHistogramResult[],
+    results: StorageProviderResultCodeMetricHistogramResult[],
   ) {
     this.day = day;
     this.total = total;
@@ -137,7 +151,7 @@ export class StorageProviderMetricHistogramDay {
   }
 }
 
-export class StorageProviderMetricHistogramDailyResponse {
+export class StorageProviderResultCodeMetricHistogramDailyResponse {
   @ApiProperty({
     type: Object,
     description: 'Metadata of metric codes to their descriptions and names',
@@ -156,18 +170,48 @@ export class StorageProviderMetricHistogramDailyResponse {
   total: number;
 
   @ApiProperty({
-    type: StorageProviderMetricHistogramDay,
+    type: StorageProviderResultCodeMetricHistogramDay,
     isArray: true,
   })
-  days: StorageProviderMetricHistogramDay[];
+  days: StorageProviderResultCodeMetricHistogramDay[];
 
   constructor(
     total: number,
-    days: StorageProviderMetricHistogramDay[],
+    days: StorageProviderResultCodeMetricHistogramDay[],
     metadata: Record<string, { name: string; description: string }>,
   ) {
     this.total = total;
     this.days = days;
     this.metadata = metadata;
+  }
+}
+
+export class StorageProviderSimpleMetricHistogramWeeklyResponse {
+  @ApiProperty({
+    type: Object,
+    description: 'Metadata of metric codes to their description, name and unit',
+  })
+  metadata: {
+    metricName: string;
+    metricDescription: string;
+    metricUnit: string;
+  };
+
+  @ApiProperty({
+    type: HistogramDateValueResults,
+    isArray: true,
+  })
+  results: HistogramDateValueResults[];
+
+  constructor(
+    metadata: {
+      metricName: string;
+      metricDescription: string;
+      metricUnit: string;
+    },
+    dates: HistogramDateValueResults[],
+  ) {
+    this.metadata = metadata;
+    this.results = dates;
   }
 }

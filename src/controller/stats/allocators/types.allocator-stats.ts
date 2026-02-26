@@ -16,7 +16,7 @@ export class GetAllocatorRetrievabilityWeeklyRequest extends BaseRetrievabilityW
 export class GetStorageProviderRetrievabilityWeeklyRequest extends BaseRetrievabilityWeeklyRequest {
   @ApiPropertyOptional({
     description:
-      'Flag to show retrevability type; default is RPA; possible values are RPA, CONSISTENT and INCONSISTENT',
+      'Flag to show retrievability type; default is RPA; possible values are RPA, CONSISTENT and INCONSISTENT',
     enum: StorageProviderRetrievabilityType,
     default: StorageProviderRetrievabilityType.RPA,
   })

@@ -3,24 +3,28 @@ import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
+import { DateTime } from 'luxon';
 import {
   StorageProviderSliMetricType,
   StorageProviderUrlFinderMetricResultCodeType,
-  StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
+import { getUrlFinderProviderAverageMetricWeekly } from 'prisma/generated/client/sql';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
+import { stringToNumber } from 'src/utils/utils';
+import { HistogramDateValueResults } from '../histogram-helper/types.histogram-helper';
 import {
   SliStorageProviderMetricData,
-  StorageProviderMetricHistogramDailyResponse,
-  StorageProviderMetricHistogramDay,
-  StorageProviderMetricHistogramResult,
+  StorageProviderResultCodeMetricHistogramDailyResponse,
+  StorageProviderResultCodeMetricHistogramDay,
+  StorageProviderResultCodeMetricHistogramResult,
+  StorageProviderUrlFinderBaseMetricType,
+  StorageProviderUrlFinderCustomMetricType,
   StorageProviderUrlFinderDailySnapshot,
+  StorageProviderUrlFinderMetricType,
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderDataResponse,
 } from './types.storage-provider-url-finder.service';
-import { stringToNumber } from 'src/utils/utils';
-import { DateTime } from 'luxon';
 
 @Injectable()
 export class StorageProviderUrlFinderService {
@@ -199,17 +203,17 @@ export class StorageProviderUrlFinderService {
   }
 
   private getMetricName(
-    storageProviderMetric: StorageProviderUrlFinderMetricType,
+    storageProviderMetric: StorageProviderUrlFinderBaseMetricType,
   ) {
     const METRIC_NAME: Record<
-      keyof typeof StorageProviderUrlFinderMetricType,
+      keyof typeof StorageProviderUrlFinderBaseMetricType,
       string
     > = {
-      [StorageProviderUrlFinderMetricType.TTFB]: 'TTFB',
-      [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]:
+      [StorageProviderUrlFinderBaseMetricType.TTFB]: 'TTFB',
+      [StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY]:
         'RPA Retrievability',
-      [StorageProviderUrlFinderMetricType.BANDWIDTH]: 'Bandwith',
-      [StorageProviderUrlFinderMetricType.CAR_FILES]:
+      [StorageProviderUrlFinderBaseMetricType.BANDWIDTH]: 'Bandwidth',
+      [StorageProviderUrlFinderBaseMetricType.CAR_FILES]:
         'CAR files Retrievability',
     };
 
@@ -217,18 +221,19 @@ export class StorageProviderUrlFinderService {
   }
 
   private getMetricDescription(
-    storageProviderMetric: StorageProviderUrlFinderMetricType,
+    storageProviderMetric: StorageProviderUrlFinderBaseMetricType,
   ) {
     const METRIC_DESCRIPTION: Record<
-      keyof typeof StorageProviderUrlFinderMetricType,
+      keyof typeof StorageProviderUrlFinderBaseMetricType,
       string
     > = {
-      [StorageProviderUrlFinderMetricType.TTFB]: 'Time to first byte (TTFB)',
-      [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]:
+      [StorageProviderUrlFinderBaseMetricType.TTFB]:
+        'Time to first byte (TTFB)',
+      [StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY]:
         'RPA Retrievability percentage',
-      [StorageProviderUrlFinderMetricType.BANDWIDTH]:
+      [StorageProviderUrlFinderBaseMetricType.BANDWIDTH]:
         'Download bandwidth in Mbps',
-      [StorageProviderUrlFinderMetricType.CAR_FILES]:
+      [StorageProviderUrlFinderBaseMetricType.CAR_FILES]:
         'CAR files retrievability percentage',
     };
 
@@ -236,19 +241,57 @@ export class StorageProviderUrlFinderService {
   }
 
   private getMetricUnit(
-    storageProviderMetric: StorageProviderUrlFinderMetricType,
+    storageProviderMetric: StorageProviderUrlFinderBaseMetricType,
   ) {
     const METRIC_UNIT: Record<
-      keyof typeof StorageProviderUrlFinderMetricType,
+      keyof typeof StorageProviderUrlFinderBaseMetricType,
       string
     > = {
-      [StorageProviderUrlFinderMetricType.TTFB]: 'ms',
-      [StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY]: '%',
-      [StorageProviderUrlFinderMetricType.BANDWIDTH]: 'Mbps',
-      [StorageProviderUrlFinderMetricType.CAR_FILES]: '%',
+      [StorageProviderUrlFinderBaseMetricType.TTFB]: 'ms',
+      [StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY]: '%',
+      [StorageProviderUrlFinderBaseMetricType.BANDWIDTH]: 'Mbps',
+      [StorageProviderUrlFinderBaseMetricType.CAR_FILES]: '%',
     };
 
     return METRIC_UNIT[storageProviderMetric];
+  }
+
+  public getCustomMetricName(
+    customMetricType: StorageProviderUrlFinderCustomMetricType,
+  ) {
+    const CUSTOM_METRIC_NAME: Record<string, string> = {
+      [StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY]:
+        'Consistent Retrievability',
+      [StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY]:
+        'Inconsistent Retrievability',
+    };
+
+    return CUSTOM_METRIC_NAME[customMetricType];
+  }
+
+  public getCustomMetricDescription(
+    customMetricType: StorageProviderUrlFinderCustomMetricType,
+  ) {
+    const CUSTOM_METRIC_DESC: Record<string, string> = {
+      [StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY]:
+        'Consistent Retrievability',
+      [StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY]:
+        'Inconsistent Retrievability',
+    };
+
+    return CUSTOM_METRIC_DESC[customMetricType];
+  }
+
+  public getCustomMetricUnit(
+    customMetricType: StorageProviderUrlFinderCustomMetricType,
+  ) {
+    const CUSTOM_METRIC_DESC: Record<string, string> = {
+      [StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY]: '%',
+      [StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY]:
+        '%',
+    };
+
+    return CUSTOM_METRIC_DESC[customMetricType];
   }
 
   public parseUrlFinderResultCode(
@@ -324,7 +367,7 @@ export class StorageProviderUrlFinderService {
   };
 
   public async ensureUrlFinderMetricTypesExist() {
-    const metricTypes = Object.values(StorageProviderUrlFinderMetricType);
+    const metricTypes = Object.values(StorageProviderUrlFinderBaseMetricType);
 
     for (const metricType of metricTypes) {
       const createOrUpdateMetric = {
@@ -386,7 +429,7 @@ export class StorageProviderUrlFinderService {
   public async getUrlFinderMetricData(
     startDate?: Date,
     endDate?: Date,
-    metricType?: StorageProviderUrlFinderMetricType,
+    metricType?: StorageProviderUrlFinderBaseMetricType,
   ) {
     return await this.prismaService.storage_provider_url_finder_metric_value.findMany(
       {
@@ -438,7 +481,7 @@ export class StorageProviderUrlFinderService {
       tested_at: Date;
       result_code: StorageProviderUrlFinderMetricResultCodeType;
     }[],
-  ): StorageProviderMetricHistogramDailyResponse {
+  ): StorageProviderResultCodeMetricHistogramDailyResponse {
     const groupedByDay = groupBy(snapshots, (row) =>
       DateTime.fromJSDate(row.tested_at).toUTC().startOf('day'),
     );
@@ -462,14 +505,14 @@ export class StorageProviderUrlFinderService {
       const results = Object.entries(counts).map(([code, count]) => {
         const percentage = total ? count / total : 0;
 
-        return new StorageProviderMetricHistogramResult(
+        return new StorageProviderResultCodeMetricHistogramResult(
           code,
           count,
           stringToNumber(percentage.toFixed(4)),
         );
       });
 
-      return new StorageProviderMetricHistogramDay(
+      return new StorageProviderResultCodeMetricHistogramDay(
         new Date(dayIso),
         total,
         results,
@@ -478,10 +521,90 @@ export class StorageProviderUrlFinderService {
 
     days.sort((a, b) => a.day.getTime() - b.day.getTime());
 
-    return new StorageProviderMetricHistogramDailyResponse(
+    return new StorageProviderResultCodeMetricHistogramDailyResponse(
       snapshots.length,
       days,
       this.RESULT_CODE_META,
     );
+  }
+
+  public async getAndGenerateAverageWeeklyCustomMetricHistogramPerProvider(
+    metricType: StorageProviderUrlFinderMetricType,
+    provider?: string,
+    startDate?: Date,
+    endDate?: Date,
+  ) {
+    let validatedMetricType: StorageProviderUrlFinderBaseMetricType;
+
+    switch (metricType) {
+      case StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY:
+        validatedMetricType =
+          StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY;
+        break;
+      case StorageProviderUrlFinderBaseMetricType.TTFB:
+        validatedMetricType = StorageProviderUrlFinderBaseMetricType.TTFB;
+        break;
+      case StorageProviderUrlFinderBaseMetricType.BANDWIDTH:
+        validatedMetricType = StorageProviderUrlFinderBaseMetricType.BANDWIDTH;
+        break;
+      case StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY:
+      case StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY:
+        validatedMetricType = StorageProviderUrlFinderBaseMetricType.CAR_FILES;
+        break;
+    }
+
+    const avgMetricValueByProviderWeekly =
+      await this.prismaService.$queryRawTyped(
+        getUrlFinderProviderAverageMetricWeekly(
+          validatedMetricType,
+          provider,
+          startDate,
+          endDate,
+        ),
+      );
+
+    let avgValueName = 'avg_value';
+
+    switch (metricType) {
+      case StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY:
+        avgValueName = 'consistent_retrievability';
+        break;
+      case StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY:
+        avgValueName = 'inconsistent_retrievability';
+        break;
+      default:
+        avgValueName = 'avg_value';
+    }
+
+    const histogramResult = avgMetricValueByProviderWeekly.map((r) => {
+      return new HistogramDateValueResults(r.week, r[avgValueName]);
+    });
+
+    const isBaseMetric =
+      metricType !==
+        StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY &&
+      metricType !==
+        StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY;
+
+    return {
+      histogramResult: histogramResult,
+      metricMetadata: {
+        name: isBaseMetric
+          ? this.getMetricName(validatedMetricType)
+          : this.getCustomMetricName(
+              metricType as StorageProviderUrlFinderCustomMetricType,
+            ),
+        description: isBaseMetric
+          ? this.getMetricDescription(validatedMetricType)
+          : this.getCustomMetricDescription(
+              metricType as StorageProviderUrlFinderCustomMetricType,
+            ),
+        unit: isBaseMetric
+          ? this.getMetricUnit(validatedMetricType)
+          : this.getCustomMetricUnit(
+              metricType as StorageProviderUrlFinderCustomMetricType,
+            ),
+      },
+    };
   }
 }
