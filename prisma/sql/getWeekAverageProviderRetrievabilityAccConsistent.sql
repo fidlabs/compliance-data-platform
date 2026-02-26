@@ -1,6 +1,7 @@
 -- @param {String} $1:dataType
 -- @param {DateTime} $2:week
 -- @param {Int} $3:editionId
+-- @param {String} $4:retrievabilityType
 
 with "active_allocators" as (select "allocator_id" as "allocator_id",
                                     6              as "editionId"

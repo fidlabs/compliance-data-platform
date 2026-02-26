@@ -1,5 +1,5 @@
 import { CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { groupBy } from 'lodash';
 import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
@@ -26,18 +26,22 @@ import {
   AggregatedProvidersIPNIReportingStatusWeekly,
 } from 'src/service/ipni-misreporting-checker/types.ipni-misreporting-checker';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
-import { StorageProviderMetricHistogramDailyResponse } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
+import {
+  StorageProviderResultCodeMetricHistogramDailyResponse,
+  StorageProviderSimpleMetricHistogramWeeklyResponse,
+} from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
   StorageProviderComplianceWeek,
 } from 'src/service/storage-provider/types.storage-provider';
 import { bigIntToNumber, stringToBool, stringToDate } from 'src/utils/utils';
-import {
-  UrlFinderStorageProviderMetricBaseRequest,
-  UrlFinderStorageProviderMetricTypeRequest,
-} from './types.storage-providers-stats';
 import { GetStorageProviderRetrievabilityWeeklyRequest } from '../allocators/types.allocator-stats';
+import {
+  UrlFinderStorageProviderBaseMetricRequest,
+  UrlFinderStorageProviderCustomMetricRequest,
+  UrlFinderStorageProviderDateRangeRequest,
+} from './types.storage-providers-stats';
 
 @Controller('stats/acc/providers')
 @CacheTTL(1000 * 60 * 30) // 30 minutes
@@ -130,8 +134,8 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
       'Get SP Url Finder retrieval result codes metrics for storage providers',
   })
   public async getStorageProvidersUrlFinderRetrievalCodesData(
-    @Query() query: UrlFinderStorageProviderMetricBaseRequest,
-  ): Promise<StorageProviderMetricHistogramDailyResponse> {
+    @Query() query: UrlFinderStorageProviderDateRangeRequest,
+  ): Promise<StorageProviderResultCodeMetricHistogramDailyResponse> {
     const metrics =
       await this.storageProviderUrlFinderService.getUrlFinderSnapshotsForProviders(
         query?.startDate ? stringToDate(query?.startDate) : undefined,
@@ -151,7 +155,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     summary: 'Get RPA metrics for storage providers',
   })
   public async getStorageProvidersUrlFinderStandardMetricData(
-    @Query() query: UrlFinderStorageProviderMetricTypeRequest,
+    @Query() query: UrlFinderStorageProviderBaseMetricRequest,
   ): Promise<HistogramWeek> {
     const startDate = query?.startDate
       ? stringToDate(query?.startDate)
@@ -162,6 +166,7 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
 
     switch (query.metricType) {
       case StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY:
+      case StorageProviderUrlFinderMetricType.CAR_FILES:
         bucketSize = 0.05;
         break;
       case StorageProviderUrlFinderMetricType.TTFB:
@@ -212,12 +217,42 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
     return new HistogramWeek(totalAcrossAllWeeks, weekResults);
   }
 
+  @Get(':provider/rpa/metric')
+  @ApiOkResponse({ type: StorageProviderSimpleMetricHistogramWeeklyResponse })
+  public async getUrlFinderMetricForProvider(
+    @Param('provider') provider: string,
+    @Query() query: UrlFinderStorageProviderCustomMetricRequest,
+  ): Promise<StorageProviderSimpleMetricHistogramWeeklyResponse> {
+    const startDate = query?.startDate
+      ? stringToDate(query?.startDate)
+      : undefined;
+
+    const endDate = query?.endDate ? stringToDate(query?.endDate) : undefined;
+
+    const { histogramResult, metricMetadata } =
+      await this.storageProviderUrlFinderService.getAndGenerateAverageWeeklyCustomMetricHistogramPerProvider(
+        query.metricType,
+        provider,
+        startDate,
+        endDate,
+      );
+
+    return new StorageProviderSimpleMetricHistogramWeeklyResponse(
+      {
+        metricName: metricMetadata?.name || '',
+        metricDescription: metricMetadata?.description || '',
+        metricUnit: metricMetadata?.unit || '',
+      },
+      histogramResult,
+    );
+  }
+
   @Get('/rpa/metric/consistent')
   @ApiOperation({
     summary: 'Get AIR and ACR metrics for storage providers',
   })
   public async getStorageProvidersCalculatedMetric(
-    @Query() query: UrlFinderStorageProviderMetricBaseRequest,
+    @Query() query: UrlFinderStorageProviderDateRangeRequest,
   ): Promise<{
     AIR: {
       metadata: {

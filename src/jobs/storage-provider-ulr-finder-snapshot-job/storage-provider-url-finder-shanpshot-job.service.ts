@@ -7,13 +7,13 @@ import {
 } from '@nestjs/terminus';
 import * as _ from 'lodash';
 import { DateTime } from 'luxon';
-import {
-  StorageProviderUrlFinderMetricResultCodeType,
-  StorageProviderUrlFinderMetricType,
-} from 'prisma/generated/client';
+import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { StorageProviderUrlFinderService } from 'src/service/storage-provider-url-finder/storage-provider-url-finder.service';
-import { StorageProviderUrlFinderMetricValue } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
+import {
+  StorageProviderUrlFinderBaseMetricType,
+  StorageProviderUrlFinderMetricValue,
+} from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
 import { isTodayUTC } from 'src/utils/utils';
 
 @Injectable()
@@ -115,7 +115,7 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
               const metrics: StorageProviderUrlFinderMetricValue[] = [
                 {
                   metricType:
-                    StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY,
+                    StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY,
                   value:
                     retrievability_percent != null
                       ? retrievability_percent / 100
@@ -123,7 +123,7 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                   testedAt: new Date(tested_at),
                 },
                 {
-                  metricType: StorageProviderUrlFinderMetricType.CAR_FILES,
+                  metricType: StorageProviderUrlFinderBaseMetricType.CAR_FILES,
                   value:
                     car_files_percent != null ? car_files_percent / 100 : null,
                   testedAt: new Date(tested_at),
@@ -132,7 +132,7 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                 performance?.bandwidth?.ttfb_ms &&
                 isPerformanceTestInLastTestDay // only if test was done same day as retrievability test
                   ? {
-                      metricType: StorageProviderUrlFinderMetricType.TTFB,
+                      metricType: StorageProviderUrlFinderBaseMetricType.TTFB,
                       value: performance?.bandwidth?.ttfb_ms,
                       testedAt: new Date(performance?.bandwidth?.tested_at),
                     }
@@ -141,7 +141,8 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                 performance?.bandwidth?.download_speed_mbps &&
                 isPerformanceTestInLastTestDay // only if test was done same day as retrievability test
                   ? {
-                      metricType: StorageProviderUrlFinderMetricType.BANDWIDTH,
+                      metricType:
+                        StorageProviderUrlFinderBaseMetricType.BANDWIDTH,
                       value: performance?.bandwidth?.download_speed_mbps,
                       testedAt: new Date(performance?.bandwidth?.tested_at),
                     }

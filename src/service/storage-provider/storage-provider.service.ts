@@ -164,12 +164,7 @@ export class StorageProviderService {
     );
 
     const weeklyHistogramResult =
-      await this.histogramHelper.getWeeklyHistogramResult(
-        result,
-        100,
-        null,
-        true,
-      );
+      await this.histogramHelper.getWeeklyHistogramResult(result, 100, 0, true);
 
     return new RetrievabilityWeek(
       lastWeekAverageRetrievability?.urlFinder
@@ -342,8 +337,8 @@ export class StorageProviderService {
     retrievabilityType?: StorageProviderRetrievabilityType,
   ): Promise<AverageRetrievabilityType> {
     if (
-      retrievabilityType == StorageProviderRetrievabilityType.CONSISTENT ||
-      retrievabilityType == StorageProviderRetrievabilityType.INCONSISTENT
+      retrievabilityType === StorageProviderRetrievabilityType.CONSISTENT ||
+      retrievabilityType === StorageProviderRetrievabilityType.INCONSISTENT
     ) {
       return (
         await this.prismaService.$queryRawTyped(
