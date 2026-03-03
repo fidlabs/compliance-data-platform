@@ -123,7 +123,7 @@ export class StorageProviderSliMetadata {
     enum: StorageProviderUrlFinderMetricType,
     description: 'SLI Metric',
   })
-  sliMetricType: StorageProviderUrlFinderMetricType;
+  sliMetricType: StorageProviderUrlFinderMetricType | 'IPNI_REPORTING';
 
   @ApiProperty({ description: 'SLI Metric Name' })
   sliMetricName: string;
