@@ -2,6 +2,7 @@ import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { DateTime } from 'luxon';
+import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
 import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { FilscanService } from 'src/service/filscan/filscan.service';
@@ -25,6 +26,7 @@ import {
   GetWeekStorageProvidersWithSpsComplianceRequestData,
   StorageProvidersDashboardStatistic,
   StorageProvidersDashboardStatisticType,
+  StorageProviderUrlFinderSliMetricType,
 } from './types.storage-providers';
 
 const highUrlFinderRetrievabilityThreshold = 0.7;
@@ -464,7 +466,7 @@ export class StorageProvidersController extends ControllerBase {
     type: GetStorageProvidersSliDataResponse,
     isArray: true,
   })
-  public async getLastStorageProvidersSLIData(
+  public async getAverageMonthlyStorageProvidersSLIData(
     @Query() query: GetStorageProvidersSliDataRequest,
   ): Promise<GetStorageProvidersSliDataResponse> {
     if (typeof query.storageProvidersIds === 'string') {
@@ -473,23 +475,48 @@ export class StorageProvidersController extends ControllerBase {
 
     const lastMonth = DateTime.now().toUTC().minus({ month: 1 }).toJSDate();
 
-    const avgMetricValues =
-      await this.prismaService.storage_provider_url_finder_metric_value.groupBy(
-        {
-          by: ['provider', 'metric_id'],
-          where: {
-            provider: {
-              in: query.storageProvidersIds,
-            },
-            tested_at: {
-              gte: lastMonth,
-            },
+    const [avgMetricValues, ipniReporting] = await Promise.all([
+      this.prismaService.storage_provider_url_finder_metric_value.groupBy({
+        by: ['provider', 'metric_id'],
+        where: {
+          provider: {
+            in: query.storageProvidersIds,
           },
-          _avg: {
-            value: true,
+          tested_at: {
+            gte: lastMonth,
           },
         },
-      );
+        _avg: {
+          value: true,
+        },
+      }),
+      this.prismaService.storage_provider_url_finder_daily_snapshot.groupBy({
+        by: ['provider'],
+        where: {
+          provider: {
+            in: query.storageProvidersIds,
+          },
+          snapshot_date: {
+            gte: lastMonth,
+          },
+          result_code: {
+            not: StorageProviderUrlFinderMetricResultCodeType.SUCCESS,
+          },
+        },
+        _count: {
+          result_code: true,
+        },
+      }),
+    ]);
+
+    const sliDataResponse: GetStorageProvidersSliDataResponse = {
+      sliMetadata: {},
+      data: {},
+    };
+
+    if (avgMetricValues.length === 0 && ipniReporting.length === 0) {
+      return sliDataResponse;
+    }
 
     const metricMetadata =
       await this.prismaService.storage_provider_url_finder_metric.findMany({
@@ -500,32 +527,60 @@ export class StorageProvidersController extends ControllerBase {
         },
       });
 
-    const sliDataResponse: GetStorageProvidersSliDataResponse = {
-      sliMetadata: avgMetricValues.reduce((acc, metric) => {
-        const metricMeta = metricMetadata.find(
-          (m) => m.id === metric.metric_id,
-        );
+    const metricMetadataById = metricMetadata.reduce(
+      (acc, m) => {
+        acc[m.id] = m;
+        return acc;
+      },
+      {} as Record<string, (typeof metricMetadata)[number]>,
+    );
 
-        acc[metric.metric_id] = {
-          sliMetricType: metricMeta.metric_type,
-          sliMetricName: metricMeta.name,
-          sliMetricDescription: metricMeta.description,
-          sliMetricUnit: metricMeta.unit,
-        };
-        return acc;
-      }, {}),
-      data: avgMetricValues.reduce((acc, metric) => {
-        if (!acc[metric.provider]) {
-          acc[metric.provider] = [];
-        }
-        acc[metric.provider].push({
-          sliMetricValue: metric._avg.value?.toString() ?? null,
-          sliMetricType: metricMetadata.find((m) => m.id === metric.metric_id)
-            .metric_type,
-        });
-        return acc;
-      }, {}),
+    for (const metric of avgMetricValues) {
+      const meta = metricMetadataById[metric.metric_id];
+
+      if (!meta) continue;
+
+      sliDataResponse.sliMetadata[metric.metric_id] = {
+        sliMetricType: meta.metric_type,
+        sliMetricName: meta.name,
+        sliMetricDescription: meta.description,
+        sliMetricUnit: meta.unit,
+      };
+
+      if (!sliDataResponse.data[metric.provider]) {
+        sliDataResponse.data[metric.provider] = [];
+      }
+
+      sliDataResponse.data[metric.provider].push({
+        sliMetricValue: metric._avg.value?.toString() ?? null,
+        sliMetricType: meta.metric_type,
+      });
+    }
+
+    sliDataResponse.sliMetadata[
+      StorageProviderUrlFinderSliMetricType.IPNI_REPORTING
+    ] = {
+      sliMetricType: StorageProviderUrlFinderSliMetricType.IPNI_REPORTING,
+      sliMetricName: 'IPNI Reporting',
+      sliMetricDescription:
+        'Whether the storage provider has reported to IPNI in the last month',
+      sliMetricUnit: '%',
     };
+
+    for (const report of ipniReporting) {
+      if (!sliDataResponse.data[report.provider]) {
+        sliDataResponse.data[report.provider] = [];
+      }
+
+      // this gives the percentage of days in the last month that the provider did not report successfully to IPNI
+      const percentage =
+        (report._count.result_code / ipniReporting.length) * 100;
+
+      sliDataResponse.data[report.provider].push({
+        sliMetricValue: percentage.toFixed(2),
+        sliMetricType: 'IPNI_REPORTING',
+      });
+    }
 
     return sliDataResponse;
   }

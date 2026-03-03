@@ -5,7 +5,6 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
-import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
 import { StorageProviderComplianceScoreRange } from 'src/service/storage-provider/types.storage-provider';
 import { stringifiedBool } from 'src/utils/utils';
 import {
@@ -118,12 +117,20 @@ export class GetStorageProvidersSliDataRequest {
   storageProvidersIds: string[];
 }
 
+export enum StorageProviderUrlFinderSliMetricType {
+  TTFB = 'TTFB',
+  RPA_RETRIEVABILITY = 'RPA_RETRIEVABILITY',
+  BANDWIDTH = 'BANDWIDTH',
+  CAR_FILES = 'CAR_FILES',
+  IPNI_REPORTING = 'IPNI_REPORTING',
+}
+
 export class StorageProviderSliMetadata {
   @ApiProperty({
-    enum: StorageProviderUrlFinderMetricType,
+    enum: StorageProviderUrlFinderSliMetricType,
     description: 'SLI Metric',
   })
-  sliMetricType: StorageProviderUrlFinderMetricType;
+  sliMetricType: StorageProviderUrlFinderSliMetricType;
 
   @ApiProperty({ description: 'SLI Metric Name' })
   sliMetricName: string;
@@ -139,26 +146,25 @@ export class StorageProvidersSliData {
   @ApiProperty({ description: 'SLI Metric Value' })
   sliMetricValue: string;
 
-  @ApiProperty({ description: 'SLI Metric Value' })
+  @ApiProperty({ description: 'SLI Metric Type' })
   sliMetricType: string;
 }
 
 export class GetStorageProvidersSliDataResponse {
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: Object,
     description:
       'Metadata of metric codes to their descriptions names and units',
   })
-  sliMetadata: {
-    [code: string]: StorageProviderSliMetadata;
+  sliMetadata?: {
+    [code in StorageProviderUrlFinderSliMetricType]?: StorageProviderSliMetadata;
   };
 
-  @ApiProperty({
-    isArray: true,
-    type: StorageProvidersSliData,
+  @ApiPropertyOptional({
+    type: Object,
     description: 'SLI Data for the storage provider',
   })
-  data: {
+  data?: {
     [storageProviderId: string]: StorageProvidersSliData[];
   };
 }
