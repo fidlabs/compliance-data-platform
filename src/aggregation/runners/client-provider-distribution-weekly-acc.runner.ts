@@ -40,12 +40,19 @@ export class ClientProviderDistributionWeeklyAccRunner implements AggregationRun
 
     while (nextWeek <= now) {
       this.logger.debug(`Processing week ${nextWeek}`);
+
+      const weekDate = nextWeek.toJSDate();
+
       const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
         ClientProviderDistributionWeeklyAccRunner.name,
       );
 
+      const termStartLimit = Math.floor(
+        (weekDate.getTime() / 1000 - 1598306400) / 30,
+      );
+
       const result = await prismaDmobService.$queryRawTyped(
-        getClientProviderDistributionAccSingleWeek(nextWeek.toJSDate()),
+        getClientProviderDistributionAccSingleWeek(termStartLimit),
       );
 
       getDataEndTimerMetric();
@@ -54,8 +61,8 @@ export class ClientProviderDistributionWeeklyAccRunner implements AggregationRun
         ClientProviderDistributionWeeklyAccRunner.name,
       );
 
-      const data = result.map((dmobResult) => ({
-        week: nextWeek.toJSDate(),
+      const newData = result.map((dmobResult) => ({
+        week: weekDate,
         client: dmobResult.client,
         provider: dmobResult.provider,
         total_deal_size: dmobResult.total_deal_size,
@@ -63,17 +70,36 @@ export class ClientProviderDistributionWeeklyAccRunner implements AggregationRun
       }));
 
       await prismaService.$transaction(async (tx) => {
-        await tx.client_provider_distribution_weekly_acc.deleteMany({
-          where: {
-            week: {
-              equals: nextWeek.toJSDate(),
-            },
-          },
-        });
+        await tx.$executeRaw`
+          TRUNCATE TABLE client_provider_distribution_weekly_acc_sync_source
+        `;
 
-        await tx.client_provider_distribution_weekly_acc.createMany({
-          data: data,
-        });
+        await tx.client_provider_distribution_weekly_acc_sync_source.createMany(
+          {
+            data: newData,
+            skipDuplicates: false,
+          },
+        );
+
+        await tx.$executeRaw`
+          MERGE INTO client_provider_distribution_weekly_acc AS target
+          USING client_provider_distribution_weekly_acc_sync_source AS source
+          ON (target.week = source.week AND target.client = source.client AND target.provider = source.provider)
+          WHEN MATCHED
+            AND (
+              target.total_deal_size <> source.total_deal_size
+            OR
+              target.unique_data_size <> source.unique_data_size
+          ) THEN
+            UPDATE SET
+              total_deal_size = source.total_deal_size,
+              unique_data_size = source.unique_data_size
+          WHEN NOT MATCHED THEN
+            INSERT (week, client, provider, total_deal_size, unique_data_size)
+            VALUES (source.week, source.client, source.provider, source.total_deal_size, source.unique_data_size)
+          WHEN NOT MATCHED BY SOURCE AND target.week = ${weekDate} THEN
+            DELETE;
+        `;
       });
 
       storeDataEndTimerMetric();

@@ -1,4 +1,4 @@
--- @param {DateTime} $1:week
+-- @param {Int} $1:week
 
 with "miner_pieces" as (select "pieceCid"           as "piece_cid",
                                'f0' || "clientId"   as client,
@@ -7,7 +7,7 @@ with "miner_pieces" as (select "pieceCid"           as "piece_cid",
                                min("pieceSize")     as "piece_size"
                         from "unified_verified_deal"
                         where "termStart" >= 3698160                                                -- current fil+ edition start
-                          and date_trunc('week', to_timestamp("termStart" * 30 + 1598306400)) <= $1 -- deals up to provided week
+                          and "termStart" <= $1 -- deals up to provided week
                         group by "pieceCid", "clientId", "providerId")
 select "client"                       as "client",
        "provider"                     as "provider",
