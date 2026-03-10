@@ -1,7 +1,12 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DateTime } from 'luxon';
+import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
+import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
+import { FilscanService } from 'src/service/filscan/filscan.service';
+import { FilscanAccountInfoByID } from 'src/service/filscan/types.filscan';
 import { StorageProviderService } from 'src/service/storage-provider/storage-provider.service';
 import {
   StorageProviderComplianceMetrics,
@@ -10,22 +15,18 @@ import {
 import { Cacheable } from 'src/utils/cacheable';
 import { bigIntDiv, lastWeek, stringToDate } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
+import { DashboardStatisticValue } from '../base/types.controller-base';
 import {
   GetStorageProviderFilscanInfoRequest,
   GetStorageProvidersRequest,
-  GetStorageProvidersSLIDataRequest,
-  GetStorageProvidersSLIDataResponse,
+  GetStorageProvidersSliDataRequest,
+  GetStorageProvidersSliDataResponse,
   GetStorageProvidersStatisticsRequest,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
   StorageProvidersDashboardStatistic,
   StorageProvidersDashboardStatisticType,
 } from './types.storage-providers';
-import { DashboardStatisticValue } from '../base/types.controller-base';
-import { DateTime } from 'luxon';
-import { FilscanAccountInfoByID } from 'src/service/filscan/types.filscan';
-import { FilscanService } from 'src/service/filscan/filscan.service';
-import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 
 const highUrlFinderRetrievabilityThreshold = 0.7;
 const dashboardStatisticsTitleDict: Record<
@@ -455,64 +456,130 @@ export class StorageProvidersController extends ControllerBase {
     }
   }
 
-  @Get('/sli-data')
+  @Get('/average-monthly-sli')
   @ApiOperation({
-    summary: 'Get SLI data for storage providers',
+    summary: 'Get average monthly SLI data for storage providers',
   })
   @ApiOkResponse({
-    description: 'SLI data for storage providers',
-    type: GetStorageProvidersSLIDataResponse,
+    description: 'Average monthly SLI data for storage providers',
+    type: GetStorageProvidersSliDataResponse,
     isArray: true,
   })
-  public async getStorageProvidersSLIData(
-    @Query() query: GetStorageProvidersSLIDataRequest,
-  ): Promise<GetStorageProvidersSLIDataResponse[]> {
+  public async getLastStorageProvidersSLIData(
+    @Query() query: GetStorageProvidersSliDataRequest,
+  ): Promise<GetStorageProvidersSliDataResponse> {
     if (typeof query.storageProvidersIds === 'string') {
       query.storageProvidersIds = [query.storageProvidersIds];
     }
 
-    const sliMetrics = await this.prismaService.storage_provider_sli.findMany({
-      where: {
-        provider_id: {
-          in: query.storageProvidersIds,
-        },
-      },
-      orderBy: [
-        { provider_id: 'asc' },
-        { metric_id: 'asc' },
-        { update_date: 'desc' },
-      ],
-      distinct: ['provider_id', 'metric_id'],
-      select: {
-        provider_id: true,
-        metric: {
-          select: {
-            metric_type: true,
-            name: true,
-            description: true,
-            unit: true,
+    const lastMonth = DateTime.now().toUTC().minus({ month: 1 }).toJSDate();
+
+    const [avgMetricValues, ipniReporting] = await Promise.all([
+      this.prismaService.storage_provider_url_finder_metric_value.groupBy({
+        by: ['provider', 'metric_id'],
+        where: {
+          provider: {
+            in: query.storageProvidersIds,
+          },
+          tested_at: {
+            gte: lastMonth,
           },
         },
-        value: true,
-        update_date: true,
-      },
-    });
+        _avg: {
+          value: true,
+        },
+      }),
+      this.prismaService.storage_provider_url_finder_daily_snapshot.groupBy({
+        by: ['provider'],
+        where: {
+          provider: {
+            in: query.storageProvidersIds,
+          },
+          snapshot_date: {
+            gte: lastMonth,
+          },
+          result_code: {
+            not: StorageProviderUrlFinderMetricResultCodeType.SUCCESS,
+          },
+        },
+        _count: {
+          result_code: true,
+        },
+      }),
+    ]);
 
-    return query.storageProvidersIds.map((storageProviderId) => ({
-      storageProviderId: storageProviderId,
-      storageProviderName: null, // TODO
-      data: sliMetrics
-        .filter((metric) => metric.provider_id === storageProviderId)
-        .map((metricData) => {
-          return {
-            sliMetric: metricData.metric.metric_type,
-            sliMetricName: metricData.metric.name,
-            sliMetricValue: metricData.value.toString(),
-            sliMetricDescription: metricData.metric.description,
-            sliMetricUnit: metricData.metric.unit,
-            updatedAt: metricData.update_date,
-          };
-        }),
-    }));
+    if (avgMetricValues.length === 0 && ipniReporting.length === 0) {
+      return {
+        sliMetadata: {},
+        data: {},
+      };
+    }
+
+    const metricMetadata =
+      await this.prismaService.storage_provider_url_finder_metric.findMany({
+        where: {
+          id: {
+            in: avgMetricValues.map((metric) => metric.metric_id),
+          },
+        },
+      });
+
+    const metricMetadataById = metricMetadata.reduce(
+      (acc, m) => {
+        acc[m.id] = m;
+        return acc;
+      },
+      {} as Record<string, (typeof metricMetadata)[number]>,
+    );
+
+    const sliDataResponse: GetStorageProvidersSliDataResponse = {
+      sliMetadata: {},
+      data: {},
+    };
+
+    for (const metric of avgMetricValues) {
+      const meta = metricMetadataById[metric.metric_id];
+
+      if (!meta) continue;
+
+      sliDataResponse.sliMetadata[metric.metric_id] = {
+        sliMetricType: meta.metric_type,
+        sliMetricName: meta.name,
+        sliMetricDescription: meta.description,
+        sliMetricUnit: meta.unit,
+      };
+
+      if (!sliDataResponse.data[metric.provider]) {
+        sliDataResponse.data[metric.provider] = [];
+      }
+
+      sliDataResponse.data[metric.provider].push({
+        sliMetricValue: metric._avg.value?.toString() ?? null,
+        sliMetricType: meta.metric_type,
+      });
+    }
+
+    sliDataResponse.sliMetadata['IPNI_REPORTING'] = {
+      sliMetricType: 'IPNI_REPORTING',
+      sliMetricName: 'IPNI Reporting',
+      sliMetricDescription:
+        'Whether the storage provider has reported to IPNI in the last month',
+      sliMetricUnit: '%',
+    };
+
+    for (const report of ipniReporting) {
+      if (!sliDataResponse.data[report.provider]) {
+        sliDataResponse.data[report.provider] = [];
+      }
+
+      const percentage = (report._count.result_code / 30) * 100; // Assuming daily snapshots, so max 30 reports in a month
+
+      sliDataResponse.data[report.provider].push({
+        sliMetricValue: percentage.toFixed(2),
+        sliMetricType: 'IPNI_REPORTING',
+      });
+    }
+
+    return sliDataResponse;
   }
 }
