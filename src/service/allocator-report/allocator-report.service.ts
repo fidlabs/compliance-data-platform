@@ -322,6 +322,9 @@ export class AllocatorReportService {
               },
             },
           },
+          orderBy: {
+            client_id: 'asc',
+          },
           ...clientPagination,
         },
         client_allocations: {

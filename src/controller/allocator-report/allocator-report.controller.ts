@@ -73,6 +73,7 @@ export class AllocatorReportController extends ControllerBase {
 
     const clientPaginationQuery =
       this.validateQueryPagination(clientPaginationInfo);
+
     const providerPaginationQuery = this.validateQueryPagination(
       providerPaginationInfo,
     );
