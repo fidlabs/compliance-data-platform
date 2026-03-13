@@ -475,6 +475,54 @@ export class StorageProviderUrlFinderService {
     );
   }
 
+  public async getUrlFinderLastMetricsValuesForProvider(provider: string) {
+    const latestMetrics =
+      await this.prismaService.storage_provider_url_finder_metric_value.findMany(
+        {
+          where: {
+            provider: provider,
+          },
+          orderBy: {
+            tested_at: 'desc',
+          },
+          distinct: ['metric_id'],
+          include: {
+            metric: true,
+            storage_provider_daily_snapshot: true,
+          },
+        },
+      );
+
+    const retrievabilitySuccessRateMetric = latestMetrics.find(
+      (x) =>
+        x.metric.metric_type ===
+        StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY,
+    )?.value;
+    const consistentRetrievabilityMetric = latestMetrics.find(
+      (x) =>
+        x.metric.metric_type ===
+        StorageProviderUrlFinderBaseMetricType.CAR_FILES,
+    )?.value;
+    const inconsistentRetrievabilityMetric = 1 - consistentRetrievabilityMetric;
+    const ttfbMetric = latestMetrics.find(
+      (x) =>
+        x.metric.metric_type === StorageProviderUrlFinderBaseMetricType.TTFB,
+    )?.value;
+    const bandwidthMetric = latestMetrics.find(
+      (x) =>
+        x.metric.metric_type ===
+        StorageProviderUrlFinderBaseMetricType.BANDWIDTH,
+    )?.value;
+
+    return {
+      retrievabilitySuccessRateMetric: retrievabilitySuccessRateMetric,
+      consistentRetrievabilityMetric: consistentRetrievabilityMetric,
+      inconsistentRetrievabilityMetric: inconsistentRetrievabilityMetric,
+      ttfbMetric: ttfbMetric,
+      bandwidthMetric: bandwidthMetric,
+    };
+  }
+
   public generateRetrievalResultCodesDailyHistogram(
     snapshots: {
       provider: string;
