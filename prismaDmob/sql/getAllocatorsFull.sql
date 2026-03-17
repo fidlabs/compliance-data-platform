@@ -19,7 +19,7 @@ select "verifier"."addressId"                                                   
        "verifier"."createdAtHeight"                                                                                                 as "createdAtHeight",
        "verifier"."issueCreateTimestamp"                                                                                            as "issueCreateTimestamp",
        "verifier"."createMessageTimestamp"                                                                                          as "createMessageTimestamp",
-       "verifier"."initialAllowance" - "verifier"."allowance"                                                                       as "remainingDatacap",
+       "verifier"."allowance"                                                                                                       as "remainingDatacap",
        (select count(distinct "verified_client"."id")::int from "verified_client"
                                                            where "verified_client"."verifierAddressId" = "verifier"."addressId")    as "verifiedClientsCount",
        coalesce(sum("verifier_allowance"."allowance")
