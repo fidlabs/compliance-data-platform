@@ -26,6 +26,8 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { Cacheable } from 'src/utils/cacheable';
 import {
+  AllocationByAllocator,
+  AllocationByAllocatorNewAllocation,
   AllocatorAuditOutcome,
   AllocatorAuditOutcomesData,
   AllocatorAuditStatesData,
@@ -73,6 +75,7 @@ import { edition5AllocatorAuditOutcomesData } from './resources/edition5Allocato
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
 import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
+import { ClientService } from '../client/client.service';
 
 const registryEntryWithApproveDateSchema = z.object({
   history: z.object({
@@ -110,6 +113,7 @@ export class AllocatorService {
     private readonly histogramHelper: HistogramHelperService,
     private readonly storageProviderService: StorageProviderService,
     private readonly configService: ConfigService,
+    private readonly clientService: ClientService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -1197,14 +1201,108 @@ export class AllocatorService {
     ]);
 
     const totalAllocatorsCount = allAllocators.length;
-
-    if (totalAllocatorsCount === 0) {
-      return 0;
-    }
+    if (totalAllocatorsCount === 0) return 0;
 
     const matchingAllocatorsCount = currentlyMatchingAllocators.length;
-
     return matchingAllocatorsCount / totalAllocatorsCount;
+  }
+
+  public async getAllocationsByAllocator(
+    allocatorId: string,
+    groupBy: 'week' | 'month',
+    returnEmptyPeriods = false,
+    returnAllocations = false,
+  ): Promise<AllocationByAllocator[]> {
+    const clientAllocationsWeekly =
+      await this.prismaService.client_allocator_distribution_weekly.findMany({
+        where: {
+          allocator: allocatorId,
+        },
+        orderBy: {
+          week: 'asc',
+        },
+      });
+
+    if (clientAllocationsWeekly?.length === 0) return [];
+    let date = clientAllocationsWeekly[0].week;
+
+    // align to the start of the next week or next month
+    if (groupBy === 'week') {
+      if (date.getUTCDay() !== 1) {
+        date = new Date(
+          date.getTime() + ((8 - date.getUTCDay()) % 7) * 24 * 60 * 60 * 1000,
+        );
+      }
+    } else {
+      if (date.getUTCDate() !== 1) {
+        date = new Date(
+          Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1),
+        );
+      }
+    }
+
+    let sumOfAllocationsToDate = 0n;
+    const clientsToDate = new Set<string>();
+    const newClients = new Set<string>();
+    let newAllocations: AllocationByAllocatorNewAllocation[] = [];
+    const allocationsPerClient: Record<string, bigint> = {};
+    const result: AllocationByAllocator[] = [];
+
+    const updateResult = async () => {
+      if (!returnEmptyPeriods && !newAllocations.length) return;
+
+      result.push({
+        date: date,
+        totalAllocationsToDate: sumOfAllocationsToDate,
+        clientsToDate: Array.from(clientsToDate).map((client) => ({
+          client: client,
+          allocationsToDate: allocationsPerClient[client] ?? 0n,
+        })),
+        newClients: await Promise.all(
+          Array.from(newClients).map(async (client) => ({
+            client: client,
+            allocationsToDate: allocationsPerClient[client] ?? 0n,
+            clientName: await this.clientService.getClientName(client),
+          })),
+        ),
+        newAllocations: returnAllocations ? newAllocations : null,
+      });
+    };
+
+    for (let i = 0; i < clientAllocationsWeekly.length; ) {
+      if (clientAllocationsWeekly[i].week <= date) {
+        sumOfAllocationsToDate += clientAllocationsWeekly[i].sum_of_allocations;
+
+        allocationsPerClient[clientAllocationsWeekly[i].client] =
+          (allocationsPerClient[clientAllocationsWeekly[i].client] ?? 0n) +
+          clientAllocationsWeekly[i].sum_of_allocations;
+
+        if (!clientsToDate.has(clientAllocationsWeekly[i].client))
+          newClients.add(clientAllocationsWeekly[i].client);
+
+        newAllocations.push({
+          client: clientAllocationsWeekly[i].client,
+          allocation: clientAllocationsWeekly[i].sum_of_allocations,
+        });
+
+        clientsToDate.add(clientAllocationsWeekly[i].client);
+        ++i;
+      } else {
+        await updateResult();
+        newClients.clear();
+        newAllocations = [];
+
+        date =
+          groupBy === 'week'
+            ? new Date(date.getTime() + 7 * 24 * 60 * 60 * 1000) // next week
+            : new Date( // next month
+                Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1),
+              );
+      }
+    }
+
+    if (result[result.length - 1].date < date) await updateResult();
+    return result;
   }
 
   public async getVerifiedClientsByAllocator(allocatorId: string) {
@@ -1212,7 +1310,6 @@ export class AllocatorService {
       Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60;
 
     const allocatorData = await this.getAllocatorData(allocatorId);
-
     if (!allocatorData) return null;
 
     let allocatorVerifiedClients = [];

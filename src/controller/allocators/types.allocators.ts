@@ -417,3 +417,26 @@ export class GetAllocatorsStatisticsRequest extends PartialType(
 ) {}
 
 export class GetAllocatorVerifiedClientsRequest extends PaginationSortingInfoRequest {}
+
+export class GetAllocationsByAllocatorRequest {
+  @ApiPropertyOptional({
+    description: 'Group by week or month; default is week',
+    enum: ['week', 'month'],
+    example: 'week',
+  })
+  groupBy?: 'week' | 'month';
+
+  @ApiPropertyOptional({
+    description:
+      'Flag to include periods with no allocations; default is false',
+    type: Boolean,
+  })
+  showEmptyPeriods?: stringifiedBool;
+
+  @ApiPropertyOptional({
+    description:
+      'Flag to return allocation details for each period; default is false',
+    type: Boolean,
+  })
+  showAllocations?: stringifiedBool;
+}
