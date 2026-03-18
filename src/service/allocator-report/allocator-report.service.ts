@@ -132,18 +132,13 @@ export class AllocatorReportService {
                 client.addressId,
               );
 
-              const clientName =
-                (client.name?.trim() ||
-                  clientData?.find((c) => c.name)?.name?.trim()) ??
-                null;
-
-              const clientOrgName =
-                clientData?.find((c) => c.orgName)?.orgName?.trim() ?? null;
-
               return {
                 client_id: client.addressId,
-                name:
-                  bookkeepingInfo?.clientName || clientName || clientOrgName,
+                name: await this.clientService.getClientName(
+                  client.addressId,
+                  clientData,
+                  bookkeepingInfo,
+                ),
                 allocators: clientData?.map((c) => c.verifierAddressId) ?? null,
                 allocations_number: client.allowanceArray.length,
                 application_url:

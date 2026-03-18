@@ -666,6 +666,7 @@ export class ClientReportChecksService {
       this.logger.warn(
         `Low replica threshold is not set for report ${reportId}; skipping  check`,
       );
+
       return;
     }
 
@@ -726,6 +727,7 @@ export class ClientReportChecksService {
       this.logger.warn(
         `High replica threshold is not set for report ${reportId}; skipping check`,
       );
+
       return;
     }
 
