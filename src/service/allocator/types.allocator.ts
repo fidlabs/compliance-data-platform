@@ -280,3 +280,80 @@ export class AllocatorSpsComplianceWeek {
     this.results = results;
   }
 }
+
+export class AllocationByAllocatorClient {
+  @ApiProperty({ description: 'Client ID' })
+  client: string;
+
+  @ApiProperty({
+    description:
+      'Total datacap allocated to the client by the allocator up to the date',
+    type: String,
+    format: 'int64',
+    example: '42',
+  })
+  allocationsToDate: bigint;
+}
+
+export class AllocationByAllocatorNewClient extends AllocationByAllocatorClient {
+  @ApiProperty({
+    description: 'Client name',
+    nullable: true,
+  })
+  clientName: string | null;
+}
+
+export class AllocationByAllocatorNewAllocation {
+  @ApiProperty({ description: 'Client ID' })
+  client: string;
+
+  @ApiProperty({
+    description:
+      'Datacap allocated to the client by the allocator in that period',
+    type: String,
+    format: 'int64',
+    example: '42',
+  })
+  allocation: bigint;
+}
+
+export class AllocationByAllocator {
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    example: '2024-04-22T00:00:00.000Z',
+    description: 'ISO format',
+  })
+  date: Date;
+
+  @ApiProperty({
+    description: 'Total allocations made by the allocator up to the date',
+    type: String,
+    format: 'int64',
+    example: '42',
+  })
+  totalAllocationsToDate: bigint;
+
+  @ApiProperty({
+    description: 'Clients allocated to by the allocator up to the date',
+    type: AllocationByAllocatorClient,
+    isArray: true,
+  })
+  clientsToDate: AllocationByAllocatorClient[];
+
+  @ApiProperty({
+    description: 'New clients allocated to by the allocator',
+    type: AllocationByAllocatorNewClient,
+    isArray: true,
+  })
+  newClients: AllocationByAllocatorNewClient[];
+
+  @ApiProperty({
+    description:
+      'New allocations made by the allocator in that period; null if showAllocations set to false',
+    type: AllocationByAllocatorNewAllocation,
+    isArray: true,
+    nullable: true,
+  })
+  newAllocations: AllocationByAllocatorNewAllocation[] | null;
+}

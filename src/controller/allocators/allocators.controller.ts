@@ -16,6 +16,7 @@ import { AllocatorReportChecksService } from 'src/service/allocator-report-check
 import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
 import {
+  AllocationByAllocator,
   AllocatorAuditOutcomesData,
   AllocatorAuditStatesData,
   AllocatorAuditTimesByMonthData,
@@ -55,6 +56,7 @@ import {
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
+  GetAllocationsByAllocatorRequest,
 } from './types.allocators';
 
 const dashboardStatisticsTitleDict: Record<
@@ -382,6 +384,36 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
       },
       query,
       verifiedClients.length,
+    );
+  }
+
+  @Get(':allocatorId/allocations')
+  @ApiOperation({
+    summary: 'Get allocations over time for allocator grouped by week or month',
+  })
+  @ApiOkResponse({
+    description:
+      'List of allocations over time for allocator grouped by week or month',
+    type: AllocationByAllocator,
+    isArray: true,
+  })
+  public async getAllocationsByAllocator(
+    @Param('allocatorId') allocatorId: string,
+    @Query() query: GetAllocationsByAllocatorRequest,
+  ): Promise<AllocationByAllocator[]> {
+    query.groupBy ??= 'week';
+
+    if (query.groupBy && !['week', 'month'].includes(query.groupBy)) {
+      throw new BadRequestException(
+        `Invalid groupBy value: ${query.groupBy}, must be 'week' or 'month'`,
+      );
+    }
+
+    return this.allocatorService.getAllocationsByAllocator(
+      allocatorId,
+      query.groupBy,
+      stringToBool(query.showEmptyPeriods) ?? false,
+      stringToBool(query.showAllocations) ?? false,
     );
   }
 
