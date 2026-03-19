@@ -164,7 +164,9 @@ export class ClientService {
     }));
   }
 
-  @Cacheable() // cache forever
+  @Cacheable({
+    key: (clientId: string) => `ClientService.getClientName:${clientId}`,
+  }) // cache forever with custom cache key
   public async getClientName(
     clientIdOrAddress: string,
     clientData?: ClientWithAllowance[],
@@ -173,7 +175,8 @@ export class ClientService {
     bookkeepingInfo ??= await this.getClientBookkeepingInfo(clientIdOrAddress);
 
     // prefer bookkeeping client name over dmob db names
-    if (bookkeepingInfo?.clientName) return bookkeepingInfo.clientName.trim();
+    if (bookkeepingInfo?.clientName?.trim())
+      return bookkeepingInfo.clientName.trim();
 
     clientData ??= await this.getClientData(clientIdOrAddress);
 

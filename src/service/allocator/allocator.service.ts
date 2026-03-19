@@ -1301,7 +1301,9 @@ export class AllocatorService {
       }
     }
 
-    if (result[result.length - 1].date < date) await updateResult();
+    if (result.length === 0 || result[result.length - 1].date < date)
+      await updateResult();
+
     return result;
   }
 
