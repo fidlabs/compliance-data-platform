@@ -6,6 +6,7 @@ import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { AllocatorClientBookkeeping } from './types.github-allocator-client-bookkeeping';
 import * as _ from 'lodash';
 import { envSet } from 'src/utils/utils';
+import { ClientService } from '../client/client.service';
 
 @Injectable()
 export class GitHubAllocatorClientBookkeepingService {
@@ -18,6 +19,7 @@ export class GitHubAllocatorClientBookkeepingService {
   constructor(
     private readonly configService: ConfigService,
     private readonly lotusApiService: LotusApiService,
+    private readonly clientService: ClientService,
   ) {}
 
   public isInitialized(): boolean {
@@ -152,12 +154,11 @@ export class GitHubAllocatorClientBookkeepingService {
       },
     )) as any;
 
-    const data = JSON.parse(atob(file.data.content));
+    const decoded = Buffer.from(file.data.content, 'base64').toString('utf8');
+    const data = JSON.parse(decoded);
+    const clientId = await this.clientService.getClientIdByAddress(data.ID);
 
-    // TODO get rid of lotusApiService.getFilecoinId?
-    const id = await this.lotusApiService.getFilecoinId(data.ID);
-
-    if (!id) {
+    if (!clientId) {
       this.logger.warn(
         `No ID for address ${data.ID} (${owner}/${repo}:${path})`,
       );
@@ -166,7 +167,7 @@ export class GitHubAllocatorClientBookkeepingService {
     }
 
     return {
-      clientId: id,
+      clientId: clientId,
       clientAddress: data.ID,
       jsonPath: path,
       bookkeepingInfo: data,
