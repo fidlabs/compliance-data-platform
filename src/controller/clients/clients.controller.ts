@@ -105,23 +105,11 @@ export class ClientsController extends ControllerBase {
       0n,
     );
 
-    const dmobDbClientName =
-      clientData.find((c) => c.name)?.name?.trim() ?? null;
-    const dmobDbClientOrgName =
-      clientData.find((c) => c.orgName)?.orgName?.trim() ?? null;
-
-    // Prefer bookkeeping client name over dmob db names
-    const clientName =
-      (
-        await this.clientService.getClientBookkeepingInfo(
-          clientData[0].addressId,
-        )
-      )?.clientName ||
-      dmobDbClientName ||
-      dmobDbClientOrgName;
-
     return {
-      name: clientName,
+      name: await this.clientService.getClientName(
+        clientData[0].addressId,
+        clientData,
+      ),
       stats: clientProviderDistribution.map((provider) => ({
         provider: provider.provider,
         total_deal_size: provider.total_deal_size,

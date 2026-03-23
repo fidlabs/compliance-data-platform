@@ -164,6 +164,31 @@ export class ClientService {
     }));
   }
 
+  @Cacheable({
+    key: (clientId: string) => `ClientService.getClientName:${clientId}`,
+  }) // cache forever with custom cache key
+  public async getClientName(
+    clientIdOrAddress: string,
+    clientData?: ClientWithAllowance[],
+    bookkeepingInfo?: ClientBookkeepingInfo,
+  ): Promise<string | null> {
+    bookkeepingInfo ??= await this.getClientBookkeepingInfo(clientIdOrAddress);
+
+    // prefer bookkeeping client name over dmob db names
+    if (bookkeepingInfo?.clientName?.trim())
+      return bookkeepingInfo.clientName.trim();
+
+    clientData ??= await this.getClientData(clientIdOrAddress);
+
+    const dmobDbClientName =
+      clientData.find((c) => c.name)?.name?.trim() ?? null;
+
+    const dmobDbClientOrgName =
+      clientData.find((c) => c.orgName)?.orgName?.trim() ?? null;
+
+    return dmobDbClientName || dmobDbClientOrgName || null;
+  }
+
   public async getClientData(
     clientIdOrAddress: string,
     withAllowanceArray = false,

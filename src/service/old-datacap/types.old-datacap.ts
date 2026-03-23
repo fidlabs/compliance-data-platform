@@ -66,9 +66,7 @@ export class OldDatacapAllocatorBalanceWeek {
 }
 
 export class OldDatacapClientBalance {
-  @ApiProperty({
-    description: 'Client ID',
-  })
+  @ApiProperty({ description: 'Client ID' })
   client: string;
 
   @ApiProperty({
