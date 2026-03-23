@@ -416,6 +416,10 @@ export class AllocatorService {
       case 'PENDING':
         return AllocatorAuditOutcome.pending;
 
+      case 'UNKNOWN':
+      case 'unknown':
+        return AllocatorAuditOutcome.unknown;
+
       default:
         this.logger.warn(
           `Allocator ${allocatorId} has unknown audit outcome ${outcome}, please investigate`,
