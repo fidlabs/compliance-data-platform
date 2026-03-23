@@ -69,10 +69,10 @@ model allocator_client_stats_daily {
 }
 
 model clients_stats_daily {
-  date                              DateTime
-  clients_with_active_deals         Int
-  clients_who_have_dc_and_deals     Int
-  total_remaining_clients_datacap   BigInt
+  date                            DateTime
+  clients_with_active_deals       Int
+  clients_who_have_dc_and_deals   Int
+  total_remaining_clients_datacap BigInt
 
   @@id(date)
 }
@@ -342,12 +342,6 @@ model client_report_cid_sharing {
   unique_cid_count             Int
 }
 
-model id_address_mapping {
-  id          String   @id
-  address     String   @unique
-  create_date DateTime @default(now())
-}
-
 model client_report_check_result {
   id               String            @id @default(uuid()) @db.Uuid
   create_date      DateTime          @default(now())
@@ -604,7 +598,7 @@ model storage_provider_url_finder_metric {
 }
 
 model storage_provider_url_finder_metric_value {
-  id          String  @id @default(uuid())
+  id          String @id @default(uuid())
   provider    String
   metric_id   String
   snapshot_id String
@@ -612,8 +606,8 @@ model storage_provider_url_finder_metric_value {
   metric                          storage_provider_url_finder_metric          @relation(fields: [metric_id], references: [id])
   storage_provider_daily_snapshot storage_provider_url_finder_daily_snapshot? @relation(fields: [snapshot_id], references: [id])
 
-  value       Float?
-  tested_at   DateTime?
+  value     Float?
+  tested_at DateTime?
 
   @@unique([provider, metric_id, tested_at])
   @@index([provider])
@@ -624,8 +618,8 @@ model storage_provider_url_finder_metric_value {
 model storage_provider_url_finder_daily_snapshot {
   id            String                                       @id @default(uuid())
   provider      String
-  snapshot_date DateTime                                     
-  tested_at     DateTime                                     
+  snapshot_date DateTime
+  tested_at     DateTime
   result_code   StorageProviderUrlFinderMetricResultCodeType
 
   metric_values storage_provider_url_finder_metric_value[]

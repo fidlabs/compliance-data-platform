@@ -3,12 +3,10 @@ import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { PrismaService } from 'src/db/prisma.service';
 import { Cacheable } from 'src/utils/cacheable';
 import { Retryable } from 'src/utils/retryable';
 import { EthApiService } from '../eth-api/eth-api.service';
 import {
-  LotusStateLookupIdResponse,
   LotusStateMinerInfoResponse,
   LotusStateVerifiedClientStatusResponse,
 } from './types.lotus-api';
@@ -20,62 +18,9 @@ export class LotusApiService {
   constructor(
     private readonly httpService: HttpService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly prismaService: PrismaService,
     private readonly configService: ConfigService,
     private readonly ethApiService: EthApiService,
   ) {}
-
-  public async getFilecoinId(address: string): Promise<string | null> {
-    // try to retrieve mapping from DB
-    const addressMapping =
-      await this.prismaService.id_address_mapping.findFirst({
-        where: {
-          address: address,
-        },
-      });
-
-    if (addressMapping) return addressMapping.id;
-
-    // if address not found in DB -> look up the glif API
-    const endpoint = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
-
-    const { data } = await firstValueFrom(
-      this.httpService.post<LotusStateLookupIdResponse>(endpoint, {
-        jsonrpc: '2.0',
-        method: 'Filecoin.StateLookupID',
-        params: [address, []],
-        id: 0,
-      }),
-    );
-
-    if (data.error?.code === 3 || !data.result) {
-      this.logger.warn(
-        `Glif API returned an error for StateLookupID with address ${address}: ${JSON.stringify(data)}`,
-      );
-
-      return null;
-    }
-
-    this.logger.debug(
-      `Storing mapping for ID ${data.result} and address ${address}`,
-    );
-
-    // store result in DB
-    await this.prismaService.id_address_mapping.upsert({
-      where: {
-        id: data.result,
-      },
-      update: {
-        address: address,
-      },
-      create: {
-        id: data.result,
-        address: address,
-      },
-    });
-
-    return data.result;
-  }
 
   @Cacheable({ ttl: 1000 * 60 * 60 * 12 }) // 12 hours
   public async getMinerInfo(

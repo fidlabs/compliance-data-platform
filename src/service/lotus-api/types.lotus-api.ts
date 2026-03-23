@@ -11,13 +11,6 @@ export interface LotusStateMinerInfoResponse {
   id: number;
 }
 
-export interface LotusStateLookupIdResponse {
-  jsonrpc: string;
-  result: string;
-  error?: LotusError;
-  id: number;
-}
-
 export interface LotusError {
   code: number;
   message: string;

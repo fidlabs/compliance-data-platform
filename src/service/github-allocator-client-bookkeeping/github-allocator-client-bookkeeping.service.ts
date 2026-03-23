@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import { ConfigService } from '@nestjs/config';
-import { LotusApiService } from '../lotus-api/lotus-api.service';
 import { AllocatorClientBookkeeping } from './types.github-allocator-client-bookkeeping';
 import * as _ from 'lodash';
 import { envSet } from 'src/utils/utils';
@@ -18,7 +17,6 @@ export class GitHubAllocatorClientBookkeepingService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly lotusApiService: LotusApiService,
     private readonly clientService: ClientService,
   ) {}
 
@@ -159,9 +157,9 @@ export class GitHubAllocatorClientBookkeepingService {
     const clientId = await this.clientService.getClientIdByAddress(data.ID);
 
     if (!clientId) {
-      this.logger.warn(
-        `No ID for address ${data.ID} (${owner}/${repo}:${path})`,
-      );
+      // this.logger.warn(
+      //   `No ID for address ${data.ID} (${owner}/${repo}:${path})`,
+      // );
 
       return null;
     }
