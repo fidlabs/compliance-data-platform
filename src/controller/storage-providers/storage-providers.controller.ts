@@ -563,7 +563,7 @@ export class StorageProvidersController extends ControllerBase {
       sliMetricType: StorageProviderUrlFinderSliMetricType.IPNI_REPORTING,
       sliMetricName: 'IPNI Reporting',
       sliMetricDescription:
-        'Whether the storage provider has reported to IPNI in the last month',
+        'Percentage of days in the last month on which the storage provider successfully reported to IPNI',
       sliMetricUnit: '%',
     };
 
