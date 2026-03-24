@@ -540,8 +540,9 @@ export class StorageProvidersController extends ControllerBase {
 
       if (!meta) continue;
 
-      sliDataResponse.sliMetadata[metric.metric_id] = {
-        sliMetricType: meta.metric_type,
+      sliDataResponse.sliMetadata[meta.metric_type] = {
+        sliMetricType:
+          meta.metric_type as StorageProviderUrlFinderSliMetricType,
         sliMetricName: meta.name,
         sliMetricDescription: meta.description,
         sliMetricUnit: meta.unit,
