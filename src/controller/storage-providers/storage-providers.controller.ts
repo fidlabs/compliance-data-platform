@@ -475,46 +475,59 @@ export class StorageProvidersController extends ControllerBase {
 
     const lastMonth = DateTime.now().toUTC().minus({ month: 1 }).toJSDate();
 
-    const [avgMetricValues, ipniReporting] = await Promise.all([
-      this.prismaService.storage_provider_url_finder_metric_value.groupBy({
-        by: ['provider', 'metric_id'],
-        where: {
-          provider: {
-            in: query.storageProvidersIds,
+    const [avgMetricValues, ipniSuccessReporting, ipniAllReporting] =
+      await Promise.all([
+        this.prismaService.storage_provider_url_finder_metric_value.groupBy({
+          by: ['provider', 'metric_id'],
+          where: {
+            provider: {
+              in: query.storageProvidersIds,
+            },
+            tested_at: {
+              gte: lastMonth,
+            },
           },
-          tested_at: {
-            gte: lastMonth,
+          _avg: {
+            value: true,
           },
-        },
-        _avg: {
-          value: true,
-        },
-      }),
-      this.prismaService.storage_provider_url_finder_daily_snapshot.groupBy({
-        by: ['provider'],
-        where: {
-          provider: {
-            in: query.storageProvidersIds,
+        }),
+        this.prismaService.storage_provider_url_finder_daily_snapshot.groupBy({
+          by: ['provider'],
+          where: {
+            provider: {
+              in: query.storageProvidersIds,
+            },
+            snapshot_date: {
+              gte: lastMonth,
+            },
+            result_code: StorageProviderUrlFinderMetricResultCodeType.SUCCESS,
           },
-          snapshot_date: {
-            gte: lastMonth,
+          _count: {
+            result_code: true,
           },
-          result_code: {
-            not: StorageProviderUrlFinderMetricResultCodeType.SUCCESS,
+        }),
+        this.prismaService.storage_provider_url_finder_daily_snapshot.groupBy({
+          by: ['provider'],
+          where: {
+            provider: {
+              in: query.storageProvidersIds,
+            },
+            snapshot_date: {
+              gte: lastMonth,
+            },
           },
-        },
-        _count: {
-          result_code: true,
-        },
-      }),
-    ]);
+          _count: {
+            result_code: true,
+          },
+        }),
+      ]);
 
     const sliDataResponse: GetStorageProvidersSliDataResponse = {
       sliMetadata: {},
       data: {},
     };
 
-    if (avgMetricValues.length === 0 && ipniReporting.length === 0) {
+    if (avgMetricValues.length === 0 && ipniSuccessReporting.length === 0) {
       return sliDataResponse;
     }
 
@@ -535,11 +548,55 @@ export class StorageProvidersController extends ControllerBase {
       {} as Record<string, (typeof metricMetadata)[number]>,
     );
 
-    for (const metric of avgMetricValues) {
-      const meta = metricMetadataById[metric.metric_id];
+    for (let i = 0; i < query.storageProvidersIds.length; i++) {
+      const sp = query.storageProvidersIds[i];
 
-      if (!meta) continue;
+      const spMetrics = avgMetricValues.filter(
+        (metric) => metric.provider === sp,
+      );
 
+      const spIpniSuccessReporting = ipniSuccessReporting.find(
+        (report) => report.provider === sp,
+      );
+
+      const spIpniAllReporting = ipniAllReporting.find(
+        (report) => report.provider === sp,
+      );
+
+      if (!spMetrics.length && !spIpniSuccessReporting && !spIpniAllReporting) {
+        sliDataResponse.data[sp] = [];
+        continue;
+      }
+
+      sliDataResponse.data[sp] = spMetrics
+        .map((metric) => {
+          const meta = metricMetadataById[metric.metric_id];
+
+          if (!meta) return null;
+
+          return {
+            sliMetricValue: metric._avg.value?.toString() ?? null,
+            sliMetricType: meta.metric_type,
+          };
+        })
+        .filter((metric) => metric !== null);
+
+      if (spIpniAllReporting?._count?.result_code > 0) {
+        const ipniSuccessReportingCount =
+          spIpniSuccessReporting?._count?.result_code ?? 0;
+
+        const ipniAllReportingCount = spIpniAllReporting._count?.result_code;
+
+        sliDataResponse.data[sp].push({
+          sliMetricValue: (
+            ipniSuccessReportingCount / ipniAllReportingCount
+          ).toString(),
+          sliMetricType: 'IPNI_REPORTING',
+        });
+      }
+    }
+
+    for (const meta of metricMetadata) {
       sliDataResponse.sliMetadata[meta.metric_type] = {
         sliMetricType:
           meta.metric_type as StorageProviderUrlFinderSliMetricType,
@@ -547,15 +604,6 @@ export class StorageProvidersController extends ControllerBase {
         sliMetricDescription: meta.description,
         sliMetricUnit: meta.unit,
       };
-
-      if (!sliDataResponse.data[metric.provider]) {
-        sliDataResponse.data[metric.provider] = [];
-      }
-
-      sliDataResponse.data[metric.provider].push({
-        sliMetricValue: metric._avg.value?.toString() ?? null,
-        sliMetricType: meta.metric_type,
-      });
     }
 
     sliDataResponse.sliMetadata[
@@ -564,24 +612,9 @@ export class StorageProvidersController extends ControllerBase {
       sliMetricType: StorageProviderUrlFinderSliMetricType.IPNI_REPORTING,
       sliMetricName: 'IPNI Reporting',
       sliMetricDescription:
-        'Whether the storage provider has reported to IPNI in the last month',
+        'Percentage of days in the last month on which the storage provider successfully reported to IPNI',
       sliMetricUnit: '%',
     };
-
-    for (const report of ipniReporting) {
-      if (!sliDataResponse.data[report.provider]) {
-        sliDataResponse.data[report.provider] = [];
-      }
-
-      // this gives the percentage of days in the last month that the provider did not report successfully to IPNI
-      const percentage =
-        (report._count.result_code / ipniReporting.length) * 100;
-
-      sliDataResponse.data[report.provider].push({
-        sliMetricValue: percentage.toFixed(2),
-        sliMetricType: 'IPNI_REPORTING',
-      });
-    }
 
     return sliDataResponse;
   }
