@@ -1,19 +1,20 @@
-name: Manually trigger deploy to staging or production
-run-name: 'Manually deploy ${{ github.ref_name }} triggered by ${{ github.actor }}; version: ${{ inputs.version }}'
+name: Manually trigger deploy to staging, development or production
+run-name: "Manually deploy ${{ github.ref_name }} triggered by ${{ github.actor }}; version: ${{ inputs.version }}"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Enter the version number'
+        description: "Enter the version number"
         required: true
-        default: 'main'
+        default: "main"
       environment:
         required: false
-        description: 'Select the environment to deploy to'
+        description: "Select the environment to deploy to"
         type: choice
         options:
           - staging
+          - development
           - production
         default: staging
 
@@ -22,29 +23,15 @@ permissions:
   contents: read
 
 jobs:
-  trigger-staging-deploy:
+  trigger-deploy:
     runs-on: ubuntu-latest
-    if: ${{ inputs.version != '' && inputs.environment == 'staging' }}
+    if: ${{ inputs.version != '' && (inputs.environment != 'production' || (inputs.environment == 'production' && github.ref_name == 'main')) }}
     steps:
-      - name: Trigger staging deploy
+      - name: Trigger ${{ inputs.environment }} deploy
         uses: neti-filplus-infra/filplus-deploy-action@main
         with:
           version: ${{ inputs.version }}
-          environment: staging
-          ecr-repository: compliance-data-platform
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_IMAGE_DEPLOYER }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_IMAGE_DEPLOYER }}
-          aws-region: us-east-1
-
-  trigger-production-deploy:
-    runs-on: ubuntu-latest
-    if: ${{ github.ref_name == 'main' && inputs.version != '' && inputs.environment == 'production' }}
-    steps:
-      - name: Trigger production deploy
-        uses: neti-filplus-infra/filplus-deploy-action@main
-        with:
-          version: ${{ inputs.version }}
-          environment: production
+          environment: ${{ inputs.environment }}
           ecr-repository: compliance-data-platform
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_IMAGE_DEPLOYER }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_IMAGE_DEPLOYER }}
