@@ -332,6 +332,7 @@ export class StorageProviderUrlFinderService {
                     };
                   })
                   .filter(Boolean),
+                skipDuplicates: true, // in case when URL Finder sends data from 2 days ago (for any reason), we don't want to fail the whole transaction
               },
             },
           },
