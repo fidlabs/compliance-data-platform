@@ -457,12 +457,12 @@ export class StorageProvidersController extends ControllerBase {
     }
   }
 
-  @Get('/average-monthly-sli')
+  @Get('/average-sli-data')
   @ApiOperation({
-    summary: 'Get average monthly SLI data for storage providers',
+    summary: 'Get average SLI data for storage providers over the last 30 days',
   })
   @ApiOkResponse({
-    description: 'Average monthly SLI data for storage providers',
+    description: 'Average SLI data for storage providers over the last 30 days',
     type: GetStorageProvidersSliDataResponse,
     isArray: true,
   })
@@ -473,7 +473,7 @@ export class StorageProvidersController extends ControllerBase {
       query.storageProvidersIds = [query.storageProvidersIds];
     }
 
-    const lastMonth = DateTime.now().toUTC().minus({ month: 1 }).toJSDate();
+    const last30days = DateTime.now().toUTC().minus({ days: 30 }).toJSDate();
 
     const [avgMetricValues, ipniSuccessReporting, ipniAllReporting] =
       await Promise.all([
@@ -484,7 +484,7 @@ export class StorageProvidersController extends ControllerBase {
               in: query.storageProvidersIds,
             },
             tested_at: {
-              gte: lastMonth,
+              gte: last30days,
             },
           },
           _avg: {
@@ -498,7 +498,7 @@ export class StorageProvidersController extends ControllerBase {
               in: query.storageProvidersIds,
             },
             snapshot_date: {
-              gte: lastMonth,
+              gte: last30days,
             },
             result_code: StorageProviderUrlFinderMetricResultCodeType.SUCCESS,
           },
@@ -513,7 +513,7 @@ export class StorageProvidersController extends ControllerBase {
               in: query.storageProvidersIds,
             },
             snapshot_date: {
-              gte: lastMonth,
+              gte: last30days,
             },
           },
           _count: {
