@@ -629,6 +629,76 @@ model storage_provider_url_finder_daily_snapshot {
   @@index([snapshot_date])
 }
 
+model po_rep_indexer_run {
+  date        DateTime
+  chainId     BigInt
+  runner      String
+  version     Int
+  blockStart  BigInt
+  blockEnd    BigInt
+  eventsCount Int
+
+  @@id([date, chainId, runner, version])
+}
+
+// Defaults are there to insert providers based on registration event which
+// contains only the ID. Rest of the field will get updated based on other events
+model po_rep_storage_provider {
+  providerId              BigInt @id
+  organization            String @default("0x0000000000000000000000000000000000000000")
+  payee                   String @default("0x0000000000000000000000000000000000000000")
+  paused                  Boolean @default(false)
+  blocked                 Boolean @default(false)
+  availableBytes          BigInt @default(0)
+  committedBytes          BigInt @default(0)
+  pendingBytes            BigInt @default(0)
+  pricePerSectorPerMonth  BigInt @default(0)
+  minDealDurationDays     Int @default(0)
+  maxDealDurationDays     Int @default(0)
+  registeredAtBlock       BigInt
+  capabilities            po_rep_storage_provider_capabilities?
+  deals                   po_rep_deal[]
+}
+
+model po_rep_storage_provider_capabilities {
+  providerId        BigInt @id
+  retrievabilityBps Int @default(0)
+  bandwidthMbps     Int @default(0)
+  latencyMs         Int @default(0)
+  indexingPct       Int @default(0)
+  provider          po_rep_storage_provider @relation(fields: [providerId], references: [providerId])
+}
+
+model po_rep_deal {
+  dealId            BigInt @id
+  providerId        BigInt
+  client            String
+  state             PoRepDealState
+  manifestLocation  String
+  totalDealSize     BigInt
+  proposedAtBlock   BigInt
+  railId            BigInt?
+  requirements      po_rep_deal_requirements?
+  provider          po_rep_storage_provider @relation(fields: [providerId], references: [providerId])
+}
+
+model po_rep_deal_requirements {
+  dealId            BigInt @id
+  retrievabilityBps Int
+  bandwidthMbps     Int
+  latencyMs         Int
+  indexingPct       Int
+  deal              po_rep_deal @relation(fields: [dealId], references: [dealId])
+}
+
+enum PoRepDealState {
+  PROPOSED
+  ACCEPTED
+  COMPLETED
+  REJECTED
+  TERMINATED
+}
+
 enum AllocatorScoringMetric {
   IPNI_REPORTING
   HTTP_RETRIEVABILITY
