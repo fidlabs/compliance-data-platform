@@ -90,7 +90,7 @@ jobs:
         run: psql $DMOB_DATABASE_URL < ./ci/dmob-mock-db.sql
 
       - name: Build tag and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
