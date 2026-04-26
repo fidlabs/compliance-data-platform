@@ -74,7 +74,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           flavor: latest=false
           images: public.ecr.aws/f4h6r4m9/${{ env.ECR_REPOSITORY }}
