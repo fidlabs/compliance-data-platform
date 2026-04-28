@@ -1,10 +1,10 @@
+import { groupBy, last } from 'lodash';
 import { PoRepDealState, Prisma, PrismaPromise } from 'prisma/generated/client';
 import { mergeBigIntFieldUpdate } from 'src/utils/prisma';
 import { AbiEvent, getAbiItem, GetLogsReturnType, isAddressEqual } from 'viem';
+import PoRepMarketABI from '../abis/po-rep-market.abi';
 import SPRegistryABI from '../abis/sp-registry.abi';
 import { AbstractPoRepIndexerRunner } from './abstract-po-rep-indexer.runner';
-import { groupBy, last, merge, update } from 'lodash';
-import PoRepMarketABI from '../abis/po-rep-market.abi';
 
 type EventType = (typeof events)[number];
 type ProviderCreationInput = Prisma.po_rep_storage_providerCreateManyInput;
@@ -83,7 +83,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
   }
 
   protected getEventTypes() {
-    return [...spRegistryEvents, ...poRepMarketEvents];
+    return events;
   }
 
   protected prepareCleanup(): PrismaPromise<unknown>[] {
