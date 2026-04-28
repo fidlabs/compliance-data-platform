@@ -6,14 +6,13 @@ import {
   ARCHIVE_NODE_CLIENT,
   RECENT_NODE_CLIENT,
 } from './po-rep-indexer.constants';
-import { PoReConfigService } from './po-rep-indexer.types';
+import { PoRepConfig } from './po-rep-indexer.types';
 import {
   createClientForChainOrThrow,
   validatePoRepConfig,
 } from './po-rep-indexer.utils';
 import { AbstractPoRepIndexerRunner } from './runners/abstract-po-rep-indexer.runner';
-import { PoRepDealsIndexerRunner } from './runners/po-rep-deals-indexer.runner';
-import { PoRepProvidersIndexerRunner } from './runners/po-rep-providers-indexer.runner';
+import { PoRepProvidersAndDealsIndexerRunner } from './runners/po-rep-providers-and-deals.runner';
 
 @Module({
   imports: [
@@ -24,11 +23,10 @@ import { PoRepProvidersIndexerRunner } from './runners/po-rep-providers-indexer.
   ],
   providers: [
     PrismaService,
-    PoRepProvidersIndexerRunner,
-    PoRepDealsIndexerRunner,
+    PoRepProvidersAndDealsIndexerRunner,
     {
       provide: RECENT_NODE_CLIENT,
-      useFactory: (configService: PoReConfigService) => {
+      useFactory: (configService: ConfigService<PoRepConfig, true>) => {
         return createClientForChainOrThrow({
           chainId: configService.get('PO_REP_CHAIN_ID'),
           rpcUrl: configService.get('PO_REP_RECENT_RPC_URL'),
@@ -39,7 +37,7 @@ import { PoRepProvidersIndexerRunner } from './runners/po-rep-providers-indexer.
     },
     {
       provide: ARCHIVE_NODE_CLIENT,
-      useFactory: (configService: PoReConfigService) => {
+      useFactory: (configService: ConfigService<PoRepConfig, true>) => {
         return createClientForChainOrThrow({
           chainId: configService.get('PO_REP_CHAIN_ID'),
           rpcUrl: configService.get('PO_REP_ARCHIVE_RPC_URL'),

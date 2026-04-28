@@ -18,7 +18,7 @@ export abstract class AbstractPoRepIndexerRunner<
   // Returns runner name used for storing information about indexing
   public abstract getName(): string;
 
-  // Increase returned value to trigger cleanup on next run and index from the beggining
+  // Increase returned value to trigger cleanup on next run and index from the beginning
   protected abstract getVersion(): number;
 
   // Return block height from which indexing should start initially and
@@ -58,6 +58,7 @@ export abstract class AbstractPoRepIndexerRunner<
 
     if (this.isRunning) {
       this.getLogger().log('Indexing already in progress, skipping execution');
+      return;
     }
 
     try {
@@ -81,17 +82,15 @@ export abstract class AbstractPoRepIndexerRunner<
         }),
       ]);
 
-      const lastRunVersion = lastRun ? lastRun.version : version;
-      const versionChanged = lastRunVersion !== version;
-      const fromBlock =
-        !lastRun || versionChanged
-          ? this.getOriginBlock()
-          : lastRun.blockEnd + 1n;
+      const versionChanged = !lastRun || lastRun.version !== version;
+      const fromBlock = versionChanged
+        ? this.getOriginBlock()
+        : lastRun.blockEnd + 1n;
       const blockDifference = currentBlock - fromBlock;
       const batchBlockSize = this.getBatchBlockSize();
       const toBlock =
-        blockDifference > batchBlockSize
-          ? fromBlock + batchBlockSize
+        blockDifference >= batchBlockSize
+          ? fromBlock + batchBlockSize - 1n
           : currentBlock;
       const shouldUseArchiveNode =
         blockDifference >= this.getArchiveNodeThreshold();
