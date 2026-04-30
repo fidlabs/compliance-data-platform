@@ -39,8 +39,8 @@ export abstract class AbstractPoRepIndexerRunner<
     logs: GetLogsReturnType<undefined, EventType[], undefined, bigint, bigint>,
   ): PrismaPromise<unknown>[];
 
+  protected logger: Logger;
   private isRunning: boolean = false;
-  private logger: Logger;
 
   constructor(
     protected readonly configService: ConfigService<PoRepConfig, true>,
@@ -49,15 +49,17 @@ export abstract class AbstractPoRepIndexerRunner<
     protected readonly recentNodeClient: PoRepPublicClient,
     @Inject(ARCHIVE_NODE_CLIENT)
     protected readonly archiveNodeClient: PoRepPublicClient,
-  ) {}
+  ) {
+    this.logger = new Logger(this.getName());
+  }
 
   // Run every hour by default. Override it with different decorator to change.
   @Cron(CronExpression.EVERY_HOUR)
   public async execute() {
-    this.getLogger().log('Starting indexing');
+    this.logger.log('Starting indexing');
 
     if (this.isRunning) {
-      this.getLogger().log('Indexing already in progress, skipping execution');
+      this.logger.log('Indexing already in progress, skipping execution');
       return;
     }
 
@@ -98,7 +100,7 @@ export abstract class AbstractPoRepIndexerRunner<
         ? this.archiveNodeClient
         : this.recentNodeClient;
 
-      this.getLogger().log(
+      this.logger.log(
         `Fetching logs in block range [${fromBlock.toString()}-${toBlock.toString()}] using ${shouldUseArchiveNode ? '"Archive Node"' : '"Recent Node"'}`,
       );
 
@@ -108,7 +110,7 @@ export abstract class AbstractPoRepIndexerRunner<
         toBlock: toBlock,
       });
 
-      this.getLogger().log(`Found ${logs.length} matching logs`);
+      this.logger.log(`Found ${logs.length} matching logs`);
 
       const operations: PrismaPromise<unknown>[] = [
         ...(versionChanged ? this.prepareCleanup() : []),
@@ -129,7 +131,7 @@ export abstract class AbstractPoRepIndexerRunner<
       await this.prismaService.$transaction(operations);
 
       const keepRunning = currentBlock !== toBlock;
-      this.getLogger().log(
+      this.logger.log(
         keepRunning
           ? `Indexed ${logs.length} logs up to block ${toBlock.toString()}. Scheduling another run.`
           : `Finished indexing ${logs.length} logs.`,
@@ -142,19 +144,11 @@ export abstract class AbstractPoRepIndexerRunner<
       }
     } catch (error) {
       this.isRunning = false;
-      this.getLogger().error(`Error during indexing: ${String(error)}`);
+      this.logger.error(`Error during indexing: ${String(error)}`);
     }
   }
 
   protected getArchiveNodeThreshold(): bigint {
     return 1920n;
-  }
-
-  protected getLogger() {
-    if (!this.logger) {
-      this.logger = new Logger(this.getName());
-    }
-
-    return this.logger;
   }
 }
