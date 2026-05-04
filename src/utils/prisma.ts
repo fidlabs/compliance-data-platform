@@ -39,6 +39,7 @@ function safeBigintOperation(
 
   if (hasNumbers) {
     return input.reduce<number>((result, item) => {
+      // eslint-disable-next-line no-restricted-syntax
       const itemParsed = Number(item ?? 0);
       return type === 'addition' ? result + itemParsed : result * itemParsed;
     }, 0);
