@@ -81,6 +81,7 @@ import { StorageProviderReportService } from './service/storage-provider-report/
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
 import { PoRepIndexerModule } from './po-rep-indexer/po-rep-indexer.module';
+import { PoRepController } from './controller/po-rep/po-rep.controller';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -135,6 +136,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     OldDatacapController,
     StorageProvidersController,
     ReportChecksController,
+    PoRepController,
     AppController,
   ],
   providers: [
