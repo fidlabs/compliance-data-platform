@@ -45,7 +45,7 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   }
 
   protected getVersion(): number {
-    return 1;
+    return 2;
   }
 
   protected getBatchBlockSize(): bigint {
@@ -109,7 +109,14 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   }
 
   private prepareRailUpdates(logs: Logs): PrismaPromise<unknown>[] {
-    const logsGroupedByRail = groupBy(logs, (log) => {
+    const filecoinPayLogs = logs.filter((log) => {
+      return isAddressEqual(
+        log.address,
+        this.configService.get('FILECOIN_PAY_CONTRACT_ADDRESS'),
+      );
+    });
+
+    const logsGroupedByRail = groupBy(filecoinPayLogs, (log) => {
       return log.args.railId.toString();
     });
 
@@ -191,30 +198,36 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
     switch (log.eventName) {
       case 'RailLockupModified':
         return {
+          ...previousUpdateInput,
           lockupPeriod: log.args.newLockupPeriod,
           lockupFixed: log.args.newLockupFixed,
         };
       case 'RailRateModified':
         return {
+          ...previousUpdateInput,
           paymentRate: log.args.newRate,
         };
       case 'RailSettled':
         return {
+          ...previousUpdateInput,
           settledUpTo: log.args.settledUpTo,
         };
       case 'RailTerminated':
         return {
+          ...previousUpdateInput,
           endEpoch: log.args.endEpoch,
         };
       case 'RailFinalized':
         // On-chain, when rail is finalized, all adresses, rate, lockups etc.
         // are reset to zero. We instead set a flag and keep the data.
         return {
+          ...previousUpdateInput,
           lockupFixed: 0,
           finalized: true,
         };
       case 'RailOneTimePaymentProcessed':
         return {
+          ...previousUpdateInput,
           lockupFixed: {
             decrement:
               log.args.netPayeeAmount +

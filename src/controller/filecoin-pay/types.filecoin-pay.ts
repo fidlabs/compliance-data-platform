@@ -67,7 +67,7 @@ export class FilecoinPayRail {
   @ApiProperty({
     description: 'Epoch up to which the rail has been settled',
   })
-  settledUpTp: string;
+  settledUpTo: string;
 
   @ApiProperty({
     description:
@@ -79,7 +79,7 @@ export class FilecoinPayRail {
     description:
       "Operator's commission rate in basis points (0 = 0%, 10000 = 100%)",
   })
-  commisionRateBps: number;
+  commissionRateBps: number;
 
   @ApiProperty({
     description: "Address that receives operator's commission",
@@ -87,7 +87,7 @@ export class FilecoinPayRail {
   serviceFeeRecipient: string;
 
   @ApiProperty({
-    description: 'Whether or not the rail has been finialized',
+    description: 'Whether or not the rail has been finalized',
   })
   finalized: boolean;
 
@@ -147,7 +147,7 @@ export class FilecoinPayPayment {
 
 export class GetFilecoinPayRailsResponse extends PaginationInfoResponse {
   @ApiProperty({
-    description: 'List of FilcoinPay payment rails',
+    description: 'List of FilecoinPay payment rails',
     type: FilecoinPayRail,
     isArray: true,
   })
