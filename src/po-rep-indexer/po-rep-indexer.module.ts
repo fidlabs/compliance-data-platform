@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { FactoryProvider, Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
 import { PrismaService } from '../db/prisma.service';
@@ -6,13 +6,41 @@ import {
   ARCHIVE_NODE_CLIENT,
   RECENT_NODE_CLIENT,
 } from './po-rep-indexer.constants';
-import { PoRepConfig } from './po-rep-indexer.types';
+import {
+  type PoRepConfig,
+  type PoRepPublicClient,
+} from './po-rep-indexer.types';
 import {
   createClientForChainOrThrow,
   validatePoRepConfig,
 } from './po-rep-indexer.utils';
 import { AbstractPoRepIndexerRunner } from './runners/abstract-po-rep-indexer.runner';
+import { FilecoinPayIndexerRunner } from './runners/filecoin-pay-indexer.runner';
 import { PoRepProvidersAndDealsIndexerRunner } from './runners/po-rep-providers-and-deals.runner';
+
+const recentNodeClient: FactoryProvider<PoRepPublicClient> = {
+  provide: RECENT_NODE_CLIENT,
+  useFactory: (configService: ConfigService<PoRepConfig, true>) => {
+    return createClientForChainOrThrow({
+      chainId: configService.get('PO_REP_CHAIN_ID'),
+      rpcUrl: configService.get('PO_REP_RECENT_RPC_URL'),
+      authToken: configService.get('PO_REP_RECENT_RPC_AUTH_TOKEN'),
+    });
+  },
+  inject: [ConfigService],
+};
+
+const archiveNodeClient: FactoryProvider<PoRepPublicClient> = {
+  provide: ARCHIVE_NODE_CLIENT,
+  useFactory: (configService: ConfigService<PoRepConfig, true>) => {
+    return createClientForChainOrThrow({
+      chainId: configService.get('PO_REP_CHAIN_ID'),
+      rpcUrl: configService.get('PO_REP_ARCHIVE_RPC_URL'),
+      authToken: configService.get('PO_REP_ARCHIVE_RPC_AUTH_TOKEN'),
+    });
+  },
+  inject: [ConfigService],
+};
 
 @Module({
   imports: [
@@ -24,29 +52,11 @@ import { PoRepProvidersAndDealsIndexerRunner } from './runners/po-rep-providers-
   providers: [
     PrismaService,
     PoRepProvidersAndDealsIndexerRunner,
-    {
-      provide: RECENT_NODE_CLIENT,
-      useFactory: (configService: ConfigService<PoRepConfig, true>) => {
-        return createClientForChainOrThrow({
-          chainId: configService.get('PO_REP_CHAIN_ID'),
-          rpcUrl: configService.get('PO_REP_RECENT_RPC_URL'),
-          authToken: configService.get('PO_REP_RECENT_RPC_AUTH_TOKEN'),
-        });
-      },
-      inject: [ConfigService],
-    },
-    {
-      provide: ARCHIVE_NODE_CLIENT,
-      useFactory: (configService: ConfigService<PoRepConfig, true>) => {
-        return createClientForChainOrThrow({
-          chainId: configService.get('PO_REP_CHAIN_ID'),
-          rpcUrl: configService.get('PO_REP_ARCHIVE_RPC_URL'),
-          authToken: configService.get('PO_REP_ARCHIVE_RPC_AUTH_TOKEN'),
-        });
-      },
-      inject: [ConfigService],
-    },
+    FilecoinPayIndexerRunner,
+    recentNodeClient,
+    archiveNodeClient,
   ],
+  exports: [recentNodeClient, archiveNodeClient],
 })
 export class PoRepIndexerModule implements OnModuleInit {
   constructor(private readonly discoveryService: DiscoveryService) {}

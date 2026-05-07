@@ -80,8 +80,10 @@ import { OldDatacapService } from './service/old-datacap/old-datacap.service';
 import { StorageProviderReportService } from './service/storage-provider-report/storage-provider-report.service';
 import { StorageProviderUrlFinderService } from './service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from './service/storage-provider/storage-provider.service';
-import { PoRepIndexerModule } from './po-rep-indexer/po-rep-indexer.module';
+import { PoRepIndexerModule } from './po-rep-indexer';
 import { PoRepController } from './controller/po-rep/po-rep.controller';
+import { FilecoinPayController } from './controller/filecoin-pay/filecoin-pay.controller';
+import { ERC20TokenInfoService } from './service/erc20-token-info/erc20-token-info.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -137,6 +139,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     StorageProvidersController,
     ReportChecksController,
     PoRepController,
+    FilecoinPayController,
     AppController,
   ],
   providers: [
@@ -175,6 +178,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     StorageProviderReportService,
     OldDatacapService,
     StorageProviderUrlFinderSnapshotMetricService,
+    ERC20TokenInfoService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {

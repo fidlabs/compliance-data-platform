@@ -691,6 +691,43 @@ model po_rep_deal_requirements {
   deal              po_rep_deal @relation(fields: [dealId], references: [dealId])
 }
 
+model filecoin_pay_rail {
+  railId              BigInt @id
+  token               String
+  from                String
+  to                  String
+  operator            String
+  validator           String
+  paymentRate         BigInt @default(0)
+  lockupPeriod        BigInt @default(0)
+  lockupFixed         BigInt @default(0)
+  settledUpTo         BigInt
+  endEpoch            BigInt @default(0) // 0 means rail is not terminated
+  commissionRateBps   Int
+  serviceFeeRecipient String
+  finalized           Boolean @default(false)
+  createdAtBlock      BigInt
+
+  @@index([createdAtBlock(sort: Desc)])
+}
+
+model filecoin_pay_payment {
+  id                  String @id @default(uuid()) @db.Uuid
+  // No foreign key constraints (relations) on rail id because we don't index 
+  // from genesis block. Some registered payments may relate to rails for
+  // which no entry exists in "filecoin_pay_rail" table because creation event
+  // happened on lower block height that the one we index from.
+  railId              BigInt
+  totalAmount         BigInt
+  netPayeeAmount      BigInt
+  operatorCommission  BigInt
+  networkFee          BigInt
+  createdAtBlock      BigInt
+  oneTime             Boolean
+
+  @@index([railId, createdAtBlock(sort: Desc)])
+}
+
 enum PoRepDealState {
   PROPOSED
   ACCEPTED

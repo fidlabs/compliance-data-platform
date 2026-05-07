@@ -24,4 +24,5 @@ export const PO_REP_CONFIG_SCHEMA = z.object({
   PO_REP_RECENT_RPC_AUTH_TOKEN: z.string().nullish(),
   PO_REP_MARKET_CONTRACT_ADDRESS: evmAddress,
   SP_REGISTRY_CONTRACT_ADDRESS: evmAddress,
+  FILECOIN_PAY_CONTRACT_ADDRESS: evmAddress,
 });
