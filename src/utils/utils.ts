@@ -3,6 +3,16 @@ import { parse } from 'bytes-iec';
 
 export type BigIntString = `${'-' | ''}${number}`;
 
+interface FilecoinBlockHeightConversionConfig {
+  blockTimeSeconds?: number;
+  testnet?: boolean;
+}
+
+const filecoinGenesisBlocks = {
+  mainnet: 1598306400,
+  testnet: 1667326380,
+} as const;
+
 export function stringToBool(s?: string): boolean | null {
   if (['1', 'TRUE', 'YES', 'ON'].includes(s?.toUpperCase())) return true;
   if (['0', 'FALSE', 'NO', 'OFF'].includes(s?.toUpperCase())) return false;
@@ -134,9 +144,22 @@ export function arrayAverage(arr?: number[]): number | null {
 
 export function dateToFilecoinBlockHeight(
   date: Date | string | number,
+  config: FilecoinBlockHeightConversionConfig = {},
 ): number {
+  const { blockTimeSeconds = 30, testnet = false } = config;
+  const genesisUnix = filecoinGenesisBlocks[testnet ? 'testnet' : 'mainnet'];
   const epochSeconds = Math.floor(new Date(date).valueOf() / 1000);
-  return Math.floor((epochSeconds - 1598306400) / 30);
+  return Math.floor((epochSeconds - genesisUnix) / blockTimeSeconds);
+}
+
+export function filecoinBlockHeightToDate(
+  blockHeight: number,
+  config: FilecoinBlockHeightConversionConfig = {},
+): Date {
+  const { blockTimeSeconds = 30, testnet = false } = config;
+  const genesisUnix = filecoinGenesisBlocks[testnet ? 'testnet' : 'mainnet'];
+
+  return new Date((genesisUnix + blockHeight * blockTimeSeconds) * 1000);
 }
 
 export type DatabasePaginationQuery = {

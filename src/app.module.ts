@@ -84,6 +84,8 @@ import { PoRepIndexerModule } from './po-rep-indexer';
 import { PoRepController } from './controller/po-rep/po-rep.controller';
 import { FilecoinPayController } from './controller/filecoin-pay/filecoin-pay.controller';
 import { ERC20TokenInfoService } from './service/erc20-token-info/erc20-token-info.service';
+import { PoRepPriceOracleService } from './service/po-rep-price-oracle/po-rep-price-oracle.service';
+import { PoRepService } from './service/po-rep/po-rep.service';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -179,6 +181,8 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
     OldDatacapService,
     StorageProviderUrlFinderSnapshotMetricService,
     ERC20TokenInfoService,
+    PoRepPriceOracleService,
+    PoRepService,
     { provide: APP_FILTER, useClass: ErrorHandlerMiddleware },
     { provide: APP_INTERCEPTOR, useClass: CacheInterceptor },
     {
