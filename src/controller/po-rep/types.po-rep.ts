@@ -1,5 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { PaginationInfoResponse } from '../base/types.controller-base';
+import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
+import {
+  DashboardStatistic,
+  DashboardStatisticChange,
+  PaginationInfoResponse,
+} from '../base/types.controller-base';
 
 export type PoRepSLIType = (typeof poRepSLITypes)[number];
 
@@ -8,6 +12,11 @@ export const poRepSLITypes = [
   'bandwidthMbps',
   'latencyMs',
   'indexingPct',
+] as const;
+
+export const poRepDashboardStatisticTypes = [
+  'TOTAL_DEALS_DONE',
+  'TOTAL_USD_PAID',
 ] as const;
 
 export class PoRepSLIMeasurment {
@@ -103,6 +112,39 @@ export class PoRepProviderInfo {
   })
   registeredAtBlock: string;
 }
+
+export class PoRepDealsPaymentsHistoryEntry {
+  @ApiProperty({
+    description: 'Entry date',
+  })
+  day: string;
+
+  @ApiProperty({
+    description: 'Daily volume of payments in USD',
+  })
+  dailyAmountUSD: number;
+
+  @ApiProperty({
+    description: 'Cumulative amount of payments in USD up to the entry date',
+  })
+  cumulativeAmountUSD: number;
+}
+
+export type PoRepDashboardStatisticType =
+  (typeof poRepDashboardStatisticTypes)[number];
+
+export class PoRepDashboardStatistic extends DashboardStatistic {
+  @ApiProperty({
+    description: 'Type of PoRep dashboard statistic',
+    enumName: 'PoRepDashboardStatisticType',
+    enum: poRepDashboardStatisticTypes,
+  })
+  type: PoRepDashboardStatisticType;
+}
+
+export class GetPoRepStatisticsRequest extends PartialType(
+  PickType(DashboardStatisticChange, ['interval'] as const),
+) {}
 
 export class GetPoRepProvidersResponse extends PaginationInfoResponse {
   @ApiProperty({

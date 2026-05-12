@@ -1,21 +1,32 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { DateTime } from 'luxon';
 import {
   PoRepDealState,
   Prisma,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
+import { PoRepService } from 'src/service/po-rep/po-rep.service';
+import { bigIntDiv } from 'src/utils/utils';
+import { ControllerBase } from '../base/controller-base';
+import {
+  DashboardStatistic,
+  DashboardStatisticValue,
+  PaginationInfoRequest,
+} from '../base/types.controller-base';
 import {
   GetPoRepProvidersResponse,
+  GetPoRepStatisticsRequest,
+  PoRepDashboardStatistic,
+  PoRepDashboardStatisticType,
+  PoRepDealsPaymentsHistoryEntry,
   PoRepProviderSLIInfo,
   PoRepSLIMeasurment,
   PoRepSLIType,
   poRepSLITypes,
 } from './types.po-rep';
-import { PaginationInfoRequest } from '../base/types.controller-base';
-import { ControllerBase } from '../base/controller-base';
 
 const sliTypesMap: Record<
   PoRepSLIType,
@@ -27,13 +38,89 @@ const sliTypesMap: Record<
   indexingPct: null,
 };
 
+const dashboardStatisticsTitleDict: Record<
+  PoRepDashboardStatisticType,
+  PoRepDashboardStatistic['title']
+> = {
+  TOTAL_DEALS_DONE: 'Total Deals Done',
+  TOTAL_USD_PAID: 'Total USD Paid',
+};
+
+const dashboardStatisticsDescriptionDict: Record<
+  PoRepDashboardStatisticType,
+  PoRepDashboardStatistic['description']
+> = {
+  TOTAL_DEALS_DONE: 'Total count of deals done up to date',
+  TOTAL_USD_PAID:
+    'Total amount in USD of funds transferred to providers for fulfilling deals',
+};
+
 @Controller('po-rep')
 export class PoRepController extends ControllerBase {
   constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private _cacheManager: Cache,
     private readonly prismaService: PrismaService,
+    private readonly poRepService: PoRepService,
   ) {
     super();
+  }
+
+  @Get('/statistics')
+  @ApiOperation({
+    summary: 'Get list of statistics regarding PoRep market',
+  })
+  @ApiOkResponse({
+    description: 'List of statistics regarding PoRep market',
+    type: [PoRepDashboardStatistic],
+  })
+  @CacheTTL(1000 * 60 * 5) // 5 minutes
+  public async getStatistics(
+    @Query() query: GetPoRepStatisticsRequest,
+  ): Promise<PoRepDashboardStatistic[]> {
+    const { interval = 'day' } = query;
+    const cutoffDate = DateTime.now()
+      .toUTC()
+      .minus({ [interval]: 1 });
+
+    const [currentDealsCount, previousDealsCount, paymentsHistory] =
+      await Promise.all([
+        this.poRepService.getDealsDoneCountUpToDate(),
+        this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
+        this.poRepService.getDealsPaymentsSummaryHistory(),
+      ]);
+
+    const currentPaymentsEntry = paymentsHistory.at(-1);
+    const cuttofDateISODateString = cutoffDate.toISODate();
+    const comparedPaymentsEntry = paymentsHistory.find((entry) => {
+      return entry.day.toISODate() === cuttofDateISODateString;
+    });
+
+    return [
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_DEALS_DONE',
+        interval: interval,
+        currentValue: {
+          value: currentDealsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousDealsCount,
+          type: 'numeric',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_USD_PAID',
+        interval: interval,
+        currentValue: {
+          value: currentPaymentsEntry?.cumulativeAmountUSD ?? 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: comparedPaymentsEntry?.cumulativeAmountUSD ?? 0,
+          type: 'numeric',
+        },
+      }),
+    ];
   }
 
   @Get('/providers')
@@ -150,5 +237,72 @@ export class PoRepController extends ControllerBase {
       query,
       totalCount,
     );
+  }
+
+  @Get('/payments-history')
+  @ApiOperation({
+    summary:
+      'Get the history of USD amounts paid to providers for deal settlements',
+  })
+  @ApiOkResponse({
+    type: [PoRepDealsPaymentsHistoryEntry],
+  })
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
+  public async getPaymentsHistory(): Promise<PoRepDealsPaymentsHistoryEntry[]> {
+    const results = await this.poRepService.getDealsPaymentsSummaryHistory();
+    return results.map((result) => {
+      return {
+        day: result.day.toFormat('yyyy-MM-dd'),
+        dailyAmountUSD: result.dailyAmountUSD,
+        cumulativeAmountUSD: result.cumulativeAmountUSD,
+      };
+    });
+  }
+
+  private calculateDashboardStatistic(options: {
+    type: PoRepDashboardStatistic['type'];
+    currentValue: DashboardStatisticValue;
+    previousValue: DashboardStatisticValue;
+    interval: DashboardStatistic['percentageChange']['interval'];
+  }): PoRepDashboardStatistic {
+    const { type, currentValue, previousValue, interval } = options;
+
+    if (currentValue.type !== previousValue.type) {
+      throw new TypeError(
+        'Cannot compare different dashboard statistics types',
+      );
+    }
+
+    const percentageChange: PoRepDashboardStatistic['percentageChange'] =
+      (() => {
+        const dividerIsZero =
+          previousValue.type === 'bigint'
+            ? BigInt(previousValue.value) === 0n
+            : previousValue.value === 0;
+        if (dividerIsZero) return null;
+
+        const ratio =
+          currentValue.type === 'bigint' || previousValue.type === 'bigint'
+            ? bigIntDiv(
+                BigInt(currentValue.value),
+                BigInt(previousValue.value),
+                2,
+              )
+            : currentValue.value / previousValue.value;
+
+        return {
+          value: ratio - 1,
+          interval: interval,
+          increaseNegative: false,
+        };
+      })();
+
+    return {
+      type: type,
+      title: dashboardStatisticsTitleDict[type],
+      description: dashboardStatisticsDescriptionDict[type],
+      value: currentValue,
+      percentageChange: percentageChange,
+    };
   }
 }
