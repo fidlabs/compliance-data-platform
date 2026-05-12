@@ -1,15 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { groupBy, uniq } from 'lodash';
 import { DateTime } from 'luxon';
+import { Decimal } from 'prisma/generated/client/runtime/library';
 import { getFilecoinPaymentsForDealsHistory } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
+import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
 import {
   dateToFilecoinBlockHeight,
   filecoinBlockHeightToDate,
 } from 'src/utils/utils';
-import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.service';
 import { filecoinCalibration } from 'viem/chains';
-import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
+import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.service';
 import { PoRepPriceOracleService } from '../po-rep-price-oracle/po-rep-price-oracle.service';
 
 export interface PoRepDealsPaymentsSummaryHistoryEntry {
@@ -51,7 +52,7 @@ export class PoRepService {
       .toUTC()
       .startOf('day');
     const endDay = DateTime.utc().startOf('day');
-    const entriesCount = endDay.diff(startDay, 'day').days;
+    const entriesCount = endDay.diff(startDay, 'day').days + 1;
     const data = await this.prismaService.$queryRawTyped(
       getFilecoinPaymentsForDealsHistory(this.isTestnet()),
     );
@@ -113,36 +114,38 @@ export class PoRepService {
             // Should not happen but type safety
             if (!tokenUSDExchangeRate || !tokenInfo) {
               throw new Error(
-                `Exhange rate or info not found for token "${result.token}"`,
+                `Exchange rate or info not found for token "${result.token}"`,
               );
             }
 
             const tokenExponent = Math.pow(10, tokenInfo.decimals);
             const tokenDailyAmountUSD = result.daily_amount
               .div(tokenExponent)
-              .mul(tokenUSDExchangeRate)
-              .toDecimalPlaces(2)
-              .toNumber();
+              .mul(tokenUSDExchangeRate);
             const tokenCumulativeAmountUSD = result.cumulative_amount
               .div(tokenExponent)
-              .mul(tokenUSDExchangeRate)
-              .toDecimalPlaces(2)
-              .toNumber();
+              .mul(tokenUSDExchangeRate);
 
             return [
-              currentDailyAmountUSD + tokenDailyAmountUSD,
-              currentCumulativeAmountUSD + tokenCumulativeAmountUSD,
+              currentDailyAmountUSD.add(tokenDailyAmountUSD),
+              currentCumulativeAmountUSD.add(tokenCumulativeAmountUSD),
             ];
           },
-          [0, 0],
+          [new Decimal(0), new Decimal(0)],
         );
 
         return {
-          day: DateTime.fromISO(dateISOString),
-          dailyAmountUSD: dailyAmountUSD,
-          cumulativeAmountUSD: cumulativeAmountUSD,
+          day: DateTime.fromISO(dateISOString, { zone: 'utc' }),
+          dailyAmountUSD: dailyAmountUSD.toDecimalPlaces(2).toNumber(),
+          cumulativeAmountUSD: cumulativeAmountUSD
+            .toDecimalPlaces(2)
+            .toNumber(),
         };
       },
+    );
+
+    const combinedDayDataByISODate = new Map(
+      combinedDayData.map((item) => [item.day.toISODate(), item]),
     );
 
     return [
@@ -150,9 +153,7 @@ export class PoRepService {
     ].reduce<PoRepDealsPaymentsSummaryHistory>((result, _, index) => {
       const entryDay = startDay.plus({ day: index });
       const entryISODate = entryDay.toISODate();
-      const matchingData = combinedDayData.find((item) => {
-        return item.day.toISODate() === entryISODate;
-      });
+      const matchingData = combinedDayDataByISODate.get(entryISODate);
 
       if (matchingData) {
         return [...result, matchingData];

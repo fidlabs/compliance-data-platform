@@ -10,7 +10,6 @@ import {
 import { PrismaService } from 'src/db/prisma.service';
 import { PoRepService } from 'src/service/po-rep/po-rep.service';
 import { bigIntDiv } from 'src/utils/utils';
-import { GetAllocatorsStatisticsRequest } from '../allocators/types.allocators';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
@@ -19,6 +18,7 @@ import {
 } from '../base/types.controller-base';
 import {
   GetPoRepProvidersResponse,
+  GetPoRepStatisticsRequest,
   PoRepDashboardStatistic,
   PoRepDashboardStatisticType,
   PoRepDealsPaymentsHistoryEntry,
@@ -58,7 +58,7 @@ const dashboardStatisticsDescriptionDict: Record<
 @Controller('po-rep')
 export class PoRepController extends ControllerBase {
   constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @Inject(CACHE_MANAGER) private _cacheManager: Cache,
     private readonly prismaService: PrismaService,
     private readonly poRepService: PoRepService,
   ) {
@@ -73,25 +73,26 @@ export class PoRepController extends ControllerBase {
     description: 'List of statistics regarding PoRep market',
     type: [PoRepDashboardStatistic],
   })
+  @CacheTTL(1000 * 60 * 5) // 5 minutes
   public async getStatistics(
-    @Query() query: GetAllocatorsStatisticsRequest,
+    @Query() query: GetPoRepStatisticsRequest,
   ): Promise<PoRepDashboardStatistic[]> {
     const { interval = 'day' } = query;
     const cutoffDate = DateTime.now()
       .toUTC()
-      .minus({ [interval]: 1 })
-      .toJSDate();
+      .minus({ [interval]: 1 });
 
     const [currentDealsCount, previousDealsCount, paymentsHistory] =
       await Promise.all([
         this.poRepService.getDealsDoneCountUpToDate(),
-        this.poRepService.getDealsDoneCountUpToDate(cutoffDate),
+        this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
         this.poRepService.getDealsPaymentsSummaryHistory(),
       ]);
 
     const currentPaymentsEntry = paymentsHistory.at(-1);
+    const cuttofDateISODateString = cutoffDate.toISODate();
     const comparedPaymentsEntry = paymentsHistory.find((entry) => {
-      return entry.day.toJSDate().toDateString() === cutoffDate.toDateString();
+      return entry.day.toISODate() === cuttofDateISODateString;
     });
 
     return [
@@ -246,7 +247,7 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepDealsPaymentsHistoryEntry],
   })
-  // @CacheTTL(1000 * 60 * 30) // 30 minutes
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getPaymentsHistory(): Promise<PoRepDealsPaymentsHistoryEntry[]> {
     const results = await this.poRepService.getDealsPaymentsSummaryHistory();
     return results.map((result) => {

@@ -2,12 +2,15 @@
 
 WITH daily_payments AS (
     SELECT
-        to_timestamp(
-            p."createdAtBlock" * 30 +
-            CASE
-                WHEN $1 IS TRUE THEN 1667326380
-                ELSE 1598306400
-            END
+        timezone(
+            'UTC',
+                to_timestamp(
+                p."createdAtBlock" * 30 +
+                CASE
+                    WHEN $1 IS TRUE THEN 1667326380
+                    ELSE 1598306400
+                END
+            )
         )::date AS day,
         r.token,
         SUM(p."netPayeeAmount") AS daily_amount
@@ -15,10 +18,10 @@ WITH daily_payments AS (
     INNER JOIN filecoin_pay_rail r
         ON r."railId" = p."railId"
     WHERE EXISTS (
-			SELECT 1
-			FROM po_rep_deal d
-			WHERE d."railId" = p."railId"
-		)
+        SELECT 1
+        FROM po_rep_deal d
+        WHERE d."railId" = p."railId"
+    )
     GROUP BY 1, 2
 )
 
