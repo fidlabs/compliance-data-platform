@@ -4,7 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { DateTime } from 'luxon';
 import { PrismaPromise } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
-import { AbiEvent, GetLogsReturnType } from 'viem';
+import { AbiEvent, Address, GetLogsReturnType } from 'viem';
 import {
   ARCHIVE_NODE_CLIENT,
   RECENT_NODE_CLIENT,
@@ -31,13 +31,16 @@ export abstract class AbstractPoRepIndexerRunner<
   // Returns events that should be processed
   protected abstract getEventTypes(): EventType[];
 
+  // Returns address or list of addresses from which indexed logs should originate
+  protected abstract getOriginAddresses(): Address | Address[] | undefined;
+
   // Return DB operations necessary for cleanup when version changes
   protected abstract prepareCleanup(): PrismaPromise<unknown>[];
 
   // Return DB updates based on processed logs
   protected abstract prepareUpdates(
     logs: GetLogsReturnType<undefined, EventType[], undefined, bigint, bigint>,
-  ): PrismaPromise<unknown>[];
+  ): PrismaPromise<unknown>[] | Promise<PrismaPromise<unknown>[]>;
 
   protected logger: Logger;
   private isRunning: boolean = false;
@@ -105,6 +108,7 @@ export abstract class AbstractPoRepIndexerRunner<
       );
 
       const logs = await publicClient.getLogs({
+        address: this.getOriginAddresses(),
         events: this.getEventTypes(),
         fromBlock: fromBlock,
         toBlock: toBlock,
@@ -112,9 +116,11 @@ export abstract class AbstractPoRepIndexerRunner<
 
       this.logger.log(`Found ${logs.length} matching logs`);
 
+      const updates = await this.prepareUpdates(logs);
+
       const operations: PrismaPromise<unknown>[] = [
         ...(versionChanged ? this.prepareCleanup() : []),
-        ...this.prepareUpdates(logs),
+        ...updates,
         this.prismaService.po_rep_indexer_run.create({
           data: {
             date: startDate.toJSDate(),

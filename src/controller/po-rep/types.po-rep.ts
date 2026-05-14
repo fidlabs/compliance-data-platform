@@ -113,11 +113,47 @@ export class PoRepProviderInfo {
   registeredAtBlock: string;
 }
 
+export class PoRepOnboardedDataHistoryEntry {
+  @ApiProperty({
+    description: 'Entry date',
+  })
+  date: string;
+
+  @ApiProperty({
+    description: 'Entry volume of onboarded data in bytes',
+  })
+  volume: string;
+
+  @ApiProperty({
+    description:
+      'Cumulative amount of onboarded data in bytes, up to the entry date',
+  })
+  cumulativeTotal: string;
+}
+
+export class PoRepDealsValueHistoryEntry {
+  @ApiProperty({
+    description: 'Entry date',
+  })
+  date: string;
+
+  @ApiProperty({
+    description: 'Total value of deals accepted in entry window in USD',
+  })
+  volumeUSD: number;
+
+  @ApiProperty({
+    description:
+      'Cumulative total value of accepted deals in USD, up to entry date',
+  })
+  cumulativeTotalUSD: number;
+}
+
 export class PoRepDealsPaymentsHistoryEntry {
   @ApiProperty({
     description: 'Entry date',
   })
-  day: string;
+  date: string;
 
   @ApiProperty({
     description: 'Daily volume of payments in USD',
@@ -145,6 +181,18 @@ export class PoRepDashboardStatistic extends DashboardStatistic {
 export class GetPoRepStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}
+
+const onboardedDataHistoryWindowSizeOptions = ['day', 'week', 'month'] as const;
+export class PoRepHistoryRequest {
+  @ApiProperty({
+    description: 'Window size of returned data, eg. "week"',
+    enum: onboardedDataHistoryWindowSizeOptions,
+    enumName: 'OnboardedDataHistoryWindowSize',
+    required: false,
+    default: 'day',
+  })
+  windowSize?: (typeof onboardedDataHistoryWindowSizeOptions)[number];
+}
 
 export class GetPoRepProvidersResponse extends PaginationInfoResponse {
   @ApiProperty({
