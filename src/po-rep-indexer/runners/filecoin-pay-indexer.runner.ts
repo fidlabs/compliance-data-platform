@@ -50,7 +50,7 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   }
 
   protected getBatchBlockSize(): bigint {
-    return 2n * 60n * 24n; // 1 day worth of logs
+    return 2n * 60n * 12n; // 12h worth of logs
   }
 
   protected getEventTypes() {
