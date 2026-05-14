@@ -50,6 +50,7 @@ rail_activations AS (
         )::DATE AS activation_date_truncated
     FROM filecoin_pay_rail r
     CROSS JOIN constants c
+    WHERE r."activatedAtBlock" <> 0
 ),
 window_totals AS (
     SELECT

@@ -17,6 +17,8 @@ import { filecoinCalibration } from 'viem/chains';
 import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.service';
 import { PoRepPriceOracleService } from '../po-rep-price-oracle/po-rep-price-oracle.service';
 
+type WindowSize = 'day' | 'week' | 'month';
+
 export interface PoRepDealsPaymentsSummaryHistoryEntry {
   date: DateTime;
   dailyAmountUSD: number;
@@ -53,7 +55,7 @@ export class PoRepService {
   ) {}
 
   public async getDealsPaymentsSummaryHistory(
-    windowSize: 'day' | 'week' | 'month',
+    windowSize: WindowSize,
   ): Promise<PoRepDealsPaymentsSummaryHistory> {
     const earliestDeal = await this.prismaService.po_rep_deal.findFirst({
       orderBy: {
@@ -211,7 +213,7 @@ export class PoRepService {
   }
 
   public async getOnboardedDataHistory(
-    windowSize: string,
+    windowSize: WindowSize,
   ): Promise<PoRepDealsOnboardedDataHistory> {
     const results = await this.prismaService.$queryRawTyped(
       getPoRepOnboardedDataHistory(windowSize, this.isTestnet()),
@@ -227,7 +229,7 @@ export class PoRepService {
   }
 
   public async getDealsValueHistory(
-    windowSize: string,
+    windowSize: WindowSize,
   ): Promise<PoRepDealsValueHistory> {
     const results = await this.prismaService.$queryRawTyped(
       getPoRepDealsValueHistory(windowSize, this.isTestnet()),

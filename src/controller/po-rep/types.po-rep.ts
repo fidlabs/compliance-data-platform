@@ -1,4 +1,5 @@
 import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
+import { IsIn, IsOptional } from 'class-validator';
 import {
   DashboardStatistic,
   DashboardStatisticChange,
@@ -182,16 +183,18 @@ export class GetPoRepStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}
 
-const onboardedDataHistoryWindowSizeOptions = ['day', 'week', 'month'] as const;
+const poRepHistoryWindowSize = ['day', 'week', 'month'] as const;
 export class PoRepHistoryRequest {
   @ApiProperty({
     description: 'Window size of returned data, eg. "week"',
-    enum: onboardedDataHistoryWindowSizeOptions,
-    enumName: 'OnboardedDataHistoryWindowSize',
+    enum: poRepHistoryWindowSize,
+    enumName: 'PoRepHistoryWindowSize',
     required: false,
     default: 'day',
   })
-  windowSize?: (typeof onboardedDataHistoryWindowSizeOptions)[number];
+  @IsOptional()
+  @IsIn(poRepHistoryWindowSize)
+  windowSize?: (typeof poRepHistoryWindowSize)[number];
 }
 
 export class GetPoRepProvidersResponse extends PaginationInfoResponse {

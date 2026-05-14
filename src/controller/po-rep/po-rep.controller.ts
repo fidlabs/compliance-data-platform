@@ -1,5 +1,5 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Query, ValidationPipe } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { DateTime } from 'luxon';
 import {
@@ -247,8 +247,8 @@ export class PoRepController extends ControllerBase {
     type: [PoRepOnboardedDataHistoryEntry],
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
-  public async getOnboardeDataHistory(
-    @Query() query: PoRepHistoryRequest,
+  public async getOnboardedDataHistory(
+    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
   ): Promise<PoRepOnboardedDataHistoryEntry[]> {
     const { windowSize = 'day' } = query;
     const results = await this.poRepService.getOnboardedDataHistory(windowSize);
@@ -269,9 +269,9 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepDealsValueHistoryEntry],
   })
-  // @CacheTTL(1000 * 60 * 30) // 30 minutes
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getDealsValueHistory(
-    @Query() query: PoRepHistoryRequest,
+    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
   ): Promise<PoRepDealsValueHistoryEntry[]> {
     const { windowSize = 'day' } = query;
     const results = await this.poRepService.getDealsValueHistory(windowSize);
@@ -295,7 +295,7 @@ export class PoRepController extends ControllerBase {
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getPaymentsHistory(
-    @Query() query: PoRepHistoryRequest,
+    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
   ): Promise<PoRepDealsPaymentsHistoryEntry[]> {
     const { windowSize = 'day' } = query;
     const results =
