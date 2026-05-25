@@ -1,5 +1,5 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Query, ValidationPipe } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { DateTime } from 'luxon';
 import {
@@ -22,6 +22,9 @@ import {
   PoRepDashboardStatistic,
   PoRepDashboardStatisticType,
   PoRepDealsPaymentsHistoryEntry,
+  PoRepDealsValueHistoryEntry,
+  PoRepHistoryRequest,
+  PoRepOnboardedDataHistoryEntry,
   PoRepProviderSLIInfo,
   PoRepSLIMeasurment,
   PoRepSLIType,
@@ -86,14 +89,11 @@ export class PoRepController extends ControllerBase {
       await Promise.all([
         this.poRepService.getDealsDoneCountUpToDate(),
         this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
-        this.poRepService.getDealsPaymentsSummaryHistory(),
+        this.poRepService.getDealsPaymentsSummaryHistory(interval),
       ]);
 
     const currentPaymentsEntry = paymentsHistory.at(-1);
-    const cuttofDateISODateString = cutoffDate.toISODate();
-    const comparedPaymentsEntry = paymentsHistory.find((entry) => {
-      return entry.day.toISODate() === cuttofDateISODateString;
-    });
+    const comparedPaymentsEntry = paymentsHistory.at(-2);
 
     return [
       this.calculateDashboardStatistic({
@@ -239,6 +239,52 @@ export class PoRepController extends ControllerBase {
     );
   }
 
+  @Get('/onboarded-data-history')
+  @ApiOperation({
+    summary: 'Get the history of onboarded data for PoRep deals',
+  })
+  @ApiOkResponse({
+    type: [PoRepOnboardedDataHistoryEntry],
+  })
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
+  public async getOnboardedDataHistory(
+    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
+  ): Promise<PoRepOnboardedDataHistoryEntry[]> {
+    const { windowSize = 'day' } = query;
+    const results = await this.poRepService.getOnboardedDataHistory(windowSize);
+
+    return results.map<PoRepOnboardedDataHistoryEntry>((result) => {
+      return {
+        date: result.date.toFormat('yyyy-MM-dd'),
+        volume: result.volume.toString(),
+        cumulativeTotal: result.cumulativeTotal.toString(),
+      };
+    });
+  }
+
+  @Get('/deals-value-history')
+  @ApiOperation({
+    summary: 'Get the history of PoRep deals value',
+  })
+  @ApiOkResponse({
+    type: [PoRepDealsValueHistoryEntry],
+  })
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
+  public async getDealsValueHistory(
+    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
+  ): Promise<PoRepDealsValueHistoryEntry[]> {
+    const { windowSize = 'day' } = query;
+    const results = await this.poRepService.getDealsValueHistory(windowSize);
+
+    return results.map<PoRepDealsValueHistoryEntry>((result) => {
+      return {
+        date: result.date.toFormat('yyyy-MM-dd'),
+        volumeUSD: result.volumeUSD,
+        cumulativeTotalUSD: result.cumulativeTotalUSD,
+      };
+    });
+  }
+
   @Get('/payments-history')
   @ApiOperation({
     summary:
@@ -248,11 +294,16 @@ export class PoRepController extends ControllerBase {
     type: [PoRepDealsPaymentsHistoryEntry],
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
-  public async getPaymentsHistory(): Promise<PoRepDealsPaymentsHistoryEntry[]> {
-    const results = await this.poRepService.getDealsPaymentsSummaryHistory();
+  public async getPaymentsHistory(
+    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
+  ): Promise<PoRepDealsPaymentsHistoryEntry[]> {
+    const { windowSize = 'day' } = query;
+    const results =
+      await this.poRepService.getDealsPaymentsSummaryHistory(windowSize);
+
     return results.map((result) => {
       return {
-        day: result.day.toFormat('yyyy-MM-dd'),
+        date: result.date.toFormat('yyyy-MM-dd'),
         dailyAmountUSD: result.dailyAmountUSD,
         cumulativeAmountUSD: result.cumulativeAmountUSD,
       };

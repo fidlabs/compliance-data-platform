@@ -2,6 +2,7 @@ import { groupBy } from 'lodash';
 import { type Prisma, type PrismaPromise } from 'prisma/generated/client';
 import {
   type AbiEvent,
+  type Address,
   getAbiItem,
   type GetLogsReturnType,
   isAddressEqual,
@@ -45,15 +46,19 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   }
 
   protected getVersion(): number {
-    return 2;
+    return 3;
   }
 
   protected getBatchBlockSize(): bigint {
-    return 2n * 60n * 24n; // 1 day worth of logs
+    return 2n * 60n * 12n; // 12h worth of logs
   }
 
   protected getEventTypes() {
     return events;
+  }
+
+  protected getOriginAddresses(): Address | Address[] | undefined {
+    return this.configService.get('FILECOIN_PAY_CONTRACT_ADDRESS');
   }
 
   protected prepareCleanup(): PrismaPromise<unknown>[] {
@@ -72,16 +77,9 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   }
 
   private prepareRailsCreations(logs: Logs): PrismaPromise<unknown>[] {
-    const createLogs = logs
-      .filter((log) => {
-        return isAddressEqual(
-          log.address,
-          this.configService.get('FILECOIN_PAY_CONTRACT_ADDRESS'),
-        );
-      })
-      .filter((log) => {
-        return log.eventName === 'RailCreated';
-      });
+    const createLogs = logs.filter((log) => {
+      return log.eventName === 'RailCreated';
+    });
 
     if (createLogs.length === 0) {
       return [];
@@ -133,18 +131,11 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   }
 
   private preparePaymentsCreations(logs: Logs): PrismaPromise<unknown>[] {
-    const paymentLogs = logs.filter((log) => {
-      return isAddressEqual(
-        log.address,
-        this.configService.get('FILECOIN_PAY_CONTRACT_ADDRESS'),
-      );
-    });
-
-    if (paymentLogs.length === 0) {
+    if (logs.length === 0) {
       return [];
     }
 
-    const oneTimePaymentsCreations = paymentLogs
+    const oneTimePaymentsCreations = logs
       .filter((log) => log.eventName === 'RailOneTimePaymentProcessed')
       .map<PaymentCreationInput>((log) => {
         const { railId, netPayeeAmount, networkFee, operatorCommission } =
@@ -162,7 +153,7 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
         };
       });
 
-    const settlementsCreations = paymentLogs
+    const settlementsCreations = logs
       .filter((log) => log.eventName === 'RailSettled')
       .map<PaymentCreationInput>((log) => {
         const {
@@ -206,6 +197,12 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
         return {
           ...previousUpdateInput,
           paymentRate: log.args.newRate,
+          ...(log.args.oldRate === 0n && log.args.newRate > 0n
+            ? {
+                activatedAtBlock: log.blockNumber,
+                settledUpTo: log.blockNumber,
+              }
+            : {}),
         };
       case 'RailSettled':
         return {

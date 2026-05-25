@@ -679,7 +679,9 @@ model po_rep_deal {
   proposedAtBlock   BigInt
   railId            BigInt?
   requirements      po_rep_deal_requirements?
+  terms             po_rep_deal_terms?
   provider          po_rep_storage_provider @relation(fields: [providerId], references: [providerId])
+  stateChanges      po_rep_deal_state_change[]
 }
 
 model po_rep_deal_requirements {
@@ -689,6 +691,24 @@ model po_rep_deal_requirements {
   latencyMs         Int
   indexingPct       Int
   deal              po_rep_deal @relation(fields: [dealId], references: [dealId])
+}
+
+model po_rep_deal_terms {
+  deal_id BigInt @id
+  deal_size_bytes BigInt
+  price_per_sector_per_month BigInt
+  duration_days BigInt
+  deal po_rep_deal @relation(fields: [deal_id], references: [dealId])
+}
+
+model po_rep_deal_state_change {
+  deal_id           BigInt
+  state             PoRepDealState
+  changed_at_block  BigInt
+  deal              po_rep_deal @relation(fields: [deal_id], references: [dealId])
+
+  @@id([deal_id, state]) // Each deal gets to the next state only once
+  @@index([deal_id, state, changed_at_block(sort: Desc)])
 }
 
 model filecoin_pay_rail {
@@ -707,6 +727,7 @@ model filecoin_pay_rail {
   serviceFeeRecipient String
   finalized           Boolean @default(false)
   createdAtBlock      BigInt
+  activatedAtBlock    BigInt @default(0)
 
   @@index([createdAtBlock(sort: Desc)])
 }
