@@ -7,6 +7,7 @@ import {
 import {
   DashboardStatistic,
   DashboardStatisticChange,
+  PaginationInfoResponse,
   PaginationSortingInfoRequest,
 } from '../base/types.controller-base';
 
@@ -128,6 +129,89 @@ export class ClientsDashboardStatistic extends DashboardStatistic {
     enum: clientsDashboardStatisticTypes,
   })
   type: ClientsDashboardStatisticType;
+}
+
+export class Client {
+  @ApiProperty({
+    description: 'Client ID',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Client name',
+    nullable: true,
+  })
+  name: string | null;
+
+  @ApiProperty({
+    description: 'Client address',
+    nullable: true,
+  })
+  address: string | null;
+
+  @ApiProperty({
+    description: 'Github URL',
+    nullable: true,
+  })
+  githubUrl: string | null;
+
+  @ApiProperty({
+    description: 'Datacap received in bytes',
+  })
+  datacapReceived: string;
+
+  @ApiProperty({
+    description: 'Datacap remaining in bytes',
+  })
+  datacapRemaining: string;
+
+  @ApiProperty({
+    description: 'Datacap used in last two weeks in bytes',
+  })
+  datacapUsed2Weeks: string;
+
+  @ApiProperty({
+    description: 'Datacap used in last 90 days in bytes',
+  })
+  datacapUsed90Days: string;
+}
+
+export class ClientsList extends PaginationInfoResponse {
+  @ApiProperty({
+    description: 'List of clients',
+    isArray: true,
+    type: Client,
+  })
+  data: Client[];
+}
+
+export class ClientDatacapAllocation {
+  @ApiProperty({
+    description: 'ID of allocator making the allocation',
+  })
+  allocatorId: string;
+
+  @ApiProperty({
+    description: 'ID of client receiving the allocation',
+  })
+  clientId: string;
+
+  @ApiProperty({
+    description: 'Amount of datacap allocated in bytes',
+  })
+  datacapAmount: string;
+
+  @ApiProperty({
+    description: 'ISO data time when allocation was made',
+  })
+  timestamp: string;
+}
+
+export class ClientsListQueryParameters extends PaginationSortingInfoRequest {
+  @ApiPropertyOptional({
+    description: 'Client ID/address/name to filter by',
+  })
+  filter?: string;
 }
 
 export class GetClientsStatisticsRequest extends PartialType(

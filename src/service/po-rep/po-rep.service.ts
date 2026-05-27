@@ -21,8 +21,8 @@ type WindowSize = 'day' | 'week' | 'month';
 
 export interface PoRepDealsPaymentsSummaryHistoryEntry {
   date: DateTime;
-  dailyAmountUSD: number;
-  cumulativeAmountUSD: number;
+  volumeUSD: number;
+  cumulativeTotalUSD: number;
 }
 
 export type PoRepDealsPaymentsSummaryHistory =
@@ -123,13 +123,13 @@ export class PoRepService {
       (item) => item.window_start.toISOString(),
     );
 
-    // DB query returns daily data per token so we need to convert values in
-    // token units to USD and sum them for each day
-    const combinedDayData = Object.entries(
+    // DB query returns window data per token so we need to convert values in
+    // token units to USD and sum them for each window
+    const combinedWindowData = Object.entries(
       dataByDate,
     ).map<PoRepDealsPaymentsSummaryHistoryEntry>(
       ([dateISOString, perDateResults]) => {
-        const [dailyAmountUSD, cumulativeAmountUSD] = perDateResults.reduce(
+        const [windowAmountUSD, cumulativeAmountUSD] = perDateResults.reduce(
           ([currentDailyAmountUSD, currentCumulativeAmountUSD], result) => {
             const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
               result.token_address,
@@ -144,7 +144,7 @@ export class PoRepService {
             }
 
             const tokenExponent = Math.pow(10, tokenInfo.decimals);
-            const tokenDailyAmountUSD = result.daily_amount
+            const tokenDailyAmountUSD = result.window_amount
               .div(tokenExponent)
               .mul(tokenUSDExchangeRate);
             const tokenCumulativeAmountUSD = result.cumulative_amount
@@ -161,16 +161,14 @@ export class PoRepService {
 
         return {
           date: DateTime.fromISO(dateISOString, { zone: 'utc' }),
-          dailyAmountUSD: dailyAmountUSD.toDecimalPlaces(2).toNumber(),
-          cumulativeAmountUSD: cumulativeAmountUSD
-            .toDecimalPlaces(2)
-            .toNumber(),
+          volumeUSD: windowAmountUSD.toDecimalPlaces(2).toNumber(),
+          cumulativeTotalUSD: cumulativeAmountUSD.toDecimalPlaces(2).toNumber(),
         };
       },
     );
 
     const combinedWindowDataByISODate = new Map(
-      combinedDayData.map((item) => [item.date.toISODate(), item]),
+      combinedWindowData.map((item) => [item.date.toISODate(), item]),
     );
 
     return [
@@ -187,8 +185,8 @@ export class PoRepService {
       const previousEntry = index === 0 ? undefined : result.at(index - 1);
       const nextEntry: PoRepDealsPaymentsSummaryHistoryEntry = {
         date: entryDay,
-        dailyAmountUSD: 0,
-        cumulativeAmountUSD: previousEntry?.cumulativeAmountUSD ?? 0,
+        volumeUSD: 0,
+        cumulativeTotalUSD: previousEntry?.cumulativeTotalUSD ?? 0,
       };
 
       return [...result, nextEntry];

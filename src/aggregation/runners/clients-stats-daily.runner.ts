@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { DateTime } from 'luxon';
-import { prepareClientsStats } from 'prismaDmob/generated/client/sql';
 import {
   AggregationRunner,
   AggregationRunnerRunServices,
@@ -23,15 +22,41 @@ export class ClientsStatsDailyRunner implements AggregationRunner {
     const getDataEndTimerMetric = startGetDataTimerByRunnerNameMetric(
       ClientsStatsDailyRunner.name,
     );
+    interface ClientsWithDealsResult {
+      client_id: string;
+    }
 
-    const [result] = await prismaDmobService.$queryRawTyped(
-      prepareClientsStats(),
+    const [clientsWithDealsResults, clientsResults] = await Promise.all([
+      prismaDmobService.$queryRaw<ClientsWithDealsResult[]>`
+        SELECT DISTINCT 'f0' || "clientId" AS client_id
+        FROM dc_allocation_claim
+        WHERE "type" <> 'allocation'
+      `,
+      prismaService.client.findMany({
+        select: {
+          id: true,
+          datacap_remaining: true,
+        },
+      }),
+    ]);
+
+    const remainingDatacapPairs = clientsResults.map((result) => {
+      return [result.id, result.datacap_remaining] as const;
+    });
+    const remainingDatacapMap = new Map(remainingDatacapPairs);
+    const totalRemainingClientsDatacap = clientsResults.reduce(
+      (total, clientResult) => {
+        return total + clientResult.datacap_remaining;
+      },
+      0n,
     );
 
-    // Should never happen
-    if (!result) {
-      this.logger.warn('No results for clients stats, please investigate.');
-    }
+    const clientsWithDealsAndDatacapCount = clientsWithDealsResults.filter(
+      ({ client_id }) => {
+        const remainingDatacap = remainingDatacapMap.get(client_id) ?? 0n;
+        return remainingDatacap > 0n;
+      },
+    ).length;
 
     const todayUTC = DateTime.utc().startOf('day').toJSDate();
 
@@ -50,9 +75,9 @@ export class ClientsStatsDailyRunner implements AggregationRunner {
       prismaService.clients_stats_daily.create({
         data: {
           date: todayUTC,
-          clients_with_active_deals: result.clients_with_active_deals,
-          clients_who_have_dc_and_deals: result.clients_who_have_dc_and_deals,
-          total_remaining_clients_datacap: result.total_remaining_datacap,
+          clients_with_active_deals: clientsWithDealsResults.length,
+          clients_who_have_dc_and_deals: clientsWithDealsAndDatacapCount,
+          total_remaining_clients_datacap: totalRemainingClientsDatacap,
         },
       }),
     ]);
@@ -65,6 +90,6 @@ export class ClientsStatsDailyRunner implements AggregationRunner {
   }
 
   getDependingTables() {
-    return [];
+    return [AggregationTable.Client];
   }
 }

@@ -10,6 +10,7 @@ import { stringifiedBool } from 'src/utils/utils';
 import {
   DashboardStatistic,
   DashboardStatisticChange,
+  PaginationInfoResponse,
   PaginationSortingInfoRequest,
 } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
@@ -167,4 +168,49 @@ export class GetStorageProvidersSliDataResponse {
   data?: {
     [storageProviderId: string]: StorageProvidersSliData[];
   };
+}
+
+class StorageProviderClient {
+  @ApiProperty({
+    description: 'Client ID',
+  })
+  clientId: string;
+
+  @ApiProperty({
+    description: 'Client Name',
+    nullable: true,
+  })
+  clientName: string | null;
+
+  @ApiProperty({
+    description: 'Total number of deals with that client',
+  })
+  dealsCount: number;
+
+  @ApiProperty({
+    description: 'Total size of deals with that client in bytes',
+  })
+  totalDealsSize: string;
+
+  @ApiProperty({
+    description: 'Date of last deal with that client with hourly precision',
+    nullable: true,
+  })
+  lastDealDate: string | null;
+}
+
+export class StorageProviderClientsList extends PaginationInfoResponse {
+  @ApiProperty({
+    description: 'List of clients',
+    type: StorageProviderClient,
+    isArray: true,
+  })
+  data: StorageProviderClient[];
+}
+
+export class StorageProviderClientsListQueryParameters extends PaginationSortingInfoRequest {
+  @ApiPropertyOptional({
+    description: 'Client ID to filter by',
+  })
+  filter?: string;
 }
