@@ -37,8 +37,7 @@ window_totals AS (
     FROM client_datacap_allocation cda
     LEFT JOIN allocator
         ON allocator.id = cda.allocator_id
-    WHERE 
-        allocator.is_metaallocator = FALSE AND
+    WHERE
         allocator.id NOT IN ('f01940930','f03018491','f01858410', 'f02049625')
     GROUP BY window_start
 )
