@@ -611,7 +611,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
 
   @Get('/cumulative-allocations-history')
   @ApiOperation({
-    description: 'Get WoW history of cumulative datacap allocted to clients',
+    description: 'Get WoW history of cumulative datacap allocated to clients',
   })
   @ApiOkResponse({
     description:

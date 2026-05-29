@@ -651,12 +651,9 @@ export class StorageProvidersController extends ControllerBase {
 
     const orderKey: string | undefined = sortingMap.get(query.sort);
     const filter = query.filter ?? null;
-    const pageParsed = stringToNumber(query.page);
-    const page =
-      Number.isInteger(pageParsed) && pageParsed >= 1 ? pageParsed : 1;
-    const limitParsed = stringToNumber(query.limit);
-    const limit =
-      Number.isInteger(limitParsed) && limitParsed >= 1 ? limitParsed : null;
+    const paginationInfo = this.validatePaginationInfo(query);
+    const page = paginationInfo?.page ?? 1;
+    const limit = paginationInfo?.limit ?? null;
     const offset = limit !== null ? (page - 1) * limit : 0;
 
     const orderSql = orderKey
@@ -676,6 +673,7 @@ export class StorageProvidersController extends ControllerBase {
         SELECT "hour"
         FROM unified_verified_deal_hourly
         WHERE client = cpd.client
+          AND "provider" = cpd.provider
         ORDER BY "hour" DESC
         LIMIT 1
       ) last_deals ON true
@@ -705,25 +703,23 @@ export class StorageProvidersController extends ControllerBase {
       }),
     ]);
 
-    return {
-      data: results.map((result) => {
-        return {
-          clientId: result.client_id,
-          clientName: result.client_name,
-          totalDealsSize: result.total_deal_size.toString(),
-          // eslint-disable-next-line no-restricted-syntax
-          dealsCount: Number(result.deals_count),
-          lastDealDate: result.last_deal_date
-            ? result.last_deal_date.toISOString()
-            : null,
-        };
-      }),
-      pagination: {
-        page: page,
-        limit: limit,
-        pages: limit !== null ? Math.ceil(count / limit) : 1,
-        total: count,
+    return this.withPaginationInfo(
+      {
+        data: results.map((result) => {
+          return {
+            clientId: result.client_id,
+            clientName: result.client_name,
+            totalDealsSize: result.total_deal_size.toString(),
+            // eslint-disable-next-line no-restricted-syntax
+            dealsCount: Number(result.deals_count),
+            lastDealDate: result.last_deal_date
+              ? result.last_deal_date.toISOString()
+              : null,
+          };
+        }),
       },
-    };
+      query,
+      count,
+    );
   }
 }

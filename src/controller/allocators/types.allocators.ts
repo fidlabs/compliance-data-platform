@@ -466,12 +466,12 @@ export class AllocationsByAllocatorHistoryEntry {
   week: number;
 
   @ApiProperty({
-    description: 'Provider ID',
+    description: 'Allocator ID',
   })
   allocatorId: string;
 
   @ApiProperty({
-    description: 'Provider name',
+    description: 'Allocator name',
     nullable: true,
   })
   allocatorName: string | null;
