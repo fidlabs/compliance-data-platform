@@ -16,12 +16,7 @@ import {
   StorageProviderWithIpInfo,
 } from 'src/service/storage-provider/types.storage-provider';
 import { Cacheable } from 'src/utils/cacheable';
-import {
-  bigIntDiv,
-  lastWeek,
-  stringToDate,
-  stringToNumber,
-} from 'src/utils/utils';
+import { bigIntDiv, lastWeek, stringToDate } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import { DashboardStatisticValue } from '../base/types.controller-base';
 import {
