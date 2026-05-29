@@ -412,6 +412,77 @@ export class AllocatorsDashboardStatistic extends DashboardStatistic {
   type: AllocatorsDashboardStatisticType;
 }
 
+class DatacapAllocationInfoValue {
+  @ApiProperty({
+    description: 'Nominal value in bytes',
+  })
+  value: string;
+
+  @ApiProperty({
+    description: 'Percentage of Datacap allocated as decimal',
+  })
+  percentage: number;
+}
+
+export class AllocatorsDatacapInfo {
+  @ApiProperty({
+    description: 'Datacap already allocated',
+  })
+  usedDatacap: DatacapAllocationInfoValue;
+
+  @ApiProperty({
+    description: 'Datacap received by allocators, not yet allocated',
+  })
+  remainingDatacap: DatacapAllocationInfoValue;
+}
+
+export class CumulativeAllocationsHistoryEntry {
+  @ApiProperty({
+    description: 'Entry date',
+  })
+  year: number;
+
+  @ApiProperty({
+    description: 'Entry week',
+  })
+  week: number;
+
+  @ApiProperty({
+    description:
+      'Cumulative total of datacap allocated to clients up to this entry, in bytes',
+  })
+  cumulativeTotal: string;
+}
+
+export class AllocationsByAllocatorHistoryEntry {
+  @ApiProperty({
+    description: 'Entry year',
+  })
+  year: number;
+
+  @ApiProperty({
+    description: 'Entry week',
+  })
+  week: number;
+
+  @ApiProperty({
+    description: 'Allocator ID',
+  })
+  allocatorId: string;
+
+  @ApiProperty({
+    description: 'Allocator name',
+    nullable: true,
+  })
+  allocatorName: string | null;
+
+  @ApiProperty({
+    description:
+      'Amount of datacap allocated by given allocator for given entry, in bytes',
+  })
+  weekTotal: string;
+}
+
 export class GetAllocatorsStatisticsRequest extends PartialType(
   PickType(DashboardStatisticChange, ['interval'] as const),
 ) {}

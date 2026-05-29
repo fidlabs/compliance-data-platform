@@ -1,7 +1,7 @@
 -- @param {String}  $1:intervalUnit Unit for creating windows, eg. day or week, must be valid PGSQL interval unit
 -- @param {Boolean} $2:testnet?
 
-WITH daily_payments AS (
+WITH truncated_payments AS (
     SELECT
         date_trunc(
             $1,
@@ -17,7 +17,7 @@ WITH daily_payments AS (
             )
         )::DATE AS window_start,
         r.token as token_address,
-        SUM(p."netPayeeAmount") AS daily_amount
+        SUM(p."netPayeeAmount") AS window_amount
     FROM filecoin_pay_payment p
     INNER JOIN filecoin_pay_rail r
         ON r."railId" = p."railId"
@@ -32,11 +32,11 @@ WITH daily_payments AS (
 SELECT
     window_start,
     token_address,
-    daily_amount,
-    SUM(daily_amount) OVER (
+    window_amount,
+    SUM(window_amount) OVER (
         PARTITION BY token_address
         ORDER BY window_start
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS cumulative_amount
-FROM daily_payments
+FROM truncated_payments
 ORDER BY window_start;

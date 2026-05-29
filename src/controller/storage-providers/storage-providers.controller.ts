@@ -1,8 +1,11 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { DateTime } from 'luxon';
-import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
+import {
+  Prisma,
+  StorageProviderUrlFinderMetricResultCodeType,
+} from 'prisma/generated/client';
 import { getStorageProvidersWithAverageUrlFinderRetrievability } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { FilscanService } from 'src/service/filscan/filscan.service';
@@ -24,6 +27,8 @@ import {
   GetStorageProvidersStatisticsRequest,
   GetWeekStorageProvidersWithSpsComplianceRequest,
   GetWeekStorageProvidersWithSpsComplianceRequestData,
+  StorageProviderClientsList,
+  StorageProviderClientsListQueryParameters,
   StorageProvidersDashboardStatistic,
   StorageProvidersDashboardStatisticType,
   StorageProviderUrlFinderSliMetricType,
@@ -617,5 +622,99 @@ export class StorageProvidersController extends ControllerBase {
     };
 
     return sliDataResponse;
+  }
+
+  @Get(':providerId/clients')
+  @ApiOperation({
+    summary: 'Get list of clients with whom storage provider made deals',
+  })
+  @ApiOkResponse({
+    description: 'List of clients with pagination info',
+    type: StorageProviderClientsList,
+  })
+  public async getStorageProviderClients(
+    @Param('providerId') providerId: string,
+    @Query() query: StorageProviderClientsListQueryParameters,
+  ): Promise<StorageProviderClientsList> {
+    const sortingMap = new Map([
+      ['clientId', 'cpd.client'],
+      ['clientName', 'client.name'],
+      ['totalDealsSize', 'cpd.total_deal_size'],
+      ['dealsCount', 'cpd.claims_count'],
+      ['lastDealDate', 'last_deals.hour'],
+    ]);
+
+    const orderKey: string | undefined = sortingMap.get(query.sort);
+    const filter = query.filter ?? null;
+    const paginationInfo = this.validatePaginationInfo(query);
+    const page = paginationInfo?.page ?? 1;
+    const limit = paginationInfo?.limit ?? null;
+    const offset = limit !== null ? (page - 1) * limit : 0;
+
+    const orderSql = orderKey
+      ? Prisma.sql`ORDER BY ${Prisma.sql([orderKey])} ${query.order === 'desc' ? Prisma.sql`DESC` : Prisma.sql`ASC`}`
+      : Prisma.sql``;
+
+    const sql = Prisma.sql`
+      SELECT
+        cpd.client AS client_id,
+        "name" AS client_name,
+        cpd.total_deal_size,
+        COALESCE(cpd.claims_count, 0::BIGINT) AS deals_count,
+        last_deals.hour AS last_deal_date
+      FROM client_provider_distribution cpd
+      LEFT JOIN client ON client.id = cpd.client
+      INNER JOIN LATERAL (
+        SELECT "hour"
+        FROM unified_verified_deal_hourly
+        WHERE client = cpd.client
+          AND "provider" = cpd.provider
+        ORDER BY "hour" DESC
+        LIMIT 1
+      ) last_deals ON true
+      WHERE "provider" = ${providerId}
+        AND (${filter}::TEXT IS NULL OR cpd.client LIKE '%' || ${filter}::TEXT || '%')
+      ${orderSql}
+      LIMIT ${limit}
+      OFFSET ${offset};
+    `;
+
+    interface Result {
+      client_id: string;
+      client_name: string | null;
+      total_deal_size: bigint;
+      deals_count: bigint;
+      last_deal_date: Date | null;
+    }
+
+    const [results, count] = await Promise.all([
+      this.prismaService.$queryRaw<Result[]>(sql),
+      this.prismaService.client_provider_distribution.count({
+        where: query.filter
+          ? {
+              AND: [{ provider: providerId }, { client: { contains: filter } }],
+            }
+          : { provider: providerId },
+      }),
+    ]);
+
+    return this.withPaginationInfo(
+      {
+        data: results.map((result) => {
+          return {
+            clientId: result.client_id,
+            clientName: result.client_name,
+            totalDealsSize: result.total_deal_size.toString(),
+            // eslint-disable-next-line no-restricted-syntax
+            dealsCount: Number(result.deals_count),
+            lastDealDate: result.last_deal_date
+              ? result.last_deal_date.toISOString()
+              : null,
+          };
+        }),
+      },
+      query,
+      count,
+    );
   }
 }

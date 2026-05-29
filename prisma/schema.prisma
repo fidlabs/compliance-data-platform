@@ -68,6 +68,17 @@ model allocator_client_stats_daily {
   @@index([date])
 }
 
+model client {
+  id                    String @id
+  name                  String?
+  address               String?
+  github_url            String?
+  datacap_received      BigInt
+  datacap_remaining     BigInt
+  datacap_used_2_weeks  BigInt
+  datacap_used_90_days  BigInt
+}
+
 model clients_stats_daily {
   date                            DateTime
   clients_with_active_deals       Int

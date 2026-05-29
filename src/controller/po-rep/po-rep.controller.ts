@@ -112,11 +112,11 @@ export class PoRepController extends ControllerBase {
         type: 'TOTAL_USD_PAID',
         interval: interval,
         currentValue: {
-          value: currentPaymentsEntry?.cumulativeAmountUSD ?? 0,
+          value: currentPaymentsEntry?.cumulativeTotalUSD ?? 0,
           type: 'numeric',
         },
         previousValue: {
-          value: comparedPaymentsEntry?.cumulativeAmountUSD ?? 0,
+          value: comparedPaymentsEntry?.cumulativeTotalUSD ?? 0,
           type: 'numeric',
         },
       }),
@@ -304,8 +304,8 @@ export class PoRepController extends ControllerBase {
     return results.map((result) => {
       return {
         date: result.date.toFormat('yyyy-MM-dd'),
-        dailyAmountUSD: result.dailyAmountUSD,
-        cumulativeAmountUSD: result.cumulativeAmountUSD,
+        dailyAmountUSD: result.volumeUSD,
+        cumulativeAmountUSD: result.cumulativeTotalUSD,
       };
     });
   }

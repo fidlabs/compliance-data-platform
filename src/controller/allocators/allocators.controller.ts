@@ -10,8 +10,13 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { DateTime } from 'luxon';
-import { getAllocatorsScoresSummaryByMetric } from 'prisma/generated/client/sql';
+import {
+  getAllocatorsScoresSummaryByMetric,
+  getClientDatacapAllocationsGroupedByAllocatorHistory,
+  getCumulativeClientDatacapAllocationsHistory,
+} from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
+import { PrismaDmobService } from 'src/db/prismaDmob.service';
 import { AllocatorReportChecksService } from 'src/service/allocator-report-checks/allocator-report-checks.service';
 import { AllocatorScoringService } from 'src/service/allocator-scoring/allocator-scoring.service';
 import { AllocatorService } from 'src/service/allocator/allocator.service';
@@ -42,9 +47,13 @@ import {
 } from '../base/types.controller-base';
 import { FilPlusEditionRequest } from '../base/types.filplus-edition-controller-base';
 import {
-  DataType,
+  AllocationsByAllocatorHistoryEntry,
   AllocatorsDashboardStatistic,
   AllocatorsDashboardStatisticType,
+  AllocatorsDatacapInfo,
+  CumulativeAllocationsHistoryEntry,
+  DataType,
+  GetAllocationsByAllocatorRequest,
   GetAllocatorsLatestScoresRankingRequest,
   GetAllocatorsLatestScoresRankingResponse,
   GetAllocatorsRequest,
@@ -56,7 +65,6 @@ import {
   GetDatacapFlowDataResponse,
   GetWeekAllocatorsWithSpsComplianceRequest,
   GetWeekAllocatorsWithSpsComplianceRequestData,
-  GetAllocationsByAllocatorRequest,
 } from './types.allocators';
 
 const dashboardStatisticsTitleDict: Record<
@@ -105,6 +113,7 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
     private readonly allocatorScoringService: AllocatorScoringService,
     private readonly allocatorReportChecksService: AllocatorReportChecksService,
     private readonly prismaService: PrismaService,
+    private readonly prismaDmobService: PrismaDmobService,
   ) {
     super();
   }
@@ -572,6 +581,88 @@ export class AllocatorsController extends FilPlusEditionControllerBase {
         interval: interval,
       }),
     ];
+  }
+
+  @Get('/datacap-usage-info')
+  @ApiOkResponse({
+    description: 'Info about datacap spent and received by allocators',
+    type: AllocatorsDatacapInfo,
+  })
+  public async getAllocatorsDatacapInfo(): Promise<AllocatorsDatacapInfo> {
+    const { totalAllocatorsDatacap, datacapAllocatedToClients } =
+      await this.allocatorService.getAllocatorsDatacapUsageStats();
+    const allocatedDatacapPercentage =
+      totalAllocatorsDatacap !== 0n
+        ? bigIntDiv(datacapAllocatedToClients, totalAllocatorsDatacap, 4)
+        : 0;
+    const remainingDatacap = totalAllocatorsDatacap - datacapAllocatedToClients;
+
+    return {
+      usedDatacap: {
+        value: datacapAllocatedToClients.toString(),
+        percentage: allocatedDatacapPercentage,
+      },
+      remainingDatacap: {
+        value: remainingDatacap.toString(),
+        percentage: 1 - allocatedDatacapPercentage,
+      },
+    };
+  }
+
+  @Get('/cumulative-allocations-history')
+  @ApiOperation({
+    description: 'Get WoW history of cumulative datacap allocated to clients',
+  })
+  @ApiOkResponse({
+    description:
+      'Week over week history of cumulative datacap allocated to clients',
+    type: [CumulativeAllocationsHistoryEntry],
+  })
+  public async getDatacapAllocationsHistory(): Promise<
+    CumulativeAllocationsHistoryEntry[]
+  > {
+    const results = await this.prismaService.$queryRawTyped(
+      getCumulativeClientDatacapAllocationsHistory('week'),
+    );
+
+    return results.map<CumulativeAllocationsHistoryEntry>((result) => {
+      const date = DateTime.fromJSDate(result.window_start, { zone: 'UTC' });
+
+      return {
+        year: date.weekYear,
+        week: date.weekNumber,
+        cumulativeTotal: result.cumulative_total.toString(),
+      };
+    });
+  }
+
+  @Get('/allocations-by-allocator-history')
+  @ApiOperation({
+    description:
+      'Get history of allocations made over time, grouped by allocator',
+  })
+  @ApiOkResponse({
+    description: 'Week over week history of datacap allocated by allocator',
+    type: [AllocationsByAllocatorHistoryEntry],
+  })
+  public async getAllocationsByAllocatorHistory(): Promise<
+    AllocationsByAllocatorHistoryEntry[]
+  > {
+    const results = await this.prismaService.$queryRawTyped(
+      getClientDatacapAllocationsGroupedByAllocatorHistory('week'),
+    );
+
+    return results.map<AllocationsByAllocatorHistoryEntry>((result) => {
+      const date = DateTime.fromJSDate(result.window_start, { zone: 'UTC' });
+
+      return {
+        year: date.weekYear,
+        week: date.weekNumber,
+        allocatorId: result.allocator_id,
+        allocatorName: result.allocator_name,
+        weekTotal: result.window_total.toString(),
+      };
+    });
   }
 
   private calculateDashboardStatistic(options: {

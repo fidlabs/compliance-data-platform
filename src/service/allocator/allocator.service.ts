@@ -11,14 +11,16 @@ import { Prisma } from 'prisma/generated/client';
 import {
   getAllocatorsIdsByScorePercentageThreshold,
   getAverageSecondsToFirstDeal,
-  getStandardAllocatorBiggestClientDistributionAcc,
-  getStandardAllocatorClientsWeeklyAcc,
+  getCumulativeClientDatacapAllocationsHistory,
   getStandardActiveAllocatorCount,
   getStandardActiveAllocatorRetrievabilityAcc,
+  getStandardAllocatorBiggestClientDistributionAcc,
+  getStandardAllocatorClientsWeeklyAcc,
   getWeekAverageStandardActiveAllocatorRetrievabilityAcc,
 } from 'prisma/generated/client/sql';
 import {
   getAllocatorDatacapFlowData,
+  getAllocatorsDatacap,
   getAllocatorsFull,
   getAllocatorVerifiedClients,
 } from 'prismaDmob/generated/client/sql';
@@ -71,11 +73,11 @@ import {
 import { DateTime } from 'luxon';
 import { DataType } from 'src/controller/allocators/types.allocators';
 import z from 'zod';
+import { ClientService } from '../client/client.service';
 import { edition5AllocatorAuditOutcomesData } from './resources/edition5AllocatorAuditOutcomesData';
 import { edition5AllocatorAuditStatesData } from './resources/edition5AllocatorAuditStatesData';
 import { edition5AllocatorAuditTimesByRoundData } from './resources/edition5AllocatorAuditTimesByRoundData';
 import { edition5AllocatorDatacapFlowData } from './resources/edition5AllocatorDatacapFlowData';
-import { ClientService } from '../client/client.service';
 
 const registryEntryWithApproveDateSchema = z.object({
   history: z.object({
@@ -1376,5 +1378,35 @@ export class AllocatorService {
         usedDatacapChange: totalDealSize,
       };
     });
+  }
+
+  // @Cacheable({ ttl: 1000 * 60 * 30 }) // 30 minutes
+  public async getAllocatorsDatacapUsageStats(): Promise<{
+    totalAllocatorsDatacap: bigint;
+    datacapAllocatedToClients: bigint;
+  }> {
+    const [totalAllocatorsDatacapResults, datacapAllocationsResults] =
+      await Promise.all([
+        this.prismaDmobService.$queryRawTyped(getAllocatorsDatacap()),
+        this.prismaService.$queryRawTyped(
+          getCumulativeClientDatacapAllocationsHistory('month'),
+        ),
+      ]);
+
+    const totalAllocatorsDatacapResult = totalAllocatorsDatacapResults.at(0);
+    const latestDatacapAllocationsResult = datacapAllocationsResults.at(-1);
+
+    return {
+      totalAllocatorsDatacap: totalAllocatorsDatacapResult
+        ? BigInt(
+            totalAllocatorsDatacapResult.total_allocators_datacap
+              .round()
+              .toString(),
+          )
+        : 0n,
+      datacapAllocatedToClients: latestDatacapAllocationsResult
+        ? BigInt(latestDatacapAllocationsResult.cumulative_total.toString())
+        : 0n,
+    };
   }
 }

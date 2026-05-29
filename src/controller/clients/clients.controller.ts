@@ -8,7 +8,11 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+} from '@nestjs/swagger';
 import { DateTime } from 'luxon';
 import { PrismaService } from 'src/db/prisma.service';
 import { PrismaDmobService } from 'src/db/prismaDmob.service';
@@ -20,13 +24,18 @@ import {
   DashboardStatisticValue,
 } from '../base/types.controller-base';
 import {
+  Client,
+  ClientDatacapAllocation,
   ClientsDashboardStatistic,
   ClientsDashboardStatisticType,
+  ClientsList,
+  ClientsListQueryParameters,
   GetClientLatestClaimRequest,
   GetClientLatestClaimResponse,
   GetClientsStatisticsRequest,
   GetClientStorageProvidersResponse,
 } from './types.clients';
+import { Prisma } from 'prisma/generated/client';
 
 const dashboardStatisticsTitleDict: Record<
   ClientsDashboardStatistic['type'],
@@ -72,6 +81,285 @@ export class ClientsController extends ControllerBase {
     private readonly prismaDmobService: PrismaDmobService,
   ) {
     super();
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'Get list of clients with their datacap usage info',
+  })
+  @ApiOkResponse({
+    description: 'Paginated list of clients with their datacap usage info',
+    type: ClientsList,
+  })
+  public async getClients(
+    @Query() query: ClientsListQueryParameters,
+  ): Promise<ClientsList> {
+    const paginationInfo = this.validatePaginationInfo(query);
+    const orderKey = this.getClientOrderKeyBySortingKey(query.sort);
+    const filterPhrase = query.filter ?? '';
+
+    const queryOptions: Pick<Prisma.clientFindManyArgs, 'where' | 'orderBy'> = {
+      ...(orderKey
+        ? {
+            orderBy: {
+              [orderKey]: query.order ?? 'asc',
+            },
+          }
+        : {}),
+      ...(filterPhrase.length > 0
+        ? {
+            where: {
+              OR: [
+                { id: { contains: filterPhrase } },
+                { name: { contains: filterPhrase } },
+                { address: { contains: filterPhrase } },
+              ],
+            },
+          }
+        : {}),
+    };
+
+    const [results, count] = await Promise.all([
+      this.prismaService.client.findMany({
+        ...queryOptions,
+        ...this.validateQueryPagination(paginationInfo),
+      }),
+      this.prismaService.client.count(queryOptions),
+    ]);
+
+    return this.withPaginationInfo(
+      {
+        data: results.map((result) => {
+          return {
+            id: result.id,
+            address: result.address,
+            name: result.name,
+            githubUrl: result.github_url,
+            datacapReceived: result.datacap_received.toString(),
+            datacapRemaining: result.datacap_remaining.toString(),
+            datacapUsed2Weeks: result.datacap_used_2_weeks.toString(),
+            datacapUsed90Days: result.datacap_used_90_days.toString(),
+          };
+        }),
+      },
+      query,
+      count,
+    );
+  }
+
+  // Make sure this is defined before the method to get client by id
+  @Get('/statistics')
+  @ApiOperation({
+    summary: 'Get list of statistics regarding clients',
+  })
+  @ApiOkResponse({
+    description: 'List of statistics regarding clients',
+    type: [ClientsDashboardStatistic],
+  })
+  public async getClientsStatistics(
+    @Query() query: GetClientsStatisticsRequest,
+  ): Promise<ClientsDashboardStatistic[]> {
+    const { interval = 'day' } = query;
+    const cutoffDate = DateTime.now()
+      .toUTC()
+      .minus({ [interval]: 1 })
+      .toJSDate();
+
+    const [
+      currentClientsCount,
+      previousClientsCount,
+      currentActiveClientsCount,
+      previousActiveClientsCount,
+      currentFailingClientsPercentage,
+      previousFailingClientsPercentage,
+      currentDatacapSpentByClients,
+      previousDatacapSpentByClients,
+      currentGenericStats,
+      previousGenericStats,
+    ] = await Promise.all([
+      this.clientService.getClientsCountStat(),
+      this.clientService.getClientsCountStat({ cutoffDate: cutoffDate }),
+      this.clientService.getActiveClientsStat(),
+      this.clientService.getActiveClientsStat({ cutoffDate: cutoffDate }),
+      this.clientService.getFailingClientsPercentageStat(),
+      this.clientService.getFailingClientsPercentageStat({
+        cutoffDate: cutoffDate,
+      }),
+      this.clientService.getDatacapSpentByClientsStat(),
+      this.clientService.getDatacapSpentByClientsStat({
+        cutoffDate: cutoffDate,
+      }),
+      this.clientService.getClientsGenericStats(),
+      this.clientService.getClientsGenericStats({ cutoffDate: cutoffDate }),
+    ]);
+
+    return [
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_CLIENTS',
+        currentValue: {
+          value: currentClientsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousClientsCount,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_ACTIVE_CLIENTS',
+        currentValue: {
+          value: currentActiveClientsCount,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousActiveClientsCount,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'FAILING_CLIENTS',
+        currentValue: {
+          value: currentFailingClientsPercentage,
+          type: 'percentage',
+        },
+        previousValue: {
+          value: previousFailingClientsPercentage,
+          type: 'percentage',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'DATACAP_SPENT_BY_CLIENTS',
+        currentValue: {
+          value: currentDatacapSpentByClients,
+          type: 'bigint',
+        },
+        previousValue: {
+          value: previousDatacapSpentByClients,
+          type: 'bigint',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'CLIENTS_WITH_ACTIVE_DEALS',
+        currentValue: {
+          value: currentGenericStats
+            ? currentGenericStats.clients_with_active_deals
+            : 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousGenericStats
+            ? previousGenericStats.clients_with_active_deals
+            : 0,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'CLIENTS_WITH_ACTIVE_DEALS_AND_DATACAP',
+        currentValue: {
+          value: currentGenericStats
+            ? currentGenericStats.clients_who_have_dc_and_deals
+            : 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: previousGenericStats
+            ? previousGenericStats.clients_who_have_dc_and_deals
+            : 0,
+          type: 'numeric',
+        },
+        interval: interval,
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_REMAINING_CLIENTS_DATACAP',
+        currentValue: {
+          value: currentGenericStats
+            ? (currentGenericStats.total_remaining_clients_datacap.toString() as BigIntString)
+            : '0',
+          type: 'bigint',
+        },
+        previousValue: {
+          value: previousGenericStats
+            ? (previousGenericStats.total_remaining_clients_datacap.toString() as BigIntString)
+            : '0',
+          type: 'bigint',
+        },
+        interval: interval,
+      }),
+    ];
+  }
+
+  @Get(':clientId')
+  @ApiOperation({
+    summary: 'Get client by client id',
+  })
+  @ApiOkResponse({
+    description: 'Client info',
+    type: Client,
+  })
+  @ApiNotFoundResponse({
+    description: 'When client with given id does not exist',
+  })
+  public async getClientById(
+    @Param('clientId') clientId: string,
+  ): Promise<Client> {
+    const result = await this.prismaService.client.findFirst({
+      where: {
+        id: clientId,
+      },
+    });
+
+    if (!result) {
+      const notFoundMessage = `Client with ID '${clientId.toString()}' not found`;
+      throw new NotFoundException(notFoundMessage, notFoundMessage);
+    }
+
+    return {
+      id: result.id,
+      address: result.address,
+      name: result.name,
+      githubUrl: result.github_url,
+      datacapReceived: result.datacap_received.toString(),
+      datacapRemaining: result.datacap_remaining.toString(),
+      datacapUsed2Weeks: result.datacap_used_2_weeks.toString(),
+      datacapUsed90Days: result.datacap_used_90_days.toString(),
+    };
+  }
+
+  @Get(':clientId/datacap-allocations')
+  @ApiOperation({
+    summary: 'Get client datacap allocations by client id',
+  })
+  @ApiOkResponse({
+    description: 'List of allocations',
+    type: [ClientDatacapAllocation],
+  })
+  public async getClientDatacapAllocationsByClientId(
+    @Param('clientId') clientId: string,
+  ): Promise<ClientDatacapAllocation[]> {
+    const results = await this.prismaService.client_datacap_allocation.findMany(
+      {
+        where: {
+          client_id: clientId,
+        },
+        orderBy: {
+          timestamp: 'asc',
+        },
+      },
+    );
+
+    return results.map((result) => {
+      return {
+        allocatorId: result.allocator_id,
+        clientId: result.client_id,
+        datacapAmount: result.allocation.round().toString(),
+        timestamp: result.timestamp.toISOString(),
+      };
+    });
   }
 
   @Get(':client/providers')
@@ -220,151 +508,6 @@ export class ClientsController extends ControllerBase {
     );
   }
 
-  @Get('/statistics')
-  @ApiOperation({
-    summary: 'Get list of statistics regarding clients',
-  })
-  @ApiOkResponse({
-    description: 'List of statistics regarding clients',
-    type: [ClientsDashboardStatistic],
-  })
-  public async getClientsStatistics(
-    @Query() query: GetClientsStatisticsRequest,
-  ): Promise<ClientsDashboardStatistic[]> {
-    const { interval = 'day' } = query;
-    const cutoffDate = DateTime.now()
-      .toUTC()
-      .minus({ [interval]: 1 })
-      .toJSDate();
-
-    const [
-      currentClientsCount,
-      previousClientsCount,
-      currentActiveClientsCount,
-      previousActiveClientsCount,
-      currentFailingClientsPercentage,
-      previousFailingClientsPercentage,
-      currentDatacapSpentByClients,
-      previousDatacapSpentByClients,
-      currentGenericStats,
-      previousGenericStats,
-    ] = await Promise.all([
-      this.clientService.getClientsCountStat(),
-      this.clientService.getClientsCountStat({ cutoffDate: cutoffDate }),
-      this.clientService.getActiveClientsStat(),
-      this.clientService.getActiveClientsStat({ cutoffDate: cutoffDate }),
-      this.clientService.getFailingClientsPercentageStat(),
-      this.clientService.getFailingClientsPercentageStat({
-        cutoffDate: cutoffDate,
-      }),
-      this.clientService.getDatacapSpentByClientsStat(),
-      this.clientService.getDatacapSpentByClientsStat({
-        cutoffDate: cutoffDate,
-      }),
-      this.clientService.getClientsGenericStats(),
-      this.clientService.getClientsGenericStats({ cutoffDate: cutoffDate }),
-    ]);
-
-    return [
-      this.calculateDashboardStatistic({
-        type: 'TOTAL_CLIENTS',
-        currentValue: {
-          value: currentClientsCount,
-          type: 'numeric',
-        },
-        previousValue: {
-          value: previousClientsCount,
-          type: 'numeric',
-        },
-        interval: interval,
-      }),
-      this.calculateDashboardStatistic({
-        type: 'TOTAL_ACTIVE_CLIENTS',
-        currentValue: {
-          value: currentActiveClientsCount,
-          type: 'numeric',
-        },
-        previousValue: {
-          value: previousActiveClientsCount,
-          type: 'numeric',
-        },
-        interval: interval,
-      }),
-      this.calculateDashboardStatistic({
-        type: 'FAILING_CLIENTS',
-        currentValue: {
-          value: currentFailingClientsPercentage,
-          type: 'percentage',
-        },
-        previousValue: {
-          value: previousFailingClientsPercentage,
-          type: 'percentage',
-        },
-        interval: interval,
-      }),
-      this.calculateDashboardStatistic({
-        type: 'DATACAP_SPENT_BY_CLIENTS',
-        currentValue: {
-          value: currentDatacapSpentByClients,
-          type: 'bigint',
-        },
-        previousValue: {
-          value: previousDatacapSpentByClients,
-          type: 'bigint',
-        },
-        interval: interval,
-      }),
-      this.calculateDashboardStatistic({
-        type: 'CLIENTS_WITH_ACTIVE_DEALS',
-        currentValue: {
-          value: currentGenericStats
-            ? currentGenericStats.clients_with_active_deals
-            : 0,
-          type: 'numeric',
-        },
-        previousValue: {
-          value: previousGenericStats
-            ? previousGenericStats.clients_with_active_deals
-            : 0,
-          type: 'numeric',
-        },
-        interval: interval,
-      }),
-      this.calculateDashboardStatistic({
-        type: 'CLIENTS_WITH_ACTIVE_DEALS_AND_DATACAP',
-        currentValue: {
-          value: currentGenericStats
-            ? currentGenericStats.clients_who_have_dc_and_deals
-            : 0,
-          type: 'numeric',
-        },
-        previousValue: {
-          value: previousGenericStats
-            ? previousGenericStats.clients_who_have_dc_and_deals
-            : 0,
-          type: 'numeric',
-        },
-        interval: interval,
-      }),
-      this.calculateDashboardStatistic({
-        type: 'TOTAL_REMAINING_CLIENTS_DATACAP',
-        currentValue: {
-          value: currentGenericStats
-            ? (currentGenericStats.total_remaining_clients_datacap.toString() as BigIntString)
-            : '0',
-          type: 'bigint',
-        },
-        previousValue: {
-          value: previousGenericStats
-            ? (previousGenericStats.total_remaining_clients_datacap.toString() as BigIntString)
-            : '0',
-          type: 'bigint',
-        },
-        interval: interval,
-      }),
-    ];
-  }
-
   private calculateDashboardStatistic(options: {
     type: ClientsDashboardStatistic['type'];
     currentValue: DashboardStatisticValue;
@@ -410,5 +553,26 @@ export class ClientsController extends ControllerBase {
       value: currentValue,
       percentageChange: percentageChange,
     };
+  }
+
+  private getClientOrderKeyBySortingKey(
+    sortingKey: string | null | undefined,
+  ): keyof Prisma.clientOrderByWithRelationInput | null {
+    switch (sortingKey) {
+      case 'id':
+      case 'name':
+      case 'address':
+        return sortingKey;
+      case 'datacapReceived':
+        return 'datacap_received';
+      case 'datacapRemaining':
+        return 'datacap_remaining';
+      case 'datacapUsed2Weeks':
+        return 'datacap_used_2_weeks';
+      case 'datacapUsed90Days':
+        return 'datacap_used_90_days';
+      default:
+        return null;
+    }
   }
 }
