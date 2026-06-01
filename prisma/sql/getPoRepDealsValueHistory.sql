@@ -8,75 +8,55 @@ WITH constants AS (
             ELSE 1598306400
         END AS genesis_ts
 ),
-bounds AS (
+deals_with_rails AS (
     SELECT
+        d."dealId" AS deal_id,
+        r.token AS token_address,
         date_trunc(
             $1,
             timezone(
                 'UTC',
                 to_timestamp(
-                    MIN(d."proposedAtBlock") * 30 + c.genesis_ts
+                    r."createdAtBlock" * 30 + c.genesis_ts
                 )
             )
-        )::DATE AS start_window,
-        date_trunc(
-            $1,
-            timezone('UTC', NOW())
-        )::DATE AS end_window
-    FROM po_rep_deal d
-    CROSS JOIN constants c
-    GROUP BY c.genesis_ts
-),
-windows_dates AS (
-    SELECT
-        generate_series(
-            b.start_window,
-            b.end_window,
-            CAST('1 ' || $1 AS INTERVAL)
         )::DATE AS window_start
-    FROM bounds b
-),
-deal_acceptance AS (
-    SELECT
-        dsc.deal_id,
-        date_trunc(
-            $1,
-            timezone(
-                'UTC',
-                to_timestamp(
-                    dsc.changed_at_block * 30 + c.genesis_ts
-                )
-            )
-        )::DATE AS acceptance_date_truncated
-    FROM po_rep_deal_state_change dsc
+    FROM po_rep_deal d
+    INNER JOIN filecoin_pay_rail r
+        ON d."railId" = r."railId"
     CROSS JOIN constants c
-    WHERE dsc.state = 'ACCEPTED'
+    WHERE d."railId" IS NOT NULL
+        AND NOT EXISTS (
+            SELECT 1
+            FROM po_rep_deal_state_change dsc
+            WHERE dsc.deal_id = d."railId"
+                AND dsc.state = 'REJECTED'
+        )
 ),
 window_totals AS (
     SELECT
-        da.acceptance_date_truncated as window_start,
+        dwr.window_start,
+        dwr.token_address,
         SUM(
             -- Calculate total deal value
-            ceil(dt.deal_size_bytes::DECIMAL / 34359738368::DECIMAL) * -- Sector count assuming 32GiB sectors
+            ceil(dt.deal_size_bytes / 34359738368) * -- Sector count assuming 32GiB sectors
             dt.price_per_sector_per_month *
-            (dt.duration_days::DECIMAL / 30::DECIMAL) / -- Number of months
-            -- Currently price per sector per month is always in USDFC
-            -- When/if that changes the sum will have to be partitioned by token
-            1000000
-        ) AS window_total
-    FROM deal_acceptance da
-    JOIN po_rep_deal_terms dt ON dt.deal_id = da.deal_id
-    GROUP BY 1
+            ceil(dt.duration_days / 30) -- Number of months
+        )::DECIMAL AS window_total
+    FROM deals_with_rails dwr
+    LEFT JOIN po_rep_deal_terms dt
+        ON dt.deal_id = dwr.deal_id
+    GROUP BY 1, 2
 )
 
 SELECT
-    wd.window_start,
-    COALESCE(wt.window_total, 0) AS window_total,
-    SUM(COALESCE(wt.window_total, 0)) OVER (
-        ORDER BY wd.window_start
+    window_start,
+    token_address,
+    window_total,
+    SUM(window_total) OVER (
+        PARTITION BY token_address
+        ORDER BY window_start
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS cumulative_total
-FROM windows_dates wd
-LEFT JOIN window_totals wt
-    ON wt.window_start = wd.window_start
-ORDER BY wd.window_start;
+    ) AS cumulative_amount
+FROM window_totals
+ORDER BY window_start;
