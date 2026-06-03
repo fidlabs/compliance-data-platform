@@ -232,13 +232,13 @@ export class PoRepService {
     const data = await this.prismaService.$queryRawTyped(
       getPoRepDealsValueHistory(windowSize, this.isTestnet()),
     );
-    const firstWndow = data.at(0);
+    const firstWindow = data.at(0);
 
-    if (!firstWndow) {
+    if (!firstWindow) {
       return [];
     }
 
-    const startDate = DateTime.fromJSDate(firstWndow.window_start, {
+    const startDate = DateTime.fromJSDate(firstWindow.window_start, {
       zone: 'UTC',
     });
     const endDate = DateTime.utc().startOf(windowSize);
@@ -288,45 +288,43 @@ export class PoRepService {
     // token units to USD and sum them for each window
     const combinedWindowData = Object.entries(
       dataByWindow,
-    ).map<PoRepDealsPaymentsSummaryHistoryEntry>(
-      ([dateISOString, windowResults]) => {
-        const [windowAmountUSD, cumulativeAmountUSD] = windowResults.reduce(
-          ([currentWindowAmountUSD, currentCumulativeAmountUSD], result) => {
-            const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
-              result.token_address,
+    ).map<PoRepDealsValueHistoryEntry>(([dateISOString, windowResults]) => {
+      const [windowAmountUSD, cumulativeAmountUSD] = windowResults.reduce(
+        ([currentWindowAmountUSD, currentCumulativeAmountUSD], result) => {
+          const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
+            result.token_address,
+          );
+          const tokenInfo = tokensInfo.get(result.token_address);
+
+          // Should not happen but type safety
+          if (!tokenUSDExchangeRate || !tokenInfo) {
+            throw new Error(
+              `Exchange rate or info not found for token "${result.token_address}"`,
             );
-            const tokenInfo = tokensInfo.get(result.token_address);
+          }
 
-            // Should not happen but type safety
-            if (!tokenUSDExchangeRate || !tokenInfo) {
-              throw new Error(
-                `Exchange rate or info not found for token "${result.token_address}"`,
-              );
-            }
+          const tokenExponent = Math.pow(10, tokenInfo.decimals);
+          const tokenDailyAmountUSD = result.window_total
+            .div(tokenExponent)
+            .mul(tokenUSDExchangeRate);
+          const tokenCumulativeAmountUSD = result.cumulative_amount
+            .div(tokenExponent)
+            .mul(tokenUSDExchangeRate);
 
-            const tokenExponent = Math.pow(10, tokenInfo.decimals);
-            const tokenDailyAmountUSD = result.window_total
-              .div(tokenExponent)
-              .mul(tokenUSDExchangeRate);
-            const tokenCumulativeAmountUSD = result.cumulative_amount
-              .div(tokenExponent)
-              .mul(tokenUSDExchangeRate);
+          return [
+            currentWindowAmountUSD.add(tokenDailyAmountUSD),
+            currentCumulativeAmountUSD.add(tokenCumulativeAmountUSD),
+          ];
+        },
+        [new Decimal(0), new Decimal(0)],
+      );
 
-            return [
-              currentWindowAmountUSD.add(tokenDailyAmountUSD),
-              currentCumulativeAmountUSD.add(tokenCumulativeAmountUSD),
-            ];
-          },
-          [new Decimal(0), new Decimal(0)],
-        );
-
-        return {
-          date: DateTime.fromISO(dateISOString, { zone: 'utc' }),
-          volumeUSD: windowAmountUSD.toDecimalPlaces(2).toNumber(),
-          cumulativeTotalUSD: cumulativeAmountUSD.toDecimalPlaces(2).toNumber(),
-        };
-      },
-    );
+      return {
+        date: DateTime.fromISO(dateISOString, { zone: 'utc' }),
+        volumeUSD: windowAmountUSD.toDecimalPlaces(2).toNumber(),
+        cumulativeTotalUSD: cumulativeAmountUSD.toDecimalPlaces(2).toNumber(),
+      };
+    });
 
     const combinedWindowDataByISODate = new Map(
       combinedWindowData.map((item) => [item.date.toISODate(), item]),

@@ -25,13 +25,13 @@ deals_with_rails AS (
     INNER JOIN filecoin_pay_rail r
         ON d."railId" = r."railId"
     CROSS JOIN constants c
-    WHERE d."railId" IS NOT NULL
-        AND NOT EXISTS (
-            SELECT 1
-            FROM po_rep_deal_state_change dsc
-            WHERE dsc.deal_id = d."railId"
-                AND dsc.state = 'REJECTED'
-        )
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM po_rep_deal_state_change dsc
+        WHERE dsc.deal_id = d."dealId"
+            AND dsc.state = 'REJECTED'
+        LIMIT 1
+    )
 ),
 window_totals AS (
     SELECT
@@ -39,12 +39,12 @@ window_totals AS (
         dwr.token_address,
         SUM(
             -- Calculate total deal value
-            ceil(dt.deal_size_bytes / 34359738368) * -- Sector count assuming 32GiB sectors
+            ceil(dt.deal_size_bytes::DECIMAL / 34359738368) * -- Sector count assuming 32GiB sectors
             dt.price_per_sector_per_month *
-            ceil(dt.duration_days / 30) -- Number of months
+            ceil(dt.duration_days::DECIMAL / 30) -- Number of months
         )::DECIMAL AS window_total
     FROM deals_with_rails dwr
-    LEFT JOIN po_rep_deal_terms dt
+    INNER JOIN po_rep_deal_terms dt
         ON dt.deal_id = dwr.deal_id
     GROUP BY 1, 2
 )
