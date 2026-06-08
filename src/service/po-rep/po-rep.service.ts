@@ -229,19 +229,128 @@ export class PoRepService {
   public async getDealsValueHistory(
     windowSize: WindowSize,
   ): Promise<PoRepDealsValueHistory> {
-    const results = await this.prismaService.$queryRawTyped(
+    const data = await this.prismaService.$queryRawTyped(
       getPoRepDealsValueHistory(windowSize, this.isTestnet()),
     );
+    const firstWindow = data.at(0);
 
-    return results.map((result) => {
+    if (!firstWindow) {
+      return [];
+    }
+
+    const startDate = DateTime.fromJSDate(firstWindow.window_start, {
+      zone: 'UTC',
+    });
+    const endDate = DateTime.utc().startOf(windowSize);
+    const entriesCount =
+      endDate.diff(startDate, windowSize)[`${windowSize}s`] + 1;
+    const uniqueTokens = uniq(data.map((item) => item.token_address));
+
+    interface Token {
+      address: string;
+      symbol: string;
+      decimals: number;
+    }
+
+    const tokenInfoRequests = uniqueTokens.map((tokenAddress) => {
+      return Promise.all([
+        tokenAddress,
+        this.tokenInfoService.getTokenSymbol(tokenAddress),
+        this.tokenInfoService.getTokenDecimals(tokenAddress),
+      ]);
+    });
+    const tokenExchangeRateRequests = uniqueTokens.map((tokenAddress) => {
+      return Promise.all([
+        tokenAddress,
+        this.priceOracle.getTokenExchangeRateUSD(tokenAddress),
+      ]);
+    });
+    const [tokenInfoResponses, tokenExchangeRateResponses] = await Promise.all([
+      Promise.all(tokenInfoRequests),
+      Promise.all(tokenExchangeRateRequests),
+    ]);
+    const tokensInfo = tokenInfoResponses.reduce((result, tokenInfo) => {
+      const [address, symbol, decimals] = tokenInfo;
+      return result.set(address, {
+        address: address,
+        symbol: symbol,
+        decimals: decimals,
+      });
+    }, new Map<string, Token>());
+    const tokensUSDExchangeRates = new Map(tokenExchangeRateResponses);
+
+    const dataByWindow = groupBy(
+      data.filter((item) => item.window_start !== null),
+      (item) => item.window_start.toISOString(),
+    );
+
+    // DB query returns window data per token so we need to convert values in
+    // token units to USD and sum them for each window
+    const combinedWindowData = Object.entries(
+      dataByWindow,
+    ).map<PoRepDealsValueHistoryEntry>(([dateISOString, windowResults]) => {
+      const [windowAmountUSD, cumulativeAmountUSD] = windowResults.reduce(
+        ([currentWindowAmountUSD, currentCumulativeAmountUSD], result) => {
+          const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
+            result.token_address,
+          );
+          const tokenInfo = tokensInfo.get(result.token_address);
+
+          // Should not happen but type safety
+          if (!tokenUSDExchangeRate || !tokenInfo) {
+            throw new Error(
+              `Exchange rate or info not found for token "${result.token_address}"`,
+            );
+          }
+
+          const tokenExponent = Math.pow(10, tokenInfo.decimals);
+          const tokenDailyAmountUSD = result.window_total
+            .div(tokenExponent)
+            .mul(tokenUSDExchangeRate);
+          const tokenCumulativeAmountUSD = result.cumulative_amount
+            .div(tokenExponent)
+            .mul(tokenUSDExchangeRate);
+
+          return [
+            currentWindowAmountUSD.add(tokenDailyAmountUSD),
+            currentCumulativeAmountUSD.add(tokenCumulativeAmountUSD),
+          ];
+        },
+        [new Decimal(0), new Decimal(0)],
+      );
+
       return {
-        date: DateTime.fromJSDate(result.window_start, { zone: 'UTC' }),
-        volumeUSD: result.window_total.toDecimalPlaces(2).toNumber(),
-        cumulativeTotalUSD: result.cumulative_total
-          .toDecimalPlaces(2)
-          .toNumber(),
+        date: DateTime.fromISO(dateISOString, { zone: 'utc' }),
+        volumeUSD: windowAmountUSD.toDecimalPlaces(2).toNumber(),
+        cumulativeTotalUSD: cumulativeAmountUSD.toDecimalPlaces(2).toNumber(),
       };
     });
+
+    const combinedWindowDataByISODate = new Map(
+      combinedWindowData.map((item) => [item.date.toISODate(), item]),
+    );
+
+    return [...new Array(entriesCount)].reduce<PoRepDealsValueHistory>(
+      (result, _, index) => {
+        const entryDay = startDate.plus({ [windowSize]: index });
+        const entryISODate = entryDay.toISODate();
+        const matchingData = combinedWindowDataByISODate.get(entryISODate);
+
+        if (matchingData) {
+          return [...result, matchingData];
+        }
+
+        const previousEntry = index === 0 ? undefined : result.at(index - 1);
+        const nextEntry: PoRepDealsValueHistoryEntry = {
+          date: entryDay,
+          volumeUSD: 0,
+          cumulativeTotalUSD: previousEntry?.cumulativeTotalUSD ?? 0,
+        };
+
+        return [...result, nextEntry];
+      },
+      [],
+    );
   }
 
   private isTestnet(): boolean {
