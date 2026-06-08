@@ -1,15 +1,24 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Query, ValidationPipe } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiOkResponse,
+  ApiOperation,
+} from '@nestjs/swagger';
+import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import {
   PoRepDealState,
   Prisma,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
+import { Decimal } from 'prisma/generated/client/runtime/index-browser';
 import { PrismaService } from 'src/db/prisma.service';
-import { PoRepService } from 'src/service/po-rep/po-rep.service';
-import { bigIntDiv } from 'src/utils/utils';
+import {
+  PoRepService,
+  SLIComplianceHistoryParameters,
+} from 'src/service/po-rep/po-rep.service';
+import { bigIntDiv, safeDiv } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
@@ -26,6 +35,8 @@ import {
   PoRepHistoryRequest,
   PoRepOnboardedDataHistoryEntry,
   PoRepProviderSLIInfo,
+  PoRepSLIComplianceHistoryEntry,
+  PoRepSLIComplianceHistoryParamters,
   PoRepSLIMeasurment,
   PoRepSLIType,
   poRepSLITypes,
@@ -46,7 +57,7 @@ const dashboardStatisticsTitleDict: Record<
   PoRepDashboardStatistic['title']
 > = {
   TOTAL_DEALS_DONE: 'Total Deals Done',
-  TOTAL_USD_PAID: 'Total USD Paid',
+  TOTAL_USD_PAID: 'Total USD Paid Out',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -310,6 +321,110 @@ export class PoRepController extends ControllerBase {
     });
   }
 
+  @Get('/sli-compliance-history')
+  @ApiOperation({
+    summary:
+      'Get the history of deals SLI compliance, optionally filtered by SLI, Provider ID or Deal ID',
+  })
+  @ApiOkResponse({
+    type: [PoRepSLIComplianceHistoryEntry],
+    description:
+      'Breakdown by state, in provided windows, matching given filters',
+  })
+  @ApiBadRequestResponse({
+    description: 'Query parameters validation error',
+  })
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
+  public async getSLIComplianceHistory(
+    @Query(new ValidationPipe()) query: PoRepSLIComplianceHistoryParamters,
+  ): Promise<PoRepSLIComplianceHistoryEntry[]> {
+    const { windowSize = 'day', sliType, providerId, dealId } = query;
+    const results = await this.poRepService.getSLIComplianceHistory({
+      windowSize: windowSize,
+      sliType: this.mapSLIType(sliType),
+      providerId: providerId ? BigInt(providerId) : null,
+      dealId: dealId ? BigInt(dealId) : null,
+    });
+
+    const grouped = groupBy(results, (result) =>
+      result.window_start.toISOString(),
+    );
+
+    const states = [
+      'compliant',
+      'nonCompliant',
+      'unknown',
+    ] as const satisfies Omit<keyof PoRepSLIComplianceHistoryEntry, 'date'>[];
+
+    return Object.entries(grouped)
+      .slice(0, -1)
+      .map<PoRepSLIComplianceHistoryEntry>(([dateISOString, results]) => {
+        const [totalProvidersCount, totalDealsCount, totalDealsSize] =
+          results.reduce(
+            (totals, result) => {
+              return [
+                totals[0] + result.providers_count,
+                totals[1] + result.deals_count,
+                totals[2].add(result.total_deals_size),
+              ];
+            },
+            [0, 0, Decimal(0)],
+          );
+
+        const stateEntries = states.map((state) => {
+          const stateResult = results.find(
+            (c) => c.compliance_state.toLowerCase() === state.toLowerCase(),
+          );
+
+          if (!stateResult) {
+            return [
+              state,
+              {
+                providersCount: 0,
+                providersPercentage: 0,
+                dealsCount: 0,
+                dealsPercentage: 0,
+                totalDealsSize: '0',
+                totalDealsSizePercentage: 0,
+              },
+            ];
+          }
+
+          return [
+            state,
+            {
+              providersCount: stateResult.providers_count,
+              providersPercentage: safeDiv(
+                stateResult.providers_count,
+                totalProvidersCount,
+                0,
+              ),
+              dealsCount: stateResult.deals_count,
+              dealsPercentage: safeDiv(
+                stateResult.deals_count,
+                totalDealsCount,
+                0,
+              ),
+              totalDealsSize: stateResult.total_deals_size.toString(),
+              totalDealsSizePercentage: totalDealsSize.eq(0)
+                ? 0
+                : stateResult.total_deals_size.div(totalDealsSize).toNumber(),
+            },
+          ] as const;
+        });
+
+        return {
+          date: DateTime.fromISO(dateISOString, { zone: 'UTC' }).toFormat(
+            'yyyy-MM-dd',
+          ),
+          ...(Object.fromEntries(stateEntries) as Omit<
+            PoRepSLIComplianceHistoryEntry,
+            'date'
+          >),
+        };
+      });
+  }
+
   private calculateDashboardStatistic(options: {
     type: PoRepDashboardStatistic['type'];
     currentValue: DashboardStatisticValue;
@@ -355,5 +470,20 @@ export class PoRepController extends ControllerBase {
       value: currentValue,
       percentageChange: percentageChange,
     };
+  }
+
+  private mapSLIType(
+    poRepSLIType: PoRepSLIType | undefined,
+  ): SLIComplianceHistoryParameters['sliType'] {
+    switch (poRepSLIType) {
+      case 'bandwidthMbps':
+        return 'BANDWIDTH';
+      case 'indexingPct':
+        return null; // Not measured
+      case 'latencyMs':
+        return 'TTFB';
+      case 'retrievabilityBps':
+        return 'RPA_RETRIEVABILITY';
+    }
   }
 }
