@@ -1,5 +1,5 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Logger } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import {
   HealthCheck,
@@ -21,7 +21,6 @@ import { Cacheable } from 'src/utils/cacheable';
 
 @Controller()
 export class AppController extends HealthIndicator {
-  private readonly logger = new Logger(AppController.name);
   private readonly appStartTime = new Date();
   private lastHealthcheckFailedTime: Date | null = null;
 
