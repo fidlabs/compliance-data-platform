@@ -1,28 +1,23 @@
+import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import { Controller, Get, Inject, Logger } from '@nestjs/common';
+import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import {
   HealthCheck,
-  HealthCheckError,
   HealthCheckResult,
   HealthCheckService,
   HealthIndicator,
   HealthIndicatorResult,
-  HttpHealthIndicator,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
-import { ApiExcludeEndpoint } from '@nestjs/swagger';
+import { AggregationTasksService } from 'src/aggregation/aggregation-tasks.service';
 import { PostgresService } from 'src/db/postgres.service';
 import { PostgresDmobService } from 'src/db/postgresDmob.service';
-import { AggregationTasksService } from 'src/aggregation/aggregation-tasks.service';
-import { ClientReportGeneratorJobService } from 'src/jobs/client-report-generator-job/client-report-generator-job.service';
-import { ConfigService } from '@nestjs/config';
 import { AllocatorReportGeneratorJobService } from 'src/jobs/allocator-report-generator-job/allocator-report-generator-job.service';
+import { ClientReportGeneratorJobService } from 'src/jobs/client-report-generator-job/client-report-generator-job.service';
 import { IpniAdvertisementFetcherJobService } from 'src/jobs/ipni-advertisement-fetcher-job/ipni-advertisement-fetcher-job.service';
-import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
+import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
 import { GitHubTriggersHandlerService } from 'src/service/github-triggers-handler-service/github-triggers-handler.service';
 import { Cacheable } from 'src/utils/cacheable';
-import { GitHubAllocatorRegistryService } from 'src/service/github-allocator-registry/github-allocator-registry.service';
-import { firstValueFrom } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
 
 @Controller()
 export class AppController extends HealthIndicator {
@@ -33,18 +28,15 @@ export class AppController extends HealthIndicator {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly healthCheckService: HealthCheckService,
-    private readonly httpHealthIndicator: HttpHealthIndicator,
     private readonly typeOrmHealthIndicator: TypeOrmHealthIndicator,
     private readonly postgresService: PostgresService,
     private readonly postgresDmobService: PostgresDmobService,
-    private readonly configService: ConfigService,
     private readonly aggregationTasksService: AggregationTasksService,
     private readonly clientReportGeneratorJobService: ClientReportGeneratorJobService,
     private readonly allocatorReportGeneratorJobService: AllocatorReportGeneratorJobService,
     private readonly ipniAdvertisementFetcherJobService: IpniAdvertisementFetcherJobService,
     private readonly gitHubTriggersHandlerService: GitHubTriggersHandlerService,
     private readonly gitHubAllocatorRegistryService: GitHubAllocatorRegistryService,
-    private readonly httpService: HttpService,
   ) {
     super();
   }
@@ -89,57 +81,11 @@ export class AppController extends HealthIndicator {
     });
   }
 
-  // cache http ping checks for better performance
-  @Cacheable({ ttl: 1000 * 60 * 10 }) // 10 minutes
-  private async _httpPingCheck(
-    name: string,
-    url: string,
-  ): Promise<HealthIndicatorResult> {
-    return this.httpHealthIndicator.pingCheck(name, url);
-  }
-
-  // dedicated cache for ipinfo.io because of token limits
-  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
-  private async _httpPingCheckIpInfo(): Promise<HealthIndicatorResult> {
-    return await this.httpHealthIndicator.pingCheck(
-      'ipinfo.io',
-      `https://ipinfo.io/8.8.8.8?token=${this.configService.get<string>('IP_INFO_TOKEN')}`,
-    );
-  }
-
-  @Cacheable({ ttl: 1000 * 60 * 60 }) // 1 hour
-  private async _httpPingCheckFilscan(): Promise<HealthIndicatorResult> {
-    let healthy = false;
-
-    try {
-      const endpoint = `${this.configService.get<string>('FILSCAN_API_BASE_URL')}/v1/TotalIndicators`;
-
-      const { data } = await firstValueFrom(
-        this.httpService.post(endpoint, {}),
-      );
-
-      healthy = !!data?.['result'];
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_) {
-      healthy = false;
-    }
-
-    const result = this.getStatus('filscan-api', healthy);
-
-    if (healthy) return result;
-    throw new HealthCheckError('Healthcheck failed', result);
-  }
-
   @Cacheable({ ttl: 1000 * 10 }) // 10 seconds
   private async _getHealth(): Promise<HealthCheckResult> {
     // prettier-ignore
     return this.healthCheckService.check([
       () => this._getHealthMetadata(),
-      () => this._httpPingCheckIpInfo(),
-      () => this._httpPingCheckFilscan(),
-      () => this._httpPingCheck('cid.contact', 'https://cid.contact/health'),
-      () => this._httpPingCheck('glif-api', `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`),
       () => this.typeOrmHealthIndicator.pingCheck('database', {
         connection: this.postgresService.pool,
         timeout: 5000,
