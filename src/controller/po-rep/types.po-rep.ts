@@ -24,6 +24,8 @@ export const poRepSLITypes = [
 export const poRepDashboardStatisticTypes = [
   'TOTAL_DEALS_DONE',
   'TOTAL_USD_PAID',
+  'TOTAL_DATA_ONBOARDED',
+  'TOTAL_DEALS_VALUE',
 ] as const;
 
 export class PoRepSLIMeasurment {

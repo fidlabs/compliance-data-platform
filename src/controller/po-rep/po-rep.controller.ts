@@ -18,7 +18,7 @@ import {
   PoRepService,
   SLIComplianceHistoryParameters,
 } from 'src/service/po-rep/po-rep.service';
-import { bigIntDiv, safeDiv } from 'src/utils/utils';
+import { bigIntDiv, BigIntString, safeDiv } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
@@ -58,6 +58,8 @@ const dashboardStatisticsTitleDict: Record<
 > = {
   TOTAL_DEALS_DONE: 'Total Deals Done',
   TOTAL_USD_PAID: 'Total USD Paid Out',
+  TOTAL_DATA_ONBOARDED: 'Total Data Onboarded',
+  TOTAL_DEALS_VALUE: 'Predicted ARR',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -67,6 +69,9 @@ const dashboardStatisticsDescriptionDict: Record<
   TOTAL_DEALS_DONE: 'Total count of deals done up to date',
   TOTAL_USD_PAID:
     'Total amount in USD of funds transferred to providers for fulfilling deals',
+  TOTAL_DATA_ONBOARDED: 'Total volume of deals data onboarded',
+  TOTAL_DEALS_VALUE:
+    'Total USD value locked in accepted deals, assuming they will not be terminated early',
 };
 
 @Controller('po-rep')
@@ -96,15 +101,26 @@ export class PoRepController extends ControllerBase {
       .toUTC()
       .minus({ [interval]: 1 });
 
-    const [currentDealsCount, previousDealsCount, paymentsHistory] =
-      await Promise.all([
-        this.poRepService.getDealsDoneCountUpToDate(),
-        this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
-        this.poRepService.getDealsPaymentsSummaryHistory(interval),
-      ]);
+    const [
+      currentDealsCount,
+      previousDealsCount,
+      onboardedDataHistory,
+      dealsValueHistory,
+      paymentsHistory,
+    ] = await Promise.all([
+      this.poRepService.getDealsDoneCountUpToDate(),
+      this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
+      this.poRepService.getOnboardedDataHistory(interval),
+      this.poRepService.getDealsValueHistory(interval),
+      this.poRepService.getDealsPaymentsSummaryHistory(interval),
+    ]);
 
     const currentPaymentsEntry = paymentsHistory.at(-1);
     const comparedPaymentsEntry = paymentsHistory.at(-2);
+    const currentOnboardedDataEntry = onboardedDataHistory.at(-1);
+    const comparedOnboardedDataEntry = onboardedDataHistory.at(-2);
+    const currentDealsValueEntry = dealsValueHistory.at(-1);
+    const comparedDealsValueEntry = dealsValueHistory.at(-2);
 
     return [
       this.calculateDashboardStatistic({
@@ -116,6 +132,34 @@ export class PoRepController extends ControllerBase {
         },
         previousValue: {
           value: previousDealsCount,
+          type: 'numeric',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_DATA_ONBOARDED',
+        interval: interval,
+        currentValue: {
+          value:
+            (currentOnboardedDataEntry?.cumulativeTotal.toString() as BigIntString) ??
+            '0',
+          type: 'bigint',
+        },
+        previousValue: {
+          value:
+            (comparedOnboardedDataEntry?.cumulativeTotal.toString() as BigIntString) ??
+            '0',
+          type: 'bigint',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'TOTAL_DEALS_VALUE',
+        interval: interval,
+        currentValue: {
+          value: currentDealsValueEntry?.cumulativeTotalUSD ?? 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: comparedDealsValueEntry?.cumulativeTotalUSD ?? 0,
           type: 'numeric',
         },
       }),
