@@ -131,6 +131,25 @@ export class AppController extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
+  private async _httpPingCheckGlifApi(): Promise<HealthIndicatorResult> {
+    const url = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
+
+    const result = await this.httpHealthIndicator.pingCheck('glif-api', url, {
+      method: 'POST',
+      headers: {
+        ['Content-Type']: 'application/json',
+      },
+      data: {
+        jsonrpc: '2.0',
+        method: 'eth_blockNumber',
+        params: [],
+        id: 1,
+      },
+    });
+
+    return result;
+  }
+
   @Cacheable({ ttl: 1000 * 10 }) // 10 seconds
   private async _getHealth(): Promise<HealthCheckResult> {
     // prettier-ignore
@@ -139,7 +158,7 @@ export class AppController extends HealthIndicator {
       () => this._httpPingCheckIpInfo(),
       () => this._httpPingCheckFilscan(),
       () => this._httpPingCheck('cid.contact', 'https://cid.contact/health'),
-      () => this._httpPingCheck('glif-api', `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`),
+      () => this._httpPingCheckGlifApi(),
       () => this.typeOrmHealthIndicator.pingCheck('database', {
         connection: this.postgresService.pool,
         timeout: 5000,
