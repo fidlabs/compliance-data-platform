@@ -4,6 +4,7 @@ import { DateTime } from 'luxon';
 import { Decimal } from 'prisma/generated/client/runtime/library';
 import {
   getFilecoinPaymentsForDealsHistory,
+  getPoRepActiveClientsHistory,
   getPoRepDealsValueHistory,
   getPoRepOnboardedDataHistory,
   getPoRepSLIComplianceHistory,
@@ -12,8 +13,10 @@ import { PrismaService } from 'src/db/prisma.service';
 import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
 import {
   dateToFilecoinBlockHeight,
+  F0Id,
   filecoinBlockHeightToDate,
 } from 'src/utils/utils';
+import { F0IdInput } from 'src/utils/validators';
 import { filecoinCalibration } from 'viem/chains';
 import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.service';
 import { PoRepPriceOracleService } from '../po-rep-price-oracle/po-rep-price-oracle.service';
@@ -25,6 +28,11 @@ export interface SLIComplianceHistoryParameters {
   sliType: 'RPA_RETRIEVABILITY' | 'BANDWIDTH' | 'TTFB' | null;
   providerId: bigint | null;
   dealId: bigint | null;
+}
+
+export interface ActiveClientsHistoryParameters {
+  windowSize: WindowSize;
+  providerId?: F0Id | F0IdInput | null;
 }
 
 export interface PoRepDealsPaymentsSummaryHistoryEntry {
@@ -376,6 +384,25 @@ export class PoRepService {
         sliType,
         providerId,
         dealId,
+      ),
+    );
+  }
+
+  public async getActiveClientsHistory({
+    windowSize,
+    providerId,
+  }: ActiveClientsHistoryParameters): Promise<
+    getPoRepActiveClientsHistory.Result[]
+  > {
+    const providerIdBigInt = providerId
+      ? F0Id.from(providerId).toBigInt()
+      : null;
+
+    return this.prismaService.$queryRawTyped(
+      getPoRepActiveClientsHistory(
+        windowSize,
+        this.isTestnet(),
+        providerIdBigInt,
       ),
     );
   }

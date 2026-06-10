@@ -171,7 +171,11 @@ export function safeDiv<FallbackType = undefined>(
 }
 
 export class F0Id {
-  public static from(input: string | bigint | number): F0Id {
+  public static from(input: F0Id | string | bigint | number): F0Id {
+    if (input instanceof F0Id) {
+      return new F0Id(input.toBigInt());
+    }
+
     return new F0Id(input);
   }
 
