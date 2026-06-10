@@ -248,6 +248,16 @@ export class PoRepController extends ControllerBase {
       this.prismaService.po_rep_storage_provider.count({ where: where }),
     ]);
 
+    if (providers.length === 0) {
+      return this.withPaginationInfo(
+        {
+          data: [],
+        },
+        query,
+        totalCount,
+      );
+    }
+
     const providersIds = providers.map((provider) => {
       return 'f0' + provider.providerId.toString();
     });
