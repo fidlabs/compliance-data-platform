@@ -170,6 +170,41 @@ export function safeDiv<FallbackType = undefined>(
   return denominator === 0 ? fallback : numerator / denominator;
 }
 
+export class F0Id {
+  public static from(input: string | bigint | number): F0Id {
+    const errorMessage = `"${input}" is not valid "f0" ID`;
+
+    if (typeof input !== 'string') {
+      const bigIntValue = BigInt(input);
+
+      if (bigIntValue < 0n) {
+        throw new TypeError(errorMessage);
+      }
+
+      return new F0Id(BigInt(input));
+    }
+
+    const trimmedString = input.startsWith('f0') ? input.slice(2) : input;
+
+    try {
+      const bigIntValue = BigInt(trimmedString);
+      return new F0Id(bigIntValue);
+    } catch {
+      throw new TypeError(errorMessage);
+    }
+  }
+
+  constructor(private readonly bigIntValue: bigint) {}
+
+  public toBigInt(): bigint {
+    return this.bigIntValue;
+  }
+
+  public toString(): string {
+    return 'f0' + this.bigIntValue.toString();
+  }
+}
+
 export type DatabasePaginationQuery = {
   take?: number;
   skip?: number;

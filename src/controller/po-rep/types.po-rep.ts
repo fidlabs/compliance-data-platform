@@ -4,13 +4,14 @@ import {
   PartialType,
   PickType,
 } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsBooleanString, IsIn, IsOptional } from 'class-validator';
+import { F0IdInput, IsBigIntLike, IsF0IdInput } from 'src/utils/validators';
 import {
   DashboardStatistic,
   DashboardStatisticChange,
+  PaginationInfoRequest,
   PaginationInfoResponse,
 } from '../base/types.controller-base';
-import { IsBigIntLike } from 'src/utils/validators';
 
 export type PoRepSLIType = (typeof poRepSLITypes)[number];
 
@@ -203,6 +204,26 @@ export class PoRepHistoryRequest {
   @IsOptional()
   @IsIn(poRepHistoryWindowSize)
   windowSize?: (typeof poRepHistoryWindowSize)[number];
+}
+
+export class PoRepProvidersListParameters extends PaginationInfoRequest {
+  @ApiProperty({
+    description: 'Filter by provider ID, no filter by default',
+    required: false,
+  })
+  @IsOptional()
+  @IsF0IdInput()
+  filter?: F0IdInput;
+
+  @ApiProperty({
+    description:
+      'Flag to filter by provider state. True for active only, false for inactive only, empty for both',
+    required: false,
+    type: 'boolean',
+  })
+  @IsOptional()
+  @IsBooleanString()
+  showActive?: string;
 }
 
 export class GetPoRepProvidersResponse extends PaginationInfoResponse {
