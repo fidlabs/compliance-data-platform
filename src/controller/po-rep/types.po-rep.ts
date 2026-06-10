@@ -210,6 +210,7 @@ export class PoRepProvidersListParameters extends PaginationInfoRequest {
   @ApiProperty({
     description: 'Filter by provider ID, no filter by default',
     required: false,
+    type: 'string',
   })
   @IsOptional()
   @IsF0IdInput()
