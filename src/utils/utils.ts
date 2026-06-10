@@ -162,6 +162,14 @@ export function filecoinBlockHeightToDate(
   return new Date((genesisUnix + blockHeight * blockTimeSeconds) * 1000);
 }
 
+export function safeDiv<FallbackType = undefined>(
+  numerator: number,
+  denominator: number,
+  fallback: FallbackType,
+): number | FallbackType {
+  return denominator === 0 ? fallback : numerator / denominator;
+}
+
 export type DatabasePaginationQuery = {
   take?: number;
   skip?: number;

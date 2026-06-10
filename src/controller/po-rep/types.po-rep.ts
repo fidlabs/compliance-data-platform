@@ -1,10 +1,16 @@
-import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  PartialType,
+  PickType,
+} from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
 import {
   DashboardStatistic,
   DashboardStatisticChange,
   PaginationInfoResponse,
 } from '../base/types.controller-base';
+import { IsBigIntLike } from 'src/utils/validators';
 
 export type PoRepSLIType = (typeof poRepSLITypes)[number];
 
@@ -18,6 +24,8 @@ export const poRepSLITypes = [
 export const poRepDashboardStatisticTypes = [
   'TOTAL_DEALS_DONE',
   'TOTAL_USD_PAID',
+  'TOTAL_DATA_ONBOARDED',
+  'TOTAL_DEALS_VALUE',
 ] as const;
 
 export class PoRepSLIMeasurment {
@@ -34,9 +42,9 @@ export class PoRepSLIMeasurment {
 
 export class PoRepProviderSLIInfo {
   @ApiProperty({
-    enumName: 'SLIType',
-    enum: poRepSLITypes,
     description: 'Type of SLI',
+    enum: poRepSLITypes,
+    enumName: 'PoRepSLIType',
   })
   type: PoRepSLIType;
 
@@ -204,4 +212,102 @@ export class GetPoRepProvidersResponse extends PaginationInfoResponse {
     isArray: true,
   })
   data: PoRepProviderInfo[];
+}
+
+export class PoRepSLIComplianceHistoryParamters {
+  @ApiPropertyOptional({
+    description: 'History window interval, default is one day window',
+    enum: poRepHistoryWindowSize,
+    enumName: 'PoRepHistoryWindowSize',
+    required: false,
+    default: 'day',
+  })
+  @IsOptional()
+  @IsIn(poRepHistoryWindowSize)
+  windowSize?: 'day' | 'week' | 'month';
+
+  @ApiPropertyOptional({
+    description: 'SLI type to filter by, leave empty to include all',
+    required: false,
+    enum: poRepSLITypes,
+    enumName: 'PoREpSLIType',
+  })
+  @IsOptional()
+  @IsIn(poRepSLITypes)
+  sliType?: PoRepSLIType;
+
+  @ApiPropertyOptional({
+    description: 'Provider ID to filter by, no filter by default',
+    required: false,
+  })
+  @IsOptional()
+  @IsBigIntLike()
+  providerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Deal ID to filter by, no filter by default',
+    required: false,
+  })
+  @IsOptional()
+  @IsBigIntLike()
+  dealId?: string;
+}
+
+export class PoRepSLIComplianceHistoryStateValues {
+  @ApiProperty({
+    description:
+      'Number of providers having at least one deal matching given state',
+  })
+  providersCount: number;
+
+  @ApiProperty({
+    description:
+      'Percentage of providers having at least one deal matching given state',
+  })
+  providersPercentage: number;
+
+  @ApiProperty({
+    description: 'Number of deals matching given state',
+  })
+  dealsCount: number;
+
+  @ApiProperty({
+    description: 'Percentage of deals matching given state',
+  })
+  dealsPercentage: number;
+
+  @ApiProperty({
+    description: 'Total size of deals matching given state in bytes',
+  })
+  totalDealsSize: string;
+
+  @ApiProperty({
+    description: 'Percentage of deals size matching given state',
+  })
+  totalDealsSizePercentage: number;
+}
+
+export class PoRepSLIComplianceHistoryEntry {
+  @ApiProperty({
+    description: 'Window start ISO date (UTC)',
+  })
+  date: string;
+
+  @ApiProperty({
+    description:
+      'Values for compliant deals. Compliant deals are those for which all selected SLIs were met in given window.',
+  })
+  compliant: PoRepSLIComplianceHistoryStateValues;
+
+  @ApiProperty({
+    description:
+      'Values for non-compliant deals. Non-compliant deals are those for which any of the selected SLIs were not met in given window.',
+  })
+  nonCompliant: PoRepSLIComplianceHistoryStateValues;
+
+  @ApiProperty({
+    description:
+      'Values for unknown state deals. Unknown deals are those for which any of the selected SLIs were not measured at least once in given window.',
+  })
+  unknown: PoRepSLIComplianceHistoryStateValues;
 }

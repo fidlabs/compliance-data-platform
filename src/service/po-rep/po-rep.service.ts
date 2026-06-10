@@ -6,6 +6,7 @@ import {
   getFilecoinPaymentsForDealsHistory,
   getPoRepDealsValueHistory,
   getPoRepOnboardedDataHistory,
+  getPoRepSLIComplianceHistory,
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
 import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
@@ -18,6 +19,13 @@ import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.serv
 import { PoRepPriceOracleService } from '../po-rep-price-oracle/po-rep-price-oracle.service';
 
 type WindowSize = 'day' | 'week' | 'month';
+
+export interface SLIComplianceHistoryParameters {
+  windowSize: WindowSize;
+  sliType: 'RPA_RETRIEVABILITY' | 'BANDWIDTH' | 'TTFB' | null;
+  providerId: bigint | null;
+  dealId: bigint | null;
+}
 
 export interface PoRepDealsPaymentsSummaryHistoryEntry {
   date: DateTime;
@@ -350,6 +358,25 @@ export class PoRepService {
         return [...result, nextEntry];
       },
       [],
+    );
+  }
+
+  public async getSLIComplianceHistory({
+    windowSize,
+    sliType,
+    providerId,
+    dealId,
+  }: SLIComplianceHistoryParameters): Promise<
+    getPoRepSLIComplianceHistory.Result[]
+  > {
+    return this.prismaService.$queryRawTyped(
+      getPoRepSLIComplianceHistory(
+        windowSize,
+        this.isTestnet(),
+        sliType,
+        providerId,
+        dealId,
+      ),
     );
   }
 
