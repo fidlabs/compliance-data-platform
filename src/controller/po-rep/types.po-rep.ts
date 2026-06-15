@@ -218,7 +218,7 @@ export class PoRepProvidersListParameters extends PaginationInfoRequest {
 
   @ApiProperty({
     description:
-      'Flag to filter by provider state. True for active only, false for inactive only, empty for both',
+      'Flag to filter by provider state. True for active only, false for inactive only, omit to include both',
     required: false,
     type: 'boolean',
   })
