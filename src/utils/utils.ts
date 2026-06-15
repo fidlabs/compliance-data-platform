@@ -185,7 +185,7 @@ export class F0Id {
         const bigIntValue = BigInt(input);
 
         if (bigIntValue < 0n) {
-          throw 'ID value connot be negative';
+          throw new Error('ID value cannot be negative');
         }
 
         this.bigIntValue = bigIntValue;
