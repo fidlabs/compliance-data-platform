@@ -207,6 +207,10 @@ export class F0Id {
     } catch {
       throw new TypeError(errorPrefix + 'ID must be integer');
     }
+
+    if (this.bigIntValue < 0n) {
+      throw new TypeError(errorPrefix + 'ID value cannot be negative');
+    }
   }
 
   public toBigInt(): bigint {
