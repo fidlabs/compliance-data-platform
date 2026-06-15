@@ -170,6 +170,58 @@ export function safeDiv<FallbackType = undefined>(
   return denominator === 0 ? fallback : numerator / denominator;
 }
 
+export class F0Id {
+  public static from(input: string | bigint | number): F0Id {
+    return new F0Id(input);
+  }
+
+  private readonly bigIntValue: bigint;
+
+  constructor(input: string | bigint | number) {
+    const errorPrefix = `"${String(input)}" is not valid "f0" ID; `;
+
+    if (typeof input !== 'string') {
+      try {
+        const bigIntValue = BigInt(input);
+
+        if (bigIntValue < 0n) {
+          throw new Error('ID value cannot be negative');
+        }
+
+        this.bigIntValue = bigIntValue;
+      } catch (error) {
+        throw new TypeError(errorPrefix + String(error));
+      }
+
+      return;
+    }
+
+    const trimmedString = input.startsWith('f0') ? input.slice(2) : input;
+
+    if (trimmedString.length === 0) {
+      throw new TypeError(errorPrefix + 'ID cannot be empty');
+    }
+
+    try {
+      this.bigIntValue = BigInt(trimmedString);
+    } catch {
+      throw new TypeError(errorPrefix + 'ID must be integer');
+    }
+
+    if (this.bigIntValue < 0n) {
+      throw new TypeError(errorPrefix + 'ID value cannot be negative');
+    }
+  }
+
+  public toBigInt(): bigint {
+    return this.bigIntValue;
+  }
+
+  public toString(): `f0${number}` {
+    return ('f0' + this.bigIntValue.toString()) as `f0${number}`;
+  }
+}
+
 export type DatabasePaginationQuery = {
   take?: number;
   skip?: number;

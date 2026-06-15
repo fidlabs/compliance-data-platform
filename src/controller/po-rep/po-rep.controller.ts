@@ -18,12 +18,17 @@ import {
   PoRepService,
   SLIComplianceHistoryParameters,
 } from 'src/service/po-rep/po-rep.service';
-import { bigIntDiv, BigIntString, safeDiv } from 'src/utils/utils';
+import {
+  bigIntDiv,
+  BigIntString,
+  F0Id,
+  safeDiv,
+  stringToBool,
+} from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
   DashboardStatisticValue,
-  PaginationInfoRequest,
 } from '../base/types.controller-base';
 import {
   GetPoRepProvidersResponse,
@@ -35,6 +40,7 @@ import {
   PoRepHistoryRequest,
   PoRepOnboardedDataHistoryEntry,
   PoRepProviderSLIInfo,
+  PoRepProvidersListParameters,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParamters,
   PoRepSLIMeasurment,
@@ -188,9 +194,26 @@ export class PoRepController extends ControllerBase {
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getParticipants(
-    @Query() query: PaginationInfoRequest,
+    @Query(new ValidationPipe()) query: PoRepProvidersListParameters,
   ): Promise<GetPoRepProvidersResponse> {
+    const { filter } = query;
     const paginationInfo = this.validatePaginationInfo(query);
+    const showActive = stringToBool(query.showActive);
+
+    const where = {
+      AND: [
+        filter ? { providerId: F0Id.from(filter).toBigInt() } : {},
+        showActive !== null
+          ? {
+              [showActive ? 'AND' : 'OR']: [
+                { paused: !showActive },
+                { blocked: !showActive },
+              ],
+            }
+          : {},
+      ],
+    } satisfies Prisma.po_rep_storage_providerWhereInput;
+
     const [providers, totalCount] = await this.prismaService.$transaction([
       this.prismaService.po_rep_storage_provider.findMany({
         ...this.validateQueryPagination(paginationInfo),
@@ -208,12 +231,32 @@ export class PoRepController extends ControllerBase {
             },
           },
         },
-        orderBy: {
-          registeredAtBlock: 'desc',
-        },
+        where: where,
+        orderBy:
+          showActive === null
+            ? [
+                { paused: 'asc' },
+                { blocked: 'asc' },
+                { registeredAtBlock: 'desc' },
+              ]
+            : [
+                {
+                  registeredAtBlock: 'desc',
+                },
+              ],
       }),
-      this.prismaService.po_rep_storage_provider.count(),
+      this.prismaService.po_rep_storage_provider.count({ where: where }),
     ]);
+
+    if (providers.length === 0) {
+      return this.withPaginationInfo(
+        {
+          data: [],
+        },
+        query,
+        totalCount,
+      );
+    }
 
     const providersIds = providers.map((provider) => {
       return 'f0' + provider.providerId.toString();
