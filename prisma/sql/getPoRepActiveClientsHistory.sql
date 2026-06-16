@@ -74,6 +74,6 @@ FROM windows_dates wd
 LEFT JOIN deal_bounds pdb
     ON pdb.window_start <= wd.window_start
 		AND (pdb.window_end IS NULL OR pdb.window_end >= wd.window_start)
-GROUP BY wd.window_start, pdb.client
+GROUP BY wd.window_start
 ORDER BY wd.window_start;
 

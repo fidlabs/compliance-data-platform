@@ -394,9 +394,10 @@ export class PoRepService {
   }: ActiveClientsHistoryParameters): Promise<
     getPoRepActiveClientsHistory.Result[]
   > {
-    const providerIdBigInt = providerId
-      ? F0Id.from(providerId).toBigInt()
-      : null;
+    const providerIdBigInt =
+      providerId !== null && providerId !== undefined
+        ? F0Id.from(providerId).toBigInt()
+        : null;
 
     return this.prismaService.$queryRawTyped(
       getPoRepActiveClientsHistory(

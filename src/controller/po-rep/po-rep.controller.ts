@@ -90,7 +90,7 @@ const dashboardStatisticsDescriptionDict: Record<
   TOTAL_DEALS_VALUE:
     'Total USD value locked in accepted deals, assuming they will not be terminated early',
   ACTIVE_CLIENTS_COUNT:
-    'Number of unqiue clients with at least one ongoing deal',
+    'Number of unique clients with at least one ongoing deal',
 };
 
 @Controller('po-rep')
@@ -544,7 +544,7 @@ export class PoRepController extends ControllerBase {
   @Get('/active-clients-history')
   @ApiOperation({
     summary:
-      'Get the history of active clients count, optionally filtered Provider ID',
+      'Get the history of active clients count, optionally filtered by Provider ID',
   })
   @ApiOkResponse({
     type: [PoRepActiveClientsHistoryEntry],
