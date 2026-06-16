@@ -1,7 +1,15 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
-import { Controller, Get, Inject, Query, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  NotFoundException,
+  Query,
+  ValidationPipe,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
@@ -33,6 +41,8 @@ import {
 import {
   GetPoRepProvidersResponse,
   GetPoRepStatisticsRequest,
+  PoRepActiveClientsHistoryEntry,
+  PoRepActiveClientsHistoryParameters,
   PoRepDashboardStatistic,
   PoRepDashboardStatisticType,
   PoRepDealsPaymentsHistoryEntry,
@@ -42,7 +52,7 @@ import {
   PoRepProviderSLIInfo,
   PoRepProvidersListParameters,
   PoRepSLIComplianceHistoryEntry,
-  PoRepSLIComplianceHistoryParamters,
+  PoRepSLIComplianceHistoryParameters,
   PoRepSLIMeasurment,
   PoRepSLIType,
   poRepSLITypes,
@@ -66,6 +76,7 @@ const dashboardStatisticsTitleDict: Record<
   TOTAL_USD_PAID: 'Total USD Paid Out',
   TOTAL_DATA_ONBOARDED: 'Total Data Onboarded',
   TOTAL_DEALS_VALUE: 'Predicted ARR',
+  ACTIVE_CLIENTS_COUNT: 'Active Clients Count',
 };
 
 const dashboardStatisticsDescriptionDict: Record<
@@ -78,6 +89,8 @@ const dashboardStatisticsDescriptionDict: Record<
   TOTAL_DATA_ONBOARDED: 'Total volume of deals data onboarded',
   TOTAL_DEALS_VALUE:
     'Total USD value locked in accepted deals, assuming they will not be terminated early',
+  ACTIVE_CLIENTS_COUNT:
+    'Number of unique clients with at least one ongoing deal',
 };
 
 @Controller('po-rep')
@@ -113,12 +126,14 @@ export class PoRepController extends ControllerBase {
       onboardedDataHistory,
       dealsValueHistory,
       paymentsHistory,
+      activeClientsHistory,
     ] = await Promise.all([
       this.poRepService.getDealsDoneCountUpToDate(),
       this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
       this.poRepService.getOnboardedDataHistory(interval),
       this.poRepService.getDealsValueHistory(interval),
       this.poRepService.getDealsPaymentsSummaryHistory(interval),
+      this.poRepService.getActiveClientsHistory({ windowSize: interval }),
     ]);
 
     const currentPaymentsEntry = paymentsHistory.at(-1);
@@ -127,6 +142,8 @@ export class PoRepController extends ControllerBase {
     const comparedOnboardedDataEntry = onboardedDataHistory.at(-2);
     const currentDealsValueEntry = dealsValueHistory.at(-1);
     const comparedDealsValueEntry = dealsValueHistory.at(-2);
+    const currentActiveClientsEntry = activeClientsHistory.at(-1);
+    const comparedActiveClientsEntry = activeClientsHistory.at(-2);
 
     return [
       this.calculateDashboardStatistic({
@@ -178,6 +195,18 @@ export class PoRepController extends ControllerBase {
         },
         previousValue: {
           value: comparedPaymentsEntry?.cumulativeTotalUSD ?? 0,
+          type: 'numeric',
+        },
+      }),
+      this.calculateDashboardStatistic({
+        type: 'ACTIVE_CLIENTS_COUNT',
+        interval: interval,
+        currentValue: {
+          value: currentActiveClientsEntry?.active_clients_count ?? 0,
+          type: 'numeric',
+        },
+        previousValue: {
+          value: comparedActiveClientsEntry?.active_clients_count ?? 0,
           type: 'numeric',
         },
       }),
@@ -423,7 +452,7 @@ export class PoRepController extends ControllerBase {
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getSLIComplianceHistory(
-    @Query(new ValidationPipe()) query: PoRepSLIComplianceHistoryParamters,
+    @Query(new ValidationPipe()) query: PoRepSLIComplianceHistoryParameters,
   ): Promise<PoRepSLIComplianceHistoryEntry[]> {
     const { windowSize = 'day', sliType, providerId, dealId } = query;
     const results = await this.poRepService.getSLIComplianceHistory({
@@ -510,6 +539,59 @@ export class PoRepController extends ControllerBase {
           >),
         };
       });
+  }
+
+  @Get('/active-clients-history')
+  @ApiOperation({
+    summary:
+      'Get the history of active clients count, optionally filtered by Provider ID',
+  })
+  @ApiOkResponse({
+    type: [PoRepActiveClientsHistoryEntry],
+    description:
+      'Active clients count in provided windows, matching given filters',
+  })
+  @ApiBadRequestResponse({
+    description: 'Query parameters validation error',
+  })
+  @ApiNotFoundResponse({
+    description: 'Error when provider specified in filters does not exist',
+  })
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
+  public async getActiveClientsHistory(
+    @Query(new ValidationPipe()) query: PoRepActiveClientsHistoryParameters,
+  ): Promise<PoRepActiveClientsHistoryEntry[]> {
+    const { windowSize = 'day' } = query;
+    const providerId = query.providerId ? F0Id.from(query.providerId) : null;
+
+    if (providerId) {
+      const provider =
+        await this.prismaService.po_rep_storage_provider.findFirst({
+          where: {
+            providerId: providerId.toBigInt(),
+          },
+        });
+
+      if (!provider) {
+        throw new NotFoundException(
+          `Po-Rep Provider with ID "${providerId.toString()}" does not exist`,
+        );
+      }
+    }
+
+    const results = await this.poRepService.getActiveClientsHistory({
+      windowSize,
+      providerId,
+    });
+
+    return results.map((result) => {
+      return {
+        date: DateTime.fromJSDate(result.window_start, {
+          zone: 'UTC',
+        }).toFormat('yyyy-MM-dd'),
+        activeClientsCount: result.active_clients_count,
+      };
+    });
   }
 
   private calculateDashboardStatistic(options: {

@@ -27,6 +27,7 @@ export const poRepDashboardStatisticTypes = [
   'TOTAL_USD_PAID',
   'TOTAL_DATA_ONBOARDED',
   'TOTAL_DEALS_VALUE',
+  'ACTIVE_CLIENTS_COUNT',
 ] as const;
 
 export class PoRepSLIMeasurment {
@@ -236,7 +237,7 @@ export class GetPoRepProvidersResponse extends PaginationInfoResponse {
   data: PoRepProviderInfo[];
 }
 
-export class PoRepSLIComplianceHistoryParamters {
+export class PoRepSLIComplianceHistoryParameters {
   @ApiPropertyOptional({
     description: 'History window interval, default is one day window',
     enum: poRepHistoryWindowSize,
@@ -332,4 +333,39 @@ export class PoRepSLIComplianceHistoryEntry {
       'Values for unknown state deals. Unknown deals are those for which any of the selected SLIs were not measured at least once in given window.',
   })
   unknown: PoRepSLIComplianceHistoryStateValues;
+}
+
+export class PoRepActiveClientsHistoryParameters {
+  @ApiPropertyOptional({
+    description: 'History window interval, default is one day window',
+    enum: poRepHistoryWindowSize,
+    enumName: 'PoRepHistoryWindowSize',
+    required: false,
+    default: 'day',
+  })
+  @IsOptional()
+  @IsIn(poRepHistoryWindowSize)
+  windowSize?: 'day' | 'week' | 'month';
+
+  @ApiPropertyOptional({
+    description: 'Provider ID to filter by, no filter by default',
+    required: false,
+    type: 'string',
+  })
+  @IsOptional()
+  @IsF0IdInput()
+  providerId?: F0IdInput;
+}
+
+export class PoRepActiveClientsHistoryEntry {
+  @ApiProperty({
+    description: 'Entry date',
+  })
+  date: string;
+
+  @ApiProperty({
+    description:
+      'Count of active clients in a window. Client is considered active if they have at least one deal completed before or during the window, that was not terminated before window start.',
+  })
+  activeClientsCount: number;
 }
