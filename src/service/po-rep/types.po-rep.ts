@@ -99,7 +99,7 @@ export class PoRepSLIComplianceHistoryParameters {
     description: 'SLI type to filter by, leave empty to include all',
     required: false,
     enum: poRepSLITypes,
-    enumName: 'PoREpSLIType',
+    enumName: 'PoRepSLIType',
   })
   @IsOptional()
   @IsIn(poRepSLITypes)
