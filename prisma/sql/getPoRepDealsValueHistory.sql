@@ -52,11 +52,6 @@ window_totals AS (
 SELECT
     window_start,
     token_address,
-    window_total,
-    SUM(window_total) OVER (
-        PARTITION BY token_address
-        ORDER BY window_start
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS cumulative_amount
+    window_total
 FROM window_totals
 ORDER BY window_start;
