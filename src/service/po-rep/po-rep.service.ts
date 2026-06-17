@@ -109,7 +109,8 @@ export class PoRepService {
 
     const dataByWindow = groupBy(
       data.filter((item) => item.window_start !== null),
-      (item) => DateTime.fromJSDate(item.window_start).toISODate(),
+      (item) =>
+        DateTime.fromJSDate(item.window_start, { zone: 'UTC' }).toISODate(),
     );
 
     return [...new Array(entriesCount)].reduce<
@@ -247,7 +248,8 @@ export class PoRepService {
 
     const dataByWindow = groupBy(
       data.filter((item) => item.window_start !== null),
-      (item) => DateTime.fromJSDate(item.window_start).toISODate(),
+      (item) =>
+        DateTime.fromJSDate(item.window_start, { zone: 'UTC' }).toISODate(),
     );
 
     return [...new Array(entriesCount)].reduce<PoRepDealsValueHistoryEntry[]>(
@@ -317,7 +319,7 @@ export class PoRepService {
     );
 
     const grouped = groupBy(results, (result) =>
-      DateTime.fromJSDate(result.window_start).toISODate(),
+      DateTime.fromJSDate(result.window_start, { zone: 'UTC' }).toISODate(),
     );
 
     const states = [
@@ -413,7 +415,9 @@ export class PoRepService {
     );
 
     return results.map((result) => ({
-      date: DateTime.fromJSDate(result.window_start).toISODate(),
+      date: DateTime.fromJSDate(result.window_start, {
+        zone: 'UTC',
+      }).toISODate(),
       activeClientsCount: result.active_clients_count,
     }));
   }
