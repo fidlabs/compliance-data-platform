@@ -120,8 +120,8 @@ export class PoRepService {
       const entryISODate = entryDate.toISODate();
       const dataForWindow = dataByWindow[entryISODate] ?? [];
 
-      const windowVolumeUSD = dataForWindow
-        .reduce((currentWindowVolumeUSD, result) => {
+      const windowVolumeUSD = dataForWindow.reduce(
+        (currentWindowVolumeUSD, result) => {
           const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
             result.token_address,
           );
@@ -140,17 +140,22 @@ export class PoRepService {
             .mul(tokenUSDExchangeRate);
 
           return currentWindowVolumeUSD.add(tokenWindowTotalUSD);
-        }, new Decimal(0))
-        .toDecimalPlaces(2)
-        .toNumber();
+        },
+        Decimal(0),
+      );
 
       const previousEntry = index === 0 ? undefined : result.at(index - 1);
-      const previousTotalUSD = previousEntry?.cumulativeTotalUSD ?? 0;
+      const previousTotalUSD = previousEntry
+        ? Decimal(previousEntry.cumulativeTotalUSD)
+        : Decimal(0);
 
       const nextEntry: PoRepDealsPaymentsHistoryEntry = {
         date: entryISODate,
-        volumeUSD: windowVolumeUSD,
-        cumulativeTotalUSD: previousTotalUSD + windowVolumeUSD,
+        volumeUSD: windowVolumeUSD.toDecimalPlaces(2).toNumber(),
+        cumulativeTotalUSD: previousTotalUSD
+          .add(windowVolumeUSD)
+          .toDecimalPlaces(2)
+          .toNumber(),
       };
 
       return [...result, nextEntry];
@@ -258,8 +263,8 @@ export class PoRepService {
         const entryISODate = entryDate.toISODate();
         const dataForWindow = dataByWindow[entryISODate] ?? [];
 
-        const windowVolumeUSD = dataForWindow
-          .reduce((currentWindowVolumeUSD, result) => {
+        const windowVolumeUSD = dataForWindow.reduce(
+          (currentWindowVolumeUSD, result) => {
             const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
               result.token_address,
             );
@@ -278,17 +283,22 @@ export class PoRepService {
               .mul(tokenUSDExchangeRate);
 
             return currentWindowVolumeUSD.add(tokenWindowTotalUSD);
-          }, new Decimal(0))
-          .toDecimalPlaces(2)
-          .toNumber();
+          },
+          Decimal(0),
+        );
 
         const previousEntry = index === 0 ? undefined : result.at(index - 1);
-        const previousTotalUSD = previousEntry?.cumulativeTotalUSD ?? 0;
+        const previousTotalUSD = previousEntry
+          ? Decimal(previousEntry.cumulativeTotalUSD)
+          : Decimal(0);
 
         const nextEntry: PoRepDealsValueHistoryEntry = {
           date: entryISODate,
-          volumeUSD: windowVolumeUSD,
-          cumulativeTotalUSD: previousTotalUSD + windowVolumeUSD,
+          volumeUSD: windowVolumeUSD.toDecimalPlaces(2).toNumber(),
+          cumulativeTotalUSD: previousTotalUSD
+            .add(windowVolumeUSD)
+            .toDecimalPlaces(2)
+            .toNumber(),
         };
 
         return [...result, nextEntry];
