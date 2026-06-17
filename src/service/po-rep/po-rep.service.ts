@@ -428,16 +428,17 @@ export class PoRepService {
 
   private mapSLIType(
     poRepSLIType: PoRepSLIType | undefined,
-  ): StorageProviderUrlFinderMetricType {
+  ): StorageProviderUrlFinderMetricType | null {
     switch (poRepSLIType) {
       case 'bandwidthMbps':
         return StorageProviderUrlFinderMetricType.BANDWIDTH;
-      case 'indexingPct':
-        return null; // Not measured
       case 'latencyMs':
         return StorageProviderUrlFinderMetricType.TTFB;
       case 'retrievabilityBps':
         return StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY;
+      case 'indexingPct':
+      default:
+        return null;
     }
   }
 }
