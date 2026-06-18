@@ -13,26 +13,27 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
-import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import {
   PoRepDealState,
   Prisma,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
-import { Decimal } from 'prisma/generated/client/runtime/index-browser';
 import { PrismaService } from 'src/db/prisma.service';
+import { PoRepService } from 'src/service/po-rep/po-rep.service';
 import {
-  PoRepService,
-  SLIComplianceHistoryParameters,
-} from 'src/service/po-rep/po-rep.service';
-import {
-  bigIntDiv,
-  BigIntString,
-  F0Id,
-  safeDiv,
-  stringToBool,
-} from 'src/utils/utils';
+  PoRepActiveClientsHistoryEntry,
+  PoRepActiveClientsHistoryParameters,
+  PoRepDealsPaymentsHistoryEntry,
+  PoRepDealsValueHistoryEntry,
+  PoRepHistoryParameters,
+  PoRepOnboardedDataHistoryEntry,
+  PoRepSLIComplianceHistoryEntry,
+  PoRepSLIComplianceHistoryParameters,
+  PoRepSLIType,
+  poRepSLITypes,
+} from 'src/service/po-rep/types.po-rep';
+import { bigIntDiv, BigIntString, F0Id, stringToBool } from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
@@ -41,21 +42,11 @@ import {
 import {
   GetPoRepProvidersResponse,
   GetPoRepStatisticsRequest,
-  PoRepActiveClientsHistoryEntry,
-  PoRepActiveClientsHistoryParameters,
   PoRepDashboardStatistic,
   PoRepDashboardStatisticType,
-  PoRepDealsPaymentsHistoryEntry,
-  PoRepDealsValueHistoryEntry,
-  PoRepHistoryRequest,
-  PoRepOnboardedDataHistoryEntry,
   PoRepProviderSLIInfo,
   PoRepProvidersListParameters,
-  PoRepSLIComplianceHistoryEntry,
-  PoRepSLIComplianceHistoryParameters,
   PoRepSLIMeasurment,
-  PoRepSLIType,
-  poRepSLITypes,
 } from './types.po-rep';
 
 const sliTypesMap: Record<
@@ -130,9 +121,11 @@ export class PoRepController extends ControllerBase {
     ] = await Promise.all([
       this.poRepService.getDealsDoneCountUpToDate(),
       this.poRepService.getDealsDoneCountUpToDate(cutoffDate.toJSDate()),
-      this.poRepService.getOnboardedDataHistory(interval),
-      this.poRepService.getDealsValueHistory(interval),
-      this.poRepService.getDealsPaymentsSummaryHistory(interval),
+      this.poRepService.getOnboardedDataHistory({ windowSize: interval }),
+      this.poRepService.getDealsValueHistory({ windowSize: interval }),
+      this.poRepService.getDealsPaymentsSummaryHistory({
+        windowSize: interval,
+      }),
       this.poRepService.getActiveClientsHistory({ windowSize: interval }),
     ]);
 
@@ -202,11 +195,11 @@ export class PoRepController extends ControllerBase {
         type: 'ACTIVE_CLIENTS_COUNT',
         interval: interval,
         currentValue: {
-          value: currentActiveClientsEntry?.active_clients_count ?? 0,
+          value: currentActiveClientsEntry?.activeClientsCount ?? 0,
           type: 'numeric',
         },
         previousValue: {
-          value: comparedActiveClientsEntry?.active_clients_count ?? 0,
+          value: comparedActiveClientsEntry?.activeClientsCount ?? 0,
           type: 'numeric',
         },
       }),
@@ -375,18 +368,9 @@ export class PoRepController extends ControllerBase {
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getOnboardedDataHistory(
-    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
+    @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepOnboardedDataHistoryEntry[]> {
-    const { windowSize = 'day' } = query;
-    const results = await this.poRepService.getOnboardedDataHistory(windowSize);
-
-    return results.map<PoRepOnboardedDataHistoryEntry>((result) => {
-      return {
-        date: result.date.toFormat('yyyy-MM-dd'),
-        volume: result.volume.toString(),
-        cumulativeTotal: result.cumulativeTotal.toString(),
-      };
-    });
+    return this.poRepService.getOnboardedDataHistory(query);
   }
 
   @Get('/deals-value-history')
@@ -398,18 +382,9 @@ export class PoRepController extends ControllerBase {
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getDealsValueHistory(
-    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
+    @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepDealsValueHistoryEntry[]> {
-    const { windowSize = 'day' } = query;
-    const results = await this.poRepService.getDealsValueHistory(windowSize);
-
-    return results.map<PoRepDealsValueHistoryEntry>((result) => {
-      return {
-        date: result.date.toFormat('yyyy-MM-dd'),
-        volumeUSD: result.volumeUSD,
-        cumulativeTotalUSD: result.cumulativeTotalUSD,
-      };
-    });
+    return this.poRepService.getDealsValueHistory(query);
   }
 
   @Get('/payments-history')
@@ -422,19 +397,9 @@ export class PoRepController extends ControllerBase {
   })
   @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getPaymentsHistory(
-    @Query(new ValidationPipe()) query: PoRepHistoryRequest,
+    @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepDealsPaymentsHistoryEntry[]> {
-    const { windowSize = 'day' } = query;
-    const results =
-      await this.poRepService.getDealsPaymentsSummaryHistory(windowSize);
-
-    return results.map((result) => {
-      return {
-        date: result.date.toFormat('yyyy-MM-dd'),
-        dailyAmountUSD: result.volumeUSD,
-        cumulativeAmountUSD: result.cumulativeTotalUSD,
-      };
-    });
+    return this.poRepService.getDealsPaymentsSummaryHistory(query);
   }
 
   @Get('/sli-compliance-history')
@@ -454,91 +419,7 @@ export class PoRepController extends ControllerBase {
   public async getSLIComplianceHistory(
     @Query(new ValidationPipe()) query: PoRepSLIComplianceHistoryParameters,
   ): Promise<PoRepSLIComplianceHistoryEntry[]> {
-    const { windowSize = 'day', sliType, providerId, dealId } = query;
-    const results = await this.poRepService.getSLIComplianceHistory({
-      windowSize: windowSize,
-      sliType: this.mapSLIType(sliType),
-      providerId: providerId ? BigInt(providerId) : null,
-      dealId: dealId ? BigInt(dealId) : null,
-    });
-
-    const grouped = groupBy(results, (result) =>
-      result.window_start.toISOString(),
-    );
-
-    const states = [
-      'compliant',
-      'nonCompliant',
-      'unknown',
-    ] as const satisfies Omit<keyof PoRepSLIComplianceHistoryEntry, 'date'>[];
-
-    return Object.entries(grouped)
-      .slice(0, -1)
-      .map<PoRepSLIComplianceHistoryEntry>(([dateISOString, results]) => {
-        const [totalProvidersCount, totalDealsCount, totalDealsSize] =
-          results.reduce(
-            (totals, result) => {
-              return [
-                totals[0] + result.providers_count,
-                totals[1] + result.deals_count,
-                totals[2].add(result.total_deals_size),
-              ];
-            },
-            [0, 0, Decimal(0)],
-          );
-
-        const stateEntries = states.map((state) => {
-          const stateResult = results.find(
-            (c) => c.compliance_state.toLowerCase() === state.toLowerCase(),
-          );
-
-          if (!stateResult) {
-            return [
-              state,
-              {
-                providersCount: 0,
-                providersPercentage: 0,
-                dealsCount: 0,
-                dealsPercentage: 0,
-                totalDealsSize: '0',
-                totalDealsSizePercentage: 0,
-              },
-            ];
-          }
-
-          return [
-            state,
-            {
-              providersCount: stateResult.providers_count,
-              providersPercentage: safeDiv(
-                stateResult.providers_count,
-                totalProvidersCount,
-                0,
-              ),
-              dealsCount: stateResult.deals_count,
-              dealsPercentage: safeDiv(
-                stateResult.deals_count,
-                totalDealsCount,
-                0,
-              ),
-              totalDealsSize: stateResult.total_deals_size.toString(),
-              totalDealsSizePercentage: totalDealsSize.eq(0)
-                ? 0
-                : stateResult.total_deals_size.div(totalDealsSize).toNumber(),
-            },
-          ] as const;
-        });
-
-        return {
-          date: DateTime.fromISO(dateISOString, { zone: 'UTC' }).toFormat(
-            'yyyy-MM-dd',
-          ),
-          ...(Object.fromEntries(stateEntries) as Omit<
-            PoRepSLIComplianceHistoryEntry,
-            'date'
-          >),
-        };
-      });
+    return this.poRepService.getSLIComplianceHistory(query);
   }
 
   @Get('/active-clients-history')
@@ -561,8 +442,10 @@ export class PoRepController extends ControllerBase {
   public async getActiveClientsHistory(
     @Query(new ValidationPipe()) query: PoRepActiveClientsHistoryParameters,
   ): Promise<PoRepActiveClientsHistoryEntry[]> {
-    const { windowSize = 'day' } = query;
-    const providerId = query.providerId ? F0Id.from(query.providerId) : null;
+    const providerId =
+      query.providerId !== null && query.providerId !== undefined
+        ? F0Id.from(query.providerId)
+        : null;
 
     if (providerId) {
       const provider =
@@ -579,19 +462,7 @@ export class PoRepController extends ControllerBase {
       }
     }
 
-    const results = await this.poRepService.getActiveClientsHistory({
-      windowSize,
-      providerId,
-    });
-
-    return results.map((result) => {
-      return {
-        date: DateTime.fromJSDate(result.window_start, {
-          zone: 'UTC',
-        }).toFormat('yyyy-MM-dd'),
-        activeClientsCount: result.active_clients_count,
-      };
-    });
+    return this.poRepService.getActiveClientsHistory(query);
   }
 
   private calculateDashboardStatistic(options: {
@@ -639,20 +510,5 @@ export class PoRepController extends ControllerBase {
       value: currentValue,
       percentageChange: percentageChange,
     };
-  }
-
-  private mapSLIType(
-    poRepSLIType: PoRepSLIType | undefined,
-  ): SLIComplianceHistoryParameters['sliType'] {
-    switch (poRepSLIType) {
-      case 'bandwidthMbps':
-        return 'BANDWIDTH';
-      case 'indexingPct':
-        return null; // Not measured
-      case 'latencyMs':
-        return 'TTFB';
-      case 'retrievabilityBps':
-        return 'RPA_RETRIEVABILITY';
-    }
   }
 }

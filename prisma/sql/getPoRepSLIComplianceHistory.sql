@@ -97,8 +97,6 @@ average_measurements AS (
         ON mv.provider = 'f0' || psp."providerId"
     LEFT JOIN storage_provider_url_finder_metric metric
         ON metric.id = mv.metric_id
-    LEFT JOIN po_rep_storage_provider_capabilities pspc
-        ON pspc."providerId" = psp."providerId"
     WHERE tested_at >= b.start_window
         AND (
             ($3::TEXT IS NULL AND metric_type IN (

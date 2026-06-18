@@ -17,7 +17,7 @@ WITH truncated_payments AS (
             )
         )::DATE AS window_start,
         r.token as token_address,
-        SUM(p."netPayeeAmount") AS window_amount
+        SUM(p."netPayeeAmount") AS window_total
     FROM filecoin_pay_payment p
     INNER JOIN filecoin_pay_rail r
         ON r."railId" = p."railId"
@@ -32,11 +32,6 @@ WITH truncated_payments AS (
 SELECT
     window_start,
     token_address,
-    window_amount,
-    SUM(window_amount) OVER (
-        PARTITION BY token_address
-        ORDER BY window_start
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS cumulative_amount
+    window_total
 FROM truncated_payments
 ORDER BY window_start;

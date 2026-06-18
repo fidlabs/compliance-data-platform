@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { groupBy, uniq } from 'lodash';
 import { DateTime } from 'luxon';
+import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
 import { Decimal } from 'prisma/generated/client/runtime/library';
 import {
   getFilecoinPaymentsForDealsHistory,
@@ -15,50 +16,22 @@ import {
   dateToFilecoinBlockHeight,
   F0Id,
   filecoinBlockHeightToDate,
+  safeDiv,
 } from 'src/utils/utils';
-import { F0IdInput } from 'src/utils/validators';
 import { filecoinCalibration } from 'viem/chains';
 import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.service';
 import { PoRepPriceOracleService } from '../po-rep-price-oracle/po-rep-price-oracle.service';
-
-type WindowSize = 'day' | 'week' | 'month';
-
-export interface SLIComplianceHistoryParameters {
-  windowSize: WindowSize;
-  sliType: 'RPA_RETRIEVABILITY' | 'BANDWIDTH' | 'TTFB' | null;
-  providerId: bigint | null;
-  dealId: bigint | null;
-}
-
-export interface ActiveClientsHistoryParameters {
-  windowSize: WindowSize;
-  providerId?: F0Id | F0IdInput | null;
-}
-
-export interface PoRepDealsPaymentsSummaryHistoryEntry {
-  date: DateTime;
-  volumeUSD: number;
-  cumulativeTotalUSD: number;
-}
-
-export type PoRepDealsPaymentsSummaryHistory =
-  PoRepDealsPaymentsSummaryHistoryEntry[];
-
-export interface PoRepOnboardedDataHistoryEntry {
-  date: DateTime;
-  volume: bigint;
-  cumulativeTotal: bigint;
-}
-
-export type PoRepDealsOnboardedDataHistory = PoRepOnboardedDataHistoryEntry[];
-
-export interface PoRepDealsValueHistoryEntry {
-  date: DateTime;
-  volumeUSD: number;
-  cumulativeTotalUSD: number;
-}
-
-export type PoRepDealsValueHistory = PoRepDealsValueHistoryEntry[];
+import {
+  PoRepActiveClientsHistoryEntry,
+  PoRepActiveClientsHistoryParameters,
+  PoRepDealsPaymentsHistoryEntry,
+  PoRepDealsValueHistoryEntry,
+  PoRepHistoryParameters,
+  PoRepOnboardedDataHistoryEntry,
+  PoRepSLIComplianceHistoryEntry,
+  PoRepSLIComplianceHistoryParameters,
+  PoRepSLIType,
+} from './types.po-rep';
 
 @Injectable()
 export class PoRepService {
@@ -70,9 +43,9 @@ export class PoRepService {
     private readonly recentNodeClient: PoRepPublicClient,
   ) {}
 
-  public async getDealsPaymentsSummaryHistory(
-    windowSize: WindowSize,
-  ): Promise<PoRepDealsPaymentsSummaryHistory> {
+  public async getDealsPaymentsSummaryHistory({
+    windowSize = 'day',
+  }: PoRepHistoryParameters): Promise<PoRepDealsPaymentsHistoryEntry[]> {
     const earliestDeal = await this.prismaService.po_rep_deal.findFirst({
       orderBy: {
         proposedAtBlock: 'asc',
@@ -134,75 +107,55 @@ export class PoRepService {
       });
     }, new Map<string, Token>());
 
-    const dataByDate = groupBy(
+    const dataByWindow = groupBy(
       data.filter((item) => item.window_start !== null),
-      (item) => item.window_start.toISOString(),
+      (item) =>
+        DateTime.fromJSDate(item.window_start, { zone: 'UTC' }).toISODate(),
     );
 
-    // DB query returns window data per token so we need to convert values in
-    // token units to USD and sum them for each window
-    const combinedWindowData = Object.entries(
-      dataByDate,
-    ).map<PoRepDealsPaymentsSummaryHistoryEntry>(
-      ([dateISOString, perDateResults]) => {
-        const [windowAmountUSD, cumulativeAmountUSD] = perDateResults.reduce(
-          ([currentDailyAmountUSD, currentCumulativeAmountUSD], result) => {
-            const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
-              result.token_address,
+    return [...new Array(entriesCount)].reduce<
+      PoRepDealsPaymentsHistoryEntry[]
+    >((result, _, index) => {
+      const entryDate = startDate.plus({ [windowSize]: index });
+      const entryISODate = entryDate.toISODate();
+      const dataForWindow = dataByWindow[entryISODate] ?? [];
+
+      const windowVolumeUSD = dataForWindow.reduce(
+        (currentWindowVolumeUSD, result) => {
+          const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
+            result.token_address,
+          );
+          const tokenInfo = tokensInfo.get(result.token_address);
+
+          // Should not happen but type safety
+          if (!tokenUSDExchangeRate || !tokenInfo) {
+            throw new Error(
+              `Exchange rate or info not found for token "${result.token_address}"`,
             );
-            const tokenInfo = tokensInfo.get(result.token_address);
+          }
 
-            // Should not happen but type safety
-            if (!tokenUSDExchangeRate || !tokenInfo) {
-              throw new Error(
-                `Exchange rate or info not found for token "${result.token_address}"`,
-              );
-            }
+          const tokenExponent = Math.pow(10, tokenInfo.decimals);
+          const tokenWindowTotalUSD = result.window_total
+            .div(tokenExponent)
+            .mul(tokenUSDExchangeRate);
 
-            const tokenExponent = Math.pow(10, tokenInfo.decimals);
-            const tokenDailyAmountUSD = result.window_amount
-              .div(tokenExponent)
-              .mul(tokenUSDExchangeRate);
-            const tokenCumulativeAmountUSD = result.cumulative_amount
-              .div(tokenExponent)
-              .mul(tokenUSDExchangeRate);
-
-            return [
-              currentDailyAmountUSD.add(tokenDailyAmountUSD),
-              currentCumulativeAmountUSD.add(tokenCumulativeAmountUSD),
-            ];
-          },
-          [new Decimal(0), new Decimal(0)],
-        );
-
-        return {
-          date: DateTime.fromISO(dateISOString, { zone: 'utc' }),
-          volumeUSD: windowAmountUSD.toDecimalPlaces(2).toNumber(),
-          cumulativeTotalUSD: cumulativeAmountUSD.toDecimalPlaces(2).toNumber(),
-        };
-      },
-    );
-
-    const combinedWindowDataByISODate = new Map(
-      combinedWindowData.map((item) => [item.date.toISODate(), item]),
-    );
-
-    return [
-      ...new Array(entriesCount),
-    ].reduce<PoRepDealsPaymentsSummaryHistory>((result, _, index) => {
-      const entryDay = startDate.plus({ [windowSize]: index });
-      const entryISODate = entryDay.toISODate();
-      const matchingData = combinedWindowDataByISODate.get(entryISODate);
-
-      if (matchingData) {
-        return [...result, matchingData];
-      }
+          return currentWindowVolumeUSD.add(tokenWindowTotalUSD);
+        },
+        Decimal(0),
+      );
 
       const previousEntry = index === 0 ? undefined : result.at(index - 1);
-      const nextEntry: PoRepDealsPaymentsSummaryHistoryEntry = {
-        date: entryDay,
-        volumeUSD: 0,
-        cumulativeTotalUSD: previousEntry?.cumulativeTotalUSD ?? 0,
+      const previousTotalUSD = previousEntry
+        ? Decimal(previousEntry.cumulativeTotalUSD)
+        : Decimal(0);
+
+      const nextEntry: PoRepDealsPaymentsHistoryEntry = {
+        date: entryISODate,
+        volumeUSD: windowVolumeUSD.toDecimalPlaces(2).toNumber(),
+        cumulativeTotalUSD: previousTotalUSD
+          .add(windowVolumeUSD)
+          .toDecimalPlaces(2)
+          .toNumber(),
       };
 
       return [...result, nextEntry];
@@ -226,25 +179,27 @@ export class PoRepService {
     return count;
   }
 
-  public async getOnboardedDataHistory(
-    windowSize: WindowSize,
-  ): Promise<PoRepDealsOnboardedDataHistory> {
+  public async getOnboardedDataHistory({
+    windowSize = 'day',
+  }: PoRepHistoryParameters): Promise<PoRepOnboardedDataHistoryEntry[]> {
     const results = await this.prismaService.$queryRawTyped(
       getPoRepOnboardedDataHistory(windowSize, this.isTestnet()),
     );
 
     return results.map((result) => {
       return {
-        date: DateTime.fromJSDate(result.window_start, { zone: 'UTC' }),
-        volume: BigInt(result.window_total.toString()),
-        cumulativeTotal: BigInt(result.cumulative_total.toString()),
+        date: DateTime.fromJSDate(result.window_start, {
+          zone: 'UTC',
+        }).toISODate(),
+        volume: result.window_total.toString(),
+        cumulativeTotal: result.cumulative_total.toString(),
       };
     });
   }
 
-  public async getDealsValueHistory(
-    windowSize: WindowSize,
-  ): Promise<PoRepDealsValueHistory> {
+  public async getDealsValueHistory({
+    windowSize = 'day',
+  }: PoRepHistoryParameters): Promise<PoRepDealsValueHistoryEntry[]> {
     const data = await this.prismaService.$queryRawTyped(
       getPoRepDealsValueHistory(windowSize, this.isTestnet()),
     );
@@ -285,6 +240,7 @@ export class PoRepService {
       Promise.all(tokenInfoRequests),
       Promise.all(tokenExchangeRateRequests),
     ]);
+
     const tokensInfo = tokenInfoResponses.reduce((result, tokenInfo) => {
       const [address, symbol, decimals] = tokenInfo;
       return result.set(address, {
@@ -297,70 +253,52 @@ export class PoRepService {
 
     const dataByWindow = groupBy(
       data.filter((item) => item.window_start !== null),
-      (item) => item.window_start.toISOString(),
+      (item) =>
+        DateTime.fromJSDate(item.window_start, { zone: 'UTC' }).toISODate(),
     );
 
-    // DB query returns window data per token so we need to convert values in
-    // token units to USD and sum them for each window
-    const combinedWindowData = Object.entries(
-      dataByWindow,
-    ).map<PoRepDealsValueHistoryEntry>(([dateISOString, windowResults]) => {
-      const [windowAmountUSD, cumulativeAmountUSD] = windowResults.reduce(
-        ([currentWindowAmountUSD, currentCumulativeAmountUSD], result) => {
-          const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
-            result.token_address,
-          );
-          const tokenInfo = tokensInfo.get(result.token_address);
-
-          // Should not happen but type safety
-          if (!tokenUSDExchangeRate || !tokenInfo) {
-            throw new Error(
-              `Exchange rate or info not found for token "${result.token_address}"`,
-            );
-          }
-
-          const tokenExponent = Math.pow(10, tokenInfo.decimals);
-          const tokenDailyAmountUSD = result.window_total
-            .div(tokenExponent)
-            .mul(tokenUSDExchangeRate);
-          const tokenCumulativeAmountUSD = result.cumulative_amount
-            .div(tokenExponent)
-            .mul(tokenUSDExchangeRate);
-
-          return [
-            currentWindowAmountUSD.add(tokenDailyAmountUSD),
-            currentCumulativeAmountUSD.add(tokenCumulativeAmountUSD),
-          ];
-        },
-        [new Decimal(0), new Decimal(0)],
-      );
-
-      return {
-        date: DateTime.fromISO(dateISOString, { zone: 'utc' }),
-        volumeUSD: windowAmountUSD.toDecimalPlaces(2).toNumber(),
-        cumulativeTotalUSD: cumulativeAmountUSD.toDecimalPlaces(2).toNumber(),
-      };
-    });
-
-    const combinedWindowDataByISODate = new Map(
-      combinedWindowData.map((item) => [item.date.toISODate(), item]),
-    );
-
-    return [...new Array(entriesCount)].reduce<PoRepDealsValueHistory>(
+    return [...new Array(entriesCount)].reduce<PoRepDealsValueHistoryEntry[]>(
       (result, _, index) => {
-        const entryDay = startDate.plus({ [windowSize]: index });
-        const entryISODate = entryDay.toISODate();
-        const matchingData = combinedWindowDataByISODate.get(entryISODate);
+        const entryDate = startDate.plus({ [windowSize]: index });
+        const entryISODate = entryDate.toISODate();
+        const dataForWindow = dataByWindow[entryISODate] ?? [];
 
-        if (matchingData) {
-          return [...result, matchingData];
-        }
+        const windowVolumeUSD = dataForWindow.reduce(
+          (currentWindowVolumeUSD, result) => {
+            const tokenUSDExchangeRate = tokensUSDExchangeRates.get(
+              result.token_address,
+            );
+            const tokenInfo = tokensInfo.get(result.token_address);
+
+            // Should not happen but type safety
+            if (!tokenUSDExchangeRate || !tokenInfo) {
+              throw new Error(
+                `Exchange rate or info not found for token "${result.token_address}"`,
+              );
+            }
+
+            const tokenExponent = Math.pow(10, tokenInfo.decimals);
+            const tokenWindowTotalUSD = result.window_total
+              .div(tokenExponent)
+              .mul(tokenUSDExchangeRate);
+
+            return currentWindowVolumeUSD.add(tokenWindowTotalUSD);
+          },
+          Decimal(0),
+        );
 
         const previousEntry = index === 0 ? undefined : result.at(index - 1);
+        const previousTotalUSD = previousEntry
+          ? Decimal(previousEntry.cumulativeTotalUSD)
+          : Decimal(0);
+
         const nextEntry: PoRepDealsValueHistoryEntry = {
-          date: entryDay,
-          volumeUSD: 0,
-          cumulativeTotalUSD: previousEntry?.cumulativeTotalUSD ?? 0,
+          date: entryISODate,
+          volumeUSD: windowVolumeUSD.toDecimalPlaces(2).toNumber(),
+          cumulativeTotalUSD: previousTotalUSD
+            .add(windowVolumeUSD)
+            .toDecimalPlaces(2)
+            .toNumber(),
         };
 
         return [...result, nextEntry];
@@ -370,45 +308,147 @@ export class PoRepService {
   }
 
   public async getSLIComplianceHistory({
-    windowSize,
+    windowSize = 'day',
     sliType,
-    providerId,
+    providerId: providerIdFilter,
     dealId,
-  }: SLIComplianceHistoryParameters): Promise<
-    getPoRepSLIComplianceHistory.Result[]
+  }: PoRepSLIComplianceHistoryParameters): Promise<
+    PoRepSLIComplianceHistoryEntry[]
   > {
-    return this.prismaService.$queryRawTyped(
+    const providerId =
+      providerIdFilter !== undefined ? F0Id.from(providerIdFilter) : null;
+
+    const results = await this.prismaService.$queryRawTyped(
       getPoRepSLIComplianceHistory(
         windowSize,
         this.isTestnet(),
-        sliType,
-        providerId,
-        dealId,
+        this.mapSLIType(sliType),
+        providerId ? providerId.toBigInt() : null,
+        dealId ? BigInt(dealId) : null,
       ),
     );
+
+    const grouped = groupBy(results, (result) =>
+      DateTime.fromJSDate(result.window_start, { zone: 'UTC' }).toISODate(),
+    );
+
+    const states = [
+      'compliant',
+      'nonCompliant',
+      'unknown',
+    ] as const satisfies Omit<keyof PoRepSLIComplianceHistoryEntry, 'date'>[];
+
+    return Object.entries(grouped)
+      .slice(0, -1)
+      .map<PoRepSLIComplianceHistoryEntry>(([dateISOString, results]) => {
+        const [totalProvidersCount, totalDealsCount, totalDealsSize] =
+          results.reduce(
+            (totals, result) => {
+              return [
+                totals[0] + result.providers_count,
+                totals[1] + result.deals_count,
+                totals[2].add(result.total_deals_size),
+              ];
+            },
+            [0, 0, Decimal(0)],
+          );
+
+        const stateEntries = states.map((state) => {
+          const stateResult = results.find(
+            (c) => c.compliance_state.toLowerCase() === state.toLowerCase(),
+          );
+
+          if (!stateResult) {
+            return [
+              state,
+              {
+                providersCount: 0,
+                providersPercentage: 0,
+                dealsCount: 0,
+                dealsPercentage: 0,
+                totalDealsSize: '0',
+                totalDealsSizePercentage: 0,
+              },
+            ];
+          }
+
+          return [
+            state,
+            {
+              providersCount: stateResult.providers_count,
+              providersPercentage: safeDiv(
+                stateResult.providers_count,
+                totalProvidersCount,
+                0,
+              ),
+              dealsCount: stateResult.deals_count,
+              dealsPercentage: safeDiv(
+                stateResult.deals_count,
+                totalDealsCount,
+                0,
+              ),
+              totalDealsSize: stateResult.total_deals_size.toString(),
+              totalDealsSizePercentage: totalDealsSize.eq(0)
+                ? 0
+                : stateResult.total_deals_size.div(totalDealsSize).toNumber(),
+            },
+          ] as const;
+        });
+
+        return {
+          date: dateISOString,
+          ...(Object.fromEntries(stateEntries) as Omit<
+            PoRepSLIComplianceHistoryEntry,
+            'date'
+          >),
+        };
+      });
   }
 
   public async getActiveClientsHistory({
-    windowSize,
+    windowSize = 'day',
     providerId,
-  }: ActiveClientsHistoryParameters): Promise<
-    getPoRepActiveClientsHistory.Result[]
+  }: PoRepActiveClientsHistoryParameters): Promise<
+    PoRepActiveClientsHistoryEntry[]
   > {
     const providerIdBigInt =
       providerId !== null && providerId !== undefined
         ? F0Id.from(providerId).toBigInt()
         : null;
 
-    return this.prismaService.$queryRawTyped(
+    const results = await this.prismaService.$queryRawTyped(
       getPoRepActiveClientsHistory(
         windowSize,
         this.isTestnet(),
         providerIdBigInt,
       ),
     );
+
+    return results.map((result) => ({
+      date: DateTime.fromJSDate(result.window_start, {
+        zone: 'UTC',
+      }).toISODate(),
+      activeClientsCount: result.active_clients_count,
+    }));
   }
 
   private isTestnet(): boolean {
     return this.recentNodeClient.chain.id === filecoinCalibration.id;
+  }
+
+  private mapSLIType(
+    poRepSLIType: PoRepSLIType | undefined,
+  ): StorageProviderUrlFinderMetricType | null {
+    switch (poRepSLIType) {
+      case 'bandwidthMbps':
+        return StorageProviderUrlFinderMetricType.BANDWIDTH;
+      case 'latencyMs':
+        return StorageProviderUrlFinderMetricType.TTFB;
+      case 'retrievabilityBps':
+        return StorageProviderUrlFinderMetricType.RPA_RETRIEVABILITY;
+      case 'indexingPct':
+      default:
+        return null;
+    }
   }
 }
