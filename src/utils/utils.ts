@@ -133,6 +133,7 @@ export function bigIntDiv(
 
 export function bigIntMul(a: bigint, b: number, precision = 6): bigint {
   const precisionMultiplier = 10 ** precision;
+
   return (
     (a * BigInt(Math.round(b * precisionMultiplier))) /
     BigInt(precisionMultiplier)

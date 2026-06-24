@@ -14,14 +14,16 @@ export enum UrlFinderStorageProviderCustomMetricTypeRequest {
 
 export class UrlFinderStorageProviderDateRangeRequest {
   @ApiPropertyOptional({
-    description: 'Requested start date to fetch historical metrics',
+    description:
+      'Requested start date to fetch historical metrics; default is all data',
     format: 'date-time',
     example: '2025-04-22T00:00:00.000Z',
   })
   startDate?: string;
 
   @ApiPropertyOptional({
-    description: 'Requested end date to fetch historical metrics',
+    description:
+      'Requested end date to fetch historical metrics; default is all data',
     format: 'date-time',
     example: '2026-04-22T00:00:00.000Z',
   })
