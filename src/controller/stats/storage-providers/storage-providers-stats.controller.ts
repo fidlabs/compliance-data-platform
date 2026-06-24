@@ -142,12 +142,9 @@ export class StorageProvidersAccStatsController extends FilPlusEditionController
         query?.endDate ? stringToDate(query?.endDate) : undefined,
       );
 
-    const result =
-      await this.storageProviderUrlFinderService.generateRetrievalResultCodesDailyHistogram(
-        metrics,
-      );
-
-    return result;
+    return this.storageProviderUrlFinderService.generateRetrievalResultCodesDailyHistogram(
+      metrics,
+    );
   }
 
   @Get('/rpa/metric')
