@@ -168,15 +168,13 @@ export class PoRepService {
       { testnet: this.isTestnet() },
     );
 
-    const count = await this.prismaService.po_rep_deal.count({
+    return this.prismaService.po_rep_deal.count({
       where: {
         proposedAtBlock: {
           lt: cutoffBlock,
         },
       },
     });
-
-    return count;
   }
 
   public async getOnboardedDataHistory({
@@ -203,6 +201,7 @@ export class PoRepService {
     const data = await this.prismaService.$queryRawTyped(
       getPoRepDealsValueHistory(windowSize, this.isTestnet()),
     );
+
     const firstWindow = data.at(0);
 
     if (!firstWindow) {
@@ -212,10 +211,11 @@ export class PoRepService {
     const startDate = DateTime.fromJSDate(firstWindow.window_start, {
       zone: 'UTC',
     });
+
     const endDate = DateTime.utc().startOf(windowSize);
+    const uniqueTokens = uniq(data.map((item) => item.token_address));
     const entriesCount =
       endDate.diff(startDate, windowSize)[`${windowSize}s`] + 1;
-    const uniqueTokens = uniq(data.map((item) => item.token_address));
 
     interface Token {
       address: string;
@@ -230,12 +230,14 @@ export class PoRepService {
         this.tokenInfoService.getTokenDecimals(tokenAddress),
       ]);
     });
+
     const tokenExchangeRateRequests = uniqueTokens.map((tokenAddress) => {
       return Promise.all([
         tokenAddress,
         this.priceOracle.getTokenExchangeRateUSD(tokenAddress),
       ]);
     });
+
     const [tokenInfoResponses, tokenExchangeRateResponses] = await Promise.all([
       Promise.all(tokenInfoRequests),
       Promise.all(tokenExchangeRateRequests),
@@ -249,6 +251,7 @@ export class PoRepService {
         decimals: decimals,
       });
     }, new Map<string, Token>());
+
     const tokensUSDExchangeRates = new Map(tokenExchangeRateResponses);
 
     const dataByWindow = groupBy(
