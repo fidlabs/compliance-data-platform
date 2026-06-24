@@ -18,16 +18,6 @@ export type StorageProviderUrlFinderMetricType =
   | StorageProviderUrlFinderBaseMetricType
   | StorageProviderUrlFinderCustomMetricType;
 
-export type SliStorageProviderMetricData = {
-  providerId: string;
-  value: number;
-  lastUpdateAt: string;
-};
-
-export type SliStorageProviderMetricChunkData = SliStorageProviderMetricData & {
-  metricType: string;
-};
-
 export enum StorageProviderRetrievabilityType {
   RPA = 'RPA',
   CONSISTENT = 'CONSISTENT',
@@ -214,4 +204,56 @@ export class StorageProviderSimpleMetricHistogramWeeklyResponse {
     this.metadata = metadata;
     this.results = dates;
   }
+}
+
+export class UrlFinderDealSLIs {
+  avg_response_time_ms: number | null;
+  bms_results: any[] | null;
+  content_matches_deal: boolean | null;
+  deal_id: string;
+  deal_size_bytes: string | null;
+  error_code: string | null;
+  failed_count: number;
+  is_reliable: boolean | null;
+  manifest_size_bytes: string | null;
+  manifest_snapshot_id: string | null;
+  measurement_state: string;
+  piece_count: number;
+  porep_slis: {
+    bandwidth_mbps: number | null;
+    indexing_pct: number | null;
+    latency_ms: number | null;
+    retrievability_bps: number | null;
+  };
+  result_code: string | null;
+  retrievability_percent: number | null;
+  sampled_piece_count: number | null;
+  size_matched_percent: number | null;
+  success_count: number;
+  tested_at: string | null;
+  working_url: string | null;
+}
+
+export class UrlFinderDealData {
+  client: string | null;
+  created_at: string;
+  deal_id: string;
+  deal_size_bytes: string | null;
+  deal_version: string | null;
+  manifest_hash: string | null;
+  manifest_location: string | null;
+  manifest_snapshot: string | null;
+  pieces: {
+    allocation_id: string | null;
+    claim_id: string | null;
+    file_size_bytes: string | null;
+    piece_cid: string;
+    piece_size_bytes: string | null;
+    piece_type: string | null;
+    root_cid: string | null;
+    storage_path: string | null;
+  }[];
+  provider_id: string | null;
+  requirements: any | null;
+  updated_at: string;
 }
