@@ -134,7 +134,7 @@ export class AppController extends HealthIndicator {
   private async _httpPingCheckGlifApi(): Promise<HealthIndicatorResult> {
     const url = `${this.configService.get<string>('GLIF_API_BASE_URL')}/v1`;
 
-    const result = await this.httpHealthIndicator.pingCheck('glif-api', url, {
+    return await this.httpHealthIndicator.pingCheck('glif-api', url, {
       method: 'POST',
       headers: {
         ['Content-Type']: 'application/json',
@@ -146,8 +146,6 @@ export class AppController extends HealthIndicator {
         id: 1,
       },
     });
-
-    return result;
   }
 
   @Cacheable({ ttl: 1000 * 10 }) // 10 seconds
