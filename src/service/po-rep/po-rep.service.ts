@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { groupBy, uniq } from 'lodash';
 import { DateTime } from 'luxon';
-import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
+import {
+  PoRepDealState,
+  StorageProviderUrlFinderMetricType,
+} from 'prisma/generated/client';
 import { Decimal } from 'prisma/generated/client/runtime/library';
 import {
   getFilecoinPaymentsForDealsHistory,
@@ -172,6 +175,20 @@ export class PoRepService {
       where: {
         proposedAtBlock: {
           lt: cutoffBlock,
+        },
+      },
+    });
+  }
+
+  // get all deals that we need to track SLIs for
+  public async getActiveDeals() {
+    return this.prismaService.po_rep_deal.findMany({
+      where: {
+        state: {
+          in: [PoRepDealState.COMPLETED, PoRepDealState.ACCEPTED],
+        },
+        railId: {
+          not: null,
         },
       },
     });
