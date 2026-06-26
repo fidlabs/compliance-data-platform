@@ -84,7 +84,9 @@ export function bigIntToNumber(valueBigInt?: bigint): number | null {
   return valueNumber;
 }
 
-export function stringToNumber(valueString?: string): number | null {
+export function stringToNumber(valueString?: null): null;
+export function stringToNumber(valueString: string): number;
+export function stringToNumber(valueString?: string | null): number | null {
   if (!valueString) return null;
 
   const rxInsignificant = /^[\s0]+|(?<=\..*)[\s0.]+$|\.0+$|\.$/gm;

@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { groupBy, uniq } from 'lodash';
 import { DateTime } from 'luxon';
-import { StorageProviderUrlFinderMetricType } from 'prisma/generated/client';
+import {
+  PoRepDealState,
+  StorageProviderUrlFinderMetricType,
+} from 'prisma/generated/client';
 import { Decimal } from 'prisma/generated/client/runtime/library';
 import {
   getFilecoinPaymentsForDealsHistory,
@@ -11,27 +14,37 @@ import {
   getPoRepSLIComplianceHistory,
 } from 'prisma/generated/client/sql';
 import { PrismaService } from 'src/db/prisma.service';
+import { createPoRepDealsQuery } from 'src/db/queries/po-rep-deals.query';
 import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
 import {
   dateToFilecoinBlockHeight,
   F0Id,
   filecoinBlockHeightToDate,
   safeDiv,
+  stringToBool,
+  stringToNumber,
 } from 'src/utils/utils';
+import { F0IdInput } from 'src/utils/validators';
 import { filecoinCalibration } from 'viem/chains';
 import { ERC20TokenInfoService } from '../erc20-token-info/erc20-token-info.service';
 import { PoRepPriceOracleService } from '../po-rep-price-oracle/po-rep-price-oracle.service';
 import {
+  DealRailState,
   PoRepActiveClientsHistoryEntry,
   PoRepActiveClientsHistoryParameters,
+  PoRepDeal,
+  PoRepDealsList,
+  PoRepDealsListParameters,
   PoRepDealsPaymentsHistoryEntry,
   PoRepDealsValueHistoryEntry,
   PoRepHistoryParameters,
   PoRepOnboardedDataHistoryEntry,
+  PoRepProviderComplianceStatistics,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParameters,
   PoRepSLIType,
 } from './types.po-rep';
+import { InjectQueryBuilder, QueryBuilder } from 'src/db';
 
 @Injectable()
 export class PoRepService {
@@ -41,7 +54,238 @@ export class PoRepService {
     private readonly priceOracle: PoRepPriceOracleService,
     @Inject(RECENT_NODE_CLIENT)
     private readonly recentNodeClient: PoRepPublicClient,
+    @InjectQueryBuilder() private readonly queryBuilder: QueryBuilder,
   ) {}
+
+  public async getDeals({
+    providerId = null,
+    railState = null,
+    activeOnly,
+    sort = null,
+    order = 'asc',
+    limit = 0,
+    page = 1,
+  }: PoRepDealsListParameters): Promise<PoRepDealsList> {
+    const baseQuery = createPoRepDealsQuery(this.queryBuilder, {
+      providersIds: providerId,
+      railStates: railState,
+      activeOnly: Boolean(stringToBool(activeOnly)),
+    });
+
+    let resultsQuery = baseQuery.selectAll();
+
+    if (sort !== null) {
+      resultsQuery = resultsQuery.orderBy(sort, order);
+    }
+
+    if (limit) {
+      resultsQuery = resultsQuery.limit(limit).offset((page - 1) * limit);
+    }
+
+    const countQuery = baseQuery.select((eb) => [
+      eb.fn.count('deal_data.deal_id').as('count'),
+    ]);
+
+    const [results, countResult] = await Promise.all([
+      resultsQuery.execute(),
+      countQuery.executeTakeFirstOrThrow(),
+    ]);
+
+    const totalCount = stringToNumber(countResult.count.toString());
+    const pagesCount = limit ? totalCount / limit : 1;
+
+    const uniqueTokens = uniq(
+      results.map((result) => result.token_address),
+    ).filter((tokenAddress) => tokenAddress !== null);
+    const tokenDetailsRequests = uniqueTokens.map(async (tokenAddress) => {
+      const [tokenSymbol, tokenDecimals] = await Promise.all([
+        this.tokenInfoService.getTokenSymbol(tokenAddress),
+        this.tokenInfoService.getTokenDecimals(tokenAddress),
+      ]);
+
+      return [
+        tokenAddress,
+        { tokenSymbol: tokenSymbol, tokenDecimals: tokenDecimals },
+      ] as const;
+    });
+
+    const tokenDetailsResponses = await Promise.all(tokenDetailsRequests);
+    const tokenDetailsMap = new Map(tokenDetailsResponses);
+
+    const deals = results.map((result) => {
+      const tokenDetails = result.token_address
+        ? tokenDetailsMap.get(result.token_address)
+        : null;
+
+      return new PoRepDeal({
+        dealId: BigInt(result.deal_id),
+        providerId: F0Id.from(result.provider_id),
+        clientAddress: result.client_address,
+        dealState: result.deal_state,
+        railId: result.rail_id ? BigInt(result.rail_id) : null,
+        railState: result.rail_state as DealRailState | null,
+        active: Boolean(result.active),
+        tokenAddress: result.token_address,
+        tokenSymbol: tokenDetails?.tokenSymbol ?? null,
+        tokenDecimals: tokenDetails?.tokenDecimals ?? null,
+        minRequiredRetrievability: this.safeNumericToNumber(
+          result.min_required_retrievability,
+        ),
+        minRequiredBandwidthMbps: this.safeNumericToNumber(
+          result.min_required_bandwidth_mbps,
+        ),
+        maxRequiredLatencyMs: this.safeNumericToNumber(
+          result.max_required_latency_ms,
+        ),
+        minRequiredIndexing: this.safeNumericToNumber(
+          result.min_required_indexing,
+        ),
+        predictedAverageRetrievability: this.safeNumericToNumber(
+          result.predicted_average_retrievability,
+        ),
+        predictedAverageBandwidthMbps: this.safeNumericToNumber(
+          result.predicted_average_bandwidth,
+        ),
+        predictedAverageLatencyMs: this.safeNumericToNumber(
+          result.predicted_average_latency,
+        ),
+        predictedAverageIndexing: this.safeNumericToNumber(
+          result.predicted_average_indexing,
+        ),
+        dealSizeBytes: BigInt(result.deal_size_bytes),
+        isDataOnboarded: result.rail_activated_at_epoch !== null,
+        pricePerSectorPerMonthWei: BigInt(result.price_per_sector_per_month),
+        predictedDealRevenueWei: BigInt(result.predicted_deal_revenue),
+        totalSettledValueWei: result.total_amount_settled
+          ? BigInt(result.total_amount_settled)
+          : null,
+        settlementsCount: result.total_settlements_count,
+        lastSettlementAt:
+          result.last_settlement_epoch !== null
+            ? this.epochToDate(BigInt(result.last_settlement_epoch))
+            : null,
+        dealCreatedAtEpoch: BigInt(result.deal_created_at_epoch),
+        dealCreatedAt: this.epochToDate(BigInt(result.deal_created_at_epoch)),
+      });
+    });
+
+    return {
+      data: deals,
+      pagination: {
+        page: page ?? 1,
+        pagesCount: pagesCount,
+        totalCount: totalCount,
+      },
+    };
+  }
+
+  public async getProviderComplianceStatistics(
+    providerId: F0Id | F0IdInput,
+  ): Promise<PoRepProviderComplianceStatistics> {
+    // We calculate statistics in memory from all provider deals, because
+    // constructing a query for it would be a PITA and the performance gain is
+    // minimal. This should not be a problem in a forseeable future as we don't
+    // expect provider to have that many deals.
+    const providerDeals = await this.getDeals({
+      providerId: F0Id.from(providerId).toBigInt(),
+    });
+
+    type PartialStats = Omit<
+      PoRepProviderComplianceStatistics,
+      'compliantDealsPercentage'
+    >;
+
+    const initialState: PartialStats = {
+      totalDealsCount: 0,
+      activeDealsCount: 0,
+      compliantDealsCount: 0,
+      nonCompliantDealsCount: 0,
+      unknownDealsCount: 0,
+    };
+
+    const partialStats = providerDeals.data.reduce<PartialStats>(
+      (currentResult, deal) => {
+        const dealActive =
+          deal.dealState === PoRepDealState.COMPLETED &&
+          (deal.railState === DealRailState.ACTIVE ||
+            deal.railState === DealRailState.TERMINATED);
+
+        if (!dealActive) {
+          return {
+            ...currentResult,
+            totalDealsCount: currentResult.totalDealsCount + 1,
+          };
+        }
+
+        const sliPairs: [
+          requiredValue: number | null,
+          predictedValue: number | null,
+          reverseCheck: boolean,
+        ][] = [
+          [
+            deal.minRequiredRetrievability,
+            deal.predictedAverageRetrievability,
+            false,
+          ],
+          [
+            deal.minRequiredBandwidthMbps,
+            deal.predictedAverageBandwidthMbps,
+            false,
+          ],
+          [deal.maxRequiredLatencyMs, deal.predictedAverageLatencyMs, true],
+          [deal.minRequiredIndexing, deal.predictedAverageIndexing, false],
+        ];
+
+        const stateUnknown = sliPairs.some(
+          ([requiredValue, predictedValue]) => {
+            return requiredValue !== null && predictedValue === null;
+          },
+        );
+
+        const compliant = sliPairs.every(
+          ([requiredValue, predictedValue, reverseCheck]) => {
+            if (requiredValue === null) {
+              return true;
+            }
+
+            if (predictedValue === null) {
+              return false;
+            }
+
+            return reverseCheck
+              ? predictedValue <= requiredValue
+              : predictedValue >= requiredValue;
+          },
+        );
+
+        return {
+          totalDealsCount: currentResult.totalDealsCount + 1,
+          activeDealsCount: currentResult.activeDealsCount + 1,
+          compliantDealsCount: compliant
+            ? currentResult.compliantDealsCount + 1
+            : currentResult.compliantDealsCount,
+          nonCompliantDealsCount:
+            !compliant && !stateUnknown
+              ? currentResult.nonCompliantDealsCount + 1
+              : currentResult.nonCompliantDealsCount,
+          unknownDealsCount: stateUnknown
+            ? currentResult.unknownDealsCount + 1
+            : currentResult.unknownDealsCount,
+        };
+      },
+      initialState,
+    );
+
+    const successRate =
+      partialStats.activeDealsCount > 0
+        ? partialStats.compliantDealsCount / partialStats.activeDealsCount
+        : null;
+
+    return {
+      ...partialStats,
+      compliantDealsPercentage: successRate,
+    };
+  }
 
   public async getDealsPaymentsSummaryHistory({
     windowSize = 'day',
@@ -450,5 +694,27 @@ export class PoRepService {
       default:
         return null;
     }
+  }
+
+  private epochToDate(epoch: bigint | number): Date {
+    const genesisTimestamp = this.isTestnet() ? 1667326380n : 1598306400n;
+    const epochTimestamp = BigInt(epoch) * 30n + genesisTimestamp;
+
+    // eslint-disable-next-line no-restricted-syntax
+    return DateTime.fromSeconds(Number(epochTimestamp), {
+      zone: 'UTC',
+    }).toJSDate();
+  }
+
+  private safeNumericToNumber(input: null): null;
+  private safeNumericToNumber(input: string | number | bigint): number;
+  private safeNumericToNumber(
+    input: string | number | bigint | null,
+  ): number | null {
+    if (input === null) {
+      return null;
+    }
+
+    return stringToNumber(input.toString());
   }
 }

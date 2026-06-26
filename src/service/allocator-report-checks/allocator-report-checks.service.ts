@@ -279,11 +279,11 @@ export class AllocatorReportChecksService {
       const clientsWithNotEnoughCopies = report.clients
         .filter((client) => {
           const notEnoughCopiesPercentage = client.replica_distribution
-            .filter(
-              (distribution) =>
-                distribution.num_of_replicas <
-                stringToNumber(report.required_copies),
-            )
+            .filter((distribution) => {
+              const requiredCopies =
+                stringToNumber(report.required_copies) ?? 0;
+              return distribution.num_of_replicas < requiredCopies;
+            })
             .reduce(
               (totalPercentage, distribution) =>
                 totalPercentage + distribution.percentage,
