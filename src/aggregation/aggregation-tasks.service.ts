@@ -21,6 +21,7 @@ import { StorageProviderUrlFinderService } from '../service/storage-provider-url
 import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
+import { PoRepService } from '../service/po-rep/po-rep.service';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -47,6 +48,7 @@ export class AggregationTasksService extends HealthIndicator {
     private readonly storageProviderService: StorageProviderService,
     private readonly storageProviderUrlFinderService: StorageProviderUrlFinderService,
     private readonly allocatorService: AllocatorService,
+    private readonly porepService: PoRepService,
   ) {
     super();
   }
@@ -143,6 +145,7 @@ export class AggregationTasksService extends HealthIndicator {
                   storageProviderService: this.storageProviderService,
                   storageProviderUrlFinderService: this.storageProviderUrlFinderService,
                   allocatorService: this.allocatorService,
+                  porepService: this.porepService,
                 }),
               aggregationRunnerName,
             );

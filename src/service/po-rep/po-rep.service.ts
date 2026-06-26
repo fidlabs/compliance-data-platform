@@ -421,6 +421,20 @@ export class PoRepService {
     });
   }
 
+  // get all deals that we need to track SLIs for
+  public async getActiveDeals() {
+    return this.prismaService.po_rep_deal.findMany({
+      where: {
+        state: {
+          in: [PoRepDealState.COMPLETED, PoRepDealState.ACCEPTED],
+        },
+        railId: {
+          not: null,
+        },
+      },
+    });
+  }
+
   public async getOnboardedDataHistory({
     windowSize = 'day',
   }: PoRepHistoryParameters): Promise<PoRepOnboardedDataHistoryEntry[]> {
