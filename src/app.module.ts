@@ -88,6 +88,7 @@ import { PoRepPriceOracleService } from './service/po-rep-price-oracle/po-rep-pr
 import { PoRepService } from './service/po-rep/po-rep.service';
 import { ClientRunner } from './aggregation/runners/client.runner';
 import { queryBuilderProviders } from './db';
+import { ProviderUrlFinderDealDailySnapshotRunner } from './aggregation/runners/provider-url-finder-deal-daily-snapshot.runner';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -113,6 +114,7 @@ const AGGREGATION_RUNNERS = [
   OldDatacapClientBalanceWeeklyRunner,
   ProviderFirstClientRunner,
   ProviderIpInfoRunner,
+  ProviderUrlFinderDealDailySnapshotRunner,
   ProvidersWeeklyRunner,
   ProvidersWeeklyAccRunner,
   UnifiedVerifiedDealHourlyRunner,

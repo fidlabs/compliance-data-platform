@@ -4,7 +4,10 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
-import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
+import {
+  StorageProviderUrlFinderDealSLIType,
+  StorageProviderUrlFinderMetricResultCodeType,
+} from 'prisma/generated/client';
 import { getUrlFinderProviderAverageMetricWeekly } from 'prisma/generated/client/sql';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
@@ -121,7 +124,7 @@ export class StorageProviderUrlFinderService {
     }
   }
 
-  public async fetchLastDealSLIs(
+  public async fetchDealLatestSLIs(
     dealId: number,
   ): Promise<UrlFinderDealSLIs | null> {
     const endpoint = `${this.URL_FINDER_API_URL}/deals/${dealId}/latest`;
@@ -304,6 +307,73 @@ export class StorageProviderUrlFinderService {
       description: 'Provider not indexed yet or error occurred',
     },
   };
+
+  private getDealSLIName(dealSLI: StorageProviderUrlFinderDealSLIType) {
+    const METRIC_NAME: Record<
+      keyof typeof StorageProviderUrlFinderDealSLIType,
+      string
+    > = {
+      [StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS]:
+        'Retrievability',
+      [StorageProviderUrlFinderDealSLIType.LATENCY_MS]: 'Latency',
+      [StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS]: 'Bandwidth',
+      [StorageProviderUrlFinderDealSLIType.INDEXING_PCT]: 'IPNI Indexing',
+    };
+
+    return METRIC_NAME[dealSLI];
+  }
+
+  private getDealSLIDescription(dealSLI: StorageProviderUrlFinderDealSLIType) {
+    const METRIC_DESCRIPTION: Record<
+      keyof typeof StorageProviderUrlFinderDealSLIType,
+      string
+    > = {
+      [StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS]:
+        'Retrievability percentage in basis points',
+      [StorageProviderUrlFinderDealSLIType.LATENCY_MS]: 'Download latency',
+      [StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS]:
+        'Download bandwidth',
+      [StorageProviderUrlFinderDealSLIType.INDEXING_PCT]:
+        'IPNI indexing percentage',
+    };
+
+    return METRIC_DESCRIPTION[dealSLI];
+  }
+
+  private getDealSLIUnit(dealSLI: StorageProviderUrlFinderDealSLIType) {
+    const METRIC_UNIT: Record<
+      keyof typeof StorageProviderUrlFinderDealSLIType,
+      string
+    > = {
+      [StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS]: 'bps',
+      [StorageProviderUrlFinderDealSLIType.LATENCY_MS]: 'ms',
+      [StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS]: 'Mbps',
+      [StorageProviderUrlFinderDealSLIType.INDEXING_PCT]: '%',
+    };
+
+    return METRIC_UNIT[dealSLI];
+  }
+
+  public async ensureUrlFinderDealSLITypesExist() {
+    const sliTypes = Object.values(StorageProviderUrlFinderDealSLIType);
+
+    for (const sliType of sliTypes) {
+      const createOrUpdateSLI = {
+        sli_type: sliType,
+        name: this.getDealSLIName(sliType),
+        description: this.getDealSLIDescription(sliType),
+        unit: this.getDealSLIUnit(sliType),
+      };
+
+      await this.prismaService.storage_provider_url_finder_deal_sli.upsert({
+        where: {
+          sli_type: sliType,
+        },
+        create: createOrUpdateSLI,
+        update: createOrUpdateSLI, // in case description or name changes
+      });
+    }
+  }
 
   public async ensureUrlFinderMetricTypesExist() {
     const metricTypes = Object.values(StorageProviderUrlFinderBaseMetricType);

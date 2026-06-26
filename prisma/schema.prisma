@@ -687,7 +687,7 @@ model storage_provider_url_finder_deal_daily_snapshot {
   id            String                                       @id @default(uuid())
   deal_id       BigInt
   snapshot_date DateTime
-  tested_at     DateTime
+  tested_at     DateTime?
   result_code   StorageProviderUrlFinderMetricResultCodeType
 
   sli_values storage_provider_url_finder_deal_sli_value[]

@@ -39,11 +39,11 @@ module.exports = {
       'error',
       {
         selector: "CallExpression[callee.name='Number']",
-        message: 'Use utils.stringToNumber instead',
+        message: 'Use utils.stringToNumber and utils.bigIntToNumber instead',
       },
       {
         selector: "NewExpression[callee.name='Number']",
-        message: 'Use utils.stringToNumber instead',
+        message: 'Use utils.stringToNumber and utils.bigIntToNumber instead',
       },
     ],
   },
