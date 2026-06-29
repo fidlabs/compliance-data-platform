@@ -14,7 +14,7 @@ export class PostgresService implements OnModuleInit {
     this.pool = new Pool({
       connectionString: configService.get<string>('DATABASE_URL'),
       ssl: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: process.env.NODE_ENV === 'production',
       },
     });
   }

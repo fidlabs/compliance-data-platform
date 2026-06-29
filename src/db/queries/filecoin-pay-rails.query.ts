@@ -12,7 +12,11 @@ export const RAIL_STATE = {
 export function createFilecoinPayRailsQuery(qb: QueryBuilder) {
   return qb
     .selectFrom('filecoin_pay_rail as r')
-    .leftJoin('filecoin_pay_payment as p', 'r.railId', 'p.railId')
+    .leftJoin('filecoin_pay_payment as p', (join) => {
+      return join
+        .onRef('r.railId', '=', 'p.railId')
+        .on('p.oneTime', '=', false);
+    })
     .select((eb) => [
       'r.railId as rail_id',
       'r.token as token_address',
@@ -42,6 +46,5 @@ export function createFilecoinPayRailsQuery(qb: QueryBuilder) {
         .as('total_settlements_count'),
       eb.fn.max('p.createdAtBlock').as('last_settlement_epoch'),
     ])
-    .where('p.oneTime', '=', false)
     .groupBy('r.railId');
 }

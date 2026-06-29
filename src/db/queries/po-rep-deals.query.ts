@@ -136,9 +136,5 @@ export function createPoRepDealsQuery(
     .selectFrom('deal_data')
     .where((eb) => createGenericStringFilter(eb.ref('rail_state'), railStates));
 
-  if (activeOnly) {
-    query.where('active', '=', true);
-  }
-
-  return query;
+  return activeOnly ? query.where('active', '=', true) : query;
 }

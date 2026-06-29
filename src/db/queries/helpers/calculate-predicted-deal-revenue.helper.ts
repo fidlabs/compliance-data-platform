@@ -4,7 +4,7 @@ import { DB } from '../../auto-generated/types';
 type Numerical = string | number | bigint;
 type NumericalExpression = Expression<Numerical>;
 
-export interface CalcualtePredictedDealRevenueParameters {
+export interface CalculatePredictedDealRevenueParameters {
   dealSizeBytes: NumericalExpression;
   dealDurationDays: NumericalExpression;
   pricePerSectorPerMonth: NumericalExpression;
@@ -16,7 +16,7 @@ export function calcualtePredictedDealRevenue({
   dealSizeBytes,
   dealDurationDays,
   pricePerSectorPerMonth,
-}: CalcualtePredictedDealRevenueParameters): AliasableExpression<Numerical> {
+}: CalculatePredictedDealRevenueParameters): AliasableExpression<Numerical> {
   const eb = expressionBuilder<DB>();
 
   const dealSectorsCountExpression = eb(

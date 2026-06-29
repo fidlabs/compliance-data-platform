@@ -61,7 +61,7 @@ export class PoRepService {
     providerId = null,
     railState = null,
     activeOnly,
-    sort = null,
+    sort = 'deal_id',
     order = 'asc',
     limit = 0,
     page = 1,
@@ -91,8 +91,8 @@ export class PoRepService {
       countQuery.executeTakeFirstOrThrow(),
     ]);
 
-    const totalCount = stringToNumber(countResult.count.toString());
-    const pagesCount = limit ? totalCount / limit : 1;
+    const totalCount = stringToNumber(countResult.count.toString()) ?? 0;
+    const pagesCount = limit ? Math.ceil(totalCount / limit) : 1;
 
     const uniqueTokens = uniq(
       results.map((result) => result.token_address),

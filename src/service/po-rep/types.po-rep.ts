@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, TransformFnParams } from 'class-transformer';
 import {
   IsBooleanString,
   IsEnum,
@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { PoRepDealState } from 'prisma/generated/client';
-import { F0Id, stringToNumber } from 'src/utils/utils';
+import { F0Id } from 'src/utils/utils';
 import { F0IdInput, IsBigIntLike, IsF0IdInput } from 'src/utils/validators';
 
 export type PoRepSLIType = (typeof poRepSLITypes)[number];
@@ -22,6 +22,17 @@ export const poRepSLITypes = [
   'indexingPct',
 ] as const;
 
+function transformOptionalInt({
+  value,
+}: TransformFnParams): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  // eslint-disable-next-line no-restricted-globals
+  return parseInt(String(value), 10);
+}
+
 class PaginationParameters {
   @ApiPropertyOptional({
     description: 'Number of items per page; default is no pagination',
@@ -32,7 +43,7 @@ class PaginationParameters {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Transform(({ value }) => stringToNumber(String(value)))
+  @Transform(transformOptionalInt)
   limit?: number;
 
   @ApiPropertyOptional({
@@ -44,7 +55,7 @@ class PaginationParameters {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Transform(({ value }) => stringToNumber(String(value)))
+  @Transform(transformOptionalInt)
   page?: number;
 }
 
@@ -129,7 +140,7 @@ export class PoRepDealsListParameters extends PaginationParameters {
   })
   @IsOptional()
   @IsBooleanString()
-  activeOnly?: 'true' | 'false' | '1' | '0';
+  activeOnly?: 'true' | 'false';
 
   @ApiPropertyOptional({
     description:
@@ -156,7 +167,7 @@ export class PoRepDealsListParameters extends PaginationParameters {
 
 export class PoRepDeal {
   @ApiProperty({
-    description: 'Unique identificator of a deal, an incrementing integer',
+    description: 'Unique identifier of a deal, an incrementing integer',
     type: 'string',
   })
   dealId: bigint;
@@ -176,7 +187,7 @@ export class PoRepDeal {
 
   @ApiProperty({
     description: `State of a deal, can be one of:\n
-      - ${PoRepDealState.PROPOSED} - deal was propsoed but no yet accepted by
+      - ${PoRepDealState.PROPOSED} - deal was proposed but no yet accepted by
       any storage provider\n
       - ${PoRepDealState.ACCEPTED} - deal was accepted but client needs to 
       prepare deal data\n
