@@ -18,6 +18,7 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
     ProviderUrlFinderDealDailySnapshotRunner.name,
   );
 
+  // runs every hour, but only creates a snapshot for deals that don't have one for today
   public async run({
     prismaService,
     prometheusMetricService,
@@ -37,7 +38,7 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
       ProviderUrlFinderDealDailySnapshotRunner.name,
     );
 
-    const _latestStoredPerDeal =
+    const latestSnapshotPerDeal = groupBy(
       await prismaService.storage_provider_url_finder_deal_daily_snapshot.findMany(
         {
           select: {
@@ -49,48 +50,31 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
           },
           distinct: ['deal_id'],
         },
-      );
-
-    const latestStoredPerDeal = groupBy(_latestStoredPerDeal, (item) =>
-      item.deal_id.toString(),
+      ),
+      (item) => item.deal_id.toString(),
     );
 
     // filter out deals that already have a snapshot for today
     const porepMarketDeals = (await porepService.getActiveDeals()).filter(
       (deal) => {
-        const latestStored = latestStoredPerDeal[deal.dealId.toString()];
-        if (!latestStored || latestStored.length === 0) {
+        const latestSnapshot =
+          latestSnapshotPerDeal[deal.dealId.toString()]?.[0]?.snapshot_date;
+
+        if (!latestSnapshot) {
           return true;
         }
 
-        const latestStoredDate = DateTime.fromJSDate(
-          latestStored[0].snapshot_date,
-          { zone: 'UTC' },
-        );
+        const latestSnapshotDate = DateTime.fromJSDate(latestSnapshot, {
+          zone: 'UTC',
+        });
 
-        return !isTodayUTC(latestStoredDate);
+        return !isTodayUTC(latestSnapshotDate);
       },
     );
 
     if (porepMarketDeals.length) {
       await storageProviderUrlFinderService.ensureUrlFinderDealSLITypesExist();
     }
-
-    class DataType {
-      deal_id: bigint;
-      snapshot_date: Date;
-      tested_at: Date;
-      result_code: StorageProviderUrlFinderMetricResultCodeType;
-      sli_values: {
-        value: number | null;
-        tested_at: Date;
-        deal_id: bigint;
-        sli_id: string;
-      }[];
-    }
-
-    const snapshotDate = DateTime.now().toUTC().startOf('day').toJSDate();
-    const sliceSize = 20;
 
     const sliTypeToId = groupBy(
       await prismaService.storage_provider_url_finder_deal_sli.findMany({
@@ -102,67 +86,128 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
       (item) => item.sli_type,
     );
 
+    const last30days = DateTime.now().toUTC().minus({ days: 30 }).toJSDate();
+
+    const [_ipniSuccessReportingPerDeal, _ipniAllReportingPerDeal] =
+      await Promise.all([
+        prismaService.storage_provider_url_finder_deal_daily_snapshot.groupBy({
+          by: ['deal_id'],
+          where: {
+            deal_id: {
+              in: porepMarketDeals.map((deal) => deal.dealId),
+            },
+            snapshot_date: {
+              gte: last30days,
+            },
+            result_code: StorageProviderUrlFinderMetricResultCodeType.SUCCESS,
+          },
+          _count: {
+            result_code: true,
+          },
+        }),
+        prismaService.storage_provider_url_finder_deal_daily_snapshot.groupBy({
+          by: ['deal_id'],
+          where: {
+            deal_id: {
+              in: porepMarketDeals.map((deal) => deal.dealId),
+            },
+            snapshot_date: {
+              gte: last30days,
+            },
+          },
+          _count: {
+            result_code: true,
+          },
+        }),
+      ]);
+
+    // prettier-ignore
+    const ipniSuccessReportingPerDeal = groupBy(
+      _ipniSuccessReportingPerDeal,
+      (item) => item.deal_id.toString(),
+    );
+
+    // prettier-ignore
+    const ipniAllReportingPerDeal = groupBy(
+      _ipniAllReportingPerDeal,
+      (item) => item.deal_id.toString(),
+    );
+
+    class DbDataType {
+      deal_id: bigint;
+      snapshot_date: Date;
+      tested_at: Date;
+      result_code: StorageProviderUrlFinderMetricResultCodeType;
+      sli_values: {
+        value: number | null;
+        sli_id: string;
+      }[];
+    }
+
+    const snapshotDate = DateTime.now().toUTC().startOf('day').toJSDate();
+    const sliceSize = 20;
+
     for (let i = 0; i < porepMarketDeals.length; i += sliceSize) {
       const _porepMarketDeals = porepMarketDeals.slice(i, i + sliceSize);
 
-      const data: DataType[] = await Promise.all(
+      const data: DbDataType[] = await Promise.all(
         _porepMarketDeals.map(async (deal) => {
-          const dealSlis =
+          const dealSLIs =
             await storageProviderUrlFinderService.fetchDealLatestSLIs(
               bigIntToNumber(deal.dealId),
             );
 
-          const testedAt = dealSlis ? new Date(dealSlis.tested_at) : null;
+          const ipniSuccessCount =
+            ipniSuccessReportingPerDeal[deal.dealId.toString()]?.[0]?._count
+              ?.result_code ?? 0;
+
+          const ipniAllCount =
+            ipniAllReportingPerDeal[deal.dealId.toString()]?.[0]?._count
+              ?.result_code ?? 0;
+
+          const ipniIndexingPct =
+            ipniAllCount > 0 ? (ipniSuccessCount / ipniAllCount) * 100 : null;
 
           return {
             deal_id: deal.dealId,
             snapshot_date: snapshotDate,
-            tested_at: testedAt,
-            result_code: dealSlis
+            tested_at: dealSLIs ? new Date(dealSLIs.tested_at) : null,
+            result_code: dealSLIs
               ? storageProviderUrlFinderService.parseUrlFinderResultCode(
-                  dealSlis.result_code,
+                  dealSLIs.result_code,
                 )
               : StorageProviderUrlFinderMetricResultCodeType.ERROR,
-            sli_values: dealSlis
-              ? [
-                  {
-                    value: dealSlis.porep_slis.indexing_pct,
-                    tested_at: testedAt,
-                    deal_id: deal.dealId,
-                    sli_id:
-                      sliTypeToId[
-                        StorageProviderUrlFinderDealSLIType.INDEXING_PCT
-                      ][0].id,
-                  },
-                  {
-                    value: dealSlis.porep_slis.bandwidth_mbps,
-                    tested_at: testedAt,
-                    deal_id: deal.dealId,
-                    sli_id:
-                      sliTypeToId[
-                        StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS
-                      ][0].id,
-                  },
-                  {
-                    value: dealSlis.porep_slis.latency_ms,
-                    tested_at: testedAt,
-                    deal_id: deal.dealId,
-                    sli_id:
-                      sliTypeToId[
-                        StorageProviderUrlFinderDealSLIType.LATENCY_MS
-                      ][0].id,
-                  },
-                  {
-                    value: dealSlis.porep_slis.retrievability_bps,
-                    tested_at: testedAt,
-                    deal_id: deal.dealId,
-                    sli_id:
-                      sliTypeToId[
-                        StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS
-                      ][0].id,
-                  },
-                ]
-              : [],
+            sli_values: [
+              {
+                // not using url finder dealSLIs.porep_slis.indexing_pct here
+                // CDP acts as a source of truth for this value
+                value: ipniIndexingPct ?? null,
+                sli_id:
+                  sliTypeToId[
+                    StorageProviderUrlFinderDealSLIType.INDEXING_PCT
+                  ][0].id,
+              },
+              {
+                value: dealSLIs?.porep_slis?.bandwidth_mbps ?? null,
+                sli_id:
+                  sliTypeToId[
+                    StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS
+                  ][0].id,
+              },
+              {
+                value: dealSLIs?.porep_slis?.latency_ms ?? null,
+                sli_id:
+                  sliTypeToId[StorageProviderUrlFinderDealSLIType.LATENCY_MS][0]
+                    .id,
+              },
+              {
+                value: dealSLIs?.porep_slis?.retrievability_bps ?? null,
+                sli_id:
+                  sliTypeToId[
+                    StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS
+                  ][0].id,
+              },
+            ],
           };
         }),
       );

@@ -8,7 +8,6 @@ import {
   PaginationInfoRequest,
   PaginationInfoResponse,
 } from '../base/types.controller-base';
-import { StorageProviderUrlFinderDealSLIType } from 'prisma/generated/client';
 
 export const poRepDashboardStatisticTypes = [
   'TOTAL_DEALS_DONE',
