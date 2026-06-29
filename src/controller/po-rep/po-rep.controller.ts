@@ -17,6 +17,7 @@ import { DateTime } from 'luxon';
 import {
   PoRepDealState,
   Prisma,
+  StorageProviderUrlFinderDealSLIType,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
@@ -33,13 +34,21 @@ import {
   PoRepSLIType,
   poRepSLITypes,
 } from 'src/service/po-rep/types.po-rep';
-import { bigIntDiv, BigIntString, F0Id, stringToBool } from 'src/utils/utils';
+import {
+  bigIntDiv,
+  BigIntString,
+  F0Id,
+  stringToBool,
+  stringToNumber,
+} from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
   DashboardStatisticValue,
 } from '../base/types.controller-base';
 import {
+  GetAvgSLIDataRequest,
+  GetAvgSLIDataResponse,
   GetPoRepProvidersResponse,
   GetPoRepStatisticsRequest,
   PoRepDashboardStatistic,
@@ -48,6 +57,7 @@ import {
   PoRepProvidersListParameters,
   PoRepSLIMeasurment,
 } from './types.po-rep';
+import { groupBy } from 'lodash';
 
 const sliTypesMap: Record<
   PoRepSLIType,
@@ -85,6 +95,7 @@ const dashboardStatisticsDescriptionDict: Record<
 };
 
 @Controller('po-rep')
+@CacheTTL(1000 * 60 * 30) // 30 minutes
 export class PoRepController extends ControllerBase {
   constructor(
     @Inject(CACHE_MANAGER) private _cacheManager: Cache,
@@ -214,7 +225,6 @@ export class PoRepController extends ControllerBase {
     description: 'List of storage providers participating in PoRep market',
     type: GetPoRepProvidersResponse,
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getParticipants(
     @Query(new ValidationPipe()) query: PoRepProvidersListParameters,
   ): Promise<GetPoRepProvidersResponse> {
@@ -366,7 +376,6 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepOnboardedDataHistoryEntry],
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getOnboardedDataHistory(
     @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepOnboardedDataHistoryEntry[]> {
@@ -380,7 +389,6 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepDealsValueHistoryEntry],
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getDealsValueHistory(
     @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepDealsValueHistoryEntry[]> {
@@ -395,7 +403,6 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepDealsPaymentsHistoryEntry],
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getPaymentsHistory(
     @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepDealsPaymentsHistoryEntry[]> {
@@ -415,7 +422,6 @@ export class PoRepController extends ControllerBase {
   @ApiBadRequestResponse({
     description: 'Query parameters validation error',
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getSLIComplianceHistory(
     @Query(new ValidationPipe()) query: PoRepSLIComplianceHistoryParameters,
   ): Promise<PoRepSLIComplianceHistoryEntry[]> {
@@ -438,7 +444,6 @@ export class PoRepController extends ControllerBase {
   @ApiNotFoundResponse({
     description: 'Error when provider specified in filters does not exist',
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getActiveClientsHistory(
     @Query(new ValidationPipe()) query: PoRepActiveClientsHistoryParameters,
   ): Promise<PoRepActiveClientsHistoryEntry[]> {
@@ -463,6 +468,92 @@ export class PoRepController extends ControllerBase {
     }
 
     return this.poRepService.getActiveClientsHistory(query);
+  }
+
+  @Get('/average-sli-data')
+  @ApiOperation({
+    summary:
+      'Get average SLI data for porep market deals over the last 30 days',
+  })
+  @ApiOkResponse({
+    description:
+      'Average SLI data for porep market deals over the last 30 days',
+    type: GetAvgSLIDataResponse,
+  })
+  public async getAverageSLIData(
+    @Query() query: GetAvgSLIDataRequest,
+  ): Promise<GetAvgSLIDataResponse> {
+    if (typeof query.dealIds === 'string') {
+      query.dealIds = [query.dealIds];
+    }
+
+    const dealIds = query.dealIds.map((dealId) => {
+      return stringToNumber(dealId);
+    });
+
+    const last30days = DateTime.now().toUTC().minus({ days: 30 }).toJSDate();
+
+    const avgSLIsValues =
+      await this.prismaService.storage_provider_url_finder_deal_sli_value.groupBy(
+        {
+          by: ['deal_id', 'sli_id'],
+          where: {
+            deal_id: {
+              in: dealIds,
+            },
+            tested_at: {
+              gte: last30days,
+            },
+          },
+          _avg: {
+            value: true,
+          },
+        },
+      );
+
+    const avgSLIsByDealId = groupBy(avgSLIsValues, (sli) => sli.deal_id);
+
+    const sliMetadata =
+      await this.prismaService.storage_provider_url_finder_deal_sli.findMany({
+        where: {
+          id: {
+            in: avgSLIsValues.map((sli) => sli.sli_id),
+          },
+        },
+      });
+
+    const sliMetadataById = groupBy(sliMetadata, (sli) => sli.id);
+    const sliMetadataByType = groupBy(sliMetadata, (sli) => sli.sli_type);
+
+    //  TODO add ipni reporting ?/ co to jest indexing_pct z url findera?
+
+    return {
+      sliMetadata: Object.fromEntries(
+        Object.entries(sliMetadataByType).map(([sliType, sliMetadata]) => {
+          return [
+            sliType,
+            {
+              name: sliMetadata[0].name,
+              description: sliMetadata[0].description,
+              unit: sliMetadata[0].unit,
+            },
+          ];
+        }),
+      ),
+      data: Object.fromEntries(
+        Object.entries(avgSLIsByDealId).map(([dealId, avgSLIs]) => {
+          return [
+            dealId,
+            Object.fromEntries(
+              avgSLIs.map((avgSLI) => {
+                const sliMeta = sliMetadataById[avgSLI.sli_id][0];
+                return [sliMeta.sli_type, avgSLI._avg.value];
+              }),
+            ),
+          ];
+        }),
+      ),
+    };
   }
 
   private calculateDashboardStatistic(options: {

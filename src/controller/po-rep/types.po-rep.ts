@@ -8,6 +8,7 @@ import {
   PaginationInfoRequest,
   PaginationInfoResponse,
 } from '../base/types.controller-base';
+import { StorageProviderUrlFinderDealSLIType } from 'prisma/generated/client';
 
 export const poRepDashboardStatisticTypes = [
   'TOTAL_DEALS_DONE',
@@ -155,4 +156,36 @@ export class GetPoRepProvidersResponse extends PaginationInfoResponse {
     isArray: true,
   })
   data: PoRepProviderInfo[];
+}
+
+export class GetAvgSLIDataRequest {
+  @ApiProperty({
+    description: 'List of porep market deal IDs to get SLI data for',
+    isArray: true,
+    type: Number,
+    minimum: 1,
+  })
+  dealIds: string[];
+}
+
+export class GetAvgSLIDataResponse {
+  @ApiProperty({
+    description: 'SLI metadata for each SLI type',
+    type: Object,
+  })
+  sliMetadata: Record<
+    string,
+    {
+      name: string;
+      description: string;
+      unit: string;
+    }
+  >;
+
+  @ApiProperty({
+    description:
+      'Average SLI data for each deal ID, with SLI type as key and average value as value',
+    type: Object,
+  })
+  data: Record<string, Record<string, number | null>>;
 }
