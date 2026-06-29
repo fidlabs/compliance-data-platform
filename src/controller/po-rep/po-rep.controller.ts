@@ -20,7 +20,6 @@ import { DateTime } from 'luxon';
 import {
   PoRepDealState,
   Prisma,
-  StorageProviderUrlFinderDealSLIType,
   StorageProviderUrlFinderMetricType,
 } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
@@ -549,25 +548,23 @@ export class PoRepController extends ControllerBase {
       return stringToNumber(dealId);
     });
 
-    const last30days = DateTime.now().toUTC().minus({ days: 30 }).toJSDate();
-
-    const avgSLIsValues =
-      await this.prismaService.storage_provider_url_finder_deal_sli_value.groupBy(
-        {
-          by: ['deal_id', 'sli_id'],
-          where: {
-            deal_id: {
-              in: dealIds,
-            },
-            tested_at: {
-              gte: last30days,
-            },
-          },
-          _avg: {
-            value: true,
-          },
-        },
-      );
+    const avgSLIsValues = await this.prismaService.$queryRaw<
+      {
+        avg: number | null;
+        sli_id: string;
+        deal_id: bigint;
+      }[]
+    >`
+      select avg("value"),
+             "sli_id",
+             "storage_provider_url_finder_deal_daily_snapshot"."deal_id"
+      from "storage_provider_url_finder_deal_sli_value"
+        join "storage_provider_url_finder_deal_daily_snapshot" on "storage_provider_url_finder_deal_sli_value"."snapshot_id" = "storage_provider_url_finder_deal_daily_snapshot"."id"
+      where "storage_provider_url_finder_deal_daily_snapshot"."tested_at" >= now() - interval '30 days'
+        and "storage_provider_url_finder_deal_daily_snapshot"."deal_id" in (${Prisma.join(dealIds)})
+      group by "storage_provider_url_finder_deal_daily_snapshot"."deal_id",
+               "sli_id";
+      `;
 
     const avgSLIsByDealId = groupBy(avgSLIsValues, (sli) => sli.deal_id);
 
@@ -582,8 +579,6 @@ export class PoRepController extends ControllerBase {
 
     const sliMetadataById = groupBy(sliMetadata, (sli) => sli.id);
     const sliMetadataByType = groupBy(sliMetadata, (sli) => sli.sli_type);
-
-    //  TODO add ipni reporting ?/ co to jest indexing_pct z url findera?
 
     return {
       sliMetadata: Object.fromEntries(
@@ -605,7 +600,7 @@ export class PoRepController extends ControllerBase {
             Object.fromEntries(
               avgSLIs.map((avgSLI) => {
                 const sliMeta = sliMetadataById[avgSLI.sli_id][0];
-                return [sliMeta.sli_type, avgSLI._avg.value];
+                return [sliMeta.sli_type, avgSLI.avg];
               }),
             ),
           ];
