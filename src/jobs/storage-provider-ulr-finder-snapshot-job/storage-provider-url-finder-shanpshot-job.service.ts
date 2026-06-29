@@ -14,7 +14,7 @@ import {
   StorageProviderUrlFinderBaseMetricType,
   StorageProviderUrlFinderMetricValue,
 } from 'src/service/storage-provider-url-finder/types.storage-provider-url-finder.service';
-import { isTodayUTC } from 'src/utils/utils';
+import { isSameUtcDay, isTodayUTC } from 'src/utils/utils';
 
 @Injectable()
 export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicator {
@@ -79,14 +79,6 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
         const providers = await this.prismaService.provider.findMany({});
         const storageProvidersChunks = _.chunk(providers, 100);
         const storageProviderSnapshotsToInsert = [];
-
-        function isSameUtcDay(a: Date, b: Date): boolean {
-          return (
-            a.getUTCFullYear() === b.getUTCFullYear() &&
-            a.getUTCMonth() === b.getUTCMonth() &&
-            a.getUTCDate() === b.getUTCDate()
-          );
-        }
 
         const snapshotDate = DateTime.now().toUTC().startOf('day').toJSDate();
 
