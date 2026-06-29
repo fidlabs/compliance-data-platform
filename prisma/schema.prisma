@@ -667,20 +667,17 @@ model storage_provider_url_finder_deal_sli {
 
 model storage_provider_url_finder_deal_sli_value {
   id          String @id @default(uuid())
-  deal_id     BigInt
   sli_id      String
   snapshot_id String
 
   sli                                  storage_provider_url_finder_deal_sli             @relation(fields: [sli_id], references: [id])
   storage_provider_deal_daily_snapshot storage_provider_url_finder_deal_daily_snapshot? @relation(fields: [snapshot_id], references: [id])
 
-  value     Float?
-  tested_at DateTime?
+  value Float?
 
-  @@unique([deal_id, sli_id, tested_at])
-  @@index([deal_id])
+  @@unique([sli_id, snapshot_id])
   @@index([sli_id])
-  @@index([deal_id, sli_id, tested_at])
+  @@index([sli_id, snapshot_id])
 }
 
 model storage_provider_url_finder_deal_daily_snapshot {
