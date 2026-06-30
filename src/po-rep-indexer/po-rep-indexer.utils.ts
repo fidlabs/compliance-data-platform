@@ -46,6 +46,7 @@ export function createClientForChainOrThrow({
               },
             }
           : undefined,
+      timeout: 60_000,
     }),
   }) as unknown as PoRepPublicClient;
 }

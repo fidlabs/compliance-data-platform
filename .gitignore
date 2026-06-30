@@ -54,7 +54,12 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Prisma generated files
 /prisma/generated/
 /prismaDmob/generated/
+
+# Kysely generated types
+/src/db/auto-generated
 
 start_dmob_tunnel.sh

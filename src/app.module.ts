@@ -87,6 +87,7 @@ import { ERC20TokenInfoService } from './service/erc20-token-info/erc20-token-in
 import { PoRepPriceOracleService } from './service/po-rep-price-oracle/po-rep-price-oracle.service';
 import { PoRepService } from './service/po-rep/po-rep.service';
 import { ClientRunner } from './aggregation/runners/client.runner';
+import { queryBuilderProviders } from './db';
 
 const AGGREGATION_RUNNERS = [
   ClientDatacapAllocationRunner,
@@ -202,6 +203,7 @@ const AGGREGATION_RUNNERS_RUN_ONLY = [];
         ? AGGREGATION_RUNNERS_RUN_ONLY
         : AGGREGATION_RUNNERS,
     },
+    ...queryBuilderProviders,
   ],
 })
 export class AppModule implements NestModule {

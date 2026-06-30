@@ -8,9 +8,16 @@ export class PostgresService implements OnModuleInit {
   public pool: Pool;
 
   constructor(
-    private configService: ConfigService,
     public readonly prometheusService: PrometheusMetricService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.pool = new Pool({
+      connectionString: configService.get<string>('DATABASE_URL'),
+      ssl: {
+        rejectUnauthorized: process.env.NODE_ENV === 'production',
+      },
+    });
+  }
 
   updatePoolStats() {
     const { totalCount, idleCount, waitingCount } = this.pool;
@@ -23,10 +30,6 @@ export class PostgresService implements OnModuleInit {
   }
 
   public async onModuleInit() {
-    this.pool = new Pool({
-      connectionString: this.configService.get<string>('DATABASE_URL'),
-    });
-
     this.pool.on('connect', () => {
       this.updatePoolStats();
     });
