@@ -548,13 +548,16 @@ export class PoRepController extends ControllerBase {
       return stringToNumber(dealId);
     });
 
-    const avgSLIsValues = await this.prismaService.$queryRaw<
-      {
-        avg: number | null;
-        sli_id: string;
-        deal_id: bigint;
-      }[]
-    >`
+    const avgSLIsValues =
+      !dealIds || dealIds.length === 0
+        ? null
+        : await this.prismaService.$queryRaw<
+            {
+              avg: number | null;
+              sli_id: string;
+              deal_id: bigint;
+            }[]
+          >`
       select avg("value"),
              "sli_id",
              "storage_provider_url_finder_deal_daily_snapshot"."deal_id"
@@ -566,7 +569,9 @@ export class PoRepController extends ControllerBase {
                "sli_id";
       `;
 
-    const avgSLIsByDealId = groupBy(avgSLIsValues, (sli) => sli.deal_id);
+    const avgSLIsByDealId = avgSLIsValues
+      ? groupBy(avgSLIsValues, (sli) => sli.deal_id)
+      : null;
 
     const sliMetadata =
       await this.prismaService.storage_provider_url_finder_deal_sli.findMany({
@@ -593,19 +598,21 @@ export class PoRepController extends ControllerBase {
           ];
         }),
       ),
-      data: Object.fromEntries(
-        Object.entries(avgSLIsByDealId).map(([dealId, avgSLIs]) => {
-          return [
-            dealId,
-            Object.fromEntries(
-              avgSLIs.map((avgSLI) => {
-                const sliMeta = sliMetadataById[avgSLI.sli_id][0];
-                return [sliMeta.sli_type, avgSLI.avg];
-              }),
-            ),
-          ];
-        }),
-      ),
+      data: avgSLIsByDealId
+        ? Object.fromEntries(
+            Object.entries(avgSLIsByDealId).map(([dealId, avgSLIs]) => {
+              return [
+                dealId,
+                Object.fromEntries(
+                  avgSLIs.map((avgSLI) => {
+                    const sliMeta = sliMetadataById[avgSLI.sli_id][0];
+                    return [sliMeta.sli_type, avgSLI.avg];
+                  }),
+                ),
+              ];
+            }),
+          )
+        : {},
     };
   }
 

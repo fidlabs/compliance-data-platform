@@ -136,7 +136,7 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
     class DbDataType {
       deal_id: bigint;
       snapshot_date: Date;
-      tested_at: Date;
+      tested_at: Date | null;
       result_code: StorageProviderUrlFinderMetricResultCodeType;
       sli_values: {
         value: number | null;
@@ -171,7 +171,9 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
           return {
             deal_id: deal.dealId,
             snapshot_date: snapshotDate,
-            tested_at: dealSLIs ? new Date(dealSLIs.tested_at) : null,
+            tested_at: dealSLIs?.tested_at
+              ? new Date(dealSLIs.tested_at)
+              : null,
             result_code: dealSLIs
               ? storageProviderUrlFinderService.parseUrlFinderResultCode(
                   dealSLIs.result_code,
@@ -247,7 +249,7 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
   }
 
   getFilledTables(): AggregationTable[] {
-    return [AggregationTable.StorageProviderUrlFinderDailySnapshot];
+    return [AggregationTable.StorageProviderUrlFinderDealDailySnapshot];
   }
 
   getDependingTables(): AggregationTable[] {
