@@ -4,14 +4,16 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
-import { StorageProviderUrlFinderMetricResultCodeType } from 'prisma/generated/client';
+import {
+  StorageProviderUrlFinderDealSLIType,
+  StorageProviderUrlFinderMetricResultCodeType,
+} from 'prisma/generated/client';
 import { getUrlFinderProviderAverageMetricWeekly } from 'prisma/generated/client/sql';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from 'src/db/prisma.service';
 import { stringToNumber } from 'src/utils/utils';
 import { HistogramDateValueResults } from '../histogram-helper/types.histogram-helper';
 import {
-  SliStorageProviderMetricData,
   StorageProviderResultCodeMetricHistogramDailyResponse,
   StorageProviderResultCodeMetricHistogramDay,
   StorageProviderResultCodeMetricHistogramResult,
@@ -19,6 +21,8 @@ import {
   StorageProviderUrlFinderCustomMetricType,
   StorageProviderUrlFinderDailySnapshot,
   StorageProviderUrlFinderMetricType,
+  UrlFinderDealData,
+  UrlFinderDealSLIs,
   UrlFinderStorageProviderBulkResponse,
   UrlFinderStorageProviderDataResponse,
 } from './types.storage-provider-url-finder.service';
@@ -58,11 +62,14 @@ export class StorageProviderUrlFinderService {
     storageProviderId: string,
     clientId?: string,
   ): Promise<UrlFinderStorageProviderDataResponse | null> {
+    const endpoint = `${this.URL_FINDER_API_URL}/providers/${storageProviderId}${clientId ? `/clients/${clientId}` : ''}?extended=true`;
+
     try {
-      return await this._fetchLastStorageProviderData(
-        storageProviderId,
-        clientId,
+      const { data } = await lastValueFrom(
+        this.httpService.get<UrlFinderStorageProviderDataResponse>(endpoint),
       );
+
+      return data;
     } catch (err) {
       this.logger.warn(
         `Error fetching URL finder data for provider: ${storageProviderId} ${clientId ? `client: ${clientId}` : ''}: ${err.message}`,
@@ -72,48 +79,69 @@ export class StorageProviderUrlFinderService {
     }
   }
 
-  private async _fetchLastStorageProviderData(
-    storageProviderId: string,
-    clientId?: string,
-  ): Promise<UrlFinderStorageProviderDataResponse> {
-    const endpoint = `${this.URL_FINDER_API_URL}/providers/${storageProviderId}${clientId ? `/clients/${clientId}` : ''}?extended=true`;
-
-    const { data } = await lastValueFrom(
-      this.httpService.get<UrlFinderStorageProviderDataResponse>(endpoint),
-    );
-
-    return data;
-  }
-
   public async fetchLastStorageProviderDataInBulk(
     storageProviderIds: string[],
   ): Promise<UrlFinderStorageProviderBulkResponse | null> {
     const endpoint = `${this.URL_FINDER_API_URL}/providers/bulk?extended=true`;
 
-    const { data } = await lastValueFrom(
-      this.httpService.post<UrlFinderStorageProviderBulkResponse | null>(
-        endpoint,
-        {
-          provider_ids: storageProviderIds,
-        },
-      ),
-    );
+    try {
+      const { data } = await lastValueFrom(
+        this.httpService.post<UrlFinderStorageProviderBulkResponse | null>(
+          endpoint,
+          {
+            provider_ids: storageProviderIds,
+          },
+        ),
+      );
 
-    return data;
+      return data;
+    } catch (err) {
+      this.logger.warn(
+        `Error fetching URL finder data in bulk for ${storageProviderIds.length} providers: ${err.message}`,
+      );
+
+      return null;
+    }
   }
 
-  public async fetchHistoricalStorageProviderData(
-    storageProviderId: string,
-    clientId?: string,
-    options?: { from: string; to: string },
-  ): Promise<SliStorageProviderMetricData[]> {
-    const endpoint = `${this.URL_FINDER_API_URL}/url/find/${storageProviderId}${clientId ? `/${clientId}` : ''} ${options ? `?from=${options.from}&to=${options.to}` : ''}`;
+  public async fetchDealData(
+    dealId: number,
+  ): Promise<UrlFinderDealData | null> {
+    const endpoint = `${this.URL_FINDER_API_URL}/deals/${dealId}`;
 
-    const { data } = await lastValueFrom(
-      this.httpService.get<SliStorageProviderMetricData[]>(endpoint),
-    );
+    try {
+      const { data } = await lastValueFrom(
+        this.httpService.get<UrlFinderDealData>(endpoint),
+      );
 
-    return data;
+      return data;
+    } catch (err) {
+      this.logger.warn(
+        `Error fetching URL finder deal data for deal: ${dealId}: ${err.message}`,
+      );
+
+      return null;
+    }
+  }
+
+  public async fetchDealLatestSLIs(
+    dealId: number,
+  ): Promise<UrlFinderDealSLIs | null> {
+    const endpoint = `${this.URL_FINDER_API_URL}/deals/${dealId}/latest`;
+
+    try {
+      const { data } = await lastValueFrom(
+        this.httpService.get<UrlFinderDealSLIs>(endpoint),
+      );
+
+      return data;
+    } catch (err) {
+      this.logger.warn(
+        `Error fetching URL finder deal SLIs for deal: ${dealId}: ${err.message}`,
+      );
+
+      return null;
+    }
   }
 
   private getMetricName(
@@ -280,6 +308,73 @@ export class StorageProviderUrlFinderService {
     },
   };
 
+  private getDealSLIName(dealSLI: StorageProviderUrlFinderDealSLIType) {
+    const METRIC_NAME: Record<
+      keyof typeof StorageProviderUrlFinderDealSLIType,
+      string
+    > = {
+      [StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS]:
+        'Retrievability',
+      [StorageProviderUrlFinderDealSLIType.LATENCY_MS]: 'Latency',
+      [StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS]: 'Bandwidth',
+      [StorageProviderUrlFinderDealSLIType.INDEXING_PCT]: 'IPNI Indexing',
+    };
+
+    return METRIC_NAME[dealSLI];
+  }
+
+  private getDealSLIDescription(dealSLI: StorageProviderUrlFinderDealSLIType) {
+    const METRIC_DESCRIPTION: Record<
+      keyof typeof StorageProviderUrlFinderDealSLIType,
+      string
+    > = {
+      [StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS]:
+        'Retrievability percentage in basis points',
+      [StorageProviderUrlFinderDealSLIType.LATENCY_MS]: 'Download latency',
+      [StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS]:
+        'Download bandwidth',
+      [StorageProviderUrlFinderDealSLIType.INDEXING_PCT]:
+        'IPNI indexing percentage',
+    };
+
+    return METRIC_DESCRIPTION[dealSLI];
+  }
+
+  private getDealSLIUnit(dealSLI: StorageProviderUrlFinderDealSLIType) {
+    const METRIC_UNIT: Record<
+      keyof typeof StorageProviderUrlFinderDealSLIType,
+      string
+    > = {
+      [StorageProviderUrlFinderDealSLIType.RETRIEVABILITY_BPS]: 'bps',
+      [StorageProviderUrlFinderDealSLIType.LATENCY_MS]: 'ms',
+      [StorageProviderUrlFinderDealSLIType.BANDWIDTH_MBPS]: 'Mbps',
+      [StorageProviderUrlFinderDealSLIType.INDEXING_PCT]: '%',
+    };
+
+    return METRIC_UNIT[dealSLI];
+  }
+
+  public async ensureUrlFinderDealSLITypesExist() {
+    const sliTypes = Object.values(StorageProviderUrlFinderDealSLIType);
+
+    for (const sliType of sliTypes) {
+      const createOrUpdateSLI = {
+        sli_type: sliType,
+        name: this.getDealSLIName(sliType),
+        description: this.getDealSLIDescription(sliType),
+        unit: this.getDealSLIUnit(sliType),
+      };
+
+      await this.prismaService.storage_provider_url_finder_deal_sli.upsert({
+        where: {
+          sli_type: sliType,
+        },
+        create: createOrUpdateSLI,
+        update: createOrUpdateSLI, // in case description or name changes
+      });
+    }
+  }
+
   public async ensureUrlFinderMetricTypesExist() {
     const metricTypes = Object.values(StorageProviderUrlFinderBaseMetricType);
 
@@ -341,35 +436,12 @@ export class StorageProviderUrlFinderService {
     );
   }
 
-  public async getUrlFinderMetricData(
-    startDate?: Date,
-    endDate?: Date,
-    metricType?: StorageProviderUrlFinderBaseMetricType,
-  ) {
-    return await this.prismaService.storage_provider_url_finder_metric_value.findMany(
-      {
-        where: {
-          tested_at: {
-            gte: startDate,
-            lte: endDate,
-          },
-          metric: {
-            metric_type: metricType,
-          },
-        },
-        include: {
-          metric: true,
-        },
-      },
-    );
-  }
-
   public async getUrlFinderSnapshotsForProviders(
     startDate?: Date,
     endDate?: Date,
     includeMetrics = false,
   ) {
-    return await this.prismaService.storage_provider_url_finder_daily_snapshot.findMany(
+    return this.prismaService.storage_provider_url_finder_daily_snapshot.findMany(
       {
         where: {
           tested_at: {
@@ -413,16 +485,20 @@ export class StorageProviderUrlFinderService {
         x.metric.metric_type ===
         StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY,
     )?.value;
+
     const consistentRetrievabilityMetric = latestMetrics.find(
       (x) =>
         x.metric.metric_type ===
         StorageProviderUrlFinderBaseMetricType.CAR_FILES,
     )?.value;
+
     const inconsistentRetrievabilityMetric = 1 - consistentRetrievabilityMetric;
+
     const ttfbMetric = latestMetrics.find(
       (x) =>
         x.metric.metric_type === StorageProviderUrlFinderBaseMetricType.TTFB,
     )?.value;
+
     const bandwidthMetric = latestMetrics.find(
       (x) =>
         x.metric.metric_type ===
@@ -499,17 +575,20 @@ export class StorageProviderUrlFinderService {
   ) {
     let validatedMetricType: StorageProviderUrlFinderBaseMetricType;
 
+    // prettier-ignore
     switch (metricType) {
       case StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY:
-        validatedMetricType =
-          StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY;
+        validatedMetricType = StorageProviderUrlFinderBaseMetricType.RPA_RETRIEVABILITY;
         break;
+
       case StorageProviderUrlFinderBaseMetricType.TTFB:
         validatedMetricType = StorageProviderUrlFinderBaseMetricType.TTFB;
         break;
+
       case StorageProviderUrlFinderBaseMetricType.BANDWIDTH:
         validatedMetricType = StorageProviderUrlFinderBaseMetricType.BANDWIDTH;
         break;
+
       case StorageProviderUrlFinderCustomMetricType.CONSISTENT_RETRIEVABILITY:
       case StorageProviderUrlFinderCustomMetricType.INCONSISTENT_RETRIEVABILITY:
         validatedMetricType = StorageProviderUrlFinderBaseMetricType.CAR_FILES;

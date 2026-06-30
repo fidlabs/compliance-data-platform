@@ -33,13 +33,21 @@ import {
   PoRepSLIType,
   poRepSLITypes,
 } from 'src/service/po-rep/types.po-rep';
-import { bigIntDiv, BigIntString, F0Id, stringToBool } from 'src/utils/utils';
+import {
+  bigIntDiv,
+  BigIntString,
+  F0Id,
+  stringToBool,
+  stringToNumber,
+} from 'src/utils/utils';
 import { ControllerBase } from '../base/controller-base';
 import {
   DashboardStatistic,
   DashboardStatisticValue,
 } from '../base/types.controller-base';
 import {
+  GetAvgSLIDataRequest,
+  GetAvgSLIDataResponse,
   GetPoRepProvidersResponse,
   GetPoRepStatisticsRequest,
   PoRepDashboardStatistic,
@@ -48,6 +56,7 @@ import {
   PoRepProvidersListParameters,
   PoRepSLIMeasurment,
 } from './types.po-rep';
+import { groupBy } from 'lodash';
 
 const sliTypesMap: Record<
   PoRepSLIType,
@@ -85,6 +94,7 @@ const dashboardStatisticsDescriptionDict: Record<
 };
 
 @Controller('po-rep')
+@CacheTTL(1000 * 60 * 30) // 30 minutes
 export class PoRepController extends ControllerBase {
   constructor(
     @Inject(CACHE_MANAGER) private _cacheManager: Cache,
@@ -214,7 +224,6 @@ export class PoRepController extends ControllerBase {
     description: 'List of storage providers participating in PoRep market',
     type: GetPoRepProvidersResponse,
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getParticipants(
     @Query(new ValidationPipe()) query: PoRepProvidersListParameters,
   ): Promise<GetPoRepProvidersResponse> {
@@ -366,7 +375,6 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepOnboardedDataHistoryEntry],
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getOnboardedDataHistory(
     @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepOnboardedDataHistoryEntry[]> {
@@ -380,7 +388,6 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepDealsValueHistoryEntry],
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getDealsValueHistory(
     @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepDealsValueHistoryEntry[]> {
@@ -395,7 +402,6 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepDealsPaymentsHistoryEntry],
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getPaymentsHistory(
     @Query(new ValidationPipe()) query: PoRepHistoryParameters,
   ): Promise<PoRepDealsPaymentsHistoryEntry[]> {
@@ -415,7 +421,6 @@ export class PoRepController extends ControllerBase {
   @ApiBadRequestResponse({
     description: 'Query parameters validation error',
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getSLIComplianceHistory(
     @Query(new ValidationPipe()) query: PoRepSLIComplianceHistoryParameters,
   ): Promise<PoRepSLIComplianceHistoryEntry[]> {
@@ -438,7 +443,6 @@ export class PoRepController extends ControllerBase {
   @ApiNotFoundResponse({
     description: 'Error when provider specified in filters does not exist',
   })
-  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getActiveClientsHistory(
     @Query(new ValidationPipe()) query: PoRepActiveClientsHistoryParameters,
   ): Promise<PoRepActiveClientsHistoryEntry[]> {
@@ -463,6 +467,95 @@ export class PoRepController extends ControllerBase {
     }
 
     return this.poRepService.getActiveClientsHistory(query);
+  }
+
+  @Get('/average-sli-data')
+  @ApiOperation({
+    summary:
+      'Get average SLI data for porep market deals over the last 30 days',
+  })
+  @ApiOkResponse({
+    description:
+      'Average SLI data for porep market deals over the last 30 days',
+    type: GetAvgSLIDataResponse,
+  })
+  public async getAverageSLIData(
+    @Query() query: GetAvgSLIDataRequest,
+  ): Promise<GetAvgSLIDataResponse> {
+    if (typeof query.dealIds === 'string') {
+      query.dealIds = [query.dealIds];
+    }
+
+    const dealIds = query.dealIds.map((dealId) => {
+      return stringToNumber(dealId);
+    });
+
+    const avgSLIsValues =
+      !dealIds || dealIds.length === 0
+        ? null
+        : await this.prismaService.$queryRaw<
+            {
+              avg: number | null;
+              sli_id: string;
+              deal_id: bigint;
+            }[]
+          >`
+      select avg("value"),
+             "sli_id",
+             "storage_provider_url_finder_deal_daily_snapshot"."deal_id"
+      from "storage_provider_url_finder_deal_sli_value"
+        join "storage_provider_url_finder_deal_daily_snapshot" on "storage_provider_url_finder_deal_sli_value"."snapshot_id" = "storage_provider_url_finder_deal_daily_snapshot"."id"
+      where "storage_provider_url_finder_deal_daily_snapshot"."tested_at" >= now() - interval '30 days'
+        and "storage_provider_url_finder_deal_daily_snapshot"."deal_id" in (${Prisma.join(dealIds)})
+      group by "storage_provider_url_finder_deal_daily_snapshot"."deal_id",
+               "sli_id";
+      `;
+
+    const avgSLIsByDealId = avgSLIsValues
+      ? groupBy(avgSLIsValues, (sli) => sli.deal_id)
+      : null;
+
+    const sliMetadata =
+      await this.prismaService.storage_provider_url_finder_deal_sli.findMany({
+        where: {
+          id: {
+            in: avgSLIsValues.map((sli) => sli.sli_id),
+          },
+        },
+      });
+
+    const sliMetadataById = groupBy(sliMetadata, (sli) => sli.id);
+    const sliMetadataByType = groupBy(sliMetadata, (sli) => sli.sli_type);
+
+    return {
+      sliMetadata: Object.fromEntries(
+        Object.entries(sliMetadataByType).map(([sliType, sliMetadata]) => {
+          return [
+            sliType,
+            {
+              name: sliMetadata[0].name,
+              description: sliMetadata[0].description,
+              unit: sliMetadata[0].unit,
+            },
+          ];
+        }),
+      ),
+      data: avgSLIsByDealId
+        ? Object.fromEntries(
+            Object.entries(avgSLIsByDealId).map(([dealId, avgSLIs]) => {
+              return [
+                dealId,
+                Object.fromEntries(
+                  avgSLIs.map((avgSLI) => {
+                    const sliMeta = sliMetadataById[avgSLI.sli_id][0];
+                    return [sliMeta.sli_type, avgSLI.avg];
+                  }),
+                ),
+              ];
+            }),
+          )
+        : {},
+    };
   }
 
   private calculateDashboardStatistic(options: {

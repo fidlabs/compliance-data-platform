@@ -12,6 +12,7 @@ import { AllocatorService } from '../service/allocator/allocator.service';
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { AggregationTable } from './aggregation-table';
+import { PoRepService } from '../service/po-rep/po-rep.service';
 
 export type AggregationRunnerRunServices = {
   prismaService: PrismaService;
@@ -27,6 +28,7 @@ export type AggregationRunnerRunServices = {
   storageProviderService: StorageProviderService;
   storageProviderUrlFinderService: StorageProviderUrlFinderService;
   allocatorService: AllocatorService;
+  porepService: PoRepService;
 };
 
 export interface AggregationRunner {

@@ -46,6 +46,14 @@ export function isTodayUTC(input: DateTime): boolean {
   );
 }
 
+export function isSameUtcDay(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
 export function envNotSet(value?: any): boolean {
   return (
     value === undefined ||
@@ -131,6 +139,7 @@ export function bigIntDiv(
 
 export function bigIntMul(a: bigint, b: number, precision = 6): bigint {
   const precisionMultiplier = 10 ** precision;
+
   return (
     (a * BigInt(Math.round(b * precisionMultiplier))) /
     BigInt(precisionMultiplier)
