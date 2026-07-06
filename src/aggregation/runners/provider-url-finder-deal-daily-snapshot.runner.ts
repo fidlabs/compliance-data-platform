@@ -7,7 +7,6 @@ import {
 } from '../aggregation-runner';
 import { AggregationTable } from '../aggregation-table';
 import { groupBy } from 'lodash';
-import { bigIntToNumber } from 'src/utils/utils';
 import {
   StorageProviderUrlFinderDealSLIType,
   StorageProviderUrlFinderMetricResultCodeType,
@@ -154,7 +153,7 @@ export class ProviderUrlFinderDealDailySnapshotRunner implements AggregationRunn
         _porepMarketDeals.map(async (deal) => {
           const dealSLIs =
             await storageProviderUrlFinderService.fetchDealLatestSLIs(
-              bigIntToNumber(deal.dealId),
+              deal.dealId,
             );
 
           const ipniSuccessCount =

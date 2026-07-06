@@ -538,19 +538,20 @@ export class PoRepController extends ControllerBase {
     type: GetAvgSLIDataResponse,
   })
   public async getAverageSLIData(
-    @Query() query: GetAvgSLIDataRequest,
+    @Query(new ValidationPipe({ transform: true })) query: GetAvgSLIDataRequest,
   ): Promise<GetAvgSLIDataResponse> {
     if (typeof query.dealIds === 'string') {
       query.dealIds = [query.dealIds];
     }
 
-    const dealIds = query.dealIds.map((dealId) => {
-      return stringToNumber(dealId);
-    });
+    const dealIds =
+      query.dealIds?.map((dealId) => {
+        return stringToNumber(dealId);
+      }) ?? [];
 
     const avgSLIsValues =
       !dealIds || dealIds.length === 0
-        ? null
+        ? []
         : await this.prismaService.$queryRaw<
             {
               avg: number | null;
@@ -569,9 +570,7 @@ export class PoRepController extends ControllerBase {
                "sli_id";
       `;
 
-    const avgSLIsByDealId = avgSLIsValues
-      ? groupBy(avgSLIsValues, (sli) => sli.deal_id)
-      : null;
+    const avgSLIsByDealId = groupBy(avgSLIsValues, (sli) => sli.deal_id);
 
     const sliMetadata =
       await this.prismaService.storage_provider_url_finder_deal_sli.findMany({

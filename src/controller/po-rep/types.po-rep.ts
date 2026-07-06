@@ -1,7 +1,7 @@
 import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import { IsBooleanString, IsOptional } from 'class-validator';
 import { PoRepSLIType, poRepSLITypes } from 'src/service/po-rep/types.po-rep';
-import { F0IdInput, IsF0IdInput } from 'src/utils/validators';
+import { F0IdInput, IsBigIntLike, IsF0IdInput } from 'src/utils/validators';
 import {
   DashboardStatistic,
   DashboardStatisticChange,
@@ -174,6 +174,7 @@ export class GetAvgSLIDataRequest {
     type: Number,
     minimum: 1,
   })
+  @IsBigIntLike({ each: true })
   dealIds: string[];
 }
 
