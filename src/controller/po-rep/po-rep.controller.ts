@@ -1,10 +1,13 @@
 import { Cache, CACHE_MANAGER, CacheTTL } from '@nestjs/cache-manager';
 import {
+  ClassSerializerInterceptor,
   Controller,
   Get,
   Inject,
   NotFoundException,
+  Param,
   Query,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
 import {
@@ -24,10 +27,13 @@ import { PoRepService } from 'src/service/po-rep/po-rep.service';
 import {
   PoRepActiveClientsHistoryEntry,
   PoRepActiveClientsHistoryParameters,
+  PoRepDealsList,
+  PoRepDealsListParameters,
   PoRepDealsPaymentsHistoryEntry,
   PoRepDealsValueHistoryEntry,
   PoRepHistoryParameters,
   PoRepOnboardedDataHistoryEntry,
+  PoRepProviderComplianceStatistics,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParameters,
   PoRepSLIType,
@@ -44,6 +50,7 @@ import {
   GetPoRepStatisticsRequest,
   PoRepDashboardStatistic,
   PoRepDashboardStatisticType,
+  PoRepProviderComplianceStatisticsParameters,
   PoRepProviderSLIInfo,
   PoRepProvidersListParameters,
   PoRepSLIMeasurment,
@@ -357,6 +364,57 @@ export class PoRepController extends ControllerBase {
       query,
       totalCount,
     );
+  }
+
+  @Get('/providers/:providerId/compliance-stats')
+  @ApiOperation({
+    summary: 'Get po-rep compliance statistics for given provider id.',
+  })
+  @ApiOkResponse({
+    description: 'Po-rep provider compliance statistics',
+    type: PoRepProviderComplianceStatistics,
+  })
+  @ApiBadRequestResponse({
+    description: 'Error response when invalid provider id is given.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Error response when provider with given id does not exist.',
+  })
+  public async getProviderStatistics(
+    @Param(new ValidationPipe())
+    parameters: PoRepProviderComplianceStatisticsParameters,
+  ): Promise<PoRepProviderComplianceStatistics> {
+    const provider = await this.prismaService.po_rep_storage_provider.findFirst(
+      {
+        where: {
+          providerId: F0Id.from(parameters.providerId).toBigInt(),
+        },
+      },
+    );
+
+    if (!provider) {
+      throw new NotFoundException(
+        `Po-rep provider with ID "${parameters.providerId}" does not exist.`,
+      );
+    }
+
+    const result = await this.poRepService.getProviderComplianceStatistics(
+      parameters.providerId,
+    );
+
+    return result;
+  }
+
+  @Get('/deals')
+  @UseInterceptors(ClassSerializerInterceptor)
+  @ApiOkResponse({
+    type: PoRepDealsList,
+  })
+  public getDeals(
+    @Query(new ValidationPipe({ transform: true }))
+    query: PoRepDealsListParameters,
+  ): Promise<PoRepDealsList> {
+    return this.poRepService.getDeals(query);
   }
 
   @Get('/onboarded-data-history')

@@ -4,6 +4,13 @@ generator client {
   previewFeatures = ["typedSql", "metrics"]
 }
 
+generator kysely {
+  provider = "prisma-kysely"
+  output = "../src/db/auto-generated"
+  fileName = "types.ts"
+  enumFileName = "enums.ts"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
