@@ -109,6 +109,7 @@ const dealsAvailableSortingKeys = [
   'predicted_deal_revenue',
   'total_amount_settled',
   'total_settlements_count',
+  'deal_created_at_epoch',
 ] as const;
 
 export class PoRepDealsListParameters extends PaginationParameters {
@@ -655,4 +656,48 @@ export class PoRepActiveClientsHistoryEntry {
       'Count of active clients in a window. Client is considered active if they have at least one deal completed before or during the window, that was not terminated before window start.',
   })
   activeClientsCount: number;
+}
+
+export class PoRepOnboardedDataHistoryParameters extends PoRepHistoryParameters {
+  @ApiPropertyOptional({
+    description: `Optional filter by provider id`,
+    required: false,
+  })
+  @IsF0IdInput()
+  @IsOptional()
+  providerId?: F0IdInput;
+}
+
+export class PoRepProviderStorageStatistics {
+  @ApiProperty({
+    description: 'Total count of deals made with provider',
+  })
+  totalDealsCount: number;
+
+  @ApiProperty({
+    description: `Number of deals that are in state 
+      "${PoRepDealState.COMPLETED}" and have active payment rail.`,
+  })
+  onboardedDealsCount: number;
+
+  @ApiProperty({
+    description: `Total space available in bytes, declared by storage provider.`,
+  })
+  totalAvailableBytes: bigint;
+
+  @ApiProperty({
+    description: `Space in bytes reserved for deals not yet accepted.`,
+  })
+  pendingBytes: bigint;
+
+  @ApiProperty({
+    description: `Space in bytes reserved for not yet commited `,
+  })
+  committedBytes: bigint;
+
+  @ApiProperty({
+    description: `Space in bytes in active deals (deals with 
+      "${PoRepDealState.COMPLETED}") state and with active payment rail)`,
+  })
+  onboardedBytes: bigint;
 }
