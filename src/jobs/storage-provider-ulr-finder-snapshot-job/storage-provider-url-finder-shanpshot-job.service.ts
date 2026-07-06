@@ -88,8 +88,8 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
               spChunk.map((x) => x.id),
             );
 
-          const chunkMetricsToInsert = dataForChunk.providers.map(
-            (provider) => {
+          const chunkMetricsToInsert =
+            dataForChunk?.providers.map((provider) => {
               const {
                 provider_id,
                 retrievability_percent,
@@ -149,8 +149,7 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
                 testedAt: new Date(tested_at),
                 metricValues: metrics,
               };
-            },
-          );
+            }) ?? [];
 
           storageProviderSnapshotsToInsert.push(...chunkMetricsToInsert);
 

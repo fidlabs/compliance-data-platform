@@ -105,7 +105,7 @@ export class StorageProviderUrlFinderService {
   }
 
   public async fetchDealData(
-    dealId: number,
+    dealId: bigint,
   ): Promise<UrlFinderDealData | null> {
     const endpoint = `${this.URL_FINDER_API_URL}/deals/${dealId}`;
 
@@ -125,7 +125,7 @@ export class StorageProviderUrlFinderService {
   }
 
   public async fetchDealLatestSLIs(
-    dealId: number,
+    dealId: bigint,
   ): Promise<UrlFinderDealSLIs | null> {
     const endpoint = `${this.URL_FINDER_API_URL}/deals/${dealId}/latest`;
 
