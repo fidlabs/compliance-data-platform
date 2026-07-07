@@ -457,7 +457,7 @@ export class PoRepController extends ControllerBase {
   @ApiOkResponse({
     type: [PoRepOnboardedDataHistoryEntry],
   })
-  // @CacheTTL(1000 * 60 * 30) // 30 minutes
+  @CacheTTL(1000 * 60 * 30) // 30 minutes
   public async getOnboardedDataHistory(
     @Query(new ValidationPipe()) query: PoRepOnboardedDataHistoryParameters,
   ): Promise<PoRepOnboardedDataHistoryEntry[]> {
