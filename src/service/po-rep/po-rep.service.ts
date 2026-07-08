@@ -7,15 +7,17 @@ import {
 } from 'prisma/generated/client';
 import { Decimal } from 'prisma/generated/client/runtime/library';
 import {
-  getFilecoinPaymentsForDealsHistory,
   getPoRepActiveClientsHistory,
-  getPoRepDealsValueHistory,
   getPoRepSLIComplianceHistory,
 } from 'prisma/generated/client/sql';
 import { InjectQueryBuilder, QueryBuilder } from 'src/db';
 import { PrismaService } from 'src/db/prisma.service';
+import { createPoRepDealsPaymentsHistoryQuery } from 'src/db/queries/po-rep-deals-payments-history.query';
+import { createPoRepDealsValueHistoryQuery } from 'src/db/queries/po-rep-deals-value-history.query';
 import { createPoRepDealsQuery } from 'src/db/queries/po-rep-deals.query';
 import { createPoRepOnboardedDataHistoryQuery } from 'src/db/queries/po-rep-onboarded-data-history.query';
+import { createPoRepProviderEconomicsStatisticsQuery } from 'src/db/queries/po-rep-provider-economics-statistics.query';
+import { createPoRepProviderStorageStatisticsQuery } from 'src/db/queries/po-rep-provider-storage-statistics.query';
 import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
 import {
   dateToFilecoinBlockHeight,
@@ -38,17 +40,24 @@ import {
   PoRepDealsList,
   PoRepDealsListParameters,
   PoRepDealsPaymentsHistoryEntry,
+  PoRepDealsPaymentsHistoryParameters,
   PoRepDealsValueHistoryEntry,
-  PoRepHistoryParameters,
+  PoRepDealsValueHistoryParameters,
   PoRepOnboardedDataHistoryEntry,
   PoRepOnboardedDataHistoryParameters,
   PoRepProviderComplianceStatistics,
+  PoRepProviderEconomicsStatistics,
   PoRepProviderStorageStatistics,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParameters,
   PoRepSLIType,
 } from './types.po-rep';
-import { createPoRepProviderStorageStatisticsQuery } from 'src/db/queries/po-rep-provider-storage-statistics.query';
+
+interface TokenDetails {
+  tokenAddress: string;
+  tokenDecimals: number;
+  tokenSymbol: string;
+}
 
 @Injectable()
 export class PoRepService {
@@ -101,20 +110,7 @@ export class PoRepService {
     const uniqueTokens = uniq(
       results.map((result) => result.token_address),
     ).filter((tokenAddress) => tokenAddress !== null);
-    const tokenDetailsRequests = uniqueTokens.map(async (tokenAddress) => {
-      const [tokenSymbol, tokenDecimals] = await Promise.all([
-        this.tokenInfoService.getTokenSymbol(tokenAddress),
-        this.tokenInfoService.getTokenDecimals(tokenAddress),
-      ]);
-
-      return [
-        tokenAddress,
-        { tokenSymbol: tokenSymbol, tokenDecimals: tokenDecimals },
-      ] as const;
-    });
-
-    const tokenDetailsResponses = await Promise.all(tokenDetailsRequests);
-    const tokenDetailsMap = new Map(tokenDetailsResponses);
+    const tokenDetailsMap = await this.getTokensDetails(uniqueTokens);
 
     const deals = results.map((result) => {
       const tokenDetails = result.token_address
@@ -313,13 +309,117 @@ export class PoRepService {
     };
   }
 
+  public async getProviderEconomicsStatistics(
+    providerId: F0Id | F0IdInput,
+  ): Promise<PoRepProviderEconomicsStatistics> {
+    const perTokenResults = await createPoRepProviderEconomicsStatisticsQuery(
+      this.queryBuilder,
+      { providerId: providerId },
+    ).execute();
+
+    const uniqueTokens = uniq(
+      perTokenResults.map((i) => i.token_address).filter((i) => i !== null),
+    );
+    const [tokensDetails, tokensExchangeRatesUSD] = await Promise.all([
+      this.getTokensDetails(uniqueTokens),
+      this.getTokensExchangeRatesUSD(uniqueTokens),
+    ]);
+
+    return perTokenResults.reduce<PoRepProviderEconomicsStatistics>(
+      (stats, result) => {
+        const resultRailsCount = stringToNumber(
+          result.total_rails_count.toString(),
+        );
+
+        if (result.token_address === null) {
+          return {
+            ...stats,
+            totalRailsCount: stats.totalRailsCount + resultRailsCount,
+          };
+        }
+
+        const tokenDetails = tokensDetails.get(result.token_address);
+        const exchangeRateUSD = tokensExchangeRatesUSD.get(
+          result.token_address,
+        );
+        const tokenExponent = 10n ** BigInt(tokenDetails.tokenDecimals);
+
+        const lastSettlementAt = (() => {
+          const candidateLastSettlement = result.last_settlement_epoch
+            ? this.epochToDate(BigInt(result.last_settlement_epoch))
+            : null;
+
+          if (candidateLastSettlement === null) {
+            return stats.lastSettlementAt;
+          }
+
+          if (stats.lastSettlementAt === null) {
+            return candidateLastSettlement;
+          }
+
+          return candidateLastSettlement.valueOf() >
+            stats.lastSettlementAt.valueOf()
+            ? candidateLastSettlement
+            : stats.lastSettlementAt;
+        })();
+
+        return {
+          totalRailsCount: stats.totalRailsCount + resultRailsCount,
+          activeRailsCount:
+            stats.activeRailsCount +
+            stringToNumber(result.active_rails_count.toString()),
+          totalRevenueUSD:
+            stats.totalRevenueUSD +
+            Decimal(result.total_revenue.toString())
+              .div(tokenExponent.toString())
+              .mul(exchangeRateUSD)
+              .toDecimalPlaces(2)
+              .toNumber(),
+          predictedRevenueUSD:
+            stats.predictedRevenueUSD +
+            Decimal(result.predicted_revenue.toString())
+              .div(tokenExponent.toString())
+              .mul(exchangeRateUSD)
+              .toDecimalPlaces(2)
+              .toNumber(),
+          totalSettledUSD:
+            stats.totalSettledUSD +
+            Decimal(result.total_amount_settled.toString())
+              .div(tokenExponent.toString())
+              .mul(exchangeRateUSD)
+              .toDecimalPlaces(2)
+              .toNumber(),
+          lastSettlementAt: lastSettlementAt,
+        };
+      },
+      {
+        totalRailsCount: 0,
+        activeRailsCount: 0,
+        totalRevenueUSD: 0,
+        predictedRevenueUSD: 0,
+        totalSettledUSD: 0,
+        lastSettlementAt: null,
+      },
+    );
+  }
+
   public async getDealsPaymentsSummaryHistory({
+    netAmounts = 'true',
+    providerId = null,
     windowSize = 'day',
-  }: PoRepHistoryParameters): Promise<PoRepDealsPaymentsHistoryEntry[]> {
+  }: PoRepDealsPaymentsHistoryParameters): Promise<
+    PoRepDealsPaymentsHistoryEntry[]
+  > {
     const earliestDeal = await this.prismaService.po_rep_deal.findFirst({
       orderBy: {
         proposedAtBlock: 'asc',
       },
+      where:
+        providerId !== null
+          ? {
+              providerId: F0Id.from(providerId).toBigInt(),
+            }
+          : undefined,
     });
 
     if (!earliestDeal) {
@@ -337,50 +437,24 @@ export class PoRepService {
     const endDate = DateTime.utc().startOf(windowSize);
     const entriesCount =
       endDate.diff(startDate, windowSize)[`${windowSize}s`] + 1;
-    const data = await this.prismaService.$queryRawTyped(
-      getFilecoinPaymentsForDealsHistory(windowSize, this.isTestnet()),
-    );
-
-    interface Token {
-      address: string;
-      symbol: string;
-      decimals: number;
-    }
+    const data = await createPoRepDealsPaymentsHistoryQuery(this.queryBuilder, {
+      genesisTimestamp: getFilecoinGenesisTimestamp({
+        testnet: this.isTestnet(),
+      }),
+      netAmount: stringToBool(netAmounts),
+      providersIds: providerId,
+      windowSize: windowSize,
+    }).execute();
 
     const uniqueTokens = uniq(data.map((item) => item.token_address));
-
-    const tokenExchangeRateRequests = uniqueTokens.map((tokenAddress) => {
-      return Promise.all([
-        tokenAddress,
-        this.priceOracle.getTokenExchangeRateUSD(tokenAddress),
-      ]);
-    });
-    const tokenExchangeRateResponses = await Promise.all(
-      tokenExchangeRateRequests,
-    );
-    const tokensUSDExchangeRates = new Map(tokenExchangeRateResponses);
-
-    const tokenInfoRequests = uniqueTokens.map((tokenAddress) => {
-      return Promise.all([
-        tokenAddress,
-        this.tokenInfoService.getTokenSymbol(tokenAddress),
-        this.tokenInfoService.getTokenDecimals(tokenAddress),
-      ]);
-    });
-    const tokenInfoResponses = await Promise.all(tokenInfoRequests);
-    const tokensInfo = tokenInfoResponses.reduce((result, tokenInfo) => {
-      const [address, symbol, decimals] = tokenInfo;
-      return result.set(address, {
-        address: address,
-        symbol: symbol,
-        decimals: decimals,
-      });
-    }, new Map<string, Token>());
+    const [tokensInfo, tokensUSDExchangeRates] = await Promise.all([
+      this.getTokensDetails(uniqueTokens),
+      this.getTokensExchangeRatesUSD(uniqueTokens),
+    ]);
 
     const dataByWindow = groupBy(
       data.filter((item) => item.window_start !== null),
-      (item) =>
-        DateTime.fromJSDate(item.window_start, { zone: 'UTC' }).toISODate(),
+      (item) => DateTime.fromJSDate(item.window_start).toISODate(),
     );
 
     return [...new Array(entriesCount)].reduce<
@@ -404,8 +478,8 @@ export class PoRepService {
             );
           }
 
-          const tokenExponent = Math.pow(10, tokenInfo.decimals);
-          const tokenWindowTotalUSD = result.window_total
+          const tokenExponent = Math.pow(10, tokenInfo.tokenDecimals);
+          const tokenWindowTotalUSD = Decimal(result.window_total.toString())
             .div(tokenExponent)
             .mul(tokenUSDExchangeRate);
 
@@ -490,11 +564,16 @@ export class PoRepService {
   }
 
   public async getDealsValueHistory({
+    providerId = null,
     windowSize = 'day',
-  }: PoRepHistoryParameters): Promise<PoRepDealsValueHistoryEntry[]> {
-    const data = await this.prismaService.$queryRawTyped(
-      getPoRepDealsValueHistory(windowSize, this.isTestnet()),
-    );
+  }: PoRepDealsValueHistoryParameters): Promise<PoRepDealsValueHistoryEntry[]> {
+    const data = await createPoRepDealsValueHistoryQuery(this.queryBuilder, {
+      genesisTimestamp: getFilecoinGenesisTimestamp({
+        testnet: this.isTestnet(),
+      }),
+      providersIds: providerId,
+      windowSize: windowSize,
+    }).execute();
 
     const firstWindow = data.at(0);
 
@@ -502,56 +581,19 @@ export class PoRepService {
       return [];
     }
 
-    const startDate = DateTime.fromJSDate(firstWindow.window_start, {
-      zone: 'UTC',
-    });
-
+    const startDate = DateTime.fromJSDate(firstWindow.window_start);
     const endDate = DateTime.utc().startOf(windowSize);
-    const uniqueTokens = uniq(data.map((item) => item.token_address));
     const entriesCount =
-      endDate.diff(startDate, windowSize)[`${windowSize}s`] + 1;
-
-    interface Token {
-      address: string;
-      symbol: string;
-      decimals: number;
-    }
-
-    const tokenInfoRequests = uniqueTokens.map((tokenAddress) => {
-      return Promise.all([
-        tokenAddress,
-        this.tokenInfoService.getTokenSymbol(tokenAddress),
-        this.tokenInfoService.getTokenDecimals(tokenAddress),
-      ]);
-    });
-
-    const tokenExchangeRateRequests = uniqueTokens.map((tokenAddress) => {
-      return Promise.all([
-        tokenAddress,
-        this.priceOracle.getTokenExchangeRateUSD(tokenAddress),
-      ]);
-    });
-
-    const [tokenInfoResponses, tokenExchangeRateResponses] = await Promise.all([
-      Promise.all(tokenInfoRequests),
-      Promise.all(tokenExchangeRateRequests),
+      Math.ceil(endDate.diff(startDate, windowSize)[`${windowSize}s`]) + 1;
+    const uniqueTokens = uniq(data.map((item) => item.token_address));
+    const [tokensInfo, tokensUSDExchangeRates] = await Promise.all([
+      this.getTokensDetails(uniqueTokens),
+      this.getTokensExchangeRatesUSD(uniqueTokens),
     ]);
-
-    const tokensInfo = tokenInfoResponses.reduce((result, tokenInfo) => {
-      const [address, symbol, decimals] = tokenInfo;
-      return result.set(address, {
-        address: address,
-        symbol: symbol,
-        decimals: decimals,
-      });
-    }, new Map<string, Token>());
-
-    const tokensUSDExchangeRates = new Map(tokenExchangeRateResponses);
 
     const dataByWindow = groupBy(
       data.filter((item) => item.window_start !== null),
-      (item) =>
-        DateTime.fromJSDate(item.window_start, { zone: 'UTC' }).toISODate(),
+      (item) => DateTime.fromJSDate(item.window_start).toISODate(),
     );
 
     return [...new Array(entriesCount)].reduce<PoRepDealsValueHistoryEntry[]>(
@@ -574,8 +616,8 @@ export class PoRepService {
               );
             }
 
-            const tokenExponent = Math.pow(10, tokenInfo.decimals);
-            const tokenWindowTotalUSD = result.window_total
+            const tokenExponent = Math.pow(10, tokenInfo.tokenDecimals);
+            const tokenWindowTotalUSD = Decimal(result.window_total.toString())
               .div(tokenExponent)
               .mul(tokenUSDExchangeRate);
 
@@ -771,5 +813,45 @@ export class PoRepService {
     }
 
     return stringToNumber(input.toString());
+  }
+
+  private async getTokensDetails<T extends string>(
+    tokenAddresses: T[],
+  ): Promise<Map<T, TokenDetails>> {
+    const tokenDetailsRequests = tokenAddresses.map(async (tokenAddress) => {
+      const [tokenSymbol, tokenDecimals] = await Promise.all([
+        this.tokenInfoService.getTokenSymbol(tokenAddress),
+        this.tokenInfoService.getTokenDecimals(tokenAddress),
+      ]);
+
+      return [
+        tokenAddress,
+        {
+          tokenAddress: tokenAddress,
+          tokenSymbol: tokenSymbol,
+          tokenDecimals: tokenDecimals,
+        },
+      ] as const;
+    });
+
+    const tokenDetailsResponses = await Promise.all(tokenDetailsRequests);
+    const tokenDetailsMap = new Map(tokenDetailsResponses);
+    return tokenDetailsMap;
+  }
+
+  private async getTokensExchangeRatesUSD<T extends string>(
+    tokenAddresses: T[],
+  ): Promise<Map<T, number>> {
+    const tokenExchangeRateRequests = tokenAddresses.map((tokenAddress) => {
+      return Promise.all([
+        tokenAddress,
+        this.priceOracle.getTokenExchangeRateUSD(tokenAddress),
+      ]);
+    });
+
+    const tokensExchangeRates = await Promise.all(tokenExchangeRateRequests);
+    const tokensExchangeRateMap = new Map(tokensExchangeRates);
+
+    return tokensExchangeRateMap;
   }
 }
