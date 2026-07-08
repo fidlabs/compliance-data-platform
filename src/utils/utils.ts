@@ -181,6 +181,14 @@ export function safeDiv<FallbackType = undefined>(
   return denominator === 0 ? fallback : numerator / denominator;
 }
 
+export function getFilecoinGenesisTimestamp({
+  testnet = false,
+}: {
+  testnet?: boolean;
+}): number {
+  return testnet ? 1667326380 : 1598306400;
+}
+
 export class F0Id {
   public static from(input: F0Id | string | bigint | number): F0Id {
     if (input instanceof F0Id) {

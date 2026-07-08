@@ -33,7 +33,9 @@ import {
   PoRepDealsValueHistoryEntry,
   PoRepHistoryParameters,
   PoRepOnboardedDataHistoryEntry,
+  PoRepOnboardedDataHistoryParameters,
   PoRepProviderComplianceStatistics,
+  PoRepProviderStorageStatistics,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParameters,
   PoRepSLIType,
@@ -58,7 +60,7 @@ import {
   GetPoRepStatisticsRequest,
   PoRepDashboardStatistic,
   PoRepDashboardStatisticType,
-  PoRepProviderComplianceStatisticsParameters,
+  PoRepProviderResourceParameters,
   PoRepProviderSLIInfo,
   PoRepProvidersListParameters,
   PoRepSLIMeasurment,
@@ -389,9 +391,9 @@ export class PoRepController extends ControllerBase {
   @ApiNotFoundResponse({
     description: 'Error response when provider with given id does not exist.',
   })
-  public async getProviderStatistics(
+  public async getProviderComplianceStatistics(
     @Param(new ValidationPipe())
-    parameters: PoRepProviderComplianceStatisticsParameters,
+    parameters: PoRepProviderResourceParameters,
   ): Promise<PoRepProviderComplianceStatistics> {
     const provider = await this.prismaService.po_rep_storage_provider.findFirst(
       {
@@ -414,6 +416,37 @@ export class PoRepController extends ControllerBase {
     return result;
   }
 
+  @Get('/providers/:providerId/storage-stats')
+  @ApiOperation({
+    summary: 'Get po-rep storage statistics for given provider id.',
+  })
+  @ApiOkResponse({
+    description: 'Po-rep provider storage statistics',
+    type: PoRepProviderStorageStatistics,
+  })
+  @ApiBadRequestResponse({
+    description: 'Error response when invalid provider id is given.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Error response when provider with given id does not exist.',
+  })
+  public async getProviderStorageStatistics(
+    @Param(new ValidationPipe())
+    parameters: PoRepProviderResourceParameters,
+  ): Promise<PoRepProviderStorageStatistics> {
+    const stats = await this.poRepService.getProviderStorageStatistics(
+      parameters.providerId,
+    );
+
+    if (!stats) {
+      throw new NotFoundException(
+        `Po-rep provider with ID "${parameters.providerId}" does not exist.`,
+      );
+    }
+
+    return stats;
+  }
+
   @Get('/deals')
   @UseInterceptors(ClassSerializerInterceptor)
   @ApiOkResponse({
@@ -434,7 +467,7 @@ export class PoRepController extends ControllerBase {
     type: [PoRepOnboardedDataHistoryEntry],
   })
   public async getOnboardedDataHistory(
-    @Query(new ValidationPipe()) query: PoRepHistoryParameters,
+    @Query(new ValidationPipe()) query: PoRepOnboardedDataHistoryParameters,
   ): Promise<PoRepOnboardedDataHistoryEntry[]> {
     return this.poRepService.getOnboardedDataHistory(query);
   }

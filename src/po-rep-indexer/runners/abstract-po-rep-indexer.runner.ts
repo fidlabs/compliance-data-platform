@@ -116,7 +116,12 @@ export abstract class AbstractPoRepIndexerRunner<
 
       this.logger.log(`Found ${logs.length} matching logs`);
 
-      const updates = await this.prepareUpdates(logs);
+      const logsSorted = logs.sort((a, b) => {
+        if (a === b) return 0;
+        return a > b ? 1 : -1;
+      });
+
+      const updates = await this.prepareUpdates(logsSorted);
 
       const operations: PrismaPromise<unknown>[] = [
         ...(versionChanged ? this.prepareCleanup() : []),

@@ -10,16 +10,18 @@ import {
   getFilecoinPaymentsForDealsHistory,
   getPoRepActiveClientsHistory,
   getPoRepDealsValueHistory,
-  getPoRepOnboardedDataHistory,
   getPoRepSLIComplianceHistory,
 } from 'prisma/generated/client/sql';
+import { InjectQueryBuilder, QueryBuilder } from 'src/db';
 import { PrismaService } from 'src/db/prisma.service';
 import { createPoRepDealsQuery } from 'src/db/queries/po-rep-deals.query';
+import { createPoRepOnboardedDataHistoryQuery } from 'src/db/queries/po-rep-onboarded-data-history.query';
 import { PoRepPublicClient, RECENT_NODE_CLIENT } from 'src/po-rep-indexer';
 import {
   dateToFilecoinBlockHeight,
   F0Id,
   filecoinBlockHeightToDate,
+  getFilecoinGenesisTimestamp,
   safeDiv,
   stringToBool,
   stringToNumber,
@@ -39,12 +41,14 @@ import {
   PoRepDealsValueHistoryEntry,
   PoRepHistoryParameters,
   PoRepOnboardedDataHistoryEntry,
+  PoRepOnboardedDataHistoryParameters,
   PoRepProviderComplianceStatistics,
+  PoRepProviderStorageStatistics,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParameters,
   PoRepSLIType,
 } from './types.po-rep';
-import { InjectQueryBuilder, QueryBuilder } from 'src/db';
+import { createPoRepProviderStorageStatisticsQuery } from 'src/db/queries/po-rep-provider-storage-statistics.query';
 
 @Injectable()
 export class PoRepService {
@@ -287,6 +291,28 @@ export class PoRepService {
     };
   }
 
+  public async getProviderStorageStatistics(
+    providerId: F0Id | F0IdInput,
+  ): Promise<PoRepProviderStorageStatistics | null> {
+    const result = await createPoRepProviderStorageStatisticsQuery(
+      this.queryBuilder,
+      { providerId: providerId },
+    ).executeTakeFirst();
+
+    if (!result) {
+      return null;
+    }
+
+    return {
+      totalDealsCount: stringToNumber(result.totalDealsCount.toString()),
+      onboardedDealsCount: stringToNumber(result.onbardedDealsCount.toString()),
+      totalAvailableBytes: BigInt(result.availableBytes),
+      pendingBytes: BigInt(result.pendingBytes),
+      committedBytes: BigInt(result.committedBytes),
+      onboardedBytes: BigInt(result.onboardedBytes),
+    };
+  }
+
   public async getDealsPaymentsSummaryHistory({
     windowSize = 'day',
   }: PoRepHistoryParameters): Promise<PoRepDealsPaymentsHistoryEntry[]> {
@@ -436,11 +462,21 @@ export class PoRepService {
   }
 
   public async getOnboardedDataHistory({
+    providerId,
     windowSize = 'day',
-  }: PoRepHistoryParameters): Promise<PoRepOnboardedDataHistoryEntry[]> {
-    const results = await this.prismaService.$queryRawTyped(
-      getPoRepOnboardedDataHistory(windowSize, this.isTestnet()),
-    );
+  }: PoRepOnboardedDataHistoryParameters): Promise<
+    PoRepOnboardedDataHistoryEntry[]
+  > {
+    const results = await createPoRepOnboardedDataHistoryQuery(
+      this.queryBuilder,
+      {
+        genesisTimestamp: getFilecoinGenesisTimestamp({
+          testnet: this.isTestnet(),
+        }),
+        windowSize: windowSize,
+        providersIds: providerId,
+      },
+    ).execute();
 
     return results.map((result) => {
       return {
@@ -714,8 +750,10 @@ export class PoRepService {
   }
 
   private epochToDate(epoch: bigint | number): Date {
-    const genesisTimestamp = this.isTestnet() ? 1667326380n : 1598306400n;
-    const epochTimestamp = BigInt(epoch) * 30n + genesisTimestamp;
+    const genesisTimestamp = getFilecoinGenesisTimestamp({
+      testnet: this.isTestnet(),
+    });
+    const epochTimestamp = BigInt(epoch) * 30n + BigInt(genesisTimestamp);
 
     // eslint-disable-next-line no-restricted-syntax
     return DateTime.fromSeconds(Number(epochTimestamp), {

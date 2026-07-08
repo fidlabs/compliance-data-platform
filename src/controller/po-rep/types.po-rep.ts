@@ -157,7 +157,7 @@ export class GetPoRepProvidersResponse extends PaginationInfoResponse {
   data: PoRepProviderInfo[];
 }
 
-export class PoRepProviderComplianceStatisticsParameters {
+export class PoRepProviderResourceParameters {
   @ApiProperty({
     description: `Provider ID for which statistic should be returned. Either 
       numerical id or f0 address.`,
