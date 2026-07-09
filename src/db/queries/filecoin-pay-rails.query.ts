@@ -42,7 +42,7 @@ export function createFilecoinPayRailsQuery(qb: QueryBuilder) {
         .coalesce(eb.fn.sum('totalAmount'), eb.lit(0))
         .as('total_amount_settled'),
       eb.fn
-        .coalesce(eb.fn.count<number>('p.id'), eb.lit(0))
+        .coalesce(eb.fn.count<string | number | bigint>('p.id'), eb.lit(0))
         .as('total_settlements_count'),
       eb.fn.max('p.createdAtBlock').as('last_settlement_epoch'),
     ])
