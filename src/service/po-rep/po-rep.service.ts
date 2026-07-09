@@ -159,9 +159,9 @@ export class PoRepService {
         totalSettledValueWei: result.total_amount_settled
           ? BigInt(result.total_amount_settled)
           : null,
-        settlementsCount: stringToNumber(
-          result.total_settlements_count.toString(),
-        ),
+        settlementsCount: result.total_settlements_count
+          ? stringToNumber(result.total_settlements_count.toString())
+          : null,
         lastSettlementAt:
           result.last_settlement_epoch !== null
             ? this.epochToDate(BigInt(result.last_settlement_epoch))
