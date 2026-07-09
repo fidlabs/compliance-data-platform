@@ -88,7 +88,9 @@ export class PoRepService {
     let resultsQuery = baseQuery.selectAll();
 
     if (sort !== null) {
-      resultsQuery = resultsQuery.orderBy(sort, order);
+      resultsQuery = resultsQuery.orderBy(sort, (ob) =>
+        order === 'asc' ? ob.asc().nullsLast() : ob.desc().nullsLast(),
+      );
     }
 
     if (limit) {

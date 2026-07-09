@@ -109,6 +109,7 @@ const dealsAvailableSortingKeys = [
   'predicted_deal_revenue',
   'total_amount_settled',
   'total_settlements_count',
+  'last_settlement_epoch',
   'deal_created_at_epoch',
 ] as const;
 
