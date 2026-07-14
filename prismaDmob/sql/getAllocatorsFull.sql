@@ -3,97 +3,167 @@
 -- @param {String} $3:filter?
 -- @param {String} $4:usingMetaallocatorId?
 
-with "allocator_using_metaallocator" as (select * from "verifier" where "verifier"."isVirtual" = true),
-     "metaallocator" as (select * from "verifier" where "isMetaAllocator" = true)
-select "verifier"."addressId"                                                                                                       as "addressId",
-       "verifier"."address"                                                                                                         as "address",
-       case when "verifier"."auditTrail" = 'n/a' then null else "verifier"."auditTrail" end                                         as "auditTrail",
-       "verifier"."retries"                                                                                                         as "retries",
-       case when "verifier"."name" = 'n/a' then null else nullif(trim("verifier"."name"), '') end                                   as "name",
-       case when "verifier"."orgName" = 'n/a' then null else nullif(trim("verifier"."orgName"), '') end                             as "orgName",
-       "verifier"."removed"                                                                                                         as "removed",
-       "verifier"."initialAllowance"                                                                                                as "initialAllowance",
-       "verifier"."allowance"::text                                                                                                 as "allowance",
-       "verifier"."inffered"                                                                                                        as "inffered",
-       "verifier"."isMultisig"                                                                                                      as "isMultisig",
-       "verifier"."createdAtHeight"                                                                                                 as "createdAtHeight",
-       "verifier"."issueCreateTimestamp"                                                                                            as "issueCreateTimestamp",
-       "verifier"."createMessageTimestamp"                                                                                          as "createMessageTimestamp",
-       "verifier"."allowance"                                                                                                       as "remainingDatacap",
-       (select count(distinct "verified_client"."id")::int from "verified_client"
-                                                           where "verified_client"."verifierAddressId" = "verifier"."addressId")    as "verifiedClientsCount",
-       coalesce(sum("verifier_allowance"."allowance")
-                filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '14 days'))), 0) as "receivedDatacapChange",
-       coalesce(sum("verifier_allowance"."allowance")
-                filter (where "verifier_allowance"."createMessageTimestamp" > extract(epoch from (now() - interval '90 days'))), 0) as "receivedDatacapChange90Days",
-       "verifier"."addressEth"                                                                                                      as "addressEth",
-       case when "verifier"."dcSource" = 'f080' then null else "verifier"."dcSource" end                                            as "dcSource",
-       "verifier"."isVirtual"                                                                                                       as "isVirtual",
-       "verifier"."isMetaAllocator"                                                                                                 as "isMetaAllocator",
-       sum("verifier_allowance"."allowance")
-       filter (where "verifier_allowance"."dcSource" != 'f080'
-                 and upper("verifier_allowance"."dcSource") = upper("metaallocator"."addressEth"))                                  as "receivedDatacapFromMetaallocator",
-       coalesce(
-               jsonb_agg(
-                       distinct jsonb_build_object(
-                       'error', nullif("verifier_allowance"."error", ''),
-                       'height', "verifier_allowance"."height",
-                       'msgCID', "verifier_allowance"."msgCID",
-                       'retries', "verifier_allowance"."retries",
-                       'dcSource', case when "verifier_allowance"."dcSource" = 'f080' then null else "verifier_allowance"."dcSource" end,
-                       'allowance', "verifier_allowance"."allowance"::text,
-                       'isVirtual', "verifier_allowance"."isVirtual",
-                       'auditTrail', case when "verifier_allowance"."auditTrail" = 'n/a' then null else "verifier_allowance"."auditTrail" end,
-                       'auditStatus', "verifier_allowance"."auditStatus",
-                       'issueCreateTimestamp', "verifier_allowance"."issueCreateTimestamp",
-                       'createMessageTimestamp', "verifier_allowance"."createMessageTimestamp"
-                                )
-               ), '[]'::jsonb
-       )                                                                                                                            as "allowanceArray",
-       case when "verifier"."isMetaAllocator" = false then null else coalesce(
-               jsonb_agg(
-                       distinct jsonb_build_object(
-                       'addressId', "allocator_using_metaallocator"."addressId",
-                       'address', "allocator_using_metaallocator"."address",
-                       'dcSource', "allocator_using_metaallocator"."dcSource"
-                                )
-               ) filter (where "allocator_using_metaallocator"."addressId" is not null), '[]'::jsonb
-       ) end                                                                                                                        as "allocatorsUsingMetaallocator",
-       case when "verifier"."isVirtual" = false then null else coalesce(
-               jsonb_agg(
-                       distinct jsonb_build_object(
-                       'addressId', "metaallocator"."addressId",
-                       'addressEth', "metaallocator"."addressEth",
-                       'address', "metaallocator"."address"
-                                )
-               ), '[]'::jsonb
-       ) end                                                                                                                        as "metaallocators",
-       coalesce(
-               (select "auditStatus"
-                from "verifier_allowance"
-                where "verifierId" = "verifier"."id"
-                  and "auditStatus" != 'notAudited'
-                order by "height" desc
-                limit 1),
-               (select "auditStatus"
-                from "verifier_allowance"
-                where "verifierId" = "verifier"."id"
-                order by "height" desc
-                limit 1)
-       )                                                                                                                            as "auditStatus"
-from "verifier"
-         left join "allocator_using_metaallocator"
-                   on upper("verifier"."addressEth") = upper("allocator_using_metaallocator"."dcSource")
-         left join "metaallocator"
-                   on upper("verifier"."dcSource") = upper("metaallocator"."addressEth")
-         left join "verifier_allowance"
-                   on "verifier"."id" = "verifier_allowance"."verifierId"
-         where ($1 or "verifier"."createdAtHeight" > 3698160) -- current fil+ edition start
-         and ("verifier"."isMetaAllocator" = $2 or $2 is null)
-           and ($3 = '' or $3 is null
-             or upper("verifier"."address") = upper($3)
-             or upper("verifier"."addressId") = upper($3)
-             or upper("verifier"."name") like upper('%' || $3 || '%')
-             or upper("verifier"."orgName") like upper('%' || $3 || '%'))
-         and (upper("metaallocator"."addressId") = upper($4) or $4 is null)
-group by "verifier"."id";
+WITH allocator_using_metaallocator AS (
+	SELECT
+		UPPER("dcSource") AS upper_dc_source,
+		JSONB_AGG(
+			JSONB_BUILD_OBJECT(
+				'addressId', "addressId",
+				'address', "address",
+				'dcSource', "dcSource"
+			)
+		) AS allocators_json
+	FROM verifier
+	WHERE "isVirtual" = true
+	GROUP BY 1
+),
+
+metaallocators AS (
+	SELECT
+		UPPER("addressEth") AS upper_address_eth,
+		UPPER("addressId") AS upper_address_id,
+		JSONB_AGG(
+			JSONB_BUILD_OBJECT(
+				'addressId', "addressId",
+				'addressEth', "addressEth",
+				'address', "address"
+			)
+		) AS metaallocators_json
+	FROM verifier
+	WHERE "isMetaAllocator" = true
+	GROUP BY 1, 2
+),
+
+va_aggregated AS (
+	SELECT
+		"verifierId",
+		COALESCE(
+			SUM("allowance") FILTER (
+				WHERE "createMessageTimestamp" > 
+					EXTRACT(EPOCH FROM (NOW() - INTERVAL '14 days'))
+			),
+			0
+		) AS "receivedDatacapChange",
+		COALESCE(
+			SUM("allowance") FILTER (
+				WHERE "createMessageTimestamp" > 
+					EXTRACT(EPOCH FROM (NOW() - INTERVAL '90 days'))
+			),
+			0
+		) AS "receivedDatacapChange90Days",
+		COALESCE(
+            JSONB_AGG(
+                JSONB_BUILD_OBJECT(
+                    'error', NULLIF("error", ''),
+                    'height', "height",
+                    'msgCID', "msgCID",
+                    'retries', "retries",
+                    'dcSource', NULLIF("dcSource", 'f080'),
+                    'allowance', "allowance"::TEXT,
+                    'isVirtual', "isVirtual",
+                    'auditTrail', NULLIF("auditTrail", 'n/a'),
+                    'auditStatus', "auditStatus",
+                    'issueCreateTimestamp', "issueCreateTimestamp",
+                    'createMessageTimestamp', "createMessageTimestamp"
+                )
+            ),
+			'[]'::JSONB
+        ) AS "allowanceArray"
+	FROM verifier_allowance
+	GROUP BY "verifierId"
+),
+
+latest_client_allocations AS (
+	SELECT
+		"verifierAddressId",
+		MAX(height) AS "latestClientAllocationHeight"
+	FROM verified_client_allowance
+	GROUP BY "verifierAddressId"
+)
+
+SELECT
+	v."addressId",
+	v.address,
+	NULLIF(v."auditTrail", 'n/a') AS "auditTrail",
+	v."retries",
+	NULLIF(TRIM(v.name), '') AS "name",
+	NULLIF(TRIM(v."orgName"), '') AS "orgName",
+	v.removed,
+	v."initialAllowance",
+	v.allowance::TEXT AS allowance,
+	v.inffered,
+	v."isMultisig",
+	v."createdAtHeight",
+	v."issueCreateTimestamp",
+	v."createMessageTimestamp",
+	v.allowance AS "remainingDatacap",
+
+	-- Correlated subquery for counting verified clients
+	(
+		SELECT COUNT (DISTINCT vc.id)::INT
+		FROM verified_client vc
+		WHERE vc."verifierAddressId" = v."addressId"
+	) AS "verifiedClientsCount",
+
+	COALESCE(va."receivedDatacapChange", 0) AS "receivedDatacapChange",
+	COALESCE(va."receivedDatacapChange90Days", 0)
+		AS "receivedDatacapChange90Days",
+	v."addressEth",
+	NULLIF(v."dcSource", 'f080') AS "dcSource",
+	v."isVirtual",
+	v."isMetaAllocator",
+
+	(
+		SELECT SUM(va_sub.allowance)
+		FROM verifier_allowance va_sub
+		WHERE va_sub."verifierId" = v.id
+			AND va_sub."dcSource" != 'f080'
+			AND UPPER(va_sub."dcSource") = m.upper_address_eth
+	) AS receivedDatacapFromMetaallocator,
+
+	COALESCE(va."allowanceArray", '[]'::JSONB) AS "allowanceArray",
+	CASE
+		WHEN v."isMetaAllocator" = FALSE THEN NULL
+		ELSE COALESCE(aum.allocators_json, '[]'::JSONB)
+	END AS "allocatorsUsingMetaallocator",
+	CASE
+		WHEN v."isVirtual" = FALSE THEN NULL
+		ELSE COALESCE(m.metaallocators_json, '[]'::JSONB)
+	END AS metaallocators,
+	COALESCE(
+		(
+			SELECT "auditStatus"
+			FROM verifier_allowance
+			WHERE "verifierId" = v.id
+			AND "auditStatus" != 'notAudited'
+			ORDER BY height DESC
+			LIMIT 1
+		),
+		(
+			SELECT "auditStatus"
+			FROM verifier_allowance
+			WHERE "verifierId" = v.id
+			ORDER BY height DESC LIMIT 1
+		)
+	) AS "auditStatus",
+	lca."latestClientAllocationHeight"
+FROM verifier v
+LEFT JOIN allocator_using_metaallocator aum 
+	ON UPPER(v."addressEth") = aum.upper_dc_source
+LEFT JOIN metaallocators m
+	ON UPPER(v."dcSource") = m.upper_address_eth
+LEFT JOIN va_aggregated va
+	ON v.id = va."verifierId"
+LEFT JOIN latest_client_allocations lca
+	ON v."addressId" = lca."verifierAddressId"
+WHERE ($1 OR v."createdAtHeight" > 3698160)
+	AND (v."isMetaAllocator" = $2 OR $2 IS NULL)
+	AND (
+		$3 = ''
+		OR $3 IS NULL
+		OR UPPER(v.address) = UPPER($3)
+		OR UPPER(v."addressId") = UPPER($3)
+		OR UPPER(v.name) LIKE UPPER('%' || $3 || '%')
+		OR UPPER(v."orgName") LIKE UPPER('%' || $3 || '%')
+	)
+	AND (m.upper_address_id = UPPER($4) OR $4 IS NULL);
