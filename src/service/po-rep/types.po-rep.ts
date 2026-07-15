@@ -109,6 +109,7 @@ const dealsAvailableSortingKeys = [
   'predicted_deal_revenue',
   'total_amount_settled',
   'total_settlements_count',
+  'last_settlement_epoch',
   'deal_created_at_epoch',
 ] as const;
 
@@ -662,6 +663,7 @@ export class PoRepOnboardedDataHistoryParameters extends PoRepHistoryParameters 
   @ApiPropertyOptional({
     description: `Optional filter by provider id`,
     required: false,
+    type: 'string',
   })
   @IsF0IdInput()
   @IsOptional()
@@ -700,4 +702,72 @@ export class PoRepProviderStorageStatistics {
       "${PoRepDealState.COMPLETED}") state and with active payment rail)`,
   })
   onboardedBytes: bigint;
+}
+
+export class PoRepProviderEconomicsStatistics {
+  @ApiProperty({
+    description:
+      'Total count of payment rails created for deals with provider.',
+  })
+  totalRailsCount: number;
+
+  @ApiProperty({
+    description: 'Total count of active payment rails.',
+  })
+  activeRailsCount: number;
+
+  @ApiProperty({
+    description: 'Total revenue earned and predicted in USD.',
+  })
+  totalRevenueUSD: number;
+
+  @ApiProperty({
+    description: 'Value locked in ongoing deals, in USD.',
+  })
+  predictedRevenueUSD: number;
+
+  @ApiProperty({
+    description: 'Total net amount settled for all deals in USD',
+  })
+  totalSettledUSD: number;
+
+  @ApiProperty({
+    description:
+      'Date of last settlement on any deal. Null if no settlements were made.',
+    nullable: true,
+  })
+  lastSettlementAt: Date | null;
+}
+
+export class PoRepDealsPaymentsHistoryParameters extends PoRepHistoryParameters {
+  @ApiPropertyOptional({
+    description: `Sum net amounts received by providers instead of total 
+      settlement amounts including commision and network fees. Default is 
+      "true".`,
+    required: false,
+    type: 'boolean',
+  })
+  @IsBooleanString()
+  @IsOptional()
+  netAmounts?: 'true' | 'false';
+
+  @ApiPropertyOptional({
+    description: `Optional filter by provider id`,
+    required: false,
+    type: 'string',
+  })
+  @IsF0IdInput()
+  @IsOptional()
+  providerId?: F0IdInput;
+}
+
+export class PoRepDealsValueHistoryParameters extends PoRepHistoryParameters {
+  @ApiPropertyOptional({
+    description: `Optional filter by provider id`,
+    required: false,
+    type: 'string',
+  })
+  @IsF0IdInput()
+  @IsOptional()
+  providerId?: F0IdInput;
 }

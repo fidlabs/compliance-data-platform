@@ -16,6 +16,7 @@ import {
   ApiOkResponse,
   ApiOperation,
 } from '@nestjs/swagger';
+import { groupBy } from 'lodash';
 import { DateTime } from 'luxon';
 import {
   PoRepDealState,
@@ -30,11 +31,13 @@ import {
   PoRepDealsList,
   PoRepDealsListParameters,
   PoRepDealsPaymentsHistoryEntry,
+  PoRepDealsPaymentsHistoryParameters,
   PoRepDealsValueHistoryEntry,
-  PoRepHistoryParameters,
+  PoRepDealsValueHistoryParameters,
   PoRepOnboardedDataHistoryEntry,
   PoRepOnboardedDataHistoryParameters,
   PoRepProviderComplianceStatistics,
+  PoRepProviderEconomicsStatistics,
   PoRepProviderStorageStatistics,
   PoRepSLIComplianceHistoryEntry,
   PoRepSLIComplianceHistoryParameters,
@@ -65,7 +68,6 @@ import {
   PoRepProvidersListParameters,
   PoRepSLIMeasurment,
 } from './types.po-rep';
-import { groupBy } from 'lodash';
 
 const sliTypesMap: Record<
   PoRepSLIType,
@@ -84,7 +86,7 @@ const dashboardStatisticsTitleDict: Record<
   TOTAL_DEALS_DONE: 'Total Deals Done',
   TOTAL_USD_PAID: 'Total USD Paid Out',
   TOTAL_DATA_ONBOARDED: 'Total Data Onboarded',
-  TOTAL_DEALS_VALUE: 'Predicted ARR',
+  TOTAL_DEALS_VALUE: 'Predicted Revenue',
   ACTIVE_CLIENTS_COUNT: 'Active Clients Count',
 };
 
@@ -97,7 +99,7 @@ const dashboardStatisticsDescriptionDict: Record<
     'Total amount in USD of funds transferred to providers for fulfilling deals',
   TOTAL_DATA_ONBOARDED: 'Total volume of deals data onboarded',
   TOTAL_DEALS_VALUE:
-    'Total USD value locked in accepted deals, assuming they will not be terminated early',
+    'Cumulative Total USD value locked in accepted deals, assuming they will not be terminated early',
   ACTIVE_CLIENTS_COUNT:
     'Number of unique clients with at least one ongoing deal',
 };
@@ -447,6 +449,29 @@ export class PoRepController extends ControllerBase {
     return stats;
   }
 
+  @Get('/providers/:providerId/economics-stats')
+  @ApiOperation({
+    summary: 'Get po-rep economics statistics for given provider id.',
+  })
+  @ApiOkResponse({
+    description: 'Po-rep provider economics statistics',
+    type: PoRepProviderEconomicsStatistics,
+  })
+  @ApiBadRequestResponse({
+    description: 'Error response when invalid provider id is given.',
+  })
+  @ApiNotFoundResponse({
+    description: 'Error response when provider with given id does not exist.',
+  })
+  public getProviderEconomicsStatistics(
+    @Param(new ValidationPipe())
+    parameters: PoRepProviderResourceParameters,
+  ): Promise<PoRepProviderEconomicsStatistics> {
+    return this.poRepService.getProviderEconomicsStatistics(
+      parameters.providerId,
+    );
+  }
+
   @Get('/deals')
   @UseInterceptors(ClassSerializerInterceptor)
   @ApiOkResponse({
@@ -480,7 +505,7 @@ export class PoRepController extends ControllerBase {
     type: [PoRepDealsValueHistoryEntry],
   })
   public async getDealsValueHistory(
-    @Query(new ValidationPipe()) query: PoRepHistoryParameters,
+    @Query(new ValidationPipe()) query: PoRepDealsValueHistoryParameters,
   ): Promise<PoRepDealsValueHistoryEntry[]> {
     return this.poRepService.getDealsValueHistory(query);
   }
@@ -494,7 +519,8 @@ export class PoRepController extends ControllerBase {
     type: [PoRepDealsPaymentsHistoryEntry],
   })
   public async getPaymentsHistory(
-    @Query(new ValidationPipe()) query: PoRepHistoryParameters,
+    @Query(new ValidationPipe())
+    query: PoRepDealsPaymentsHistoryParameters,
   ): Promise<PoRepDealsPaymentsHistoryEntry[]> {
     return this.poRepService.getDealsPaymentsSummaryHistory(query);
   }
