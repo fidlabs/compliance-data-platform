@@ -119,7 +119,7 @@ SELECT
 		WHERE va_sub."verifierId" = v.id
 			AND va_sub."dcSource" != 'f080'
 			AND UPPER(va_sub."dcSource") = m.upper_address_eth
-	) AS receivedDatacapFromMetaallocator,
+	) AS "receivedDatacapFromMetaallocator",
 
 	COALESCE(va."allowanceArray", '[]'::JSONB) AS "allowanceArray",
 	CASE
