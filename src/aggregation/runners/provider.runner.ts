@@ -28,8 +28,10 @@ export class ProviderRunner implements AggregationRunner {
       ProviderRunner.name,
     );
 
-    await prismaService.$executeRaw`delete from provider;`;
-    await prismaService.provider.createMany({ data: result });
+    await prismaService.$transaction([
+      prismaService.$executeRaw`DELETE FROM "provider"`,
+      prismaService.provider.createMany({ data: result }),
+    ]);
 
     storeDataEndTimerMetric();
   }
