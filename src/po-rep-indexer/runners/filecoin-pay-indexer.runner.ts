@@ -144,10 +144,10 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
 
         return {
           railId: railId,
-          totalAmount: totalAmount,
-          netPayeeAmount: netPayeeAmount,
-          networkFee: networkFee,
-          operatorCommission: operatorCommission,
+          totalAmount: totalAmount.toString(),
+          netPayeeAmount: netPayeeAmount.toString(),
+          networkFee: networkFee.toString(),
+          operatorCommission: operatorCommission.toString(),
           oneTime: true,
           createdAtBlock: log.blockNumber,
         };
@@ -166,10 +166,10 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
 
         return {
           railId: railId,
-          totalAmount: totalSettledAmount,
-          netPayeeAmount: totalNetPayeeAmount,
-          networkFee: networkFee,
-          operatorCommission: operatorCommission,
+          totalAmount: totalSettledAmount.toString(),
+          netPayeeAmount: totalNetPayeeAmount.toString(),
+          networkFee: networkFee.toString(),
+          operatorCommission: operatorCommission.toString(),
           oneTime: false,
           createdAtBlock: log.blockNumber,
         };
@@ -191,12 +191,12 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
         return {
           ...previousUpdateInput,
           lockupPeriod: log.args.newLockupPeriod,
-          lockupFixed: log.args.newLockupFixed,
+          lockupFixed: log.args.newLockupFixed.toString(),
         };
       case 'RailRateModified':
         return {
           ...previousUpdateInput,
-          paymentRate: log.args.newRate,
+          paymentRate: log.args.newRate.toString(),
           ...(log.args.oldRate === 0n && log.args.newRate > 0n
             ? {
                 activatedAtBlock: log.blockNumber,
@@ -226,10 +226,11 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
         return {
           ...previousUpdateInput,
           lockupFixed: {
-            decrement:
+            decrement: (
               log.args.netPayeeAmount +
               log.args.networkFee +
-              log.args.operatorCommission,
+              log.args.operatorCommission
+            ).toString(),
           },
         };
       default:

@@ -294,7 +294,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
           return {
             deal_id: dealId,
             deal_size_bytes: terms.dealSizeBytes,
-            price_per_sector_per_month: terms.pricePerSectorPerMonth,
+            price_per_sector_per_month: terms.pricePerSectorPerMonth.toString(),
             duration_days: terms.durationDays,
           };
         }),
@@ -414,7 +414,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       case 'PriceUpdated':
         return {
           ...previousUpdateInput,
-          pricePerSectorPerMonth: log.args.newPrice,
+          pricePerSectorPerMonth: log.args.newPrice.toString(),
         };
       case 'PendingCapacityReserved':
         return {
