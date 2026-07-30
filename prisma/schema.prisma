@@ -717,7 +717,7 @@ model po_rep_storage_provider {
   availableBytes         BigInt                                @default(0)
   committedBytes         BigInt                                @default(0)
   pendingBytes           BigInt                                @default(0)
-  pricePerSectorPerMonth BigInt                                @default(0)
+  pricePerSectorPerMonth Decimal                               @db.Decimal(78, 0) @default(0)
   minDealDurationDays    Int                                   @default(0)
   maxDealDurationDays    Int                                   @default(0)
   registeredAtBlock      BigInt
@@ -761,7 +761,7 @@ model po_rep_deal_requirements {
 model po_rep_deal_terms {
   deal_id                    BigInt      @id
   deal_size_bytes            BigInt
-  price_per_sector_per_month BigInt
+  price_per_sector_per_month Decimal     @db.Decimal(78, 0)
   duration_days              BigInt
   deal                       po_rep_deal @relation(fields: [deal_id], references: [dealId])
 }
@@ -783,9 +783,9 @@ model filecoin_pay_rail {
   to                  String
   operator            String
   validator           String
-  paymentRate         BigInt  @default(0)
+  paymentRate         Decimal @db.Decimal(78, 0) @default(0)
   lockupPeriod        BigInt  @default(0)
-  lockupFixed         BigInt  @default(0)
+  lockupFixed         Decimal @db.Decimal(78, 0) @default(0)
   settledUpTo         BigInt
   endEpoch            BigInt  @default(0) // 0 means rail is not terminated
   commissionRateBps   Int
@@ -804,10 +804,10 @@ model filecoin_pay_payment {
   // which no entry exists in "filecoin_pay_rail" table because creation event
   // happened on lower block height that the one we index from.
   railId             BigInt
-  totalAmount        BigInt
-  netPayeeAmount     BigInt
-  operatorCommission BigInt
-  networkFee         BigInt
+  totalAmount        Decimal @db.Decimal(78, 0)
+  netPayeeAmount     Decimal @db.Decimal(78, 0)
+  operatorCommission Decimal @db.Decimal(78, 0)
+  networkFee         Decimal @db.Decimal(78, 0)
   createdAtBlock     BigInt
   oneTime            Boolean
 
