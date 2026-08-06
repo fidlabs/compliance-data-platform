@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install semver
         run: npm install semver
@@ -102,7 +102,7 @@ jobs:
     if: ${{ github.ref_name == 'main' && inputs.version != '' && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.bump-version.outputs.commit_sha }}
 
