@@ -10,7 +10,12 @@ import {
 } from 'class-validator';
 import { PoRepDealState } from 'prisma/generated/client';
 import { F0Id } from 'src/utils/utils';
-import { F0IdInput, IsBigIntLike, IsF0IdInput } from 'src/utils/validators';
+import {
+  F0IdInput,
+  IsBigIntLike,
+  IsCID,
+  IsF0IdInput,
+} from 'src/utils/validators';
 
 export type PoRepSLIType = (typeof poRepSLITypes)[number];
 
@@ -115,8 +120,7 @@ const dealsAvailableSortingKeys = [
 
 export class PoRepDealsListParameters extends PaginationParameters {
   @ApiPropertyOptional({
-    description:
-      'Optional filter by storage provider id, if provided then only deals of that provider will be returned',
+    description: 'Optional filter by storage provider ID.',
     type: 'string',
     required: false,
   })
@@ -126,13 +130,22 @@ export class PoRepDealsListParameters extends PaginationParameters {
 
   @ApiPropertyOptional({
     description:
-      'Optional filter by deal rail state, if not provided all deals will be returned',
+      'Optional filter by deal rail state, if provided only deals with rail created and given rail state will be returned.',
     enum: DealRailState,
     required: false,
   })
   @IsOptional()
   @IsEnum(DealRailState)
   railState?: DealRailState;
+
+  @ApiPropertyOptional({
+    description:
+      'Optional filter by piece CID, if provided only deals including that piece will be returned.',
+    required: false,
+  })
+  @IsOptional()
+  @IsCID()
+  pieceCid?: string;
 
   @ApiPropertyOptional({
     description: `Set to true to show active deals only. Deal is considered 

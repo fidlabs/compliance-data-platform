@@ -717,7 +717,7 @@ model po_rep_storage_provider {
   availableBytes         BigInt                                @default(0)
   committedBytes         BigInt                                @default(0)
   pendingBytes           BigInt                                @default(0)
-  pricePerSectorPerMonth Decimal                               @db.Decimal(78, 0) @default(0)
+  pricePerSectorPerMonth Decimal                               @default(0) @db.Decimal(78, 0)
   minDealDurationDays    Int                                   @default(0)
   maxDealDurationDays    Int                                   @default(0)
   registeredAtBlock      BigInt
@@ -776,6 +776,19 @@ model po_rep_deal_state_change {
   @@index([deal_id, state, changed_at_block(sort: Desc)])
 }
 
+model po_rep_deal_manifest_cache {
+  deal_id           BigInt @id
+  manifest_location String
+  manifest_content  Json
+}
+
+model po_rep_deal_pieces {
+  deal_id   BigInt
+  piece_cid String
+
+  @@id([deal_id, piece_cid])
+}
+
 model filecoin_pay_rail {
   railId              BigInt  @id
   token               String
@@ -783,9 +796,9 @@ model filecoin_pay_rail {
   to                  String
   operator            String
   validator           String
-  paymentRate         Decimal @db.Decimal(78, 0) @default(0)
+  paymentRate         Decimal @default(0) @db.Decimal(78, 0)
   lockupPeriod        BigInt  @default(0)
-  lockupFixed         Decimal @db.Decimal(78, 0) @default(0)
+  lockupFixed         Decimal @default(0) @db.Decimal(78, 0)
   settledUpTo         BigInt
   endEpoch            BigInt  @default(0) // 0 means rail is not terminated
   commissionRateBps   Int

@@ -73,17 +73,45 @@ export class PoRepService {
   public async getDeals({
     providerId = null,
     railState = null,
+    pieceCid = null,
     activeOnly,
     sort = 'deal_id',
     order = 'asc',
     limit = 0,
     page = 1,
   }: PoRepDealsListParameters): Promise<PoRepDealsList> {
-    const baseQuery = createPoRepDealsQuery(this.queryBuilder, {
+    let baseQuery = createPoRepDealsQuery(this.queryBuilder, {
       providersIds: providerId,
       railStates: railState,
       activeOnly: Boolean(stringToBool(activeOnly)),
     });
+
+    if (pieceCid !== null) {
+      const matchedDeals = await this.prismaService.po_rep_deal_pieces.findMany(
+        {
+          select: {
+            deal_id: true,
+          },
+          where: {
+            piece_cid: pieceCid,
+          },
+        },
+      );
+
+      if (matchedDeals.length === 0) {
+        return {
+          data: [],
+          pagination: {
+            page: 1,
+            pagesCount: 1,
+            totalCount: 0,
+          },
+        };
+      }
+
+      const dealsIds = matchedDeals.map((i) => i.deal_id.toString());
+      baseQuery = baseQuery.where('deal_id', 'in', dealsIds);
+    }
 
     let resultsQuery = baseQuery.selectAll();
 
@@ -98,7 +126,7 @@ export class PoRepService {
     }
 
     const countQuery = baseQuery.select((eb) => [
-      eb.fn.count('deal_data.deal_id').as('count'),
+      eb.fn.coalesce(eb.fn.count('deal_data.deal_id'), eb.val(0)).as('count'),
     ]);
 
     const [results, countResult] = await Promise.all([
