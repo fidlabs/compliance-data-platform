@@ -113,6 +113,7 @@ model client_allocator_distribution_weekly {
   sum_of_allocations BigInt
 
   @@id([week, client, allocator])
+  @@index([allocator, week])
 }
 
 model cid_sharing {
@@ -134,6 +135,8 @@ model unified_verified_deal_hourly {
   total_ddo_deal_size BigInt   @default(0)
 
   @@id([hour, client, provider])
+  @@index([client, hour])
+  @@index([client, provider, hour(sort: Desc)])
 }
 
 model client_provider_distribution_weekly {
@@ -323,6 +326,8 @@ model client_report_storage_provider_distribution {
   inconsistent_retrievability            Float?
   ttfb                                   Float?
   bandwidth                              Float?
+
+  @@index([client_report_id])
 }
 
 model client_report_storage_provider_distribution_location {
@@ -348,6 +353,8 @@ model client_report_replica_distribution {
   total_deal_size  BigInt
   unique_data_size BigInt
   percentage       Float
+
+  @@index([client_report_id])
 }
 
 model client_report_cid_sharing {
@@ -395,6 +402,8 @@ model allocator_report {
   check_results                              allocator_report_check_result[]
   scoring_results                            allocator_report_scoring_result[]
   all_allocators_score_avg                   Float?
+
+  @@index([allocator, create_date])
 }
 
 model allocator_report_client {
@@ -426,6 +435,8 @@ model allocator_report_client_replica_distribution {
   percentage                Float
   allocator_report_client   allocator_report_client? @relation(fields: [allocator_report_clientId], references: [id])
   allocator_report_clientId String?                  @db.Uuid
+
+  @@index([allocator_report_clientId])
 }
 
 model allocator_report_client_cid_sharing {
@@ -445,6 +456,8 @@ model allocator_report_client_allocation {
   client_id           String
   allocation          BigInt
   timestamp           DateTime
+
+  @@index([allocator_report_id, client_id, timestamp])
 }
 
 model allocator_report_storage_provider_distribution {
@@ -466,6 +479,8 @@ model allocator_report_storage_provider_distribution {
   inconsistent_retrievability            Float?
   ttfb                                   Float?
   bandwidth                              Float?
+
+  @@index([allocator_report_id])
 }
 
 model allocator_report_storage_provider_distribution_location {
@@ -495,6 +510,8 @@ model allocator_report_check_result {
   metadata            Json?
 
   @@unique([check, allocator_report_id])
+  @@index([allocator_report_id])
+  @@index([create_date, allocator_report_id])
 }
 
 model allocator_report_scoring_result {
