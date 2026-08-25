@@ -4,12 +4,13 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { DateTime } from 'luxon';
 import { PrismaPromise } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
-import { AbiEvent, Address, GetLogsReturnType } from 'viem';
+import { AbiEvent, Address, GetLogsReturnType, Log } from 'viem';
 import {
   ARCHIVE_NODE_CLIENT,
   RECENT_NODE_CLIENT,
 } from '../po-rep-indexer.constants';
 import { PoRepConfig, PoRepPublicClient } from '../po-rep-indexer.types';
+import { DealManifestService } from '../deal-manifest.service';
 
 @Injectable()
 export abstract class AbstractPoRepIndexerRunner<
@@ -52,6 +53,7 @@ export abstract class AbstractPoRepIndexerRunner<
     protected readonly recentNodeClient: PoRepPublicClient,
     @Inject(ARCHIVE_NODE_CLIENT)
     protected readonly archiveNodeClient: PoRepPublicClient,
+    protected readonly dealManifestService: DealManifestService,
   ) {
     this.logger = new Logger(this.getName());
   }
@@ -116,11 +118,7 @@ export abstract class AbstractPoRepIndexerRunner<
 
       this.logger.log(`Found ${logs.length} matching logs`);
 
-      const logsSorted = logs.sort((a, b) => {
-        if (a === b) return 0;
-        return a > b ? 1 : -1;
-      });
-
+      const logsSorted = this.sortLogs(logs);
       const updates = await this.prepareUpdates(logsSorted);
 
       const operations: PrismaPromise<unknown>[] = [
@@ -161,5 +159,31 @@ export abstract class AbstractPoRepIndexerRunner<
 
   protected getArchiveNodeThreshold(): bigint {
     return 1920n;
+  }
+
+  protected sortLogs<T extends Log>(logs: T[]): T[] {
+    return [...logs].sort((a, b) => {
+      if (a.blockNumber === b.blockNumber) {
+        if (a.logIndex === null) {
+          return -1;
+        }
+
+        if (b.logIndex === null) {
+          return 1;
+        }
+
+        return a.logIndex - b.logIndex;
+      }
+
+      if (a.blockNumber === null) {
+        return -1;
+      }
+
+      if (b.blockNumber === null) {
+        return 1;
+      }
+
+      return a.blockNumber > b.blockNumber ? 1 : -1;
+    });
   }
 }

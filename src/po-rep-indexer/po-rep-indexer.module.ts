@@ -17,6 +17,7 @@ import {
 import { AbstractPoRepIndexerRunner } from './runners/abstract-po-rep-indexer.runner';
 import { FilecoinPayIndexerRunner } from './runners/filecoin-pay-indexer.runner';
 import { PoRepProvidersAndDealsIndexerRunner } from './runners/po-rep-providers-and-deals.runner';
+import { DealManifestService } from './deal-manifest.service';
 
 const recentNodeClient: FactoryProvider<PoRepPublicClient> = {
   provide: RECENT_NODE_CLIENT,
@@ -55,13 +56,17 @@ const archiveNodeClient: FactoryProvider<PoRepPublicClient> = {
     FilecoinPayIndexerRunner,
     recentNodeClient,
     archiveNodeClient,
+    DealManifestService,
   ],
   exports: [recentNodeClient, archiveNodeClient],
 })
 export class PoRepIndexerModule implements OnModuleInit {
-  constructor(private readonly discoveryService: DiscoveryService) {}
+  constructor(
+    private readonly discoveryService: DiscoveryService,
+    private readonly dealManifestService: DealManifestService,
+  ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     const providers = this.discoveryService.getProviders();
     const indexerRunnersDuplicateNames = providers
       .map((provider) => {
@@ -82,5 +87,7 @@ export class PoRepIndexerModule implements OnModuleInit {
         `Multiple PoRep indexer runners with same names found: ${indexerRunnersDuplicateNames.join(', ')}`,
       );
     }
+
+    await this.dealManifestService.seedMissingManifests();
   }
 }

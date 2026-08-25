@@ -5,6 +5,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
+import { CID } from 'multiformats/cid';
 import { F0Id } from './utils';
 
 // Big Int
@@ -85,6 +86,44 @@ export function IsF0IdInput(validationOptions?: ValidationOptions) {
       },
       constraints: [],
       validator: IsF0IdInputConstraint,
+    });
+  };
+}
+
+// CID
+export function isCID(input: unknown): input is string {
+  if (typeof input !== 'string') {
+    return false;
+  }
+
+  try {
+    CID.parse(input);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+@ValidatorConstraint()
+export class IsCIDConstraint implements ValidatorConstraintInterface {
+  validate(value: any, _validationArguments: ValidationArguments): boolean {
+    return isCID(value);
+  }
+}
+
+export function IsCID(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName: propertyName,
+      options: {
+        message: function (validationArguments) {
+          return `${String(validationArguments.value)} is not valid CID`;
+        },
+        ...validationOptions,
+      },
+      constraints: [],
+      validator: IsCIDConstraint,
     });
   };
 }

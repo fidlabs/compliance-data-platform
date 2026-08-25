@@ -10,6 +10,10 @@ import {
 } from 'viem';
 import PoRepMarketABI from '../abis/po-rep-market.abi';
 import SPRegistryABI from '../abis/sp-registry.abi';
+import {
+  DealManifestResult,
+  DealManifestSuccessResult,
+} from '../po-rep-indexer.types';
 import { AbstractPoRepIndexerRunner } from './abstract-po-rep-indexer.runner';
 
 type EventType = (typeof events)[number];
@@ -84,7 +88,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
   }
 
   protected getVersion(): number {
-    return 2;
+    return 3;
   }
 
   protected getBatchBlockSize(): bigint {
@@ -110,22 +114,76 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       this.prismaService.po_rep_deal.deleteMany(),
       this.prismaService.po_rep_storage_provider_capabilities.deleteMany(),
       this.prismaService.po_rep_storage_provider.deleteMany(),
+      this.prismaService.po_rep_deal_pieces.deleteMany(),
     ];
   }
 
   protected async prepareUpdates(
     logs: Logs,
   ): Promise<PrismaPromise<unknown>[]> {
+    const manifestRequests = logs
+      .filter((log) => {
+        return isAddressEqual(
+          log.address,
+          this.configService.get('PO_REP_MARKET_CONTRACT_ADDRESS'),
+        );
+      })
+      .filter((log) => {
+        return log.eventName === 'DealProposalCreated';
+      })
+      .map((log) => {
+        return this.dealManifestService.readDealManifest(
+          log.args.dealId,
+          log.args.manifestLocation,
+        );
+      });
+
+    const manifestResponses = await Promise.all(manifestRequests);
+
+    manifestResponses.forEach((response) => {
+      if (!response.success) {
+        this.logger.warn(
+          `Could not read manifest for deal ${response.dealId} at "${response.manifestLocation}" - skipping: ${String(response.error)}`,
+        );
+      }
+    });
+
+    const manifestResults = manifestResponses.filter(
+      (response): response is DealManifestSuccessResult => response.success,
+    );
     const dealsCreations = await this.prepareDealsCreations(logs);
 
     return [
+      ...this.prepareDealManifestCacheCreations(manifestResults),
       ...this.prepareProvidersCreations(logs),
       ...this.prepareProvidersUpdates(logs),
       ...this.prepareProvidersCapabilitiesUpdates(logs),
       ...dealsCreations,
+      ...this.prepareDealPiecesCreations(manifestResults),
       ...this.prepareDealsUpdates(logs),
       ...this.prepareDealStateChangeCreations(logs),
     ];
+  }
+
+  private prepareDealManifestCacheCreations(
+    results: DealManifestSuccessResult[],
+  ): PrismaPromise<unknown>[] {
+    const uncachedResults = results.filter((result) => !result.data.cached);
+
+    if (uncachedResults.length === 0) {
+      return [];
+    }
+
+    const batchInsert =
+      this.prismaService.po_rep_deal_manifest_cache.createMany({
+        data: uncachedResults.map((result) => ({
+          deal_id: result.dealId,
+          manifest_location: result.manifestLocation,
+          manifest_content: result.data.manifestContent,
+        })),
+      });
+
+    return [batchInsert];
   }
 
   private prepareProvidersCreations(logs: Logs): PrismaPromise<unknown>[] {
@@ -298,6 +356,34 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
             duration_days: terms.durationDays,
           };
         }),
+      }),
+    ];
+  }
+
+  private prepareDealPiecesCreations(
+    results: DealManifestResult[],
+  ): PrismaPromise<unknown>[] {
+    if (results.length === 0) {
+      return [];
+    }
+
+    const createInputs = results.flatMap((result) => {
+      const pieces = this.dealManifestService.extractDealManifestPieces(
+        result.data.manifestContent,
+      );
+
+      return pieces.map((piece) => {
+        return {
+          deal_id: result.dealId,
+          piece_cid: piece.pieceCid,
+        } satisfies Prisma.po_rep_deal_piecesCreateManyInput;
+      });
+    });
+
+    return [
+      this.prismaService.po_rep_deal_pieces.createMany({
+        data: createInputs,
+        skipDuplicates: true,
       }),
     ];
   }
