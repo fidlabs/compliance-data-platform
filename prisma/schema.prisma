@@ -723,6 +723,7 @@ model po_rep_storage_provider {
   registeredAtBlock      BigInt
   capabilities           po_rep_storage_provider_capabilities?
   deals                  po_rep_deal[]
+  offers                 po_rep_offer[]
 }
 
 model po_rep_storage_provider_capabilities {
@@ -732,6 +733,33 @@ model po_rep_storage_provider_capabilities {
   latencyMs         Int                     @default(0)
   indexingPct       Int                     @default(0)
   provider          po_rep_storage_provider @relation(fields: [providerId], references: [providerId])
+}
+
+model po_rep_offer {
+  offerId                 BigInt                  @id
+  providerId              BigInt
+  active                  Boolean                 @default(true)
+  minSizeBytes            BigInt
+  maxSizeBytes            BigInt
+  minDurationEpochs       BigInt
+  maxDurationEpochs       BigInt
+  retrievabilityBps       Int                     @default(0)
+  bandwidthBytesPerSecond BigInt                  @default(0)
+  latencyMs               Int                     @default(0)
+  indexingPct             Int                     @default(0)
+  createdAtBlock          BigInt
+  provider                po_rep_storage_provider @relation(fields: [providerId], references: [providerId])
+  payments                po_rep_offer_payment[]
+}
+
+model po_rep_offer_payment {
+  offerId               BigInt
+  token                 String
+  active                Boolean      @default(true)
+  pricePer32GiBPerMonth Decimal      @db.Decimal(78, 0)
+  offer                 po_rep_offer @relation(fields: [offerId], references: [offerId])
+
+  @@id([offerId, token])
 }
 
 model po_rep_deal {
@@ -750,12 +778,12 @@ model po_rep_deal {
 }
 
 model po_rep_deal_requirements {
-  dealId            BigInt      @id
-  retrievabilityBps Int
-  bandwidthMbps     Int
-  latencyMs         Int
-  indexingPct       Int
-  deal              po_rep_deal @relation(fields: [dealId], references: [dealId])
+  dealId                  BigInt      @id
+  retrievabilityBps       Int
+  bandwidthBytesPerSecond BigInt
+  latencyMs               Int
+  indexingPct             Int
+  deal                    po_rep_deal @relation(fields: [dealId], references: [dealId])
 }
 
 model po_rep_deal_terms {
@@ -817,9 +845,11 @@ model filecoin_pay_payment {
 enum PoRepDealState {
   PROPOSED
   ACCEPTED
-  COMPLETED
+  ACTIVE
+  FINALIZED
   REJECTED
-  TERMINATED
+  EXPIRED
+  EARLY_TERMINATED
 }
 
 enum AllocatorScoringMetric {

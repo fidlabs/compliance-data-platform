@@ -57,7 +57,7 @@ export abstract class AbstractPoRepIndexerRunner<
   }
 
   // Run every hour by default. Override it with different decorator to change.
-  @Cron(CronExpression.EVERY_HOUR)
+  // @Cron(CronExpression.EVERY_HOUR)
   public async execute() {
     this.logger.log('Starting indexing');
 

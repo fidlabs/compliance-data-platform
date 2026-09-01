@@ -34,20 +34,7 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
-    name: 'MAX_DEAL_DURATION_DAYS',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'uint32',
-        internalType: 'uint32',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'MAX_PROVIDERS',
+    name: 'MATCH_PRICE_BAND_BPS',
     inputs: [],
     outputs: [
       {
@@ -60,7 +47,33 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
-    name: 'MAX_TOLERANCE_BPS',
+    name: 'MAX_ACTIVE_OFFERS_PER_PROVIDER',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'MAX_BPS',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'MAX_PROVIDERS',
     inputs: [],
     outputs: [
       {
@@ -148,44 +161,44 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
-    name: 'getCommittedProviders',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'uint64[]',
-        internalType: 'CommonTypes.FilActorId[]',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getPayee',
+    name: 'createOffer',
     inputs: [
       {
         name: 'provider',
         type: 'uint64',
         internalType: 'CommonTypes.FilActorId',
       },
-    ],
-    outputs: [
       {
-        name: '',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getProviderForDeal',
-    inputs: [
-      {
-        name: 'requirements',
+        name: 'terms',
         type: 'tuple',
-        internalType: 'struct SLITypes.SLIThresholds',
+        internalType: 'struct SharedTypes.OfferTerms',
+        components: [
+          {
+            name: 'minSizeBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxSizeBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'minDurationEpochs',
+            type: 'uint64',
+            internalType: 'uint64',
+          },
+          {
+            name: 'maxDurationEpochs',
+            type: 'uint64',
+            internalType: 'uint64',
+          },
+        ],
+      },
+      {
+        name: 'slis',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.SLIThresholds',
         components: [
           {
             name: 'retrievabilityBps',
@@ -193,9 +206,9 @@ const SPRegistryABI = [
             internalType: 'uint16',
           },
           {
-            name: 'bandwidthMbps',
-            type: 'uint16',
-            internalType: 'uint16',
+            name: 'bandwidthBytesPerSecond',
+            type: 'uint64',
+            internalType: 'uint64',
           },
           {
             name: 'latencyMs',
@@ -210,50 +223,152 @@ const SPRegistryABI = [
         ],
       },
       {
-        name: 'terms',
-        type: 'tuple',
-        internalType: 'struct SLITypes.DealTerms',
+        name: 'payments',
+        type: 'tuple[]',
+        internalType: 'struct SharedTypes.OfferPaymentInput[]',
         components: [
           {
-            name: 'dealSizeBytes',
-            type: 'uint256',
-            internalType: 'uint256',
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            name: 'pricePerSectorPerMonth',
-            type: 'uint256',
-            internalType: 'uint256',
+            name: 'active',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            name: 'durationDays',
-            type: 'uint32',
-            internalType: 'uint32',
+            name: 'pricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
           },
         ],
       },
     ],
     outputs: [
       {
-        name: '',
-        type: 'uint64',
-        internalType: 'CommonTypes.FilActorId',
-      },
-      {
-        name: '',
-        type: 'bool',
-        internalType: 'bool',
-      },
-      {
-        name: '',
-        type: 'address',
-        internalType: 'address',
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
       },
     ],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    name: 'getProviderInfo',
+    name: 'getOfferView',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    outputs: [
+      {
+        name: 'view_',
+        type: 'tuple',
+        internalType: 'struct ISPRegistry.OfferView',
+        components: [
+          {
+            name: 'offerId',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'provider',
+            type: 'uint64',
+            internalType: 'CommonTypes.FilActorId',
+          },
+          {
+            name: 'active',
+            type: 'bool',
+            internalType: 'bool',
+          },
+          {
+            name: 'terms',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.OfferTerms',
+            components: [
+              {
+                name: 'minSizeBytes',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'maxSizeBytes',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'minDurationEpochs',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'maxDurationEpochs',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+          {
+            name: 'slis',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+          {
+            name: 'payments',
+            type: 'tuple[]',
+            internalType: 'struct ISPRegistry.OfferPaymentView[]',
+            components: [
+              {
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
+              },
+              {
+                name: 'active',
+                type: 'bool',
+                internalType: 'bool',
+              },
+              {
+                name: 'pricePer32GiBPerMonth',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getOffersByProvider',
     inputs: [
       {
         name: 'provider',
@@ -263,10 +378,78 @@ const SPRegistryABI = [
     ],
     outputs: [
       {
-        name: 'info',
+        name: 'offerIds',
+        type: 'uint256[]',
+        internalType: 'uint256[]',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getPaymentTokenConfig',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: 'config',
         type: 'tuple',
-        internalType: 'struct ISPRegistry.ProviderInfo',
+        internalType: 'struct ISPRegistry.TokenConfig',
         components: [
+          {
+            name: 'allowed',
+            type: 'bool',
+            internalType: 'bool',
+          },
+          {
+            name: 'minPricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getPaymentTokens',
+    inputs: [],
+    outputs: [
+      {
+        name: 'tokens',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getProviderView',
+    inputs: [
+      {
+        name: 'provider',
+        type: 'uint64',
+        internalType: 'CommonTypes.FilActorId',
+      },
+    ],
+    outputs: [
+      {
+        name: 'view_',
+        type: 'tuple',
+        internalType: 'struct ISPRegistry.ProviderView',
+        components: [
+          {
+            name: 'provider',
+            type: 'uint64',
+            internalType: 'CommonTypes.FilActorId',
+          },
           {
             name: 'organization',
             type: 'address',
@@ -288,33 +471,6 @@ const SPRegistryABI = [
             internalType: 'bool',
           },
           {
-            name: 'capabilities',
-            type: 'tuple',
-            internalType: 'struct SLITypes.SLIThresholds',
-            components: [
-              {
-                name: 'retrievabilityBps',
-                type: 'uint16',
-                internalType: 'uint16',
-              },
-              {
-                name: 'bandwidthMbps',
-                type: 'uint16',
-                internalType: 'uint16',
-              },
-              {
-                name: 'latencyMs',
-                type: 'uint16',
-                internalType: 'uint16',
-              },
-              {
-                name: 'indexingPct',
-                type: 'uint8',
-                internalType: 'uint8',
-              },
-            ],
-          },
-          {
             name: 'availableBytes',
             type: 'uint256',
             internalType: 'uint256',
@@ -329,21 +485,6 @@ const SPRegistryABI = [
             type: 'uint256',
             internalType: 'uint256',
           },
-          {
-            name: 'pricePerSectorPerMonth',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'minDealDurationDays',
-            type: 'uint32',
-            internalType: 'uint32',
-          },
-          {
-            name: 'maxDealDurationDays',
-            type: 'uint32',
-            internalType: 'uint32',
-          },
         ],
       },
     ],
@@ -353,25 +494,6 @@ const SPRegistryABI = [
     type: 'function',
     name: 'getProviders',
     inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'uint64[]',
-        internalType: 'CommonTypes.FilActorId[]',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getProvidersByOrganization',
-    inputs: [
-      {
-        name: 'organization',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
     outputs: [
       {
         name: '',
@@ -396,19 +518,6 @@ const SPRegistryABI = [
         name: '',
         type: 'bytes32',
         internalType: 'bytes32',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'getToleranceBps',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'uint256',
-        internalType: 'uint256',
       },
     ],
     stateMutability: 'view',
@@ -507,6 +616,30 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
+    name: 'isManifestAssignedToOrganization',
+    inputs: [
+      {
+        name: 'manifestHash',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+      {
+        name: 'organization',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'isProviderRegistered',
     inputs: [
       {
@@ -539,6 +672,300 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
+    name: 'previewOfferForDeal',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'request',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.DealRequest',
+        components: [
+          {
+            name: 'manifestHash',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'requestedSizeBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'manifestLocation',
+            type: 'string',
+            internalType: 'string',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'durationDays',
+            type: 'uint32',
+            internalType: 'uint32',
+          },
+          {
+            name: 'dealType',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'requiredSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: 'selection',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.ProviderDealSelection',
+        components: [
+          {
+            name: 'provider',
+            type: 'uint64',
+            internalType: 'CommonTypes.FilActorId',
+          },
+          {
+            name: 'offerId',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'payee',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'pricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'promisedSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+          {
+            name: 'reservedBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+      {
+        name: 'reason',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'previewProviderForDeal',
+    inputs: [
+      {
+        name: 'request',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.DealRequest',
+        components: [
+          {
+            name: 'manifestHash',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'requestedSizeBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'manifestLocation',
+            type: 'string',
+            internalType: 'string',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'durationDays',
+            type: 'uint32',
+            internalType: 'uint32',
+          },
+          {
+            name: 'dealType',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'requiredSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: 'selection',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.ProviderDealSelection',
+        components: [
+          {
+            name: 'provider',
+            type: 'uint64',
+            internalType: 'CommonTypes.FilActorId',
+          },
+          {
+            name: 'offerId',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'payee',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'pricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'promisedSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+          {
+            name: 'reservedBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'proxiableUUID',
     inputs: [],
     outputs: [
@@ -565,39 +992,7 @@ const SPRegistryABI = [
         internalType: 'address',
       },
       {
-        name: 'capabilities',
-        type: 'tuple',
-        internalType: 'struct SLITypes.SLIThresholds',
-        components: [
-          {
-            name: 'retrievabilityBps',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'bandwidthMbps',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'latencyMs',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'indexingPct',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-        ],
-      },
-      {
         name: 'availableBytes',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'pricePerSectorPerMonth',
         type: 'uint256',
         internalType: 'uint256',
       },
@@ -605,16 +1000,6 @@ const SPRegistryABI = [
         name: 'payee',
         type: 'address',
         internalType: 'address',
-      },
-      {
-        name: 'minDealDurationDays',
-        type: 'uint32',
-        internalType: 'uint32',
-      },
-      {
-        name: 'maxDealDurationDays',
-        type: 'uint32',
-        internalType: 'uint32',
       },
     ],
     outputs: [],
@@ -634,6 +1019,11 @@ const SPRegistryABI = [
         type: 'uint256',
         internalType: 'uint256',
       },
+      {
+        name: 'manifestHash',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -651,6 +1041,11 @@ const SPRegistryABI = [
         name: 'sizeBytes',
         type: 'uint256',
         internalType: 'uint256',
+      },
+      {
+        name: 'manifestHash',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
     ],
     outputs: [],
@@ -676,6 +1071,295 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
+    name: 'reserveOfferForDeal',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'request',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.DealRequest',
+        components: [
+          {
+            name: 'manifestHash',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'requestedSizeBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'manifestLocation',
+            type: 'string',
+            internalType: 'string',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'durationDays',
+            type: 'uint32',
+            internalType: 'uint32',
+          },
+          {
+            name: 'dealType',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'requiredSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: 'selection',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.ProviderDealSelection',
+        components: [
+          {
+            name: 'provider',
+            type: 'uint64',
+            internalType: 'CommonTypes.FilActorId',
+          },
+          {
+            name: 'offerId',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'payee',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'pricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'promisedSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+          {
+            name: 'reservedBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'reserveProviderForDeal',
+    inputs: [
+      {
+        name: 'request',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.DealRequest',
+        components: [
+          {
+            name: 'manifestHash',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'requestedSizeBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'maxPricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'manifestLocation',
+            type: 'string',
+            internalType: 'string',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'durationDays',
+            type: 'uint32',
+            internalType: 'uint32',
+          },
+          {
+            name: 'dealType',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
+          {
+            name: 'requiredSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outputs: [
+      {
+        name: 'selection',
+        type: 'tuple',
+        internalType: 'struct SharedTypes.ProviderDealSelection',
+        components: [
+          {
+            name: 'provider',
+            type: 'uint64',
+            internalType: 'CommonTypes.FilActorId',
+          },
+          {
+            name: 'offerId',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'paymentToken',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'payee',
+            type: 'address',
+            internalType: 'address',
+          },
+          {
+            name: 'pricePer32GiBPerMonth',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+          {
+            name: 'promisedSLIs',
+            type: 'tuple',
+            internalType: 'struct SharedTypes.SLIThresholds',
+            components: [
+              {
+                name: 'retrievabilityBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'bandwidthBytesPerSecond',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+              {
+                name: 'latencyMs',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+              {
+                name: 'indexingPct',
+                type: 'uint8',
+                internalType: 'uint8',
+              },
+            ],
+          },
+          {
+            name: 'reservedBytes',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'revokeRole',
     inputs: [
       {
@@ -694,39 +1378,17 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
-    name: 'setCapabilities',
+    name: 'setOfferActive',
     inputs: [
       {
-        name: 'provider',
-        type: 'uint64',
-        internalType: 'CommonTypes.FilActorId',
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        name: 'capabilities',
-        type: 'tuple',
-        internalType: 'struct SLITypes.SLIThresholds',
-        components: [
-          {
-            name: 'retrievabilityBps',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'bandwidthMbps',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'latencyMs',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'indexingPct',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-        ],
+        name: 'active',
+        type: 'bool',
+        internalType: 'bool',
       },
     ],
     outputs: [],
@@ -734,22 +1396,27 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
-    name: 'setDealDurationLimits',
+    name: 'setOfferPayment',
     inputs: [
       {
-        name: 'provider',
-        type: 'uint64',
-        internalType: 'CommonTypes.FilActorId',
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        name: 'minDealDurationDays',
-        type: 'uint32',
-        internalType: 'uint32',
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        name: 'maxDealDurationDays',
-        type: 'uint32',
-        internalType: 'uint32',
+        name: 'active',
+        type: 'bool',
+        internalType: 'bool',
+      },
+      {
+        name: 'pricePer32GiBPerMonth',
+        type: 'uint256',
+        internalType: 'uint256',
       },
     ],
     outputs: [],
@@ -775,28 +1442,20 @@ const SPRegistryABI = [
   },
   {
     type: 'function',
-    name: 'setPrice',
+    name: 'setPaymentToken',
     inputs: [
       {
-        name: 'provider',
-        type: 'uint64',
-        internalType: 'CommonTypes.FilActorId',
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        name: 'pricePerSectorPerMonth',
-        type: 'uint256',
-        internalType: 'uint256',
+        name: 'allowed',
+        type: 'bool',
+        internalType: 'bool',
       },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'setToleranceBps',
-    inputs: [
       {
-        name: 'bps',
+        name: 'minPricePer32GiBPerMonth',
         type: 'uint256',
         internalType: 'uint256',
       },
@@ -906,47 +1565,6 @@ const SPRegistryABI = [
   },
   {
     type: 'event',
-    name: 'CapabilitiesUpdated',
-    inputs: [
-      {
-        name: 'provider',
-        type: 'uint64',
-        indexed: true,
-        internalType: 'CommonTypes.FilActorId',
-      },
-      {
-        name: 'capabilities',
-        type: 'tuple',
-        indexed: false,
-        internalType: 'struct SLITypes.SLIThresholds',
-        components: [
-          {
-            name: 'retrievabilityBps',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'bandwidthMbps',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'latencyMs',
-            type: 'uint16',
-            internalType: 'uint16',
-          },
-          {
-            name: 'indexingPct',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-        ],
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: 'event',
     name: 'CapacityCommitted',
     inputs: [
       {
@@ -985,31 +1603,6 @@ const SPRegistryABI = [
   },
   {
     type: 'event',
-    name: 'DealDurationLimitsUpdated',
-    inputs: [
-      {
-        name: 'provider',
-        type: 'uint64',
-        indexed: true,
-        internalType: 'CommonTypes.FilActorId',
-      },
-      {
-        name: 'minDealDurationDays',
-        type: 'uint32',
-        indexed: false,
-        internalType: 'uint32',
-      },
-      {
-        name: 'maxDealDurationDays',
-        type: 'uint32',
-        indexed: false,
-        internalType: 'uint32',
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: 'event',
     name: 'Initialized',
     inputs: [
       {
@@ -1023,13 +1616,106 @@ const SPRegistryABI = [
   },
   {
     type: 'event',
-    name: 'OrganizationAdded',
+    name: 'OfferActiveUpdated',
     inputs: [
       {
-        name: 'organization',
+        name: 'offerId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256',
+      },
+      {
+        name: 'active',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OfferCreated',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256',
+      },
+      {
+        name: 'provider',
+        type: 'uint64',
+        indexed: true,
+        internalType: 'CommonTypes.FilActorId',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OfferPaymentUpdated',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256',
+      },
+      {
+        name: 'token',
         type: 'address',
         indexed: true,
         internalType: 'address',
+      },
+      {
+        name: 'active',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
+      {
+        name: 'pricePer32GiBPerMonth',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OfferSelected',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        indexed: true,
+        internalType: 'uint256',
+      },
+      {
+        name: 'provider',
+        type: 'uint64',
+        indexed: true,
+        internalType: 'CommonTypes.FilActorId',
+      },
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'pricePer32GiBPerMonth',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
+      {
+        name: 'reservedBytes',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
     ],
     anonymous: false,
@@ -1055,6 +1741,31 @@ const SPRegistryABI = [
         type: 'address',
         indexed: true,
         internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'PaymentTokenUpdated',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'allowed',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
+      {
+        name: 'minPricePer32GiBPerMonth',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
     ],
     anonymous: false,
@@ -1090,31 +1801,6 @@ const SPRegistryABI = [
       },
       {
         name: 'sizeBytes',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: 'event',
-    name: 'PriceUpdated',
-    inputs: [
-      {
-        name: 'provider',
-        type: 'uint64',
-        indexed: true,
-        internalType: 'CommonTypes.FilActorId',
-      },
-      {
-        name: 'oldPrice',
-        type: 'uint256',
-        indexed: false,
-        internalType: 'uint256',
-      },
-      {
-        name: 'newPrice',
         type: 'uint256',
         indexed: false,
         internalType: 'uint256',
@@ -1270,25 +1956,6 @@ const SPRegistryABI = [
   },
   {
     type: 'event',
-    name: 'ToleranceBpsUpdated',
-    inputs: [
-      {
-        name: 'oldBps',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
-      },
-      {
-        name: 'newBps',
-        type: 'uint256',
-        indexed: true,
-        internalType: 'uint256',
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: 'event',
     name: 'Upgraded',
     inputs: [
       {
@@ -1325,27 +1992,6 @@ const SPRegistryABI = [
     type: 'error',
     name: 'ActorNotFound',
     inputs: [],
-  },
-  {
-    type: 'error',
-    name: 'ActualSizeExceedsTolerance',
-    inputs: [
-      {
-        name: 'provider',
-        type: 'uint64',
-        internalType: 'CommonTypes.FilActorId',
-      },
-      {
-        name: 'actualSize',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'maxAllowed',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
   },
   {
     type: 'error',
@@ -1402,22 +2048,6 @@ const SPRegistryABI = [
         name: 'availableBytes',
         type: 'uint256',
         internalType: 'uint256',
-      },
-    ],
-  },
-  {
-    type: 'error',
-    name: 'DurationExceedsProtocolMax',
-    inputs: [
-      {
-        name: 'durationDays',
-        type: 'uint32',
-        internalType: 'uint32',
-      },
-      {
-        name: 'maxDays',
-        type: 'uint32',
-        internalType: 'uint32',
       },
     ],
   },
@@ -1497,12 +2127,49 @@ const SPRegistryABI = [
   },
   {
     type: 'error',
+    name: 'InvalidOfferDurationBounds',
+    inputs: [
+      {
+        name: 'minDurationEpochs',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
+      {
+        name: 'maxDurationEpochs',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'InvalidOfferSizeBounds',
+    inputs: [
+      {
+        name: 'minSizeBytes',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'maxSizeBytes',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+  },
+  {
+    type: 'error',
     name: 'InvalidOrganizationAddress',
     inputs: [],
   },
   {
     type: 'error',
     name: 'InvalidPayeeAddress',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPaymentToken',
     inputs: [],
   },
   {
@@ -1544,19 +2211,8 @@ const SPRegistryABI = [
   },
   {
     type: 'error',
-    name: 'MinDurationExceedsMax',
-    inputs: [
-      {
-        name: 'minDays',
-        type: 'uint32',
-        internalType: 'uint32',
-      },
-      {
-        name: 'maxDays',
-        type: 'uint32',
-        internalType: 'uint32',
-      },
-    ],
+    name: 'NoOfferMatched',
+    inputs: [],
   },
   {
     type: 'error',
@@ -1603,6 +2259,65 @@ const SPRegistryABI = [
         name: 'provider',
         type: 'uint64',
         internalType: 'CommonTypes.FilActorId',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'OfferNotEligible',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'reason',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'OfferNotFound',
+    inputs: [
+      {
+        name: 'offerId',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'PaymentTokenNotAllowed',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'PriceBelowTokenMinimum',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'price',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'minimum',
+        type: 'uint256',
+        internalType: 'uint256',
       },
     ],
   },
@@ -1683,15 +2398,15 @@ const SPRegistryABI = [
   },
   {
     type: 'error',
-    name: 'ToleranceBpsTooHigh',
+    name: 'TooManyActiveOffers',
     inputs: [
       {
-        name: 'bps',
-        type: 'uint256',
-        internalType: 'uint256',
+        name: 'provider',
+        type: 'uint64',
+        internalType: 'CommonTypes.FilActorId',
       },
       {
-        name: 'maxBps',
+        name: 'maxOffers',
         type: 'uint256',
         internalType: 'uint256',
       },
