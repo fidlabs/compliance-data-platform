@@ -1,4 +1,4 @@
-name: Manually trigger deploy to staging, development or production
+name: Manually trigger deploy to development or production
 run-name: "Manually deploy ${{ github.ref_name }} triggered by ${{ github.actor }}; version: ${{ inputs.version }}"
 
 on:
@@ -13,10 +13,9 @@ on:
         description: "Select the environment to deploy to"
         type: choice
         options:
-          - staging
           - development
           - production
-        default: staging
+        default: development
 
 permissions:
   id-token: write
