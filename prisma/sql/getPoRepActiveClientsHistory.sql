@@ -2,9 +2,9 @@
 -- @param {Boolean} $2:testnet? TRUE if using Filecoin testnet
 -- @param {BigInt}  $3:providerId? Optional filter by Provider ID
 
--- Select distinct active clients count for each window. Client is considered 
--- active if they have at least one completed deal before or during
--- the window, that wasn't terminated before window start.
+-- Select distinct active clients count for each window. Client is considered
+-- active if they have at least one deal that went active before or during
+-- the window, that wasn't ended before window start.
 WITH constants AS (
     SELECT
         CASE
@@ -22,7 +22,7 @@ deal_bounds AS (
             'UTC',
             to_timestamp(
                 MIN(sc.changed_at_block) FILTER (
-                  WHERE sc.state = 'COMPLETED'
+                  WHERE sc.state = 'ACTIVE'
                 ) * 30 + c.genesis_ts
             )
         )
@@ -33,7 +33,7 @@ deal_bounds AS (
             'UTC',
             to_timestamp(
                 MIN(sc.changed_at_block) FILTER (
-                  WHERE sc.state = 'TERMINATED'
+                  WHERE sc.state IN ('FINALIZED', 'EXPIRED', 'EARLY_TERMINATED')
                 ) * 30 + c.genesis_ts
             )
         )
@@ -46,7 +46,7 @@ deal_bounds AS (
     OR d."providerId" = $3
   GROUP BY c.genesis_ts, d."dealId", d.client
   HAVING
-    COUNT(*) FILTER (WHERE sc.state = 'COMPLETED') > 0
+    COUNT(*) FILTER (WHERE sc.state = 'ACTIVE') > 0
 ),
 bounds AS (
     SELECT

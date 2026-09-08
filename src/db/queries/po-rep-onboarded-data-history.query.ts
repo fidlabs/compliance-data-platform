@@ -100,7 +100,7 @@ export function createPoRepOnboardedDataHistoryQuery(
         mapF0IdLike,
       ),
     )
-    .where('d.state', '=', PoRepDealState.COMPLETED)
+    .where('d.state', '=', PoRepDealState.ACTIVE)
     .groupBy('ra.activation_date_truncated');
 
   return qb

@@ -750,6 +750,7 @@ model po_rep_offer {
   createdAtBlock          BigInt
   provider                po_rep_storage_provider @relation(fields: [providerId], references: [providerId])
   payments                po_rep_offer_payment[]
+  deals                   po_rep_deal[]
 }
 
 model po_rep_offer_payment {
@@ -765,6 +766,7 @@ model po_rep_offer_payment {
 model po_rep_deal {
   dealId           BigInt                     @id
   providerId       BigInt
+  offerId          BigInt
   client           String
   state            PoRepDealState
   manifestLocation String
@@ -774,6 +776,7 @@ model po_rep_deal {
   requirements     po_rep_deal_requirements?
   terms            po_rep_deal_terms?
   provider         po_rep_storage_provider    @relation(fields: [providerId], references: [providerId])
+  offer            po_rep_offer               @relation(fields: [offerId], references: [offerId])
   stateChanges     po_rep_deal_state_change[]
 }
 

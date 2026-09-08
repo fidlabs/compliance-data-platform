@@ -266,7 +266,7 @@ export class PoRepController extends ControllerBase {
               deals: {
                 where: {
                   state: {
-                    in: [PoRepDealState.ACCEPTED, PoRepDealState.COMPLETED],
+                    in: [PoRepDealState.ACCEPTED, PoRepDealState.ACTIVE],
                   },
                 },
               },

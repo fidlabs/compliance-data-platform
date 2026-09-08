@@ -22,7 +22,7 @@ export function createPoRepProviderStorageStatisticsQuery(
       'totalDealSize',
       eb
         .and([
-          eb('d.state', '=', PoRepDealState.COMPLETED),
+          eb('d.state', '=', PoRepDealState.ACTIVE),
           eb('r.finalized', '=', false),
           eb('r.activatedAtBlock', '>', '0'),
         ])

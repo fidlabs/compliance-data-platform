@@ -8,6 +8,7 @@ import {
   isAddressEqual,
 } from 'viem';
 import FilecoinPayV1ABI from '../abis/filecoin-pay-v1-abi';
+import { PO_REP_ORIGIN_BLOCK } from '../po-rep-indexer.constants';
 import { AbstractPoRepIndexerRunner } from './abstract-po-rep-indexer.runner';
 
 type EventType = (typeof events)[number];
@@ -42,7 +43,7 @@ export class FilecoinPayIndexerRunner extends AbstractPoRepIndexerRunner<EventTy
   protected getOriginBlock(): bigint {
     // We only care about rails and payments created after the creation of
     // PoRep contracts
-    return 5934198n;
+    return PO_REP_ORIGIN_BLOCK;
   }
 
   protected getVersion(): number {

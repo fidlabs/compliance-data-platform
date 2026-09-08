@@ -11,6 +11,10 @@ export const ARCHIVE_NODE_CLIENT = 'PO_REP_ARCHIVE_NODE_CLIENT';
 export const PO_REP_MARKET_CONTRACT_ADDRESS_KEY =
   'PO_REP_MARKET_CONTRACT_ADDRESS';
 
+// Block in which PoRep v2 contracts were deployed. Nothing indexed by this
+// module exists before it, so every runner starts here.
+export const PO_REP_ORIGIN_BLOCK = 6340761n;
+
 export const PO_REP_SUPPORTED_CHAINS = [
   filecoin,
   filecoinCalibration,

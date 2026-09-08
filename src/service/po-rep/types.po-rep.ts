@@ -136,7 +136,7 @@ export class PoRepDealsListParameters extends PaginationParameters {
 
   @ApiPropertyOptional({
     description: `Set to true to show active deals only. Deal is considered 
-      active when it's in ${PoRepDealState.COMPLETED} state and it's payment 
+      active when it's in ${PoRepDealState.ACTIVE} state and it's payment
       rail is in ${DealRailState.ACTIVE} or ${DealRailState.TERMINATED} state.`,
     required: false,
   })
@@ -193,9 +193,9 @@ export class PoRepDeal {
       any storage provider\n
       - ${PoRepDealState.ACCEPTED} - deal was accepted but client needs to 
       prepare deal data\n
-      - ${PoRepDealState.COMPLETED} - deal is active or storage provider is 
+      - ${PoRepDealState.ACTIVE} - deal is active or storage provider is
       onboarding deal data\n
-      - ${PoRepDealState.TERMINATED} - deal was terminated\n
+      - ${PoRepDealState.EARLY_TERMINATED} - deal was terminated\n
       - ${PoRepDealState.REJECTED} - deal was rejected
     `,
     enum: PoRepDealState,
@@ -224,8 +224,8 @@ export class PoRepDeal {
   railState: DealRailState | null;
 
   @ApiProperty({
-    description: `Deal is considered active when it's in 
-      ${PoRepDealState.COMPLETED} state and it's payment rail is in 
+    description: `Deal is considered active when it's in
+      ${PoRepDealState.ACTIVE} state and it's payment rail is in
       ${DealRailState.ACTIVE} or ${DealRailState.TERMINATED} state.`,
   })
   active: boolean;
@@ -440,7 +440,7 @@ export class PoRepProviderComplianceStatistics {
   totalDealsCount: number;
 
   @ApiProperty({
-    description: `Number of deals that are in state "COMPLETED" and have active
+    description: `Number of deals that are in state "ACTIVE" and have active
       payment rail.`,
   })
   activeDealsCount: number;
@@ -677,8 +677,8 @@ export class PoRepProviderStorageStatistics {
   totalDealsCount: number;
 
   @ApiProperty({
-    description: `Number of deals that are in state 
-      "${PoRepDealState.COMPLETED}" and have active payment rail.`,
+    description: `Number of deals that are in state
+      "${PoRepDealState.ACTIVE}" and have active payment rail.`,
   })
   onboardedDealsCount: number;
 
@@ -698,8 +698,8 @@ export class PoRepProviderStorageStatistics {
   committedBytes: bigint;
 
   @ApiProperty({
-    description: `Space in bytes in active deals (deals with 
-      "${PoRepDealState.COMPLETED}") state and with active payment rail)`,
+    description: `Space in bytes in active deals (deals with
+      "${PoRepDealState.ACTIVE}") state and with active payment rail)`,
   })
   onboardedBytes: bigint;
 }

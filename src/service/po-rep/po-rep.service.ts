@@ -210,7 +210,7 @@ export class PoRepService {
     const partialStats = providerDeals.data.reduce<PartialStats>(
       (currentResult, deal) => {
         const dealActive =
-          deal.dealState === PoRepDealState.COMPLETED &&
+          deal.dealState === PoRepDealState.ACTIVE &&
           (deal.railState === DealRailState.ACTIVE ||
             deal.railState === DealRailState.TERMINATED);
 
@@ -530,7 +530,7 @@ export class PoRepService {
     return this.prismaService.po_rep_deal.findMany({
       where: {
         state: {
-          in: [PoRepDealState.COMPLETED, PoRepDealState.ACCEPTED],
+          in: [PoRepDealState.ACTIVE, PoRepDealState.ACCEPTED],
         },
         railId: {
           not: null,

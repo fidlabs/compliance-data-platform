@@ -63,7 +63,7 @@ export function createPoRepDealsQuery(
           'r.rail_activated_at_epoch',
           eb
             .and([
-              eb(eb.ref('state'), '=', PoRepDealState.COMPLETED),
+              eb(eb.ref('state'), '=', PoRepDealState.ACTIVE),
               eb.or([
                 eb(eb.ref('r.rail_state'), '=', 'active'),
                 eb(eb.ref('r.rail_state'), '=', 'terminated'),
@@ -85,9 +85,18 @@ export function createPoRepDealsQuery(
             .as('min_required_retrievability'),
           eb
             .case()
-            .when('dr.bandwidthMbps', '=', 0)
+            .when('dr.bandwidthBytesPerSecond', '=', '0')
             .then(null)
-            .else(eb.ref('dr.bandwidthMbps'))
+            .else(
+              eb(
+                eb.cast<number | string>(
+                  'dr.bandwidthBytesPerSecond',
+                  'decimal',
+                ),
+                '/',
+                125000,
+              ),
+            )
             .end()
             .as('min_required_bandwidth_mbps'),
           eb

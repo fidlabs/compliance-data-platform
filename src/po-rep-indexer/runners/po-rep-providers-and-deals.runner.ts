@@ -1,4 +1,4 @@
-import { groupBy, last } from 'lodash';
+import { groupBy, last, uniqBy } from 'lodash';
 import { PoRepDealState, Prisma, PrismaPromise } from 'prisma/generated/client';
 import { mergeBigIntFieldUpdate } from 'src/utils/prisma';
 import {
@@ -10,11 +10,23 @@ import {
 } from 'viem';
 import PoRepMarketABI from '../abis/po-rep-market.abi';
 import SPRegistryABI from '../abis/sp-registry.abi';
+import { PO_REP_ORIGIN_BLOCK } from '../po-rep-indexer.constants';
 import { AbstractPoRepIndexerRunner } from './abstract-po-rep-indexer.runner';
 
 const EPOCHS_IN_DAY = 2880n;
 
+const dealStateByContractValue: Record<number, PoRepDealState> = {
+  10: PoRepDealState.PROPOSED,
+  20: PoRepDealState.ACCEPTED,
+  30: PoRepDealState.ACTIVE,
+  40: PoRepDealState.FINALIZED,
+  50: PoRepDealState.REJECTED,
+  60: PoRepDealState.EXPIRED,
+  70: PoRepDealState.EARLY_TERMINATED,
+};
+
 type EventType = (typeof events)[number];
+type TerminatedDealsStates = Map<string, PoRepDealState>;
 type ProviderCreationInput = Prisma.po_rep_storage_providerCreateManyInput;
 type ProviderCapabilitiesCreationInput =
   Prisma.po_rep_storage_provider_capabilitiesCreateManyInput;
@@ -104,7 +116,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
   }
 
   protected getOriginBlock(): bigint {
-    return 6256576n;
+    return PO_REP_ORIGIN_BLOCK;
   }
 
   protected getVersion(): number {
@@ -142,8 +154,12 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
   protected async prepareUpdates(
     logs: Logs,
   ): Promise<PrismaPromise<unknown>[]> {
-    const dealsCreations = await this.prepareDealsCreations(logs);
-    const offersCreations = await this.prepareOffersCreations(logs);
+    const [dealsCreations, offersCreations, terminatedDealsStates] =
+      await Promise.all([
+        this.prepareDealsCreations(logs),
+        this.prepareOffersCreations(logs),
+        this.resolveTerminatedDealsStates(logs),
+      ]);
 
     return [
       ...this.prepareProvidersCreations(logs),
@@ -151,8 +167,8 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       ...offersCreations,
       ...this.prepareOffersUpdates(logs),
       ...dealsCreations,
-      ...this.prepareDealsUpdates(logs),
-      ...this.prepareDealStateChangeCreations(logs),
+      ...this.prepareDealsUpdates(logs, terminatedDealsStates),
+      ...this.prepareDealStateChangeCreations(logs, terminatedDealsStates),
     ];
   }
 
@@ -199,9 +215,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
           log.address,
           this.configService.get('SP_REGISTRY_CONTRACT_ADDRESS'),
         ) &&
-        (providerScopedEventNames as readonly string[]).includes(
-          log.eventName,
-        )
+        (providerScopedEventNames as readonly string[]).includes(log.eventName)
       );
     });
 
@@ -369,9 +383,16 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       return [];
     }
 
-    const dealsPaymentAndTerms = await Promise.all(
+    const dealsOnChainData = await Promise.all(
       dealCreatedLogs.map(async (log) => {
-        const [terms, payment] = await Promise.all([
+        const [deal, terms, payment] = await Promise.all([
+          this.recentNodeClient.readContract({
+            address: this.configService.get('PO_REP_MARKET_CONTRACT_ADDRESS'),
+            abi: PoRepMarketABI,
+            functionName: 'getDeal',
+            args: [log.args.dealId],
+            authorizationList: undefined,
+          }),
           this.recentNodeClient.readContract({
             address: this.configService.get('PO_REP_MARKET_CONTRACT_ADDRESS'),
             abi: PoRepMarketABI,
@@ -388,18 +409,19 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
           }),
         ]);
 
-        return [log.args.dealId, terms, payment] as const;
+        return [log, deal, terms, payment] as const;
       }),
     );
 
     return [
       this.prismaService.po_rep_deal.createMany({
-        data: dealCreatedLogs.map<DealCreationInput>((log) => {
+        data: dealsOnChainData.map<DealCreationInput>(([log, deal]) => {
           return {
             dealId: log.args.dealId,
             providerId: log.args.provider,
+            offerId: deal.offerId,
             client: log.args.client,
-            state: PoRepDealState.PROPOSED,
+            state: PoRepDealState.ACCEPTED,
             manifestLocation: log.args.manifestLocation,
             totalDealSize: log.args.totalDealSize,
             proposedAtBlock: log.args.proposedAtBlock,
@@ -415,10 +437,10 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
         }),
       }),
       this.prismaService.po_rep_deal_terms.createMany({
-        data: dealsPaymentAndTerms.map<DealTermsCreationInput>(
-          ([dealId, terms, payment]) => {
+        data: dealsOnChainData.map<DealTermsCreationInput>(
+          ([log, , terms, payment]) => {
             return {
-              deal_id: dealId,
+              deal_id: log.args.dealId,
               deal_size_bytes: terms.requestedSizeBytes,
               price_per_sector_per_month:
                 payment.pricePer32GiBPerMonth.toString(),
@@ -430,7 +452,58 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
     ];
   }
 
-  private prepareDealsUpdates(logs: Logs): PrismaPromise<unknown>[] {
+  private async resolveTerminatedDealsStates(
+    logs: Logs,
+  ): Promise<TerminatedDealsStates> {
+    const terminatedLogs = logs
+      .filter((log) => {
+        return isAddressEqual(
+          log.address,
+          this.configService.get('PO_REP_MARKET_CONTRACT_ADDRESS'),
+        );
+      })
+      .filter((log) => {
+        return log.eventName === 'DealTerminated';
+      });
+
+    if (terminatedLogs.length === 0) {
+      return new Map();
+    }
+
+    const deals = await Promise.all(
+      uniqBy(terminatedLogs, (log) => log.args.dealId.toString()).map((log) => {
+        return this.recentNodeClient.readContract({
+          address: this.configService.get('PO_REP_MARKET_CONTRACT_ADDRESS'),
+          abi: PoRepMarketABI,
+          functionName: 'getDeal',
+          args: [log.args.dealId],
+          authorizationList: undefined,
+        });
+      }),
+    );
+
+    return new Map(
+      deals.map((deal) => {
+        const state = dealStateByContractValue[deal.state];
+
+        if (!state) {
+          this.logger.warn(
+            `Unknown state "${deal.state}" of terminated deal ${deal.dealId.toString()}, assuming ${PoRepDealState.EARLY_TERMINATED}`,
+          );
+        }
+
+        return [
+          deal.dealId.toString(),
+          state ?? PoRepDealState.EARLY_TERMINATED,
+        ];
+      }),
+    );
+  }
+
+  private prepareDealsUpdates(
+    logs: Logs,
+    terminatedDealsStates: TerminatedDealsStates,
+  ): PrismaPromise<unknown>[] {
     const poRepMarketLogs = logs.filter((log): log is PoRepMarketLog => {
       return (
         isAddressEqual(
@@ -453,7 +526,13 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
 
     return Object.entries(logsGroupedByDeal).map(([dealId, logsForDeal]) => {
       return this.prismaService.po_rep_deal.update({
-        data: logsForDeal.reduce(this.logToDealUpdateInput, {}),
+        data: logsForDeal.reduce<DealUpdateInput>((updateInput, log) => {
+          return this.logToDealUpdateInput(
+            updateInput,
+            log,
+            terminatedDealsStates,
+          );
+        }, {}),
         where: {
           dealId: BigInt(dealId),
         },
@@ -463,6 +542,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
 
   private prepareDealStateChangeCreations(
     logs: Logs,
+    terminatedDealsStates: TerminatedDealsStates,
   ): PrismaPromise<unknown>[] {
     const stateChangeLogs = logs
       .filter((log) => {
@@ -489,7 +569,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       this.prismaService.po_rep_deal_state_change.createMany({
         data: stateChangeLogs.reduce<DealStateChangeCreationInput[]>(
           (result, log) => {
-            const state = this.eventNameToDealState(log.eventName);
+            const state = this.logToDealState(log, terminatedDealsStates);
 
             if (state === null) {
               return result;
@@ -593,6 +673,7 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
   private logToDealUpdateInput(
     previousUpdateInput: DealUpdateInput,
     log: Log,
+    terminatedDealsStates: TerminatedDealsStates,
   ): DealUpdateInput {
     switch (log.eventName) {
       case 'DealAccepted':
@@ -623,7 +704,9 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       case 'DealTerminated':
         return {
           ...previousUpdateInput,
-          state: PoRepDealState.EARLY_TERMINATED,
+          state:
+            terminatedDealsStates.get(log.args.dealId.toString()) ??
+            PoRepDealState.EARLY_TERMINATED,
         };
       case 'ManifestLocationUpdated':
         return {
@@ -635,10 +718,11 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
     }
   }
 
-  private eventNameToDealState(
-    eventName: Log['eventName'],
+  private logToDealState(
+    log: Log,
+    terminatedDealsStates: TerminatedDealsStates,
   ): PoRepDealState | null {
-    switch (eventName) {
+    switch (log.eventName) {
       case 'DealRejected':
         return PoRepDealState.REJECTED;
       case 'DealAccepted':
@@ -648,7 +732,10 @@ export class PoRepProvidersAndDealsIndexerRunner extends AbstractPoRepIndexerRun
       case 'DealFinalized':
         return PoRepDealState.FINALIZED;
       case 'DealTerminated':
-        return PoRepDealState.EARLY_TERMINATED;
+        return (
+          terminatedDealsStates.get(log.args.dealId.toString()) ??
+          PoRepDealState.EARLY_TERMINATED
+        );
       default:
         return null;
     }

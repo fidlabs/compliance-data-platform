@@ -50,7 +50,7 @@ deals_info AS (
         d."providerId" AS provider_id,
         d."totalDealSize" AS total_deal_size,
         dr."retrievabilityBps"::DECIMAL / 10000 AS min_retrievability,
-        dr."bandwidthMbps" AS min_bandwidth_mbps,
+        dr."bandwidthBytesPerSecond"::DECIMAL / 125000 AS min_bandwidth_mbps,
         dr."latencyMs" AS max_latency_ms,
         date_trunc(
             $1,
@@ -73,7 +73,7 @@ deals_info AS (
         SELECT MIN(changed_at_block) AS end_block
         FROM po_rep_deal_state_change dsc
         WHERE dsc.deal_id = d."dealId"
-        AND dsc.state IN ('REJECTED', 'TERMINATED')
+        AND dsc.state IN ('REJECTED', 'EXPIRED', 'EARLY_TERMINATED', 'FINALIZED')
     ) AS es ON TRUE
     WHERE r."activatedAtBlock" > 0
         AND ($4::BIGINT IS NULL OR d."providerId" = $4)
