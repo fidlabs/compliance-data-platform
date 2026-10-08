@@ -295,6 +295,9 @@ model client_report {
   total_requested_amount          BigInt?
   expected_size_of_single_dataset BigInt?
   total_uniq_data_set_size        BigInt?
+
+  @@index([client, create_date(sort: Desc)])
+  @@index([client_address, create_date(sort: Desc)])
 }
 
 enum StorageProviderIpniReportingStatus {
@@ -323,6 +326,9 @@ model client_report_storage_provider_distribution {
   inconsistent_retrievability            Float?
   ttfb                                   Float?
   bandwidth                              Float?
+
+  @@index([client_report_id], map: "client_report_sp_dist_report_idx")
+  @@index([client_report_id, total_deal_size(sort: Desc)], map: "client_report_sp_dist_report_total_size_idx")
 }
 
 model client_report_storage_provider_distribution_location {
@@ -348,6 +354,8 @@ model client_report_replica_distribution {
   total_deal_size  BigInt
   unique_data_size BigInt
   percentage       Float
+
+  @@index([client_report_id])
 }
 
 model client_report_cid_sharing {
@@ -358,6 +366,8 @@ model client_report_cid_sharing {
   other_client_application_url String?
   total_deal_size              BigInt
   unique_cid_count             Int
+
+  @@index([client_report_id])
 }
 
 model client_report_check_result {
@@ -371,6 +381,7 @@ model client_report_check_result {
 
   @@unique([check, client_report_id])
   @@index([client_report_id, create_date])
+  @@index([create_date, client_report_id, result])
 }
 
 model allocator_report {
@@ -395,6 +406,9 @@ model allocator_report {
   check_results                              allocator_report_check_result[]
   scoring_results                            allocator_report_scoring_result[]
   all_allocators_score_avg                   Float?
+
+  @@index([allocator, create_date(sort: Desc)])
+  @@index([address, create_date(sort: Desc)])
 }
 
 model allocator_report_client {
@@ -416,6 +430,8 @@ model allocator_report_client {
   total_uniq_data_set_size        BigInt?
   last_datacap_spent              DateTime?
   last_datacap_received           DateTime?
+
+  @@index([allocator_report_id, client_id])
 }
 
 model allocator_report_client_replica_distribution {
@@ -426,6 +442,8 @@ model allocator_report_client_replica_distribution {
   percentage                Float
   allocator_report_client   allocator_report_client? @relation(fields: [allocator_report_clientId], references: [id])
   allocator_report_clientId String?                  @db.Uuid
+
+  @@index([allocator_report_clientId])
 }
 
 model allocator_report_client_cid_sharing {
@@ -436,6 +454,8 @@ model allocator_report_client_cid_sharing {
   other_client_application_url String?
   total_deal_size              BigInt
   unique_cid_count             Int
+
+  @@index([allocator_report_clientId])
 }
 
 model allocator_report_client_allocation {
@@ -445,6 +465,8 @@ model allocator_report_client_allocation {
   client_id           String
   allocation          BigInt
   timestamp           DateTime
+
+  @@index([allocator_report_id, client_id, timestamp])
 }
 
 model allocator_report_storage_provider_distribution {
@@ -466,6 +488,9 @@ model allocator_report_storage_provider_distribution {
   inconsistent_retrievability            Float?
   ttfb                                   Float?
   bandwidth                              Float?
+
+  @@index([allocator_report_id], map: "allocator_report_sp_dist_report_idx")
+  @@index([allocator_report_id, perc_of_total_datacap(sort: Desc)], map: "allocator_report_sp_dist_report_datacap_idx")
 }
 
 model allocator_report_storage_provider_distribution_location {
@@ -495,6 +520,7 @@ model allocator_report_check_result {
   metadata            Json?
 
   @@unique([check, allocator_report_id])
+  @@index([allocator_report_id])
 }
 
 model allocator_report_scoring_result {
@@ -515,6 +541,7 @@ model allocator_report_scoring_result {
   ranges              allocator_report_scoring_result_range[]
 
   @@unique([metric, allocator_report_id])
+  @@index([allocator_report_id])
 }
 
 model allocator_report_scoring_result_range {
@@ -524,6 +551,8 @@ model allocator_report_scoring_result_range {
   metric_value_min  Float?
   metric_value_max  Float?
   score             Int
+
+  @@index([scoring_result_id])
 }
 
 model ipni_publisher_advertisement {
