@@ -322,13 +322,6 @@ export class AllocatorReportService {
           },
           ...clientPagination,
         },
-        client_allocations: {
-          omit: {
-            id: true,
-            allocator_report_id: true,
-          },
-          orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }],
-        },
         storage_provider_distribution: {
           omit: {
             id: true,
@@ -375,6 +368,8 @@ export class AllocatorReportService {
       },
     });
 
+    const reportClientIds = report?.clients?.map((client) => client.client_id);
+
     const [reportClientsTotal, reportStorageProviderTotal] = await Promise.all([
       this.prismaService.allocator_report_client.count({
         where: {
@@ -388,19 +383,42 @@ export class AllocatorReportService {
       }),
     ]);
 
+    const clientAllocations = reportClientIds?.length
+      ? await this.prismaService.allocator_report_client_allocation.findMany({
+          where: {
+            allocator_report_id: report.id,
+            client_id: {
+              in: reportClientIds,
+            },
+          },
+          omit: {
+            id: true,
+            allocator_report_id: true,
+          },
+          orderBy: [{ client_id: 'asc' }, { timestamp: 'asc' }],
+        })
+      : [];
+
+    const allocationsByClient = new Map<string, typeof clientAllocations>();
+
+    for (const allocation of clientAllocations) {
+      const allocations = allocationsByClient.get(allocation.client_id) ?? [];
+      allocations.push(allocation);
+      allocationsByClient.set(allocation.client_id, allocations);
+    }
+
     return (
       report && {
         ...report,
         clients: report.clients?.map((client) => ({
           ...client,
-          allocations: report.client_allocations
-            ?.filter((allocation) => allocation.client_id === client.client_id)
+          allocations: allocationsByClient
+            .get(client.client_id)
             ?.map((allocation) => ({
               ...allocation,
               client_id: undefined,
             })),
         })),
-        client_allocations: undefined,
         clients_total: reportClientsTotal,
         storage_provider_distribution_total: reportStorageProviderTotal,
       }
