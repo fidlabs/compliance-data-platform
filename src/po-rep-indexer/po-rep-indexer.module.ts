@@ -2,6 +2,7 @@ import { FactoryProvider, Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
 import { PrismaService } from '../db/prisma.service';
+import { DealManifestService } from './deal-manifest.service';
 import {
   ARCHIVE_NODE_CLIENT,
   RECENT_NODE_CLIENT,
@@ -15,9 +16,6 @@ import {
   validatePoRepConfig,
 } from './po-rep-indexer.utils';
 import { AbstractPoRepIndexerRunner } from './runners/abstract-po-rep-indexer.runner';
-import { FilecoinPayIndexerRunner } from './runners/filecoin-pay-indexer.runner';
-import { PoRepProvidersAndDealsIndexerRunner } from './runners/po-rep-providers-and-deals.runner';
-import { DealManifestService } from './deal-manifest.service';
 
 const recentNodeClient: FactoryProvider<PoRepPublicClient> = {
   provide: RECENT_NODE_CLIENT,
@@ -52,8 +50,8 @@ const archiveNodeClient: FactoryProvider<PoRepPublicClient> = {
   ],
   providers: [
     PrismaService,
-    PoRepProvidersAndDealsIndexerRunner,
-    FilecoinPayIndexerRunner,
+    // PoRepProvidersAndDealsIndexerRunner,
+    // FilecoinPayIndexerRunner,
     recentNodeClient,
     archiveNodeClient,
     DealManifestService,
