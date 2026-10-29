@@ -161,10 +161,10 @@ export class AppController extends HealthIndicator {
         connection: this.postgresService.pool,
         timeout: 5000,
       }),
-      // () => this.typeOrmHealthIndicator.pingCheck('database-dmob', {
-      //   connection: this.postgresDmobService.pool,
-      //   timeout: 5000,
-      // }),
+      () => this.typeOrmHealthIndicator.pingCheck('database-dmob', {
+        connection: this.postgresDmobService.pool,
+        timeout: 5000,
+      }),
       () => this.aggregationTasksService.getHealth(),
       () => this.clientReportGeneratorJobService.getHealth(),
       () => this.allocatorReportGeneratorJobService.getHealth(),
