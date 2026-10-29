@@ -77,7 +77,6 @@ export class AllocatorReportGeneratorJobService extends HealthIndicator {
     return { reports: allocatorsAddresses.length, fails: fails };
   }
 
-  // @Cron(CronExpression.EVERY_DAY_AT_6AM)
   public async runAllocatorReportGenerationJob() {
     try {
       this.logger.log('Starting allocator reports generation');
