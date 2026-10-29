@@ -1,16 +1,15 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { DateTime } from 'luxon';
 import { PrismaPromise } from 'prisma/generated/client';
 import { PrismaService } from 'src/db/prisma.service';
 import { AbiEvent, Address, GetLogsReturnType, Log } from 'viem';
+import { DealManifestService } from '../deal-manifest.service';
 import {
   ARCHIVE_NODE_CLIENT,
   RECENT_NODE_CLIENT,
 } from '../po-rep-indexer.constants';
 import { PoRepConfig, PoRepPublicClient } from '../po-rep-indexer.types';
-import { DealManifestService } from '../deal-manifest.service';
 
 @Injectable()
 export abstract class AbstractPoRepIndexerRunner<
@@ -58,8 +57,6 @@ export abstract class AbstractPoRepIndexerRunner<
     this.logger = new Logger(this.getName());
   }
 
-  // Run every hour by default. Override it with different decorator to change.
-  @Cron(CronExpression.EVERY_HOUR)
   public async execute() {
     this.logger.log('Starting indexing');
 
@@ -147,9 +144,7 @@ export abstract class AbstractPoRepIndexerRunner<
       );
       this.isRunning = false;
 
-      // keep indexing if we havent synced up
       if (keepRunning) {
-        this.execute();
       }
     } catch (error) {
       this.isRunning = false;
