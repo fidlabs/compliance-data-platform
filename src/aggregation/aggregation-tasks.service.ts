@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   HealthCheckError,
   HealthIndicator,
@@ -17,11 +16,11 @@ import { GitHubAllocatorRegistryService } from '../service/github-allocator-regi
 import { IpniMisreportingCheckerService } from '../service/ipni-misreporting-checker/ipni-misreporting-checker.service';
 import { LocationService } from '../service/location/location.service';
 import { LotusApiService } from '../service/lotus-api/lotus-api.service';
+import { PoRepService } from '../service/po-rep/po-rep.service';
 import { StorageProviderUrlFinderService } from '../service/storage-provider-url-finder/storage-provider-url-finder.service';
 import { StorageProviderService } from '../service/storage-provider/storage-provider.service';
 import { AggregationRunner } from './aggregation-runner';
 import { AggregationTable } from './aggregation-table';
-import { PoRepService } from '../service/po-rep/po-rep.service';
 
 @Injectable()
 export class AggregationTasksService extends HealthIndicator {
@@ -64,7 +63,6 @@ export class AggregationTasksService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
   public async runAggregationJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
@@ -75,8 +73,6 @@ export class AggregationTasksService extends HealthIndicator {
         this.logger.log('Starting aggregations');
         this.lastRun = new Date();
         this.healthy = true;
-
-        //await this.runAggregations();
 
         this.lastSuccess = new Date();
         this.logger.log('Finished aggregations');
