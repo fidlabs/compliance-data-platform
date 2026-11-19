@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   HealthCheckError,
   HealthIndicator,
@@ -42,7 +41,6 @@ export class StorageProviderUrlFinderSnapshotMetricService extends HealthIndicat
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   public async fetchLastMetricSnapshotForStorageProviders() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
