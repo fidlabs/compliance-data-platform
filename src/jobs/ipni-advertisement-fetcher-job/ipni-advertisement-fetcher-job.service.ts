@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   HealthCheckError,
   HealthIndicator,
@@ -36,7 +35,6 @@ export class IpniAdvertisementFetcherJobService extends HealthIndicator {
     throw new HealthCheckError('Healthcheck failed', result);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_8PM)
   public async runIPNIAdvertisementFetcherJob() {
     if (!this.jobInProgress) {
       this.jobInProgress = true;
