@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpStatus,
   Inject,
   Logger,
@@ -9,7 +10,11 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  RawBodyRequest,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ClientReportService } from 'src/service/client-report/client-report.service';
 import {
   ApiCreatedResponse,
@@ -33,7 +38,20 @@ export class ClientReportController {
 
   @Post('/gh-trigger')
   @ApiExcludeEndpoint()
-  public async gitHubTrigger(@Body() body: any) {
+  public async gitHubTrigger(
+    @Req() request: RawBodyRequest<Request>,
+    @Headers('x-hub-signature-256') signature: string | undefined,
+    @Body() body: any,
+  ) {
+    if (
+      !this.gitHubTriggersHandlerService.isValidSignature(
+        request.rawBody,
+        signature,
+      )
+    ) {
+      throw new UnauthorizedException();
+    }
+
     await this.gitHubTriggersHandlerService.handleTrigger(body);
   }
 
