@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { GitHubIssueParserService } from '../github-issue-parser/github-issue-parser.service';
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
@@ -39,6 +40,25 @@ export class GitHubTriggersHandlerService extends HealthIndicator {
 
     if (this.healthy) return result;
     throw new HealthCheckError('Healthcheck failed', result);
+  }
+
+  // verifies GitHub's X-Hub-Signature-256 header; rejects everything if GITHUB_WEBHOOK_SECRET is not set
+  public isValidSignature(
+    rawBody: Buffer | undefined,
+    signature: string | undefined,
+  ): boolean {
+    const secret = this.configService.get<string>('GITHUB_WEBHOOK_SECRET');
+    if (!secret || !rawBody || !signature) return false;
+
+    const expected = Buffer.from(
+      `sha256=${createHmac('sha256', secret).update(rawBody).digest('hex')}`,
+    );
+
+    const actual = Buffer.from(signature);
+
+    return (
+      actual.length === expected.length && timingSafeEqual(actual, expected)
+    );
   }
 
   public async handleTrigger(context: any) {
